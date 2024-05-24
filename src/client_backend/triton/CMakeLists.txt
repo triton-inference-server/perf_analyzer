@@ -50,6 +50,18 @@ add_library(
     ${TRITON_CLIENT_BACKEND_HDRS}
 )
 
+target_include_directories(
+  triton-client-backend-library
+  PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include
+)
+
+target_link_directories(
+  triton-client-backend-library
+  PUBLIC
+    ${CMAKE_INSTALL_PREFIX}/lib 
+)
+
 target_link_libraries(
   triton-client-backend-library
   PUBLIC grpcclient_static

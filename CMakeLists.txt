@@ -26,7 +26,7 @@
 
 cmake_minimum_required(VERSION 3.17)
 
-project(perf-analyzer LANGUAGES C CXX)
+project(perf_analyzer LANGUAGES C CXX)
 
 # Use C++17 standard as Triton's minimum required.
 set(TRITON_MIN_CXX_STANDARD 17 CACHE STRING "The minimum C++ standard which features are requested to build this target.")
@@ -64,9 +64,7 @@ set(TRITON_CLIENT_REPO_TAG "fpetrini-migrate-pa" CACHE STRING "Tag for triton-in
 #
 # Install locations
 #
-set(TRITON_THIRD_PARTY_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/cc_clients/src/cc_clients-build/third-party/" CACHE STRING "Location of third-party build")
-# If install prefix is default, it will install files deep in the build tree
-set(CMAKE_INSTALL_PREFIX "/opt/tritonserver/" CACHE STRING "Triton clients install location")
+set(TRITON_THIRD_PARTY_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/cc_clients/src/cc-clients-build/third-party/" CACHE STRING "Location of third-party build")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -86,7 +84,7 @@ endif()
 #
 include(ExternalProject)
 ExternalProject_Add(
-  cc_clients
+  cc-clients
   PREFIX ${CMAKE_BINARY_DIR}/cc_clients
   GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/client.git
   GIT_TAG ${TRITON_CLIENT_REPO_TAG}
@@ -112,10 +110,10 @@ ExternalProject_Add(
 )
 
 ExternalProject_Add(
-  perf_analyzer
+  perf-analyzer
   PREFIX ${CMAKE_BINARY_DIR}/perf_analyzer
   SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
-  BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/perf_analyzer
+  #BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/perf_analyzer
   CMAKE_CACHE_ARGS
       ${_CMAKE_ARGS_OPENSSL_ROOT_DIR}
       ${_CMAKE_ARGS_CMAKE_TOOLCHAIN_FILE}
@@ -134,7 +132,7 @@ ExternalProject_Add(
       -DTRITON_THIRD_PARTY_INSTALL_PREFIX:STRING=${TRITON_THIRD_PARTY_INSTALL_PREFIX}
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
       -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
-  DEPENDS cc_clients
+  DEPENDS cc-clients
 )
 
 # FIXME: This is a WAR for now. We shouldn't have to re-clone the client repo
@@ -145,7 +143,7 @@ ExternalProject_Add(
 # so that it can be packaged in the python client pip wheel.
 if(TRITON_ENABLE_PYTHON_HTTP OR TRITON_ENABLE_PYTHON_GRPC)
   ExternalProject_Add(
-    python_clients
+    python-clients
     PREFIX ${CMAKE_BINARY_DIR}/python_clients
     GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/client.git
     GIT_TAG ${TRITON_CLIENT_REPO_TAG}
@@ -169,7 +167,7 @@ if(TRITON_ENABLE_PYTHON_HTTP OR TRITON_ENABLE_PYTHON_GRPC)
         -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
         -DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}
     INSTALL_COMMAND ""
-    DEPENDS perf_analyzer
+    DEPENDS perf-analyzer
 )
 endif()
 

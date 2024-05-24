@@ -109,12 +109,15 @@ add_library(
 
 target_include_directories(tfs-client-backend-library PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/compiled)
 
+# Include header files installed by CC client
+target_include_directories(
+  tfs-client-backend-library
+  PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include
+)
+
 target_link_libraries(
   tfs-client-backend-library
-  PUBLIC grpcclient_static
-  PUBLIC gRPC::grpc++
-  PUBLIC gRPC::grpc
-  PUBLIC protobuf::libprotobuf
 )
 
 if(${TRITON_ENABLE_GPU})

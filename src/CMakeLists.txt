@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.18)
 
-project(pef_analyzer LANGUAGES C CXX)
+project(perf-analyzer LANGUAGES C CXX)
 
 #
 # Perf Analyzer Options

@@ -46,6 +46,13 @@ add_library(
     ${TS_CLIENT_BACKEND_HDRS}
 )
 
+# Include header files installed by CC client
+target_include_directories(
+  ts-client-backend-library
+  PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include
+)
+
 target_link_libraries(
   ts-client-backend-library
   PUBLIC CURL::libcurl
