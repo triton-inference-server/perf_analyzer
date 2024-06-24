@@ -24,15 +24,26 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-DEFAULT_HTTP_URL = "localhost:8000"
-DEFAULT_GRPC_URL = "localhost:8001"
+from argparse import Namespace
+from pathlib import Path
+
+import pytest
+from genai_perf.main import create_artifacts_dirs
 
 
-OPEN_ORCA = "openorca"
-CNN_DAILY_MAIL = "cnn_dailymail"
-DEFAULT_INPUT_DATA_JSON = "llm_inputs.json"
+@pytest.fixture
+def mock_makedirs(mocker):
+    return mocker.patch("os.makedirs")
 
 
-DEFAULT_ARTIFACT_DIR = "artifacts"
-DEFAULT_COMPARE_DIR = "compare"
-DEFAULT_PARQUET_FILE = "all_data"
+def test_create_artifacts_dirs_custom_path(mock_makedirs):
+    artifacts_dir_path = "/genai_perf_artifacts"
+    mock_args = Namespace(artifact_dir=Path(artifacts_dir_path))
+    create_artifacts_dirs(mock_args)
+    mock_makedirs.assert_any_call(
+        Path(artifacts_dir_path), exist_ok=True
+    ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
+    mock_makedirs.assert_any_call(
+        Path(artifacts_dir_path) / "plots", exist_ok=True
+    ), f"Expected os.makedirs to create plots directory inside {artifacts_dir_path}/plots path."
+    assert mock_makedirs.call_count == 2
