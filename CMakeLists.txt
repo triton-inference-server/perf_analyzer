@@ -37,11 +37,11 @@ set(PERF_ANALYZER_VERSION ${TRITON_VERSION} CACHE STRING "Build Version for Perf
 #
 # Perf Analyzer Options
 #
-option(TRITON_PACKAGE_PERF_ANALYZER "Include Perf Analyzer in pip wheel" ON)
-option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" ON)
-option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" ON)
-option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" ON)
-option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" ON)
+option(TRITON_PACKAGE_PERF_ANALYZER "Include Perf Analyzer in python client pip wheel" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
 
 #
 # Client Options
@@ -93,6 +93,7 @@ ExternalProject_Add(
       ${_CMAKE_ARGS_OPENSSL_ROOT_DIR}
       ${_CMAKE_ARGS_CMAKE_TOOLCHAIN_FILE}
       ${_CMAKE_ARGS_VCPKG_TARGET_TRIPLET}
+      -DTRITON_VERSION:STRING=${TRITON_VERSION}
       -DTRITON_REPO_ORGANIZATION:STRING=${TRITON_REPO_ORGANIZATION}
       -DTRITON_CORE_REPO_TAG:STRING=${TRITON_CORE_REPO_TAG}
       -DTRITON_COMMON_REPO_TAG:STRING=${TRITON_COMMON_REPO_TAG}
@@ -113,7 +114,6 @@ ExternalProject_Add(
   perf-analyzer
   PREFIX ${CMAKE_BINARY_DIR}/perf_analyzer
   SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
-  #BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/perf_analyzer
   CMAKE_CACHE_ARGS
       ${_CMAKE_ARGS_OPENSSL_ROOT_DIR}
       ${_CMAKE_ARGS_CMAKE_TOOLCHAIN_FILE}
@@ -152,6 +152,7 @@ if(TRITON_ENABLE_PYTHON_HTTP OR TRITON_ENABLE_PYTHON_GRPC)
         ${_CMAKE_ARGS_OPENSSL_ROOT_DIR}
         ${_CMAKE_ARGS_CMAKE_TOOLCHAIN_FILE}
         ${_CMAKE_ARGS_VCPKG_TARGET_TRIPLET}
+        -DTRITON_VERSION:STRING=${TRITON_VERSION}
         -DTRITON_REPO_ORGANIZATION:STRING=${TRITON_REPO_ORGANIZATION}
         -DTRITON_CORE_REPO_TAG:STRING=${TRITON_CORE_REPO_TAG}
         -DTRITON_COMMON_REPO_TAG:STRING=${TRITON_COMMON_REPO_TAG}
