@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,10 +26,15 @@
 #pragma once
 
 #include <condition_variable>
-#include <thread>
+
 #include "load_manager.h"
+#include "request_rate_worker.h"
 
 namespace triton { namespace perfanalyzer {
+
+#ifndef DOCTEST_CONFIG_DISABLE
+class TestRequestRateManager;
+#endif
 
 //==============================================================================
 /// RequestRateManager is a helper class to send inference requests to
@@ -59,13 +64,13 @@ class RequestRateManager : public LoadManager {
   /// request.
   /// \param streaming Whether to use gRPC streaming API for infer request
   /// \param measurement_window_ms The time window for measurements.
+  /// \param max_trials The maximum number of windows that will be measured
   /// \param request_distribution The kind of distribution to use for drawing
   /// out intervals between successive requests.
   /// \param batch_size The batch size used for each request.
   /// \param max_threads The maximum number of working threads to be spawned.
   /// \param num_of_sequences The number of concurrent sequences that must be
   /// maintained on the server.
-  /// \param sequence_length The base length of each sequence.
   /// \param string_length The length of the string to create for input.
   /// \param string_data The data to use for generating string input.
   /// \param zero_input Whether to fill the input tensors with zero.
@@ -74,100 +79,94 @@ class RequestRateManager : public LoadManager {
   /// \param shared_memory_type The type of shared memory to use for inputs.
   /// \param output_shm_size The size of the shared memory to allocate for the
   /// output.
+  /// \param serial_sequences Enable serial sequence mode.
   /// \param parser The ModelParser object to get the model details.
   /// \param factory The ClientBackendFactory object used to create
   /// client to the server.
   /// \param manager Returns a new ConcurrencyManager object.
+  /// \param request_parameters Custom request parameters to send to the server
   /// \return cb::Error object indicating success or failure.
   static cb::Error Create(
       const bool async, const bool streaming,
-      const uint64_t measurement_window_ms, Distribution request_distribution,
-      const int32_t batch_size, const size_t max_threads,
-      const uint32_t num_of_sequences, const size_t sequence_length,
-      const size_t string_length, const std::string& string_data,
-      const bool zero_input, std::vector<std::string>& user_data,
+      const uint64_t measurement_window_ms, const size_t max_trials,
+      Distribution request_distribution, const int32_t batch_size,
+      const size_t max_threads, const uint32_t num_of_sequences,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-      const uint64_t start_sequence_id, const uint64_t sequence_id_range,
-      const std::shared_ptr<ModelParser>& parser,
+      const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
-      std::unique_ptr<LoadManager>* manager);
+      std::unique_ptr<LoadManager>* manager,
+      const std::unordered_map<std::string, cb::RequestParameter>&
+          request_parameters);
 
   /// Adjusts the rate of issuing requests to be the same as 'request_rate'
-  /// \param request_rate The rate at which requests must be issued to the
-  /// server.
+  /// \param target_request_rate The rate at which requests must be issued to
+  /// the server.
+  /// \param request_count The number of requests to generate when profiling. If
+  /// 0, then there is no limit, and it will generate until told to stop.
   /// \return cb::Error object indicating success or failure.
-  cb::Error ChangeRequestRate(const double target_request_rate);
-
-  /// Resets all worker thread states to beginning of schedule.
-  /// \return cb::Error object indicating success or failure.
-  cb::Error ResetWorkers() override;
+  cb::Error ChangeRequestRate(
+      const double target_request_rate, const size_t request_count = 0);
 
  protected:
-  struct ThreadConfig {
-    ThreadConfig(uint32_t index, uint32_t stride)
-        : index_(index), id_(index), stride_(stride), is_paused_(false),
-          rounds_(0), non_sequence_data_step_id_(index)
-    {
-    }
-
-    uint32_t index_;
-    uint32_t id_;
-    uint32_t stride_;
-    bool is_paused_;
-    uint64_t rounds_;
-    int non_sequence_data_step_id_;
-  };
-
   RequestRateManager(
       const bool async, const bool streaming, Distribution request_distribution,
       const int32_t batch_size, const uint64_t measurement_window_ms,
-      const size_t max_threads, const uint32_t num_of_sequences,
-      const size_t sequence_length, const SharedMemoryType shared_memory_type,
-      const size_t output_shm_size, const uint64_t start_sequence_id,
-      const uint64_t sequence_id_range,
-      const std::shared_ptr<ModelParser>& parser,
-      const std::shared_ptr<cb::ClientBackendFactory>& factory);
+      const size_t max_trials, const size_t max_threads,
+      const uint32_t num_of_sequences,
+      const SharedMemoryType shared_memory_type, const size_t output_shm_size,
+      const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
+      const std::shared_ptr<cb::ClientBackendFactory>& factory,
+      const std::unordered_map<std::string, cb::RequestParameter>&
+          request_parameters);
+
+  void InitManagerFinalize() override;
 
   /// Generates and update the request schedule as per the given request rate.
   /// \param request_rate The request rate to use for new schedule.
   void GenerateSchedule(const double request_rate);
 
+  std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
+      std::chrono::nanoseconds duration,
+      std::function<std::chrono::nanoseconds(std::mt19937&)> distribution);
+
+  std::vector<RateSchedulePtr_t> CreateEmptyWorkerSchedules();
+
+  std::vector<size_t> CalculateThreadIds();
+
+  void SetScheduleDurations(std::vector<RateSchedulePtr_t>& schedules);
+
+  void GiveSchedulesToWorkers(
+      const std::vector<RateSchedulePtr_t>& worker_schedules);
+
   // Pauses the worker threads
   void PauseWorkers();
+
+  void ConfigureThreads(const size_t request_count = 0);
 
   // Resets the counters and resumes the worker threads
   void ResumeWorkers();
 
-  /// Function for worker that sends inference requests.
-  /// \param thread_stat Worker thread specific data.
-  /// \param thread_config Worker thread configuration specific data.
-  void Infer(
-      std::shared_ptr<ThreadStat> thread_stat,
-      std::shared_ptr<ThreadConfig> thread_config);
+  // Makes a new worker
+  virtual std::shared_ptr<IWorker> MakeWorker(
+      std::shared_ptr<ThreadStat>, std::shared_ptr<ThreadConfig>);
 
-  /// A helper function to issue inference request to the server.
-  /// \param context InferContext to use for sending the request.
-  /// \param request_id The unique id to be associated with the request.
-  /// \param delayed Whether the request fell behind its scheduled time.
-  /// \param callback_func The callback function to use with asynchronous
-  /// request.
-  /// \param async_req_map The map from ongoing request_id to the
-  /// request information needed to correctly interpret the details.
-  /// \param thread_stat The runnning status of the worker thread
-  void Request(
-      std::shared_ptr<InferContext> context, const uint64_t request_id,
-      const bool delayed, cb::OnCompleteFn callback_func,
-      std::shared_ptr<std::map<std::string, AsyncRequestProperties>>
-          async_req_map,
-      std::shared_ptr<ThreadStat> thread_stat);
+  size_t DetermineNumThreads();
 
   std::vector<std::shared_ptr<ThreadConfig>> threads_config_;
 
-  std::unique_ptr<std::chrono::nanoseconds> gen_duration_;
+  std::shared_ptr<std::chrono::nanoseconds> gen_duration_;
   Distribution request_distribution_;
-  std::vector<std::chrono::nanoseconds> schedule_;
   std::chrono::steady_clock::time_point start_time_;
   bool execute_;
+  const size_t num_of_sequences_{0};
+  const bool serial_sequences_{false};
+
+#ifndef DOCTEST_CONFIG_DISABLE
+  friend TestRequestRateManager;
+
+ public:
+  RequestRateManager() = default;
+#endif
 };
 
 }}  // namespace triton::perfanalyzer

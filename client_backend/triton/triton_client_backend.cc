@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -27,8 +27,10 @@
 #include "triton_client_backend.h"
 
 #include <curl/curl.h>
+
 #include <regex>
 #include <stdexcept>
+
 #include "../../constants.h"
 #include "../../perf_analyzer_exception.h"
 #include "json_utils.h"
@@ -93,12 +95,14 @@ TritonClientBackend::Create(
     const std::map<std::string, std::vector<std::string>> trace_options,
     const grpc_compression_algorithm compression_algorithm,
     std::shared_ptr<Headers> http_headers, const bool verbose,
-    const std::string& metrics_url,
+    const std::string& metrics_url, const TensorFormat input_tensor_format,
+    const TensorFormat output_tensor_format,
     std::unique_ptr<ClientBackend>* client_backend)
 {
   std::unique_ptr<TritonClientBackend> triton_client_backend(
       new TritonClientBackend(
-          protocol, compression_algorithm, http_headers, metrics_url));
+          protocol, compression_algorithm, http_headers, metrics_url,
+          input_tensor_format, output_tensor_format));
   if (protocol == ProtocolType::HTTP) {
     triton::client::HttpSslOptions http_ssl_options =
         ParseHttpSslOptions(ssl_options);
@@ -409,7 +413,7 @@ TritonClientBackend::AccessMetricsEndpoint(std::string& metrics_endpoint_text)
 
   if (res != CURLE_OK) {
     throw triton::perfanalyzer::PerfAnalyzerException(
-        "curl_easy_perform() failed: " + std::string(curl_easy_strerror(res)),
+        "Unable to connect to Metrics endpoint " + metrics_url_,
         triton::perfanalyzer::GENERIC_ERROR);
   }
 
@@ -550,7 +554,9 @@ TritonClientBackend::ParseInferInputToTriton(
     std::vector<tc::InferInput*>* triton_inputs)
 {
   for (const auto input : inputs) {
-    triton_inputs->push_back((dynamic_cast<TritonInferInput*>(input))->Get());
+    tc::InferInput* triton_input{dynamic_cast<TritonInferInput*>(input)->Get()};
+    triton_input->SetBinaryData(input_tensor_format_ == TensorFormat::BINARY);
+    triton_inputs->push_back(triton_input);
   }
 }
 
@@ -560,8 +566,10 @@ TritonClientBackend::ParseInferRequestedOutputToTriton(
     std::vector<const tc::InferRequestedOutput*>* triton_outputs)
 {
   for (const auto output : outputs) {
-    triton_outputs->push_back(
-        (dynamic_cast<const TritonInferRequestedOutput*>(output))->Get());
+    tc::InferRequestedOutput* triton_output{
+        dynamic_cast<const TritonInferRequestedOutput*>(output)->Get()};
+    triton_output->SetBinaryData(input_tensor_format_ == TensorFormat::BINARY);
+    triton_outputs->push_back(triton_output);
   }
 }
 
@@ -579,6 +587,16 @@ TritonClientBackend::ParseInferOptionsToTriton(
     }
     triton_options->sequence_start_ = options.sequence_start_;
     triton_options->sequence_end_ = options.sequence_end_;
+  }
+  triton_options->triton_enable_empty_final_response_ =
+      options.triton_enable_empty_final_response_;
+
+  for (auto& map_entry : options.request_parameters_) {
+    auto rp = tc::RequestParameter();
+    rp.name = map_entry.second.name;
+    rp.value = map_entry.second.value;
+    rp.type = map_entry.second.type;
+    triton_options->request_parameters[map_entry.first] = rp;
   }
 }
 
@@ -738,6 +756,13 @@ TritonInferInput::SetSharedMemory(
   return Error::Success;
 }
 
+Error
+TritonInferInput::RawData(const uint8_t** buf, size_t* byte_size)
+{
+  RETURN_IF_TRITON_ERROR(input_->RawData(buf, byte_size));
+  return Error::Success;
+}
+
 TritonInferInput::TritonInferInput(
     const std::string& name, const std::string& datatype)
     : InferInput(BackendKind::TRITON, name, datatype)
@@ -750,14 +775,14 @@ TritonInferInput::TritonInferInput(
 Error
 TritonInferRequestedOutput::Create(
     InferRequestedOutput** infer_output, const std::string& name,
-    const size_t class_count)
+    const size_t class_count, const std::string& datatype)
 {
   TritonInferRequestedOutput* local_infer_output =
-      new TritonInferRequestedOutput(name);
+      new TritonInferRequestedOutput(name, datatype);
 
   tc::InferRequestedOutput* triton_infer_output;
   RETURN_IF_TRITON_ERROR(tc::InferRequestedOutput::Create(
-      &triton_infer_output, name, class_count));
+      &triton_infer_output, name, class_count, datatype));
   local_infer_output->output_.reset(triton_infer_output);
 
   *infer_output = local_infer_output;
@@ -775,8 +800,9 @@ TritonInferRequestedOutput::SetSharedMemory(
 }
 
 
-TritonInferRequestedOutput::TritonInferRequestedOutput(const std::string& name)
-    : InferRequestedOutput(BackendKind::TRITON, name)
+TritonInferRequestedOutput::TritonInferRequestedOutput(
+    const std::string& name, const std::string& datatype)
+    : InferRequestedOutput(BackendKind::TRITON, name, datatype)
 {
 }
 
@@ -807,6 +833,20 @@ TritonInferResult::RawData(
     size_t* byte_size) const
 {
   RETURN_IF_TRITON_ERROR(result_->RawData(output_name, buf, byte_size));
+  return Error::Success;
+}
+
+Error
+TritonInferResult::IsFinalResponse(bool* is_final_response) const
+{
+  RETURN_IF_TRITON_ERROR(result_->IsFinalResponse(is_final_response));
+  return Error::Success;
+}
+
+Error
+TritonInferResult::IsNullResponse(bool* is_null_response) const
+{
+  RETURN_IF_TRITON_ERROR(result_->IsNullResponse(is_null_response));
   return Error::Success;
 }
 

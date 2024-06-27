@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -34,34 +34,17 @@ cb::Error
 ModelParser::InitTriton(
     const rapidjson::Document& metadata, const rapidjson::Document& config,
     const std::string& model_version,
+    const std::vector<cb::ModelIdentifier>& bls_composing_models,
     const std::unordered_map<std::string, std::vector<int64_t>>& input_shapes,
     std::unique_ptr<cb::ClientBackend>& backend)
 {
   model_name_ = metadata["name"].GetString();
   model_version_ = model_version;
-  // Get the scheduler type for the model
-  scheduler_type_ = NONE;
-  const auto& ensemble_itr = config.FindMember("ensemble_scheduling");
-  if (ensemble_itr != config.MemberEnd()) {
-    bool is_sequential = false;
-    RETURN_IF_ERROR(GetEnsembleSchedulerType(
-        config, model_version, backend, &is_sequential));
-    if (is_sequential) {
-      scheduler_type_ = ENSEMBLE_SEQUENCE;
-    } else {
-      scheduler_type_ = ENSEMBLE;
-    }
-  } else {
-    const auto& sequence_itr = config.FindMember("sequence_batching");
-    if (sequence_itr != config.MemberEnd()) {
-      scheduler_type_ = SEQUENCE;
-    } else {
-      const auto& dynamic_itr = config.FindMember("dynamic_batching");
-      if (dynamic_itr != config.MemberEnd()) {
-        scheduler_type_ = DYNAMIC;
-      }
-    }
-  }
+
+  RETURN_IF_ERROR(
+      DetermineComposingModelMap(bls_composing_models, config, backend));
+
+  RETURN_IF_ERROR(DetermineSchedulerType(config, backend));
 
   max_batch_size_ = 0;
   const auto bs_itr = config.FindMember("max_batch_size");
@@ -186,6 +169,10 @@ ModelParser::InitTriton(
     response_cache_enabled_ = cache_itr->value["enable"].GetBool();
   }
 
+  if (cache_itr != config.MemberEnd()) {
+    top_level_response_caching_enabled_ = cache_itr->value["enable"].GetBool();
+  }
+
   return cb::Error::Success;
 }
 
@@ -283,6 +270,32 @@ ModelParser::InitTFServe(
 }
 
 cb::Error
+ModelParser::InitOpenAI(
+    const std::string& model_name, const std::string& model_version,
+    const int32_t batch_size)
+{
+  // OpenAI does not return model metadata hence we can not obtain any
+  // parameters.
+  model_name_ = model_name;
+  model_version_ = model_version;
+  max_batch_size_ = batch_size;
+
+  // OpenAI will take a single json input with a fully formed payload
+  auto in_it = inputs_->emplace("payload", ModelTensor()).first;
+  in_it->second.name_ = "payload";
+  in_it->second.datatype_ = "JSON";
+  in_it->second.shape_.push_back(1);
+
+  // OpenAI will reply with a single json output
+  auto out_it = outputs_->emplace("response", ModelTensor()).first;
+  out_it->second.name_ = "response";
+  out_it->second.datatype_ = "JSON";
+  out_it->second.shape_.push_back(1);
+
+  return cb::Error::Success;
+}
+
+cb::Error
 ModelParser::InitTorchServe(
     const std::string& model_name, const std::string& model_version,
     const int32_t batch_size)
@@ -305,16 +318,43 @@ ModelParser::InitTorchServe(
 }
 
 cb::Error
-ModelParser::GetEnsembleSchedulerType(
-    const rapidjson::Document& config, const std::string& model_version,
-    std::unique_ptr<cb::ClientBackend>& backend, bool* is_sequential)
+ModelParser::DetermineComposingModelMap(
+    const std::vector<cb::ModelIdentifier>& bls_composing_models,
+    const rapidjson::Document& config,
+    std::unique_ptr<cb::ClientBackend>& backend)
 {
-  const auto& sequence_itr = config.FindMember("sequence_batching");
-  if (sequence_itr != config.MemberEnd()) {
-    *is_sequential = true;
+  RETURN_IF_ERROR(AddBLSComposingModels(bls_composing_models, config, backend));
+  RETURN_IF_ERROR(AddEnsembleComposingModels(config, backend));
+
+  return cb::Error::Success;
+}
+
+cb::Error
+ModelParser::AddBLSComposingModels(
+    const std::vector<cb::ModelIdentifier>& bls_composing_models,
+    const rapidjson::Document& config,
+    std::unique_ptr<cb::ClientBackend>& backend)
+{
+  for (auto model : bls_composing_models) {
+    (*composing_models_map_)[config["name"].GetString()].insert(model);
+
+    rapidjson::Document composing_model_config;
+    RETURN_IF_ERROR(backend->ModelConfig(
+        &composing_model_config, model.first, model.second));
+    RETURN_IF_ERROR(
+        AddEnsembleComposingModels(composing_model_config, backend));
   }
 
-  if (std::string(config["platform"].GetString()).compare("ensemble") == 0) {
+  return cb::Error::Success;
+}
+
+cb::Error
+ModelParser::AddEnsembleComposingModels(
+    const rapidjson::Document& config,
+    std::unique_ptr<cb::ClientBackend>& backend)
+{
+  if (config.HasMember("platform") &&
+      std::string(config["platform"].GetString()).compare("ensemble") == 0) {
     const auto step_itr = config["ensemble_scheduling"].FindMember("step");
     for (const auto& step : step_itr->value.GetArray()) {
       std::string step_model_version;
@@ -325,25 +365,76 @@ ModelParser::GetEnsembleSchedulerType(
       } else {
         step_model_version = std::to_string(model_version_int);
       }
+
       (*composing_models_map_)[config["name"].GetString()].emplace(
           std::string(step["model_name"].GetString()), step_model_version);
 
-      rapidjson::Document model_config;
+      rapidjson::Document composing_model_config;
       RETURN_IF_ERROR(backend->ModelConfig(
-          &model_config, step["model_name"].GetString(), step_model_version));
-      RETURN_IF_ERROR(GetEnsembleSchedulerType(
-          model_config, step_model_version, backend, is_sequential));
+          &composing_model_config, step["model_name"].GetString(),
+          step_model_version));
+      RETURN_IF_ERROR(
+          AddEnsembleComposingModels(composing_model_config, backend));
+    }
+  }
 
-      // Check if composing model has response caching enabled.
-      const auto cache_itr = model_config.FindMember("response_cache");
+  return cb::Error::Success;
+}
+
+
+cb::Error
+ModelParser::DetermineSchedulerType(
+    const rapidjson::Document& config,
+    std::unique_ptr<cb::ClientBackend>& backend)
+{
+  scheduler_type_ = NONE;
+
+  if (composing_models_map_->size() != 0) {
+    bool is_sequential = false;
+    RETURN_IF_ERROR(GetComposingSchedulerType(backend, &is_sequential));
+    if (is_sequential) {
+      scheduler_type_ = ENSEMBLE_SEQUENCE;
+    } else {
+      scheduler_type_ = ENSEMBLE;
+    }
+  } else {
+    const auto& sequence_itr = config.FindMember("sequence_batching");
+    if (sequence_itr != config.MemberEnd()) {
+      scheduler_type_ = SEQUENCE;
+    } else {
+      const auto& dynamic_itr = config.FindMember("dynamic_batching");
+      if (dynamic_itr != config.MemberEnd()) {
+        scheduler_type_ = DYNAMIC;
+      }
+    }
+  }
+  return cb::Error::Success;
+}
+
+cb::Error
+ModelParser::GetComposingSchedulerType(
+    std::unique_ptr<cb::ClientBackend>& backend, bool* is_sequential)
+{
+  for (auto parent_composing_models : *composing_models_map_.get()) {
+    auto& composing_models = parent_composing_models.second;
+    for (auto composing_model : composing_models) {
+      rapidjson::Document config;
+      RETURN_IF_ERROR(backend->ModelConfig(
+          &config, composing_model.first, composing_model.second));
+
+      const auto& sequence_itr = config.FindMember("sequence_batching");
+      if (sequence_itr != config.MemberEnd()) {
+        *is_sequential = true;
+      }
+
+      const auto cache_itr = config.FindMember("response_cache");
       // response_cache_enabled_ set globally for reporting purposes if any
       // composing model has it enabled, so don't overwrite it if already set
-      if (cache_itr != model_config.MemberEnd() && !response_cache_enabled_) {
+      if (cache_itr != config.MemberEnd() && !response_cache_enabled_) {
         response_cache_enabled_ = cache_itr->value["enable"].GetBool();
       }
     }
   }
-
   return cb::Error::Success;
 }
 

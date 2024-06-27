@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,6 +26,7 @@
 #pragma once
 
 #include <string>
+
 #include "../../perf_utils.h"
 #include "../client_backend.h"
 
@@ -54,7 +55,7 @@ class TFServeInferInput : public InferInput {
   /// \param byte_size The size of data added in bytes.
   /// \return Error object indicating success or failure.
   Error ByteSize(size_t* byte_size) const;
-  /// Resets the heads to start providing data from the begining.
+  /// Resets the heads to start providing data from the beginning.
   Error PrepareForRequest();
   /// Get the next chunk of data if available.
   Error GetNext(const uint8_t** buf, size_t* input_bytes, bool* end_of_input);
@@ -65,7 +66,7 @@ class TFServeInferInput : public InferInput {
       const std::string& datatype);
 
   std::vector<int64_t> shape_;
-  size_t byte_size_;
+  size_t byte_size_{0};
 
   size_t bufs_idx_, buf_pos_;
   std::vector<const uint8_t*> bufs_;

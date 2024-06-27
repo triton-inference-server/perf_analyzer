@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,9 +25,18 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <chrono>
+#include <string>
+#include <vector>
+
+#include "client_backend/client_backend.h"
 #include "request_rate_manager.h"
 
 namespace triton { namespace perfanalyzer {
+
+#ifndef DOCTEST_CONFIG_DISABLE
+class TestCustomLoadManager;
+#endif
 
 //==============================================================================
 /// CustomLoadManager is a helper class to send inference requests to
@@ -44,13 +53,13 @@ class CustomLoadManager : public RequestRateManager {
   /// request.
   /// \param streaming Whether to use gRPC streaming API for infer request
   /// \param measurement_window_ms The time window for measurements.
+  /// \param max_trials The maximum number of windows that will be measured
   /// \param request_intervals_file The path to the file to use to pick up the
   /// time intervals between the successive requests.
   /// \param batch_size The batch size used for each request.
   /// \param max_threads The maximum number of working threads to be spawned.
   /// \param num_of_sequences The number of concurrent sequences that must be
   /// maintained on the server.
-  /// \param sequence_length The base length of each sequence.
   /// \param zero_input Whether to fill the input tensors with zero.
   /// \param input_shapes The shape of the input tensors.
   /// \param user_data The vector containing path/paths to user-provided data
@@ -58,29 +67,31 @@ class CustomLoadManager : public RequestRateManager {
   /// \param shared_memory_type The type of shared memory to use for inputs.
   /// \param output_shm_size The size of the shared memory to allocate for the
   /// output.
+  /// \param serial_sequences Enable serial sequence mode.
   /// \param parser The ModelParser object to get the model details.
   /// \param factory The ClientBackendFactory object used to create
   /// client to the server.
   /// \param manager Returns a new ConcurrencyManager object.
+  /// \param request_parameters Custom request parameters to send to the server
   /// \return cb::Error object indicating success or failure.
   static cb::Error Create(
       const bool async, const bool streaming,
-      const uint64_t measurement_window_ms,
+      const uint64_t measurement_window_ms, const size_t max_trials,
       const std::string& request_intervals_file, const int32_t batch_size,
       const size_t max_threads, const uint32_t num_of_sequences,
-      const size_t sequence_length, const size_t string_length,
-      const std::string& string_data, const bool zero_input,
-      std::vector<std::string>& user_data,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-      const uint64_t start_sequence_id, const uint64_t sequence_id_range,
-      const std::shared_ptr<ModelParser>& parser,
+      const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
-      std::unique_ptr<LoadManager>* manager);
+      std::unique_ptr<LoadManager>* manager,
+      const std::unordered_map<std::string, cb::RequestParameter>&
+          request_parameter);
 
   /// Initializes the load manager with the provided file containing request
   /// intervals
+  /// \param request_count The number of requests to generate. If 0, then
+  /// there is no limit, and it will generate until told to stop.
   /// \return cb::Error object indicating success or failure.
-  cb::Error InitCustomIntervals();
+  cb::Error InitCustomIntervals(const size_t request_count);
 
   /// Computes the request rate from the time interval file. Fails with an error
   /// if the file is not present or is empty.
@@ -93,15 +104,34 @@ class CustomLoadManager : public RequestRateManager {
   CustomLoadManager(
       const bool async, const bool streaming,
       const std::string& request_intervals_file, const int32_t batch_size,
-      const uint64_t measurement_window_ms, const size_t max_threads,
-      const uint32_t num_of_sequences, const size_t sequence_length,
+      const uint64_t measurement_window_ms, const size_t max_trials,
+      const size_t max_threads, const uint32_t num_of_sequences,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-      const uint64_t start_sequence_id, const uint64_t sequence_id_range,
-      const std::shared_ptr<ModelParser>& parser,
-      const std::shared_ptr<cb::ClientBackendFactory>& factory);
+      const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
+      const std::shared_ptr<cb::ClientBackendFactory>& factory,
+      const std::unordered_map<std::string, cb::RequestParameter>&
+          request_parameters);
+
+  cb::Error GenerateSchedule();
+
+  std::vector<RateSchedulePtr_t> CreateWorkerSchedules();
+
+  /// Reads the time intervals file and stores intervals in vector
+  /// \param path Filesystem path of the time intervals file.
+  /// \param contents Output intervals vector.
+  /// \return cb::Error object indicating success or failure.
+  virtual cb::Error ReadTimeIntervalsFile(
+      const std::string& path, NanoIntervals* contents);
 
   std::string request_intervals_file_;
-  std::vector<std::chrono::nanoseconds> custom_intervals_;
+  NanoIntervals custom_intervals_;
+
+#ifndef DOCTEST_CONFIG_DISABLE
+  friend TestCustomLoadManager;
+
+ public:
+  CustomLoadManager() = default;
+#endif
 };
 
 }}  // namespace triton::perfanalyzer

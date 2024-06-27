@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 
 #include <b64/decode.h>
 #include <rapidjson/filereadstream.h>
+
 #include <fstream>
 
 namespace triton { namespace perfanalyzer {
@@ -35,6 +36,34 @@ namespace triton { namespace perfanalyzer {
 DataLoader::DataLoader(const size_t batch_size)
     : batch_size_(batch_size), data_stream_cnt_(0)
 {
+}
+
+cb::Error
+DataLoader::ValidateIOExistsInModel(
+    const std::shared_ptr<ModelTensorMap>& inputs,
+    const std::shared_ptr<ModelTensorMap>& outputs,
+    const std::string& data_directory)
+{
+  if (!std::filesystem::exists(data_directory) ||
+      !std::filesystem::is_directory(data_directory)) {
+    return cb::Error(
+        "Error: Directory does not exist or is not a directory: " +
+            std::string(data_directory),
+        pa::GENERIC_ERROR);
+  }
+
+  for (const auto& file : std::filesystem::directory_iterator(data_directory)) {
+    std::string io_name = file.path().filename().string();
+    if (inputs->find(io_name) == inputs->end() &&
+        outputs->find(io_name) == outputs->end()) {
+      return cb::Error(
+          "Provided data file '" + io_name +
+              "' does not correspond to a valid model input or output.",
+          pa::GENERIC_ERROR);
+    }
+  }
+
+  return cb::Error::Success;
 }
 
 cb::Error
@@ -90,8 +119,8 @@ DataLoader::ReadDataFromDir(
       if (input_string_data.size() != batch1_num_strings) {
         return cb::Error(
             "provided data for input " + input.second.name_ + " has " +
-                std::to_string(it->second.size()) + " byte elements, expect " +
-                std::to_string(batch1_num_strings),
+                std::to_string(input_string_data.size()) +
+                " elements, expect " + std::to_string(batch1_num_strings),
             pa::GENERIC_ERROR);
       }
     }
@@ -142,25 +171,36 @@ DataLoader::ReadDataFromJSON(
   const unsigned int parseFlags = rapidjson::kParseNanAndInfFlag;
   d.ParseStream<parseFlags>(fs);
 
-  if (d.HasParseError()) {
-    std::cerr << "cb::Error  : " << d.GetParseError() << '\n'
-              << "Offset : " << d.GetErrorOffset() << '\n';
+  fclose(data_file);
+
+  return ParseData(d, inputs, outputs);
+}
+
+cb::Error
+DataLoader::ParseData(
+    const rapidjson::Document& json,
+    const std::shared_ptr<ModelTensorMap>& inputs,
+    const std::shared_ptr<ModelTensorMap>& outputs)
+{
+  if (json.HasParseError()) {
+    std::cerr << "cb::Error  : " << json.GetParseError() << '\n'
+              << "Offset : " << json.GetErrorOffset() << '\n';
     return cb::Error(
         "failed to parse the specified json file for reading provided data",
         pa::GENERIC_ERROR);
   }
 
-  if (!d.HasMember("data")) {
+  if (!json.HasMember("data")) {
     return cb::Error(
         "The json file doesn't contain data field", pa::GENERIC_ERROR);
   }
 
-  const rapidjson::Value& streams = d["data"];
+  const rapidjson::Value& streams = json["data"];
 
   // Validation data is optional, once provided, it must align with 'data'
   const rapidjson::Value* out_streams = nullptr;
-  if (d.HasMember("validation_data")) {
-    out_streams = &d["validation_data"];
+  if (json.HasMember("validation_data")) {
+    out_streams = &json["validation_data"];
     if (out_streams->Size() != streams.Size()) {
       return cb::Error(
           "The 'validation_data' field doesn't align with 'data' field in the "
@@ -177,6 +217,9 @@ DataLoader::ReadDataFromJSON(
     const rapidjson::Value& steps = streams[i - offset];
     const rapidjson::Value* output_steps =
         (out_streams == nullptr) ? nullptr : &(*out_streams)[i - offset];
+
+    RETURN_IF_ERROR(ValidateParsingMode(steps));
+
     if (steps.IsArray()) {
       step_num_.push_back(steps.Size());
       for (size_t k = 0; k < step_num_[i]; k++) {
@@ -222,9 +265,7 @@ DataLoader::ReadDataFromJSON(
     }
   }
 
-  max_non_sequence_step_id_ = std::max(1, (int)(step_num_[0] / batch_size_));
 
-  fclose(data_file);
   return cb::Error::Success;
 }
 
@@ -310,46 +351,31 @@ DataLoader::GenerateData(
 cb::Error
 DataLoader::GetInputData(
     const ModelTensor& input, const int stream_id, const int step_id,
-    const uint8_t** data_ptr, size_t* batch1_size)
+    TensorData& data)
 {
-  bool data_found = false;
+  data.data_ptr = nullptr;
+  data.batch1_size = 0;
+  data.is_valid = false;
 
   // If json data is available then try to retrieve the data from there
   if (!input_data_.empty()) {
-    // validate if the indices conform to the vector sizes
-    if (stream_id < 0 || stream_id >= (int)data_stream_cnt_) {
-      return cb::Error(
-          "stream_id for retrieving the data should be less than " +
-              std::to_string(data_stream_cnt_) + ", got " +
-              std::to_string(stream_id),
-          pa::GENERIC_ERROR);
-    }
-    if (step_id < 0 || step_id >= (int)step_num_[stream_id]) {
-      return cb::Error(
-          "step_id for retrieving the data should be less than " +
-              std::to_string(step_num_[stream_id]) + ", got " +
-              std::to_string(step_id),
-          pa::GENERIC_ERROR);
-    }
+    RETURN_IF_ERROR(ValidateIndexes(stream_id, step_id));
+
     std::string key_name(
         input.name_ + "_" + std::to_string(stream_id) + "_" +
         std::to_string(step_id));
+
     // Get the data and the corresponding byte-size
     auto it = input_data_.find(key_name);
     if (it != input_data_.end()) {
-      if (input.datatype_.compare("BYTES") != 0) {
-        *batch1_size = it->second.size();
-      } else {
-        std::vector<char>* string_data;
-        string_data = &it->second;
-        *batch1_size = string_data->size();
-      }
-      *data_ptr = (const uint8_t*)&((it->second)[0]);
-      data_found = true;
+      std::vector<char>* data_vec = &it->second;
+      data.is_valid = true;
+      data.batch1_size = data_vec->size();
+      data.data_ptr = (const uint8_t*)data_vec->data();
     }
   }
 
-  if (!data_found) {
+  if (!data.is_valid) {
     if ((input.datatype_.compare("BYTES") != 0) && (input_buf_.size() != 0)) {
       int64_t byte_size = ByteSize(input.shape_, input.datatype_);
       if (byte_size < 0) {
@@ -357,13 +383,13 @@ DataLoader::GetInputData(
             "failed to get correct byte size for '" + input.name_ + "'.",
             pa::GENERIC_ERROR);
       }
-      *batch1_size = (size_t)byte_size;
-      *data_ptr = &input_buf_[0];
-      data_found = true;
+      data.batch1_size = (size_t)byte_size;
+      data.data_ptr = &input_buf_[0];
+      data.is_valid = true;
     }
   }
 
-  if (input.is_optional_ == false && !data_found) {
+  if (input.is_optional_ == false && !data.is_valid) {
     return cb::Error(
         "unable to find data for input '" + input.name_ + "'.",
         pa::GENERIC_ERROR);
@@ -375,39 +401,53 @@ DataLoader::GetInputData(
 cb::Error
 DataLoader::GetOutputData(
     const std::string& output_name, const int stream_id, const int step_id,
-    const uint8_t** data_ptr, size_t* batch1_size)
+    TensorData& data)
 {
-  *data_ptr = nullptr;
-  *batch1_size = 0;
+  data.data_ptr = nullptr;
+  data.batch1_size = 0;
+  data.is_valid = false;
+  data.name = "";
+
   // If json data is available then try to retrieve the data from there
   if (!output_data_.empty()) {
-    // validate if the indices conform to the vector sizes
-    if (stream_id < 0 || stream_id >= (int)data_stream_cnt_) {
-      return cb::Error(
-          "stream_id for retrieving the data should be less than " +
-              std::to_string(data_stream_cnt_) + ", got " +
-              std::to_string(stream_id),
-          pa::GENERIC_ERROR);
-    }
-    if (step_id < 0 || step_id >= (int)step_num_[stream_id]) {
-      return cb::Error(
-          "step_id for retrieving the data should be less than " +
-              std::to_string(step_num_[stream_id]) + ", got " +
-              std::to_string(step_id),
-          pa::GENERIC_ERROR);
-    }
+    RETURN_IF_ERROR(ValidateIndexes(stream_id, step_id));
+
     std::string key_name(
         output_name + "_" + std::to_string(stream_id) + "_" +
         std::to_string(step_id));
     // Get the data and the corresponding byte-size
     auto it = output_data_.find(key_name);
     if (it != output_data_.end()) {
-      *batch1_size = it->second.size();
-      *data_ptr = (const uint8_t*)&((it->second)[0]);
+      std::vector<char>* data_vec = &it->second;
+      data.is_valid = true;
+      data.batch1_size = data_vec->size();
+      data.data_ptr = (const uint8_t*)data_vec->data();
+      data.name = output_name;
     }
   }
   return cb::Error::Success;
 }
+
+cb::Error
+DataLoader::ValidateIndexes(int stream_id, int step_id)
+{
+  if (stream_id < 0 || stream_id >= (int)data_stream_cnt_) {
+    return cb::Error(
+        "stream_id for retrieving the data should be less than " +
+            std::to_string(data_stream_cnt_) + ", got " +
+            std::to_string(stream_id),
+        pa::GENERIC_ERROR);
+  }
+  if (step_id < 0 || step_id >= (int)step_num_[stream_id]) {
+    return cb::Error(
+        "step_id for retrieving the data should be less than " +
+            std::to_string(step_num_[stream_id]) + ", got " +
+            std::to_string(step_id),
+        pa::GENERIC_ERROR);
+  }
+  return cb::Error::Success;
+}
+
 
 cb::Error
 DataLoader::GetInputShape(
@@ -437,9 +477,11 @@ DataLoader::ReadTensorData(
     const std::shared_ptr<ModelTensorMap>& tensors, const int stream_index,
     const int step_index, const bool is_input)
 {
+  std::unordered_set<std::string> model_io_names;
   auto& tensor_data = is_input ? input_data_ : output_data_;
   auto& tensor_shape = is_input ? input_shapes_ : output_shapes_;
   for (const auto& io : *tensors) {
+    model_io_names.insert(io.first);
     if (step.HasMember(io.first.c_str())) {
       std::string key_name(
           io.first + "_" + std::to_string(stream_index) + "_" +
@@ -458,8 +500,6 @@ DataLoader::ReadTensorData(
 
       if (tensor.IsArray()) {
         content = &tensor;
-      } else if (tensor.HasMember("b64")) {
-        content = &tensor;
       } else {
         // Populate the shape values first if available
         if (tensor.HasMember("shape")) {
@@ -474,22 +514,26 @@ DataLoader::ReadTensorData(
           }
         }
 
-        if (!tensor.HasMember("content")) {
-          return cb::Error(
-              "missing content field. ( Location stream id: " +
-                  std::to_string(stream_index) +
-                  ", step id: " + std::to_string(step_index) + ")",
-              pa::GENERIC_ERROR);
-        }
+        if (tensor.HasMember("b64")) {
+          content = &tensor;
+        } else {
+          if (!tensor.HasMember("content")) {
+            return cb::Error(
+                "missing content field. ( Location stream id: " +
+                    std::to_string(stream_index) +
+                    ", step id: " + std::to_string(step_index) + ")",
+                pa::GENERIC_ERROR);
+          }
 
-        content = &tensor["content"];
+          content = &tensor["content"];
+        }
       }
 
       if (content->IsArray()) {
         RETURN_IF_ERROR(SerializeExplicitTensor(
             *content, io.second.datatype_, &it->second));
       } else {
-        if (content->HasMember("b64")) {
+        if (content->IsObject() && content->HasMember("b64")) {
           if ((*content)["b64"].IsString()) {
             const std::string& encoded = (*content)["b64"].GetString();
             it->second.resize(encoded.length());
@@ -497,25 +541,6 @@ DataLoader::ReadTensorData(
             int size =
                 D.decode(encoded.c_str(), encoded.length(), &it->second[0]);
             it->second.resize(size);
-
-            int64_t batch1_byte;
-            auto shape_it = tensor_shape.find(key_name);
-            if (shape_it == tensor_shape.end()) {
-              batch1_byte = ByteSize(io.second.shape_, io.second.datatype_);
-            } else {
-              batch1_byte = ByteSize(shape_it->second, io.second.datatype_);
-            }
-            if (batch1_byte > 0 && (size_t)batch1_byte != it->second.size()) {
-              return cb::Error(
-                  "mismatch in the data provided. "
-                  "Expected: " +
-                      std::to_string(batch1_byte) +
-                      " bytes, Got: " + std::to_string(it->second.size()) +
-                      " bytes ( Location stream id: " +
-                      std::to_string(stream_index) +
-                      ", step id: " + std::to_string(step_index) + ")",
-                  pa::GENERIC_ERROR);
-            }
           } else {
             return cb::Error(
                 "the value of b64 field should be of type string ( "
@@ -534,20 +559,8 @@ DataLoader::ReadTensorData(
         }
       }
 
-      // Validate if a fixed shape is available for the tensor.
-      int element_count;
-      auto shape_it = tensor_shape.find(key_name);
-      if (shape_it != tensor_shape.end()) {
-        element_count = ElementCount(shape_it->second);
-      } else {
-        element_count = ElementCount(io.second.shape_);
-      }
-      if (element_count < 0) {
-        return cb::Error(
-            "The variable-sized tensor \"" + io.second.name_ +
-                "\" is missing shape, see --shape option.",
-            pa::GENERIC_ERROR);
-      }
+      RETURN_IF_ERROR(ValidateTensor(io.second, stream_index, step_index));
+
     } else if (io.second.is_optional_ == false) {
       return cb::Error(
           "missing tensor " + io.first +
@@ -557,6 +570,174 @@ DataLoader::ReadTensorData(
     }
   }
 
+  // Add allowed non-model inputs/outputs to the model_io_names set
+  model_io_names.insert("model");
+
+  for (auto itr = step.MemberBegin(); itr != step.MemberEnd(); ++itr) {
+    if (model_io_names.find(itr->name.GetString()) == model_io_names.end()) {
+      return cb::Error(
+          "The input or output '" + std::string(itr->name.GetString()) +
+              "' is not found in the model configuration",
+          pa::GENERIC_ERROR);
+    }
+  }
+
+
+  return cb::Error::Success;
+}
+
+
+cb::Error
+DataLoader::ReadFile(const std::string& path, std::vector<char>* contents)
+{
+  std::ifstream in(path, std::ios::in | std::ios::binary);
+  if (!in) {
+    return cb::Error("failed to open file '" + path + "'", pa::GENERIC_ERROR);
+  }
+
+  in.seekg(0, std::ios::end);
+
+  int file_size = in.tellg();
+  if (file_size > 0) {
+    contents->resize(file_size);
+    in.seekg(0, std::ios::beg);
+    in.read(&(*contents)[0], contents->size());
+  }
+
+  in.close();
+
+  // If size is invalid, report after ifstream is closed
+  if (file_size < 0) {
+    return cb::Error(
+        "failed to get size for file '" + path + "'", pa::GENERIC_ERROR);
+  } else if (file_size == 0) {
+    return cb::Error("file '" + path + "' is empty", pa::GENERIC_ERROR);
+  }
+
+  return cb::Error::Success;
+}
+
+cb::Error
+DataLoader::ReadTextFile(
+    const std::string& path, std::vector<std::string>* contents)
+{
+  std::ifstream in(path);
+  if (!in) {
+    return cb::Error("failed to open file '" + path + "'", pa::GENERIC_ERROR);
+  }
+
+  std::string current_string;
+  while (std::getline(in, current_string)) {
+    contents->push_back(current_string);
+  }
+  in.close();
+
+  if (contents->size() == 0) {
+    return cb::Error("file '" + path + "' is empty", pa::GENERIC_ERROR);
+  }
+  return cb::Error::Success;
+}
+
+cb::Error
+DataLoader::ValidateTensor(
+    const ModelTensor& model_tensor, const int stream_index,
+    const int step_index)
+{
+  std::string key_name(
+      model_tensor.name_ + "_" + std::to_string(stream_index) + "_" +
+      std::to_string(step_index));
+
+  auto data_it = input_data_.find(key_name);
+  if (data_it == input_data_.end()) {
+    data_it = output_data_.find(key_name);
+  }
+  if (data_it == output_data_.end()) {
+    return cb::Error("Can't validate a nonexistent tensor");
+  }
+
+  auto shape_it = input_shapes_.find(key_name);
+
+  const std::vector<char>& data = data_it->second;
+  const std::vector<int64_t>& shape = (shape_it == input_shapes_.end())
+                                          ? model_tensor.shape_
+                                          : shape_it->second;
+
+  int64_t batch1_byte = ByteSize(shape, model_tensor.datatype_);
+
+  RETURN_IF_ERROR(ValidateTensorShape(shape, model_tensor));
+  RETURN_IF_ERROR(ValidateTensorDataSize(data, batch1_byte, model_tensor));
+
+  return cb::Error::Success;
+}
+
+cb::Error
+DataLoader::ValidateTensorShape(
+    const std::vector<int64_t>& shape, const ModelTensor& model_tensor)
+{
+  int element_count = ElementCount(shape);
+  if (element_count < 0) {
+    return cb::Error(
+        "The variable-sized tensor \"" + model_tensor.name_ +
+            "\" with model shape " + ShapeVecToString(model_tensor.shape_) +
+            " needs to have its shape fully defined. See the --shape option.",
+        pa::GENERIC_ERROR);
+  }
+
+  bool is_error = false;
+
+  if (shape.size() != model_tensor.shape_.size()) {
+    is_error = true;
+  }
+
+  for (size_t i = 0; i < shape.size() && !is_error; i++) {
+    if (shape[i] != model_tensor.shape_[i] && model_tensor.shape_[i] != -1) {
+      is_error = true;
+    }
+  }
+
+  if (is_error) {
+    return cb::Error(
+        "The supplied shape of " + ShapeVecToString(shape) + " for input \"" +
+        model_tensor.name_ +
+        "\" is incompatible with the model's input shape of " +
+        ShapeVecToString(model_tensor.shape_));
+  }
+
+  return cb::Error::Success;
+}
+
+cb::Error
+DataLoader::ValidateTensorDataSize(
+    const std::vector<char>& data, int64_t batch1_byte,
+    const ModelTensor& model_tensor)
+{
+  // Validate that the supplied data matches the amount of data expected based
+  // on the shape
+  if (batch1_byte > 0 && (size_t)batch1_byte != data.size()) {
+    return cb::Error(
+        "mismatch in the data provided for " + model_tensor.name_ +
+            ". Expected: " + std::to_string(batch1_byte) +
+            " bytes, Got: " + std::to_string(data.size()) + " bytes",
+        pa::GENERIC_ERROR);
+  }
+
+  return cb::Error::Success;
+}
+
+cb::Error
+DataLoader::ValidateParsingMode(const rapidjson::Value& steps)
+{
+  // If our first time parsing data, capture the mode
+  if (step_num_.size() == 0) {
+    multiple_stream_mode_ = steps.IsArray();
+  } else {
+    if (steps.IsArray() != multiple_stream_mode_) {
+      return cb::Error(
+          "Inconsistency in input-data provided. Can not have a combination of "
+          "objects and arrays inside of the Data array",
+          pa::GENERIC_ERROR);
+    }
+  }
   return cb::Error::Success;
 }
 

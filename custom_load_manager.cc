@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,38 +26,30 @@
 
 #include "custom_load_manager.h"
 
+#include <fstream>
+
+#include "constants.h"
+
 namespace triton { namespace perfanalyzer {
 
 cb::Error
 CustomLoadManager::Create(
     const bool async, const bool streaming,
-    const uint64_t measurement_window_ms,
+    const uint64_t measurement_window_ms, const size_t max_trials,
     const std::string& request_intervals_file, const int32_t batch_size,
     const size_t max_threads, const uint32_t num_of_sequences,
-    const size_t sequence_length, const size_t string_length,
-    const std::string& string_data, const bool zero_input,
-    std::vector<std::string>& user_data,
     const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-    const uint64_t start_sequence_id, const uint64_t sequence_id_range,
-    const std::shared_ptr<ModelParser>& parser,
+    const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory,
-    std::unique_ptr<LoadManager>* manager)
+    std::unique_ptr<LoadManager>* manager,
+    const std::unordered_map<std::string, cb::RequestParameter>&
+        request_parameters)
 {
   std::unique_ptr<CustomLoadManager> local_manager(new CustomLoadManager(
       async, streaming, request_intervals_file, batch_size,
-      measurement_window_ms, max_threads, num_of_sequences, sequence_length,
-      shared_memory_type, output_shm_size, start_sequence_id, sequence_id_range,
-      parser, factory));
-
-  local_manager->threads_config_.reserve(max_threads);
-
-  RETURN_IF_ERROR(local_manager->InitManagerInputs(
-      string_length, string_data, zero_input, user_data));
-
-  if (local_manager->shared_memory_type_ !=
-      SharedMemoryType::NO_SHARED_MEMORY) {
-    RETURN_IF_ERROR(local_manager->InitSharedMemory());
-  }
+      measurement_window_ms, max_trials, max_threads, num_of_sequences,
+      shared_memory_type, output_shm_size, serial_sequences, parser, factory,
+      request_parameters));
 
   *manager = std::move(local_manager);
 
@@ -67,40 +59,81 @@ CustomLoadManager::Create(
 CustomLoadManager::CustomLoadManager(
     const bool async, const bool streaming,
     const std::string& request_intervals_file, int32_t batch_size,
-    const uint64_t measurement_window_ms, const size_t max_threads,
-    const uint32_t num_of_sequences, const size_t sequence_length,
+    const uint64_t measurement_window_ms, const size_t max_trials,
+    const size_t max_threads, const uint32_t num_of_sequences,
     const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-    const uint64_t start_sequence_id, const uint64_t sequence_id_range,
-    const std::shared_ptr<ModelParser>& parser,
-    const std::shared_ptr<cb::ClientBackendFactory>& factory)
+    const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
+    const std::shared_ptr<cb::ClientBackendFactory>& factory,
+    const std::unordered_map<std::string, cb::RequestParameter>&
+        request_parameters)
     : RequestRateManager(
           async, streaming, Distribution::CUSTOM, batch_size,
-          measurement_window_ms, max_threads, num_of_sequences, sequence_length,
-          shared_memory_type, output_shm_size, start_sequence_id,
-          sequence_id_range, parser, factory),
+          measurement_window_ms, max_trials, max_threads, num_of_sequences,
+          shared_memory_type, output_shm_size, serial_sequences, parser,
+          factory, request_parameters),
       request_intervals_file_(request_intervals_file)
 {
 }
 
 cb::Error
-CustomLoadManager::InitCustomIntervals()
+CustomLoadManager::InitCustomIntervals(const size_t request_count)
 {
-  schedule_.clear();
-  schedule_.emplace_back(0);
-  if (!request_intervals_file_.empty()) {
-    RETURN_IF_ERROR(
-        ReadTimeIntervalsFile(request_intervals_file_, &custom_intervals_));
-    size_t index = 0;
-    while (schedule_.back() < *gen_duration_) {
-      std::chrono::nanoseconds next_timestamp(
-          schedule_.back() + custom_intervals_[index++]);
-      schedule_.emplace_back(next_timestamp);
-      if (index == custom_intervals_.size()) {
-        index = 0;
-      }
-    }
+  PauseWorkers();
+  ConfigureThreads(request_count);
+  auto status = GenerateSchedule();
+  ResumeWorkers();
+  return status;
+}
+
+cb::Error
+CustomLoadManager::GenerateSchedule()
+{
+  if (request_intervals_file_.empty()) {
+    return cb::Error::Success;
   }
+
+  RETURN_IF_ERROR(
+      ReadTimeIntervalsFile(request_intervals_file_, &custom_intervals_));
+
+  auto worker_schedules = CreateWorkerSchedules();
+  GiveSchedulesToWorkers(worker_schedules);
   return cb::Error::Success;
+}
+
+std::vector<RateSchedulePtr_t>
+CustomLoadManager::CreateWorkerSchedules()
+{
+  std::vector<RateSchedulePtr_t> worker_schedules =
+      CreateEmptyWorkerSchedules();
+  std::vector<size_t> thread_ids{CalculateThreadIds()};
+
+  size_t thread_id_index = 0;
+  size_t worker_index = 0;
+  size_t intervals_index = 0;
+
+  std::chrono::nanoseconds next_timestamp(0);
+
+  bool started = false;
+
+  // Keep filling the schedule until both the thread_ids (which can differ if
+  // sequences are enabled) and the intervals are both at the end of their
+  // lists. This effectively finds the least common multiple of the two sizes
+  // and makes sure that the schedule is complete and can be repeated
+  // indefinitely
+  //
+  while (!started || thread_id_index != 0 || intervals_index != 0) {
+    started = true;
+    next_timestamp += custom_intervals_[intervals_index];
+    worker_index = thread_ids[thread_id_index];
+    worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
+
+    thread_id_index = (thread_id_index + 1) % thread_ids.size();
+    intervals_index = (intervals_index + 1) % custom_intervals_.size();
+  }
+
+  SetScheduleDurations(worker_schedules);
+
+  return worker_schedules;
 }
 
 cb::Error
@@ -115,7 +148,30 @@ CustomLoadManager::GetCustomRequestRate(double* request_rate)
   }
 
   *request_rate =
-      (custom_intervals_.size() * 1000 * 1000 * 1000) / (total_time_ns);
+      (custom_intervals_.size() * NANOS_PER_SECOND) / (total_time_ns);
+  return cb::Error::Success;
+}
+
+cb::Error
+CustomLoadManager::ReadTimeIntervalsFile(
+    const std::string& path, NanoIntervals* contents)
+{
+  std::ifstream in(path);
+  if (!in) {
+    return cb::Error("failed to open file '" + path + "'", pa::GENERIC_ERROR);
+  }
+
+  std::string current_string;
+  while (std::getline(in, current_string)) {
+    std::chrono::nanoseconds curent_time_interval_ns(
+        std::stol(current_string) * 1000);
+    contents->push_back(curent_time_interval_ns);
+  }
+  in.close();
+
+  if (contents->size() == 0) {
+    return cb::Error("file '" + path + "' is empty", pa::GENERIC_ERROR);
+  }
   return cb::Error::Success;
 }
 

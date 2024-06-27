@@ -1,4 +1,4 @@
-// Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -24,7 +24,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "shared_library.h"
+
 #include <dlfcn.h>
+
 #include <iostream>
 
 /// FIXME: Duplication of server/src/core/shared_library.cc
@@ -36,7 +38,6 @@ namespace tritoncapi {
 Error
 OpenLibraryHandle(const std::string& path, void** handle)
 {
-  std::cout << "OpenLibraryHandle: " << path << std::endl;
   *handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
   if (*handle == nullptr) {
     return Error("unable to load backend library: " + std::string(dlerror()));

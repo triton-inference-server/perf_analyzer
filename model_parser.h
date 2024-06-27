@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,6 +26,7 @@
 #pragma once
 
 #include <unordered_map>
+
 #include "client_backend/client_backend.h"
 #include "perf_utils.h"
 
@@ -33,6 +34,8 @@ namespace triton { namespace perfanalyzer {
 
 #ifndef DOCTEST_CONFIG_DISABLE
 class TestModelParser;
+class MockModelParser;
+class InferenceProfiler;
 #endif
 
 struct ModelTensor {
@@ -40,6 +43,7 @@ struct ModelTensor {
   std::string name_;
   std::string datatype_;
   std::vector<int64_t> shape_;
+  // Indicates if this tensor holds shape information for other tensors
   bool is_shape_tensor_;
   bool is_optional_;
 };
@@ -70,7 +74,8 @@ class ModelParser {
         outputs_(std::make_shared<ModelTensorMap>()),
         composing_models_map_(std::make_shared<ComposingModelMap>()),
         scheduler_type_(NONE), max_batch_size_(0), is_decoupled_(false),
-        response_cache_enabled_(false)
+        response_cache_enabled_(false),
+        top_level_response_caching_enabled_(false)
   {
   }
 
@@ -79,6 +84,7 @@ class ModelParser {
   /// \param metadata The metadata of the target model.
   /// \param config The config of the target model.
   /// \param model_version The version of target model.
+  /// \param bls_composing_models A list of BLS composing model identifiers
   /// \param input_shapes The user provided default shapes which will be use
   /// if a certain input has wildcard in its dimension.
   /// \param backend The backend object.
@@ -86,6 +92,7 @@ class ModelParser {
   cb::Error InitTriton(
       const rapidjson::Document& metadata, const rapidjson::Document& config,
       const std::string& model_version,
+      const std::vector<cb::ModelIdentifier>& bls_composing_models,
       const std::unordered_map<std::string, std::vector<int64_t>>& input_shapes,
       std::unique_ptr<cb::ClientBackend>& backend);
 
@@ -105,6 +112,10 @@ class ModelParser {
       const int32_t batch_size,
       const std::unordered_map<std::string, std::vector<int64_t>>& input_shapes,
       std::unique_ptr<cb::ClientBackend>& backend);
+
+  cb::Error InitOpenAI(
+      const std::string& model_name, const std::string& model_version,
+      const int32_t batch_size);
 
   cb::Error InitTorchServe(
       const std::string& model_name, const std::string& model_version,
@@ -142,6 +153,22 @@ class ModelParser {
   /// model
   bool ResponseCacheEnabled() const { return response_cache_enabled_; }
 
+  /// Returns whether or not top level request caching is enabled for this model
+  /// \return the truth value of whether top level request caching is enabled
+  /// for this model
+  bool TopLevelResponseCachingEnabled() const
+  {
+    return top_level_response_caching_enabled_;
+  }
+
+/// Only for testing
+#ifndef DOCTEST_CONFIG_DISABLE
+  void SetTopLevelResponseCaching(bool enable_top_level_response_caching)
+  {
+    top_level_response_caching_enabled_ = enable_top_level_response_caching;
+  }
+#endif
+
   /// Get the details about the model inputs.
   /// \return The map with tensor_name and the tensor details
   /// stored as key-value pair.
@@ -153,22 +180,49 @@ class ModelParser {
   const std::shared_ptr<ModelTensorMap>& Outputs() { return outputs_; }
 
   /// Get the composing maps for the target model.
-  /// \return The pointer to the nested map descriping the
+  /// \return The pointer to the nested map describing the
   /// nested flow in the target model.
   const std::shared_ptr<ComposingModelMap>& GetComposingModelMap()
   {
     return composing_models_map_;
   }
 
+
+ protected:
+  ModelSchedulerType scheduler_type_;
+  bool is_decoupled_;
+
  private:
-  cb::Error GetEnsembleSchedulerType(
-      const rapidjson::Document& config, const std::string& model_version,
+  /// Populate composing_models_map_ based on any bls composing models passed in
+  /// via the CLI as well as any ensemble or nested ensemble models
+  cb::Error DetermineComposingModelMap(
+      const std::vector<cb::ModelIdentifier>& bls_composing_models,
+      const rapidjson::Document& config,
+      std::unique_ptr<cb::ClientBackend>& backend);
+
+  cb::Error AddBLSComposingModels(
+      const std::vector<cb::ModelIdentifier>& bls_composing_models,
+      const rapidjson::Document& config,
+      std::unique_ptr<cb::ClientBackend>& backend);
+
+  cb::Error AddEnsembleComposingModels(
+      const rapidjson::Document& config,
+      std::unique_ptr<cb::ClientBackend>& backend);
+
+  /// Populate scheduler_type_ based on the scheduler type of the parent model
+  /// as well as any composing models
+  cb::Error DetermineSchedulerType(
+      const rapidjson::Document& config,
+      std::unique_ptr<cb::ClientBackend>& backend);
+
+  /// Sets is_sequential to true if any of the composing models are sequential
+  cb::Error GetComposingSchedulerType(
       std::unique_ptr<cb::ClientBackend>& backend, bool* is_sequential);
 
   /// In the json produced by protobuf, int64 and uint64 values are
   /// represented as strings. Protobuf doesn't provide an option to
   /// disable this (sigh) so we need to correctly parse these fields
-  /// for ModelParser to receive appopriate requests.
+  /// for ModelParser to receive appropriate requests.
   /// \param value The rapidjson value object with the int value.
   /// \param integer_value The output integer pointer.
   /// \return cb::Error object indicating success or failure.
@@ -183,15 +237,16 @@ class ModelParser {
   std::string model_name_;
   std::string model_version_;
   std::string model_signature_name_;
-  ModelSchedulerType scheduler_type_;
   size_t max_batch_size_;
-  bool is_decoupled_;
   bool response_cache_enabled_;
+  bool top_level_response_caching_enabled_;
 
 #ifndef DOCTEST_CONFIG_DISABLE
   friend TestModelParser;
+  friend MockModelParser;
+  friend InferenceProfiler;
 
- private:
+ public:
   ModelParser() = default;
 #endif
 };

@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -53,9 +53,6 @@ constexpr uint64_t NANOS_PER_MILLIS = 1000000;
 #define CHRONO_TO_MILLIS(TS) (CHRONO_TO_NANOS(TS) / pa::NANOS_PER_MILLIS)
 
 //==============================================================================
-using TimestampVector = std::vector<std::tuple<
-    std::chrono::time_point<std::chrono::system_clock>,
-    std::chrono::time_point<std::chrono::system_clock>, uint32_t, bool>>;
 
 // Will use the characters specified here to construct random strings
 std::string const character_set =
@@ -97,30 +94,6 @@ cb::Error ConvertDTypeFromTFS(
 // Parse the communication protocol type
 cb::ProtocolType ParseProtocol(const std::string& str);
 
-// Reads the data from file specified by path into vector of characters
-// \param path The complete path to the file to be read
-// \param contents The character vector that will contain the data read
-// \return error status. Returns Non-Ok if an error is encountered during
-//  read operation.
-cb::Error ReadFile(const std::string& path, std::vector<char>* contents);
-
-// Reads the string from file specified by path into vector of strings
-// \param path The complete path to the file to be read
-// \param contents The string vector that will contain the data read
-// \return error status. Returns Non-Ok if an error is encountered during
-//  read operation.
-cb::Error ReadTextFile(
-    const std::string& path, std::vector<std::string>* contents);
-
-// Reads the time intervals in microseconds from file specified by path into
-// vector of time intervals in nanoseconds.
-// \param path The complete path to the file to be read
-// \param contents The time interval vector that will contain the data read.
-// \return error status. Returns Non-Ok if an error is encountered during
-//  read operation.
-cb::Error ReadTimeIntervalsFile(
-    const std::string& path, std::vector<std::chrono::nanoseconds>* contents);
-
 // To check whether the path points to a valid system directory
 bool IsDirectory(const std::string& path);
 
@@ -152,13 +125,16 @@ std::string GetRandomString(const int string_length);
 std::string ShapeVecToString(
     const std::vector<int64_t> shape_vec, bool skip_first = false);
 
-// Returns the string containing the shape tensor values
-std::string ShapeTensorValuesToString(const int* data_ptr, const int count);
+// Remove slashes from tensor name, if any
+std::string TensorToRegionName(std::string name);
 
 // Returns the request schedule distribution generator with the specified
 // request rate.
 template <Distribution distribution>
 std::function<std::chrono::nanoseconds(std::mt19937&)> ScheduleDistribution(
     const double request_rate);
+
+// Parse the HTTP tensor format
+cb::TensorFormat ParseTensorFormat(const std::string& tensor_format_str);
 
 }}  // namespace triton::perfanalyzer

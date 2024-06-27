@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,19 +25,24 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <filesystem>
 #include <fstream>
+#include <unordered_set>
+
 #include "model_parser.h"
 #include "perf_utils.h"
+#include "tensor_data.h"
 
 namespace triton { namespace perfanalyzer {
+
+#ifndef DOCTEST_CONFIG_DISABLE
+class NaggyMockDataLoader;
+#endif
+
 
 class DataLoader {
  public:
   DataLoader(size_t batch_size);
-
-  /// Returns the total number of data steps that can be supported by a
-  /// non-sequence model.
-  size_t GetTotalStepsNonSequence() { return max_non_sequence_step_id_; }
 
   /// Returns the total number of data streams available.
   size_t GetDataStreamsCount() { return data_stream_cnt_; }
@@ -45,7 +50,7 @@ class DataLoader {
   /// Returns the total data steps supported for a requested data stream
   /// id.
   /// \param stream_id The target stream id
-  size_t GetTotalSteps(size_t stream_id)
+  virtual size_t GetTotalSteps(size_t stream_id)
   {
     if (stream_id < data_stream_cnt_) {
       return step_num_[stream_id];
@@ -53,9 +58,22 @@ class DataLoader {
     return 0;
   }
 
+  /// Validate user-supplied inputs and outputs exist in the model
+  /// \param inputs The pointer to the map holding the information about
+  /// input tensors of a model
+  /// \param outputs The pointer to the map holding the information about
+  /// output tensors of a model
+  /// \param data_directory The path to the directory containing the data
+  cb::Error ValidateIOExistsInModel(
+      const std::shared_ptr<ModelTensorMap>& inputs,
+      const std::shared_ptr<ModelTensorMap>& outputs,
+      const std::string& data_directory);
+
   /// Reads the input data from the specified data directory.
   /// \param inputs The pointer to the map holding the information about
   /// input tensors of a model
+  /// \param outputs The pointer to the map holding the information about
+  /// output tensors of a model
   /// \param data_directory The path to the directory containing the data
   cb::Error ReadDataFromDir(
       const std::shared_ptr<ModelTensorMap>& inputs,
@@ -68,7 +86,7 @@ class DataLoader {
   /// \param json_file The json file containing the user-provided input
   /// data.
   /// Returns error object indicating status
-  cb::Error ReadDataFromJSON(
+  virtual cb::Error ReadDataFromJSON(
       const std::shared_ptr<ModelTensorMap>& inputs,
       const std::shared_ptr<ModelTensorMap>& outputs,
       const std::string& json_file);
@@ -91,12 +109,11 @@ class DataLoader {
   /// \param input The target model input tensor
   /// \param stream_id The data stream_id to use for retrieving input data.
   /// \param step_id The data step_id to use for retrieving input data.
-  /// \param data Returns the pointer to the data for the requested input.
-  /// \param batch1_size Returns the size of the input data in bytes.
+  /// \param data Returns the input TensorData
   /// Returns error object indicating status
   cb::Error GetInputData(
       const ModelTensor& input, const int stream_id, const int step_id,
-      const uint8_t** data_ptr, size_t* batch1_size);
+      TensorData& data);
 
   /// Helper function to get the shape values to the input
   /// \param input The target model input tensor
@@ -114,14 +131,43 @@ class DataLoader {
   /// \param output_name The name of the output tensor
   /// \param stream_id The data stream_id to use for retrieving output data.
   /// \param step_id The data step_id to use for retrieving output data.
-  /// \param data Returns the pointer to the data for the requested output.
-  /// \param batch1_size Returns the size of the output data in bytes.
+  /// \param data Returns the output TensorData
   /// Returns error object indicating status
   cb::Error GetOutputData(
       const std::string& output_name, const int stream_id, const int step_id,
-      const uint8_t** data_ptr, size_t* batch1_size);
+      TensorData& data);
+
+  /// Return an error if the stream index or step index are invalid
+  cb::Error ValidateIndexes(int stream_index, int step_index);
+
+ protected:
+  /// Parses the input and output data from the json document
+  /// \param inputs The input tensors of a model
+  /// \param outputs The output tensors of a model
+  /// \param json The json document containing the raw json inputs/outputs
+  /// \return Returns error object indicating status
+  cb::Error ParseData(
+      const rapidjson::Document& json,
+      const std::shared_ptr<ModelTensorMap>& inputs,
+      const std::shared_ptr<ModelTensorMap>& outputs);
 
  private:
+  /// Reads the data from file specified by path into vector of characters
+  /// \param path The complete path to the file to be read
+  /// \param contents The character vector that will contain the data read
+  /// \return error status. Returns Non-Ok if an error is encountered during
+  ///  read operation.
+  virtual cb::Error ReadFile(
+      const std::string& path, std::vector<char>* contents);
+
+  /// Reads the string from file specified by path into vector of strings
+  /// \param path The complete path to the file to be read
+  /// \param contents The string vector that will contain the data read
+  /// \return error status. Returns Non-Ok if an error is encountered during
+  ///  read operation.
+  virtual cb::Error ReadTextFile(
+      const std::string& path, std::vector<std::string>* contents);
+
   /// Helper function to read data for the specified input from json
   /// \param step the DOM for current step
   /// \param inputs The pointer to the map holding the information about
@@ -134,15 +180,45 @@ class DataLoader {
       const std::shared_ptr<ModelTensorMap>& tensors, const int stream_index,
       const int step_index, const bool is_input);
 
+  /// Helper function to validate the provided data and shape for the tensor
+  /// \param input The target model input or output tensor
+  /// \param stream_index the stream index the data should be exported to.
+  /// \param step_index the step index the data should be exported to.
+  /// Returns error object indicating status
+  cb::Error ValidateTensor(
+      const ModelTensor& model_tensor, const int stream_index,
+      const int step_index);
+
+  /// Helper function to validate the provided shape for a tensor
+  /// \param shape Shape for the tensor
+  /// \param model_tensor The tensor to validate
+  /// Returns error object indicating status
+  cb::Error ValidateTensorShape(
+      const std::vector<int64_t>& shape, const ModelTensor& model_tensor);
+
+  /// Helper function to validate the provided data's size
+  /// \param data The provided data for the tensor
+  /// \param batch1_byte The expected number of bytes of data
+  /// \param model_tensor The tensor to validate
+  /// Returns error object indicating status
+  cb::Error ValidateTensorDataSize(
+      const std::vector<char>& data, int64_t batch1_byte,
+      const ModelTensor& model_tensor);
+
+  /// Helper function to validate consistency of parsing mode for provided input
+  /// data.  The code explicitly does not support a mixture of objects (multiple
+  /// entries of a single stream) and arrays (multiple streams)
+  ///
+  /// \param steps The json data provided for one or multiple streams
+  cb::Error ValidateParsingMode(const rapidjson::Value& steps);
+
   // The batch_size_ for the data
-  size_t batch_size_;
+  size_t batch_size_{1};
   // The total number of data streams available.
-  size_t data_stream_cnt_;
+  size_t data_stream_cnt_{0};
   // A vector containing the supported step number for respective stream
   // ids.
   std::vector<size_t> step_num_;
-  // The maximum supported data step id for non-sequence model.
-  size_t max_non_sequence_step_id_;
 
   // User provided input data, it will be preferred over synthetic data
   std::unordered_map<std::string, std::vector<char>> input_data_;
@@ -155,6 +231,16 @@ class DataLoader {
   // Placeholder for generated input data, which will be used for all inputs
   // except string
   std::vector<uint8_t> input_buf_;
+
+  // Tracks what type of input data has been provided
+  bool multiple_stream_mode_ = false;
+
+#ifndef DOCTEST_CONFIG_DISABLE
+  friend NaggyMockDataLoader;
+
+ public:
+  DataLoader() = default;
+#endif
 };
 
 }}  // namespace triton::perfanalyzer

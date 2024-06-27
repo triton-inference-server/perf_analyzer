@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,9 +25,14 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include "concurrency_worker.h"
 #include "load_manager.h"
 
 namespace triton { namespace perfanalyzer {
+
+#ifndef DOCTEST_CONFIG_DISABLE
+class TestConcurrencyManager;
+#endif
 
 //==============================================================================
 /// ConcurrencyManager is a helper class to send inference requests to inference
@@ -57,7 +62,6 @@ class ConcurrencyManager : public LoadManager {
   /// \param batch_size The batch size used for each request.
   /// \param max_threads The maximum number of working threads to be spawned.
   /// \param max_concurrency The maximum concurrency which will be requested.
-  /// \param sequence_length The base length of each sequence.
   /// \param string_length The length of the string to create for input.
   /// \param string_data The data to use for generating string input.
   /// \param zero_input Whether to fill the input tensors with zero.
@@ -70,58 +74,40 @@ class ConcurrencyManager : public LoadManager {
   /// \param factory The ClientBackendFactory object used to create
   /// client to the server.
   /// \param manager Returns a new ConcurrencyManager object.
+  /// \param request_parameters Custom request parameters to send to the server
   /// \return cb::Error object indicating success or failure.
   static cb::Error Create(
       const bool async, const bool streaming, const int32_t batch_size,
       const size_t max_threads, const size_t max_concurrency,
-      const size_t sequence_length, const size_t string_length,
-      const std::string& string_data, const bool zero_input,
-      std::vector<std::string>& user_data,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-      const uint64_t start_sequence_id, const uint64_t sequence_id_range,
       const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
-      std::unique_ptr<LoadManager>* manager);
+      std::unique_ptr<LoadManager>* manager,
+      const std::unordered_map<std::string, cb::RequestParameter>&
+          request_parameters);
 
   /// Adjusts the number of concurrent requests to be the same as
   /// 'concurrent_request_count' (by creating or pausing threads)
   /// \param concurent_request_count The number of concurrent requests.
+  /// \param request_count The number of requests to generate. If 0, then
+  /// there is no limit, and it will generate until told to stop.
   /// \return cb::Error object indicating success or failure.
-  cb::Error ChangeConcurrencyLevel(const size_t concurrent_request_count);
+  cb::Error ChangeConcurrencyLevel(
+      const size_t concurrent_request_count, const size_t request_count = 0);
 
- private:
+ protected:
+  // Makes a new worker
+  virtual std::shared_ptr<IWorker> MakeWorker(
+      std::shared_ptr<ThreadStat>, std::shared_ptr<ThreadConfig>);
+
   ConcurrencyManager(
       const bool async, const bool streaming, const int32_t batch_size,
       const size_t max_threads, const size_t max_concurrency,
-      const size_t sequence_length, const SharedMemoryType shared_memory_type,
-      const size_t output_shm_size, const uint64_t start_sequence_id,
-      const uint64_t sequence_id_range,
+      const SharedMemoryType shared_memory_type, const size_t output_shm_size,
       const std::shared_ptr<ModelParser>& parser,
-      const std::shared_ptr<cb::ClientBackendFactory>& factory);
-
-  struct ThreadConfig {
-    ThreadConfig(size_t thread_id)
-        : thread_id_(thread_id), concurrency_(0),
-          non_sequence_data_step_id_(thread_id), is_paused_(false)
-    {
-    }
-
-    // ID of corresponding worker thread
-    size_t thread_id_;
-    // The concurrency level that the worker should produce
-    size_t concurrency_;
-    // The current data step id in case of non-sequence model
-    size_t non_sequence_data_step_id_;
-    // Whether or not the thread is issuing new inference requests
-    bool is_paused_;
-  };
-
-  /// Function for worker that sends inference requests.
-  /// \param thread_stat Worker thread status specific data.
-  /// \param thread_config Worker thread configuration specific data.
-  void Infer(
-      std::shared_ptr<ThreadStat> thread_stat,
-      std::shared_ptr<ThreadConfig> thread_config);
+      const std::shared_ptr<cb::ClientBackendFactory>& factory,
+      const std::unordered_map<std::string, cb::RequestParameter>&
+          request_parameters);
 
   // The number of worker threads with non-zero concurrencies
   size_t active_threads_;
@@ -129,7 +115,31 @@ class ConcurrencyManager : public LoadManager {
   bool execute_;
 
   size_t max_concurrency_;
+
   std::vector<std::shared_ptr<ThreadConfig>> threads_config_;
+
+ private:
+  void InitManagerFinalize() override;
+
+  // Pause all worker threads that are working on sequences
+  //
+  void PauseSequenceWorkers();
+
+  // Create new threads (if necessary), and then reconfigure all worker threads
+  // to handle the new concurrent request count
+  //
+  void ReconfigThreads(size_t concurrent_request_count, size_t request_count);
+
+  // Restart all worker threads that were working on sequences
+  //
+  void ResumeSequenceWorkers();
+
+#ifndef DOCTEST_CONFIG_DISABLE
+  friend TestConcurrencyManager;
+
+ public:
+  ConcurrencyManager() = default;
+#endif
 };
 
 }}  // namespace triton::perfanalyzer

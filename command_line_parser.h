@@ -1,4 +1,4 @@
-// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -30,6 +30,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "constants.h"
 #include "mpi_utils.h"
 #include "perf_utils.h"
@@ -48,15 +49,20 @@ struct PerfAnalyzerParameters {
   size_t max_threads = 4;
   bool max_threads_specified = false;
   size_t sequence_length = 20;  // average length of a sentence
+  bool sequence_length_specified = false;
+  double sequence_length_variation = 20.0;
   int32_t percentile = -1;
   std::vector<std::string> user_data;
   std::unordered_map<std::string, std::vector<int64_t>> input_shapes;
+  std::vector<cb::ModelIdentifier> bls_composing_models;
   uint64_t measurement_window_ms = 5000;
   bool using_concurrency_range = false;
   Range<uint64_t> concurrency_range{1, 1, 1};
+  std::unordered_map<std::string, cb::RequestParameter> request_parameters;
   uint64_t latency_threshold_ms = NO_LIMIT;
   double stability_threshold = 0.1;
   size_t max_trials = 10;
+  size_t request_count = 0;
   bool zero_input = false;
   size_t string_length = 128;
   std::string string_data;
@@ -65,6 +71,7 @@ struct PerfAnalyzerParameters {
   bool using_request_rate_range = false;
   double request_rate_range[3] = {1.0, 1.0, 1.0};
   uint32_t num_of_sequences = 4;
+  bool serial_sequences = false;
   SearchMode search_mode = SearchMode::LINEAR;
   Distribution request_distribution = Distribution::CONSTANT;
   bool using_custom_intervals = false;
@@ -78,7 +85,7 @@ struct PerfAnalyzerParameters {
       clientbackend::GrpcCompressionAlgorithm::COMPRESS_NONE;
   MeasurementMode measurement_mode = MeasurementMode::TIME_WINDOWS;
   uint64_t measurement_request_count = 50;
-  std::string triton_server_path;
+  std::string triton_server_path = "/opt/tritonserver";
   std::string model_repository_path;
   uint64_t start_sequence_id = 1;
   uint64_t sequence_id_range = UINT32_MAX;
@@ -94,9 +101,10 @@ struct PerfAnalyzerParameters {
   bool dynamic_concurrency_mode = false;
   bool url_specified = false;
   std::string url{"localhost:8000"};
+  std::string endpoint{""};
   std::string model_name;
   std::string model_version;
-  int32_t batch_size = 1;
+  uint64_t batch_size = 1;
   bool using_batch_size = false;
   int32_t concurrent_request_count = 1;
   clientbackend::ProtocolType protocol = clientbackend::ProtocolType::HTTP;
@@ -125,8 +133,29 @@ struct PerfAnalyzerParameters {
   {
     return (
         using_concurrency_range || using_old_options ||
-        !(using_request_rate_range || using_custom_intervals));
+        !(using_request_rate_range || using_custom_intervals ||
+          is_using_periodic_concurrency_mode));
   }
+
+  // Sets the threshold for PA client overhead.
+  // Overhead is defined as the percentage of time when PA is doing work and
+  // requests are not outstanding to the triton server. If the overhead
+  // percentage exceeds the threshold, a warning is displayed.
+  //
+  double overhead_pct_threshold{50.0};
+
+  // Triton inference request input tensor format.
+  cb::TensorFormat input_tensor_format{cb::TensorFormat::BINARY};
+
+  // Triton inference response output tensor format.
+  cb::TensorFormat output_tensor_format{cb::TensorFormat::BINARY};
+
+  // The profile export file path.
+  std::string profile_export_file{""};
+
+  bool is_using_periodic_concurrency_mode{false};
+  Range<uint64_t> periodic_concurrency_range{1, 1, 1};
+  uint64_t request_period{10};
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;
@@ -135,7 +164,7 @@ class CLParser {
  public:
   CLParser() : params_(new PerfAnalyzerParameters{}) {}
 
-  // Parse command line arguements into a parameters struct
+  // Parse command line arguments into a parameters struct
   //
   PAParamsPtr Parse(int argc, char** argv);
 
@@ -146,6 +175,7 @@ class CLParser {
 
   std::string FormatMessage(std::string str, int offset) const;
   virtual void Usage(const std::string& msg = std::string());
+  void PrintVersion();
   void ParseCommandLine(int argc, char** argv);
   void VerifyOptions();
 };

@@ -1,4 +1,4 @@
-# Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,6 +33,16 @@ else()
 
 add_subdirectory(client_backend)
 
+find_package(Git REQUIRED)
+
+execute_process(WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND "${GIT_EXECUTABLE}" log -n 1 --abbrev-commit --format=format:%h
+  RESULT_VARIABLE RETURN_CODE
+  OUTPUT_VARIABLE GIT_SHA)
+if(NOT RETURN_CODE EQUAL "0")
+  set(GIT_SHA "unknown")
+endif()
+
 set(
   PERF_ANALYZER_SRCS
   command_line_parser.cc
@@ -43,11 +53,23 @@ set(
   data_loader.cc
   concurrency_manager.cc
   request_rate_manager.cc
+  load_worker.cc
+  concurrency_worker.cc
+  request_rate_worker.cc
   custom_load_manager.cc
+  infer_context.cc
   inference_profiler.cc
   report_writer.cc
   mpi_utils.cc
   metrics_manager.cc
+  infer_data_manager_base.cc
+  infer_data_manager.cc
+  infer_data_manager_shm.cc
+  sequence_manager.cc
+  profile_data_collector.cc
+  profile_data_exporter.cc
+  periodic_concurrency_manager.cc
+  periodic_concurrency_worker.cc
 )
 
 set(
@@ -61,6 +83,11 @@ set(
   concurrency_manager.h
   request_rate_manager.h
   custom_load_manager.h
+  iworker.h
+  load_worker.h
+  request_rate_worker.h
+  concurrency_worker.h
+  infer_context.h
   inference_profiler.h
   report_writer.h
   mpi_utils.h
@@ -68,6 +95,24 @@ set(
   constants.h
   metrics.h
   metrics_manager.h
+  infer_data_manager_factory.h
+  iinfer_data_manager.h
+  infer_data_manager.h
+  infer_data_manager_shm.h
+  infer_data_manager_base.h
+  infer_data.h
+  sequence_manager.h
+  sequence_status.h
+  ictx_id_tracker.h
+  concurrency_ctx_id_tracker.h
+  fifo_ctx_id_tracker.h
+  rand_ctx_id_tracker.h
+  request_record.h
+  profile_data_collector.h
+  profile_data_exporter.h
+  periodic_concurrency_manager.h
+  periodic_concurrency_worker.h
+  thread_config.h
 )
 
 add_executable(
@@ -83,6 +128,13 @@ target_link_libraries(
     client-backend-library
     -lb64
     ${CMAKE_DL_LIBS}
+)
+
+target_compile_definitions(
+  perf_analyzer
+  PRIVATE
+    PERF_ANALYZER_VERSION=${PERF_ANALYZER_VERSION}
+    GIT_SHA=${GIT_SHA}
 )
 
 # If gpu is enabled then compile with CUDA dependencies
@@ -119,6 +171,13 @@ if(TRITON_ENABLE_PERF_ANALYZER_TS)
   )
 endif()
 
+if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
+  target_compile_definitions(
+    client-backend-library
+    PUBLIC TRITON_ENABLE_PERF_ANALYZER_OPENAI=1
+  )
+endif()
+
 install(
   TARGETS perf_analyzer
   RUNTIME DESTINATION bin
@@ -142,19 +201,43 @@ add_executable(
   ${PERF_ANALYZER_UNIT_TESTS_SRCS}
   ${PERF_ANALYZER_UNIT_TESTS_HDRS}
   mock_inference_profiler.h
+  mock_model_parser.h
+  test_utils.h
+  client_backend/mock_client_backend.h
+  mock_concurrency_worker.h
+  mock_data_loader.h
+  mock_infer_context.h
+  mock_infer_data_manager.h
+  mock_request_rate_worker.h
+  mock_sequence_manager.h
+  mock_profile_data_collector.h
+  mock_profile_data_exporter.h
+  test_dataloader.cc
   test_inference_profiler.cc
   test_command_line_parser.cc
+  test_idle_timer.cc
+  test_load_manager_base.h
+  test_load_manager.cc
   test_model_parser.cc
   test_metrics_manager.cc
+  test_perf_utils.cc
   test_report_writer.cc
   client_backend/triton/test_triton_client_backend.cc
+  test_request_rate_manager.cc
+  test_concurrency_manager.cc
+  test_custom_load_manager.cc
+  test_sequence_manager.cc
+  test_infer_context.cc
+  test_ctx_id_tracker.cc
+  test_profile_data_collector.cc
+  test_profile_data_exporter.cc
   $<TARGET_OBJECTS:json-utils-library>
 )
 
 # -Wno-write-strings is needed for the unit tests in order to statically create
 # input argv cases in the CommandLineParser unit test
 #
-set_target_properties(perf_analyzer_unit_tests 
+set_target_properties(perf_analyzer_unit_tests
   PROPERTIES COMPILE_FLAGS "-Wno-write-strings")
 
 target_link_libraries(

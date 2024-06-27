@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -30,6 +30,7 @@
 #include <regex>
 #include <string>
 #include <type_traits>
+
 #include "../../constants.h"
 #include "../../metrics.h"
 #include "../../perf_utils.h"
@@ -79,6 +80,10 @@ class TritonClientBackend : public ClientBackend {
   /// the header name/value.
   /// \param verbose Enables the verbose mode.
   /// \param metrics_url The inference server metrics url and port.
+  /// \param input_tensor_format The Triton inference request input tensor
+  /// format.
+  /// \param output_tensor_format The Triton inference response output tensor
+  /// format.
   /// \param client_backend Returns a new TritonClientBackend object.
   /// \return Error object indicating success or failure.
   static Error Create(
@@ -88,6 +93,8 @@ class TritonClientBackend : public ClientBackend {
       const grpc_compression_algorithm compression_algorithm,
       std::shared_ptr<tc::Headers> http_headers, const bool verbose,
       const std::string& metrics_url,
+      const cb::TensorFormat input_tensor_format,
+      const cb::TensorFormat output_tensor_format,
       std::unique_ptr<ClientBackend>* client_backend);
 
   /// See ClientBackend::ServerExtensions()
@@ -169,10 +176,14 @@ class TritonClientBackend : public ClientBackend {
   TritonClientBackend(
       const ProtocolType protocol,
       const grpc_compression_algorithm compression_algorithm,
-      std::shared_ptr<tc::Headers> http_headers, const std::string& metrics_url)
+      std::shared_ptr<tc::Headers> http_headers, const std::string& metrics_url,
+      const cb::TensorFormat input_tensor_format,
+      const cb::TensorFormat output_tensor_format)
       : ClientBackend(BackendKind::TRITON), protocol_(protocol),
         compression_algorithm_(compression_algorithm),
-        http_headers_(http_headers), metrics_url_(metrics_url)
+        http_headers_(http_headers), metrics_url_(metrics_url),
+        input_tensor_format_(input_tensor_format),
+        output_tensor_format_(output_tensor_format)
   {
   }
 
@@ -239,11 +250,13 @@ class TritonClientBackend : public ClientBackend {
   const grpc_compression_algorithm compression_algorithm_{GRPC_COMPRESS_NONE};
   std::shared_ptr<tc::Headers> http_headers_;
   const std::string metrics_url_{""};
+  const cb::TensorFormat input_tensor_format_{cb::TensorFormat::UNKNOWN};
+  const cb::TensorFormat output_tensor_format_{cb::TensorFormat::UNKNOWN};
 
 #ifndef DOCTEST_CONFIG_DISABLE
   friend TestTritonClientBackend;
 
- protected:
+ public:
   TritonClientBackend() = default;
 #endif
 };
@@ -270,6 +283,8 @@ class TritonInferInput : public InferInput {
   /// See InferInput::SetSharedMemory()
   Error SetSharedMemory(
       const std::string& name, size_t byte_size, size_t offset = 0) override;
+  /// See InferInput::RawData()
+  Error RawData(const uint8_t** buf, size_t* byte_size) override;
 
  private:
   explicit TritonInferInput(
@@ -286,7 +301,7 @@ class TritonInferRequestedOutput : public InferRequestedOutput {
  public:
   static Error Create(
       InferRequestedOutput** infer_output, const std::string& name,
-      const size_t class_count = 0);
+      const size_t class_count = 0, const std::string& datatype = "");
   /// Returns the raw InferRequestedOutput object required by triton client
   /// library.
   tc::InferRequestedOutput* Get() const { return output_.get(); }
@@ -296,7 +311,8 @@ class TritonInferRequestedOutput : public InferRequestedOutput {
       const size_t offset = 0) override;
 
  private:
-  explicit TritonInferRequestedOutput(const std::string& name);
+  explicit TritonInferRequestedOutput(
+      const std::string& name, const std::string& datatype);
 
   std::unique_ptr<tc::InferRequestedOutput> output_;
 };
@@ -316,6 +332,10 @@ class TritonInferResult : public InferResult {
   Error RawData(
       const std::string& output_name, const uint8_t** buf,
       size_t* byte_size) const override;
+  /// See InferResult::IsFinalResponse()
+  Error IsFinalResponse(bool* is_final_response) const override;
+  /// See InferResult::IsNullResponse()
+  Error IsNullResponse(bool* is_null_response) const override;
 
  private:
   std::unique_ptr<tc::InferResult> result_;

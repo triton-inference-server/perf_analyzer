@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@
 
 #include "../constants.h"
 #include "../metrics.h"
+#include "../perf_analyzer_exception.h"
 #include "ipc.h"
 
 namespace pa = triton::perfanalyzer;
@@ -70,6 +71,15 @@ namespace triton { namespace perfanalyzer { namespace clientbackend {
   }                                                                \
   while (false)
 
+#define THROW_IF_ERROR(S, MSG)                                          \
+  do {                                                                  \
+    triton::perfanalyzer::clientbackend::Error status__ = (S);          \
+    if (!status__.IsOk()) {                                             \
+      std::cerr << "error: " << (MSG) << ": " << status__ << std::endl; \
+      throw PerfAnalyzerException(GENERIC_ERROR);                       \
+    }                                                                   \
+  } while (false)
+
 //==============================================================================
 /// Error status reported by backends
 ///
@@ -88,7 +98,7 @@ class Error {
   explicit Error(const std::string& msg);
 
   /// Accessor for the message of this error.
-  /// \return The messsage for the error. Empty if no error.
+  /// \return The message for the error. Empty if no error.
   const std::string& Message() const { return msg_; }
 
   /// Accessor for the error code.
@@ -125,14 +135,18 @@ enum BackendKind {
   TRITON = 0,
   TENSORFLOW_SERVING = 1,
   TORCHSERVE = 2,
-  TRITON_C_API = 3
+  TRITON_C_API = 3,
+  OPENAI = 4
 };
+std::string BackendKindToString(const BackendKind kind);
+
 enum ProtocolType { HTTP = 0, GRPC = 1, UNKNOWN = 2 };
 enum GrpcCompressionAlgorithm {
   COMPRESS_NONE = 0,
   COMPRESS_DEFLATE = 1,
   COMPRESS_GZIP = 2
 };
+enum class TensorFormat { BINARY, JSON, UNKNOWN };
 typedef std::map<std::string, std::string> Headers;
 
 using OnCompleteFn = std::function<void(InferResult*)>;
@@ -181,6 +195,15 @@ struct ModelStatistics {
   uint64_t cache_miss_time_ns_;
 };
 
+///
+/// Structure to hold Request parameter data for Inference Request.
+///
+struct RequestParameter {
+  std::string name;
+  std::string value;
+  std::string type;
+};
+
 //==============================================================================
 /// Structure to hold options for Inference Request.
 ///
@@ -188,7 +211,7 @@ struct InferOptions {
   explicit InferOptions(const std::string& model_name)
       : model_name_(model_name), model_version_(""), request_id_(""),
         sequence_id_(0), sequence_id_str_(""), sequence_start_(false),
-        sequence_end_(false)
+        sequence_end_(false), triton_enable_empty_final_response_(true)
   {
   }
   /// The name of the model to run inference.
@@ -217,6 +240,11 @@ struct InferOptions {
   /// sequence. Default value is False. This argument is ignored if
   /// 'sequence_id' is 0.
   bool sequence_end_;
+  /// Whether to tell Triton to enable an empty final response.
+  bool triton_enable_empty_final_response_;
+
+  /// Additional parameters to pass to the model
+  std::unordered_map<std::string, RequestParameter> request_parameters_;
 };
 
 struct SslOptionsBase {
@@ -242,6 +270,7 @@ class ClientBackendFactory {
   /// Create a factory that can be used to construct Client Backends.
   /// \param kind The kind of client backend to create.
   /// \param url The inference server url and port.
+  /// \param endpoint The endpoint on the inference server to send requests to
   /// \param protocol The protocol type used.
   /// \param ssl_options The SSL options used with client backend.
   /// \param compression_algorithm The compression algorithm to be used
@@ -254,48 +283,58 @@ class ClientBackendFactory {
   /// /opt/tritonserver) Must contain libtritonserver.so.
   /// \param model_repository_path Only for C api backend. Path to model
   /// repository which contains the desired model.
-  /// \param memory_type Only for C api backend. Type of memory used
-  /// (system is default)
   /// \param verbose Enables the verbose mode.
   /// \param metrics_url The inference server metrics url and port.
+  /// \param input_tensor_format The Triton inference request input tensor
+  /// format.
+  /// \param output_tensor_format The Triton inference response output tensor
+  /// format.
   /// \param factory Returns a new ClientBackend object.
   /// \return Error object indicating success or failure.
   static Error Create(
       const BackendKind kind, const std::string& url,
-      const ProtocolType protocol, const SslOptionsBase& ssl_options,
+      const std::string& endpoint, const ProtocolType protocol,
+      const SslOptionsBase& ssl_options,
       const std::map<std::string, std::vector<std::string>> trace_options,
       const GrpcCompressionAlgorithm compression_algorithm,
       std::shared_ptr<Headers> http_headers,
       const std::string& triton_server_path,
-      const std::string& model_repository_path, const std::string& memory_type,
-      const bool verbose, const std::string& metrics_url,
+      const std::string& model_repository_path, const bool verbose,
+      const std::string& metrics_url, const TensorFormat input_tensor_format,
+      const TensorFormat output_tensor_format,
       std::shared_ptr<ClientBackendFactory>* factory);
+
+  const BackendKind& Kind();
 
   /// Create a ClientBackend.
   /// \param backend Returns a new Client backend object.
-  Error CreateClientBackend(std::unique_ptr<ClientBackend>* backend);
+  virtual Error CreateClientBackend(std::unique_ptr<ClientBackend>* backend);
 
  private:
   ClientBackendFactory(
       const BackendKind kind, const std::string& url,
-      const ProtocolType protocol, const SslOptionsBase& ssl_options,
+      const std::string& endpoint, const ProtocolType protocol,
+      const SslOptionsBase& ssl_options,
       const std::map<std::string, std::vector<std::string>> trace_options,
       const GrpcCompressionAlgorithm compression_algorithm,
       const std::shared_ptr<Headers> http_headers,
       const std::string& triton_server_path,
-      const std::string& model_repository_path, const std::string& memory_type,
-      const bool verbose, const std::string& metrics_url)
-      : kind_(kind), url_(url), protocol_(protocol), ssl_options_(ssl_options),
-        trace_options_(trace_options),
+      const std::string& model_repository_path, const bool verbose,
+      const std::string& metrics_url, const TensorFormat input_tensor_format,
+      const TensorFormat output_tensor_format)
+      : kind_(kind), url_(url), endpoint_(endpoint), protocol_(protocol),
+        ssl_options_(ssl_options), trace_options_(trace_options),
         compression_algorithm_(compression_algorithm),
         http_headers_(http_headers), triton_server_path(triton_server_path),
-        model_repository_path_(model_repository_path),
-        memory_type_(memory_type), verbose_(verbose), metrics_url_(metrics_url)
+        model_repository_path_(model_repository_path), verbose_(verbose),
+        metrics_url_(metrics_url), input_tensor_format_(input_tensor_format),
+        output_tensor_format_(output_tensor_format)
   {
   }
 
   const BackendKind kind_;
   const std::string url_;
+  const std::string endpoint_;
   const ProtocolType protocol_;
   const SslOptionsBase& ssl_options_;
   const std::map<std::string, std::vector<std::string>> trace_options_;
@@ -303,9 +342,22 @@ class ClientBackendFactory {
   std::shared_ptr<Headers> http_headers_;
   std::string triton_server_path;
   std::string model_repository_path_;
-  std::string memory_type_;
   const bool verbose_;
   const std::string metrics_url_{""};
+  const TensorFormat input_tensor_format_{TensorFormat::UNKNOWN};
+  const TensorFormat output_tensor_format_{TensorFormat::UNKNOWN};
+
+
+#ifndef DOCTEST_CONFIG_DISABLE
+ protected:
+  ClientBackendFactory()
+      : kind_(BackendKind()), url_(""), protocol_(ProtocolType()),
+        ssl_options_(SslOptionsBase()),
+        trace_options_(std::map<std::string, std::vector<std::string>>()),
+        compression_algorithm_(GrpcCompressionAlgorithm()), verbose_(false)
+  {
+  }
+#endif
 };
 
 //
@@ -315,12 +367,14 @@ class ClientBackend {
  public:
   static Error Create(
       const BackendKind kind, const std::string& url,
-      const ProtocolType protocol, const SslOptionsBase& ssl_options,
+      const std::string& endpoint, const ProtocolType protocol,
+      const SslOptionsBase& ssl_options,
       const std::map<std::string, std::vector<std::string>> trace_options,
       const GrpcCompressionAlgorithm compression_algorithm,
       std::shared_ptr<Headers> http_headers, const bool verbose,
       const std::string& library_directory, const std::string& model_repository,
-      const std::string& memory_type, const std::string& metrics_url,
+      const std::string& metrics_url, const TensorFormat input_tensor_format,
+      const TensorFormat output_tensor_format,
       std::unique_ptr<ClientBackend>* client_backend);
 
   /// Destructor for the client backend object
@@ -390,13 +444,20 @@ class ClientBackend {
       const std::string& name, const cudaIpcMemHandle_t& handle,
       const size_t byte_size);
 
+  /// Registers cuda memory to the server.
+  virtual Error RegisterCudaMemory(
+      const std::string& name, void* handle, const size_t byte_size);
+
+  /// Registers a system memory location on the server.
+  virtual Error RegisterSystemMemory(
+      const std::string& name, void* memory_ptr, const size_t byte_size);
+
   //
   // Shared Memory Utilities
   //
-  // FIXME: These should probably move to a common area with shm_utils not tied
-  // specifically to inferenceserver.
-  // Create a shared memory region of the size 'byte_size' and return the unique
-  // identifier.
+  // FIXME: These should probably move to a common area with shm_utils not
+  // tied specifically to inferenceserver. Create a shared memory region of
+  // the size 'byte_size' and return the unique identifier.
   virtual Error CreateSharedMemoryRegion(
       std::string shm_key, size_t byte_size, int* shm_fd);
 
@@ -416,7 +477,7 @@ class ClientBackend {
   // \return error Returns an error if unable to close shared memory descriptor.
   virtual Error CloseSharedMemory(int shm_fd);
 
-  // Destory the shared memory region with the given name.
+  // Destroy the shared memory region with the given name.
   // \return error Returns an error if unable to unlink shared memory region.
   virtual Error UnlinkSharedMemoryRegion(std::string shm_key);
 
@@ -432,7 +493,7 @@ class ClientBackend {
   const BackendKind kind_{TRITON};
 
 #ifndef DOCTEST_CONFIG_DISABLE
- protected:
+ public:
   ClientBackend() = default;
 #endif
 };
@@ -499,6 +560,15 @@ class InferInput {
   virtual Error SetSharedMemory(
       const std::string& name, size_t byte_size, size_t offset = 0);
 
+  /// Get access to the buffer holding raw input. Note the buffer is owned by
+  /// InferInput instance. Users can copy out the data if required to extend
+  /// the lifetime.
+  /// \param buf Returns the pointer to the start of the buffer.
+  /// \param byte_size Returns the size of buffer in bytes.
+  /// \return Error object indicating success or failure of the
+  /// request.
+  virtual Error RawData(const uint8_t** buf, size_t* byte_size);
+
  protected:
   InferInput(
       const BackendKind kind, const std::string& name,
@@ -522,17 +592,23 @@ class InferRequestedOutput {
   /// \param infer_output Returns a new InferOutputGrpc object.
   /// \param kind The kind of the associated client backend.
   /// \param name The name of output being requested.
+  /// \param datatype The datatype of the output
   /// \param class_count The number of classifications to be requested. The
   /// default value is 0 which means the classification results are not
   /// requested.
   /// \return Error object indicating success or failure.
   static Error Create(
       InferRequestedOutput** infer_output, const BackendKind kind,
-      const std::string& name, const size_t class_count = 0);
+      const std::string& name, const std::string& datatype,
+      const size_t class_count = 0);
 
   /// Gets name of the associated output tensor.
   /// \return The name of the tensor.
   const std::string& Name() const { return name_; }
+
+  /// Gets datatype of the associated output tensor.
+  /// \return The datatype of the tensor
+  const std::string& Datatype() const { return datatype_; }
 
   /// Set the output tensor data to be written to specified shared
   /// memory region.
@@ -546,9 +622,12 @@ class InferRequestedOutput {
       const size_t offset = 0);
 
  protected:
-  InferRequestedOutput(const BackendKind kind, const std::string& name);
+  InferRequestedOutput(
+      const BackendKind kind, const std::string& name,
+      const std::string& datatype = "");
   const BackendKind kind_;
   const std::string name_;
+  const std::string datatype_;
 };
 
 //
@@ -575,6 +654,22 @@ class InferResult {
   virtual Error RawData(
       const std::string& output_name, const uint8_t** buf,
       size_t* byte_size) const = 0;
+
+  /// Get final response bool for this response.
+  /// \return Error object indicating the success or failure.
+  virtual Error IsFinalResponse(bool* is_final_response) const
+  {
+    return Error("InferResult::IsFinalResponse() not implemented");
+  };
+
+  /// Get null response bool for this response.
+  /// \return Error object indicating the success or failure.
+  virtual Error IsNullResponse(bool* is_null_response) const
+  {
+    return Error("InferResult::IsNullResponse() not implemented");
+  };
 };
 
 }}}  // namespace triton::perfanalyzer::clientbackend
+
+namespace cb = triton::perfanalyzer::clientbackend;

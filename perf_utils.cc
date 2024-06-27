@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,12 +25,18 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "perf_utils.h"
+
 #include <fcntl.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <string>
+
 #include "client_backend/client_backend.h"
 #include "doctest.h"
 
@@ -85,79 +91,6 @@ ConvertDTypeFromTFS(const std::string& tf_dtype, std::string* datatype)
         "unsupported datatype encountered " + tf_dtype, pa::GENERIC_ERROR);
   }
 
-  return cb::Error::Success;
-}
-
-cb::Error
-ReadFile(const std::string& path, std::vector<char>* contents)
-{
-  std::ifstream in(path, std::ios::in | std::ios::binary);
-  if (!in) {
-    return cb::Error("failed to open file '" + path + "'", pa::GENERIC_ERROR);
-  }
-
-  in.seekg(0, std::ios::end);
-
-  int file_size = in.tellg();
-  if (file_size > 0) {
-    contents->resize(file_size);
-    in.seekg(0, std::ios::beg);
-    in.read(&(*contents)[0], contents->size());
-  }
-
-  in.close();
-
-  // If size is invalid, report after ifstream is closed
-  if (file_size < 0) {
-    return cb::Error(
-        "failed to get size for file '" + path + "'", pa::GENERIC_ERROR);
-  } else if (file_size == 0) {
-    return cb::Error("file '" + path + "' is empty", pa::GENERIC_ERROR);
-  }
-
-  return cb::Error::Success;
-}
-
-cb::Error
-ReadTextFile(const std::string& path, std::vector<std::string>* contents)
-{
-  std::ifstream in(path);
-  if (!in) {
-    return cb::Error("failed to open file '" + path + "'", pa::GENERIC_ERROR);
-  }
-
-  std::string current_string;
-  while (std::getline(in, current_string)) {
-    contents->push_back(current_string);
-  }
-  in.close();
-
-  if (contents->size() == 0) {
-    return cb::Error("file '" + path + "' is empty", pa::GENERIC_ERROR);
-  }
-  return cb::Error::Success;
-}
-
-cb::Error
-ReadTimeIntervalsFile(
-    const std::string& path, std::vector<std::chrono::nanoseconds>* contents)
-{
-  std::ifstream in(path);
-  if (!in) {
-    return cb::Error("failed to open file '" + path + "'", pa::GENERIC_ERROR);
-  }
-
-  std::string current_string;
-  while (std::getline(in, current_string)) {
-    std::chrono::nanoseconds curent_time_interval_ns(
-        std::stol(current_string) * 1000);
-    contents->push_back(curent_time_interval_ns);
-  }
-  in.close();
-
-  if (contents->size() == 0) {
-    return cb::Error("file '" + path + "' is empty", pa::GENERIC_ERROR);
-  }
   return cb::Error::Success;
 }
 
@@ -269,6 +202,27 @@ SerializeExplicitTensor(
     std::copy(
         serialized.begin(), serialized.end(),
         std::back_inserter(*decoded_data));
+  } else if (dt.compare("JSON") == 0) {
+    std::string serialized = "";
+
+    auto values = tensor.GetArray();
+    if (values.Size() != 1) {
+      return cb::Error(
+          "JSON format does not yet support multiple json objects in the "
+          "input");
+    }
+    for (const auto& value : values) {
+      rapidjson::StringBuffer buffer;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+      value.Accept(writer);
+
+      std::string element = buffer.GetString();
+      uint32_t len = element.size();
+      serialized.append(element);
+    }
+    std::copy(
+        serialized.begin(), serialized.end(),
+        std::back_inserter(*decoded_data));
   } else {
     for (const auto& value : tensor.GetArray()) {
       if (dt.compare("BOOL") == 0) {
@@ -367,6 +321,8 @@ SerializeExplicitTensor(
         double element(value.GetDouble());
         const char* src = reinterpret_cast<const char*>(&element);
         decoded_data->insert(decoded_data->end(), src, src + sizeof(double));
+      } else {
+        return cb::Error("Unexpected type " + dt);
       }
     }
   }
@@ -407,20 +363,15 @@ ShapeVecToString(const std::vector<int64_t> shape_vec, bool skip_first)
 }
 
 std::string
-ShapeTensorValuesToString(const int* data_ptr, const int count)
+TensorToRegionName(std::string name)
 {
-  bool first = true;
-  std::string str("[");
-  for (int i = 0; i < count; i++) {
-    if (!first) {
-      str += ",";
-    }
-    str += std::to_string(*(data_ptr + i));
-    first = false;
-  }
-
-  str += "]";
-  return str;
+  // Remove slashes from the name, if any.
+  name.erase(
+      std::remove_if(
+          name.begin(), name.end(),
+          [](const char& c) { return ((c == '/') || (c == '\\')); }),
+      name.end());
+  return name;
 }
 
 template <>
@@ -445,14 +396,21 @@ ScheduleDistribution<Distribution::CONSTANT>(const double request_rate)
   return [period](std::mt19937& /*gen*/) { return period; };
 }
 
-TEST_CASE("testing the ParseProtocol function")
+cb::TensorFormat
+ParseTensorFormat(const std::string& content_type_str)
 {
-  CHECK(ParseProtocol("http") == cb::ProtocolType::HTTP);
-  CHECK(ParseProtocol("HTTP") == cb::ProtocolType::HTTP);
-  CHECK(ParseProtocol("grpc") == cb::ProtocolType::GRPC);
-  CHECK(ParseProtocol("GRPC") == cb::ProtocolType::GRPC);
-  CHECK(ParseProtocol("abc") == cb::ProtocolType::UNKNOWN);
-  CHECK(ParseProtocol("") == cb::ProtocolType::UNKNOWN);
+  std::string content_type_str_lowercase{content_type_str};
+  std::transform(
+      content_type_str.cbegin(), content_type_str.cend(),
+      content_type_str_lowercase.begin(),
+      [](unsigned char c) { return std::tolower(c); });
+  if (content_type_str_lowercase == "binary") {
+    return cb::TensorFormat::BINARY;
+  } else if (content_type_str_lowercase == "json") {
+    return cb::TensorFormat::JSON;
+  } else {
+    return cb::TensorFormat::UNKNOWN;
+  }
 }
 
 }}  // namespace triton::perfanalyzer
