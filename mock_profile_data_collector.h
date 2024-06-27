@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,16 +23,32 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #pragma once
+
+#include "gmock/gmock.h"
+#include "profile_data_collector.h"
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
-///
-class IWorker {
+class NaggyMockProfileDataCollector : public ProfileDataCollector {
  public:
-  virtual void Infer() = 0;
+  NaggyMockProfileDataCollector()
+  {
+    ON_CALL(*this, FindExperiment(testing::_))
+        .WillByDefault(
+            [this](InferenceLoadMode& id) -> std::vector<Experiment>::iterator {
+              return this->ProfileDataCollector::FindExperiment(id);
+            });
+  }
+
+  MOCK_METHOD(
+      std::vector<Experiment>::iterator, FindExperiment, (InferenceLoadMode&),
+      (override));
+
+  std::vector<Experiment>& experiments_{ProfileDataCollector::experiments_};
 };
+
+using MockProfileDataCollector =
+    testing::NiceMock<NaggyMockProfileDataCollector>;
 
 }}  // namespace triton::perfanalyzer

@@ -66,6 +66,10 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
   add_subdirectory(openai)
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAI
 
+if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
+  add_subdirectory(openai)
+endif()
+
 set(
   CLIENT_BACKEND_SRCS
   client_backend.cc
@@ -99,6 +103,12 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
   set(OPENAI_TARGET_LINK_LIBRARY PUBLIC $<TARGET_PROPERTY:openai-client-backend-library,LINK_LIBRARIES>)
   set(OPENAI_TARGET_INCLUDE_DIRECTORY PRIVATE $<TARGET_PROPERTY:openai-client-backend-library,INCLUDE_DIRECTORIES>)
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAIs
+
+if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
+  set(OPENAI_LIBRARY $<TARGET_OBJECTS:openai-client-backend-library>)
+  set(OPENAI_TARGET_LINK_LIBRARY PUBLIC $<TARGET_PROPERTY:openai-client-backend-library,LINK_LIBRARIES>)
+  set(OPENAI_TARGET_INCLUDE_DIRECTORY PRIVATE $<TARGET_PROPERTY:openai-client-backend-library,INCLUDE_DIRECTORIES>)
+endif()
 
 add_library(
   client-backend-library

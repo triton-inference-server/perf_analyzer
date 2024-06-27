@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,16 +23,45 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #pragma once
+
+#include <queue>
+
+#include "ictx_id_tracker.h"
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
-///
-class IWorker {
+// Base class for CtxIdTrackers that track available IDs via a queue
+//
+class BaseQueueCtxIdTracker : public ICtxIdTracker {
  public:
-  virtual void Infer() = 0;
+  BaseQueueCtxIdTracker() = default;
+
+  void Restore(size_t id) override { free_ctx_ids_.push(id); }
+
+  size_t Get() override
+  {
+    if (!IsAvailable()) {
+      throw std::runtime_error("free ctx id list is empty");
+    }
+
+    size_t ctx_id = free_ctx_ids_.front();
+    free_ctx_ids_.pop();
+    return ctx_id;
+  }
+
+  bool IsAvailable() override { return free_ctx_ids_.size() > 0; }
+
+ protected:
+  std::queue<size_t> free_ctx_ids_;
+
+  // Erase all entries in the tracking queue
+  //
+  void Clear()
+  {
+    std::queue<size_t> empty;
+    std::swap(free_ctx_ids_, empty);
+  }
 };
 
-}}  // namespace triton::perfanalyzer
+}};  // namespace triton::perfanalyzer

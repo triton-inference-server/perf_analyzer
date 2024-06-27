@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:genai-perf/genai_perf/constants.py
 # Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+========
+# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+>>>>>>>> origin/main:client_backend/triton_c_api/CMakeLists.txt
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,10 +31,31 @@
 DEFAULT_HTTP_URL = "localhost:8000"
 DEFAULT_GRPC_URL = "localhost:8001"
 
+<<<<<<<< HEAD:genai-perf/genai_perf/constants.py
 
 OPEN_ORCA = "openorca"
 CNN_DAILY_MAIL = "cnn_dailymail"
 DEFAULT_INPUT_DATA_JSON = "llm_inputs.json"
+========
+set(
+    TRITON_C_API_CLIENT_BACKEND_SRCS
+    triton_c_api_backend.cc
+    shared_library.cc
+    triton_loader.cc
+    shared_memory_manager.cc
+    scoped_defer.cc
+)
+
+set(
+    TRITON_C_API_CLIENT_BACKEND_HDRS
+    triton_c_api_backend.h
+    shared_library.h
+    shared_memory_manager.h
+    triton_loader.h
+    c_api_infer_results.h
+    scoped_defer.h
+)
+>>>>>>>> origin/main:client_backend/triton_c_api/CMakeLists.txt
 
 
 DEFAULT_ARTIFACT_DIR = "artifacts"

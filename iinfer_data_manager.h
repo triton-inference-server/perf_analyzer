@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,16 +23,41 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #pragma once
+
+#include "client_backend/client_backend.h"
+#include "constants.h"
+#include "data_loader.h"
+#include "infer_data.h"
+#include "model_parser.h"
+#include "perf_utils.h"
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
+/// Interface for classes that manage infer data preparation for inference
 ///
-class IWorker {
+class IInferDataManager {
  public:
-  virtual void Infer() = 0;
+  /// Initialize this object. Must be called before any other functions
+  /// \return cb::Error object indicating success or failure.
+  virtual cb::Error Init() = 0;
+
+  /// Populate the target InferData object with input and output objects
+  /// according to the model's shape
+  /// \param infer_data The target InferData object.
+  /// \return cb::Error object indicating success or failure.
+  virtual cb::Error InitInferData(InferData& infer_data) = 0;
+
+  /// Updates the input and expected output data in the target infer_data for an
+  /// inference request
+  /// \param thread_id The ID of the calling thread
+  /// \param stream_index The data stream to use for next data
+  /// \param step_index The step index to use for next data
+  /// \param infer_data The target InferData object
+  /// \return cb::Error object indicating success or failure.
+  virtual cb::Error UpdateInferData(
+      size_t thread_id, int stream_index, int step_index,
+      InferData& infer_data) = 0;
 };
 
 }}  // namespace triton::perfanalyzer

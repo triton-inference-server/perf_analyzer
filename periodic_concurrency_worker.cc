@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -24,15 +24,48 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#include "periodic_concurrency_worker.h"
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
-///
-class IWorker {
- public:
-  virtual void Infer() = 0;
-};
+void
+PeriodicConcurrencyWorker::Infer()
+{
+  CreateCtxIdTracker();
+  ReserveContexts();
+  RunInference();
+}
+
+std::shared_ptr<InferContext>
+PeriodicConcurrencyWorker::CreateInferContext()
+{
+  std::shared_ptr infer_context{std::make_shared<InferContext>(
+      id_, ctxs_.size(), async_, streaming_, on_sequence_model_,
+      using_json_data_, batch_size_, thread_stat_, data_loader_, parser_,
+      factory_, execute_, infer_data_manager_, sequence_manager_)};
+  infer_context->RegisterWorkerCallback(worker_callback_);
+  return infer_context;
+}
+
+void
+PeriodicConcurrencyWorker::WorkerCallback(uint32_t infer_context_id)
+{
+  if (ctxs_.at(infer_context_id)->GetNumResponsesForCurrentRequest() ==
+      request_period_) {
+    period_completed_callback_();
+  }
+  if (ctxs_.at(infer_context_id)->HasReceivedFinalResponse()) {
+    bool has_not_completed_period{
+        ctxs_.at(infer_context_id)->GetNumResponsesForCurrentRequest() <
+        request_period_};
+    if (has_not_completed_period) {
+      throw std::runtime_error(
+          "Request received final response before request period was reached. "
+          "Request period must be at most the total number of responses "
+          "received by any request.");
+    }
+    request_completed_callback_();
+  }
+}
 
 }}  // namespace triton::perfanalyzer

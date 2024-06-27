@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,16 +23,36 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #pragma once
+
+#include <random>
+
+#include "ictx_id_tracker.h"
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
-///
-class IWorker {
+// Context ID tracker that is always available and returns random Context IDs
+//
+class RandCtxIdTracker : public ICtxIdTracker {
  public:
-  virtual void Infer() = 0;
+  RandCtxIdTracker() = default;
+
+  void Reset(size_t count) override
+  {
+    distribution_ = std::uniform_int_distribution<uint64_t>(0, count - 1);
+  }
+
+  void Restore(size_t id) override{};
+
+  size_t Get() override { return distribution_(rng_generator_); };
+
+  bool IsAvailable() override { return true; };
+
+ private:
+  std::uniform_int_distribution<uint64_t> distribution_;
+  std::default_random_engine rng_generator_{};
+
+  size_t max = 0;
 };
 
-}}  // namespace triton::perfanalyzer
+}};  // namespace triton::perfanalyzer

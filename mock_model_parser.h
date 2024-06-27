@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,13 +26,53 @@
 
 #pragma once
 
+#include "model_parser.h"
+
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
-///
-class IWorker {
+class MockModelParser : public ModelParser {
  public:
-  virtual void Infer() = 0;
+  MockModelParser() : ModelParser(clientbackend::BackendKind::TRITON) {}
+
+  MockModelParser(
+      bool is_sequence_model, bool is_decoupled_model,
+      size_t max_batch_size = 64)
+      : ModelParser(clientbackend::BackendKind::TRITON)
+  {
+    if (is_sequence_model) {
+      scheduler_type_ = ModelParser::SEQUENCE;
+    }
+    is_decoupled_ = is_decoupled_model;
+    max_batch_size_ = max_batch_size;
+  }
+
+  // Expose private function
+  cb::Error GetInt(const rapidjson::Value& value, int64_t* integer_value)
+  {
+    return ModelParser::GetInt(value, integer_value);
+  }
+
+  // Expose private function
+  cb::Error DetermineComposingModelMap(
+      const std::vector<cb::ModelIdentifier>& bls_composing_models,
+      const rapidjson::Document& config,
+      std::unique_ptr<cb::ClientBackend>& backend)
+  {
+    return ModelParser::DetermineComposingModelMap(
+        bls_composing_models, config, backend);
+  }
+
+  // Expose private function
+  cb::Error DetermineSchedulerType(
+      const rapidjson::Document& config,
+      std::unique_ptr<cb::ClientBackend>& backend)
+  {
+    return ModelParser::DetermineSchedulerType(config, backend);
+  }
+
+  std::shared_ptr<ComposingModelMap>& composing_models_map_{
+      ModelParser::composing_models_map_};
+  std::shared_ptr<ModelTensorMap>& inputs_{ModelParser::inputs_};
 };
 
 }}  // namespace triton::perfanalyzer

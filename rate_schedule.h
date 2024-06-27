@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,13 +26,41 @@
 
 #pragma once
 
+#include <chrono>
+#include <memory>
+#include <vector>
+
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
+using NanoIntervals = std::vector<std::chrono::nanoseconds>;
+
+/// Defines a schedule, where the consumer should
+/// loop through the provided intervals, and then every time it loops back to
+/// the start add an additional amount equal to the duration
 ///
-class IWorker {
- public:
-  virtual void Infer() = 0;
+struct RateSchedule {
+  NanoIntervals intervals;
+  std::chrono::nanoseconds duration;
+
+  /// Returns the next timestamp in the schedule
+  ///
+  std::chrono::nanoseconds Next()
+  {
+    auto next = intervals[index_] + duration * rounds_;
+
+    index_++;
+    if (index_ >= intervals.size()) {
+      rounds_++;
+      index_ = 0;
+    }
+    return next;
+  }
+
+ private:
+  size_t rounds_ = 0;
+  size_t index_ = 0;
 };
+
+using RateSchedulePtr_t = std::shared_ptr<RateSchedule>;
 
 }}  // namespace triton::perfanalyzer

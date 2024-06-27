@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -26,13 +26,17 @@
 
 #pragma once
 
+#include "rate_schedule.h"
+
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
+/// Interface for worker threads that use a schedule
 ///
-class IWorker {
+class IScheduler {
  public:
-  virtual void Infer() = 0;
+  /// Provides the schedule that should be followed
+  ///
+  virtual void SetSchedule(RateSchedulePtr_t schedule) = 0;
 };
 
 }}  // namespace triton::perfanalyzer

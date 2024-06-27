@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,16 +23,29 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #pragma once
+
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
+/// Interface for object that tracks context IDs
 ///
-class IWorker {
+class ICtxIdTracker {
  public:
-  virtual void Infer() = 0;
+  // Reset the tracker using the provided input count
+  //
+  virtual void Reset(size_t count) = 0;
+
+  // Restore the given ID into the tracker
+  //
+  virtual void Restore(size_t id) = 0;
+
+  // Pick and return a Ctx ID
+  //
+  virtual size_t Get() = 0;
+
+  // Returns true if there are Ctx IDs available to Get.
+  virtual bool IsAvailable() = 0;
 };
 
 }}  // namespace triton::perfanalyzer

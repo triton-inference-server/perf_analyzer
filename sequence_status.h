@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,16 +23,29 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #pragma once
+
+#include <cstdint>
+#include <mutex>
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
-///
-class IWorker {
- public:
-  virtual void Infer() = 0;
+// Holds the status of the inflight sequence
+struct SequenceStatus {
+  SequenceStatus(uint64_t seq_id = 0)
+      : seq_id_(seq_id), data_stream_id_(0), remaining_queries_(0)
+  {
+  }
+  // The unique correlation id allocated to the sequence
+  uint64_t seq_id_;
+  // The data stream id providing data for the sequence
+  uint64_t data_stream_id_;
+  // The number of queries remaining to complete the sequence
+  size_t remaining_queries_;
+  // The length of the sequence
+  size_t sequence_length_{0};
+  // A lock to protect sequence data
+  std::mutex mtx_;
 };
 
 }}  // namespace triton::perfanalyzer

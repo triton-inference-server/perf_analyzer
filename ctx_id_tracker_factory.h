@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,16 +23,45 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #pragma once
+
+#include <memory>
+
+#include "concurrency_ctx_id_tracker.h"
+#include "fifo_ctx_id_tracker.h"
+#include "rand_ctx_id_tracker.h"
 
 namespace triton { namespace perfanalyzer {
 
-/// Interface for worker threads that generate inference requests
-///
-class IWorker {
+// Context ID tracker that is always available and returns random Context IDs
+//
+class CtxIdTrackerFactory {
  public:
-  virtual void Infer() = 0;
+  CtxIdTrackerFactory() = delete;
+
+  /// Creates and returns a Context Id Tracker
+  ///
+  /// \param is_concurrency True if targeting Concurrency
+  /// \param is_sequence_model True if the model is a sequence model
+  /// \param serial_sequences True if in serial sequence mode
+  ///
+  static std::shared_ptr<ICtxIdTracker> CreateTracker(
+      bool is_concurrency, bool is_sequence_model, bool serial_sequences)
+  {
+    if (is_concurrency) {
+      if (is_sequence_model) {
+        return std::make_shared<FifoCtxIdTracker>();
+      } else {
+        return std::make_shared<ConcurrencyCtxIdTracker>();
+      }
+    } else {
+      if (is_sequence_model && serial_sequences) {
+        return std::make_shared<FifoCtxIdTracker>();
+      } else {
+        return std::make_shared<RandCtxIdTracker>();
+      }
+    }
+  }
 };
 
 }}  // namespace triton::perfanalyzer
