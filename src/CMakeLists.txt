@@ -171,7 +171,7 @@ add_executable(
   main.cc
   ${PERF_ANALYZER_SRCS}
   ${PERF_ANALYZER_HDRS}
-  )
+)
 
 target_link_libraries(
   perf_analyzer
@@ -295,13 +295,19 @@ add_executable(
   test_ctx_id_tracker.cc
   test_profile_data_collector.cc
   test_profile_data_exporter.cc
-  )
+)
 
 # -Wno-write-strings is needed for the unit tests in order to statically create
 # input argv cases in the CommandLineParser unit test
 #
 set_target_properties(perf_analyzer_unit_tests
   PROPERTIES COMPILE_FLAGS "-Wno-write-strings")
+
+target_include_directories(
+  perf_analyzer_unit_tests
+  PRIVATE
+    client_backend
+)
 
 target_link_libraries(
   perf_analyzer_unit_tests

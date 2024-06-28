@@ -59,7 +59,7 @@ option(TRITON_ENABLE_ZLIB "Include ZLIB library in build" ON)
 set(TRITON_REPO_ORGANIZATION "https://github.com/triton-inference-server" CACHE STRING "Git repository to pull from")
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
-set(TRITON_CLIENT_REPO_TAG "fpetrini-migrate-pa" CACHE STRING "Tag for triton-inference-server/core repo")
+set(TRITON_CLIENT_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 
 #
 # Install locations
