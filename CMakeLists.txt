@@ -134,7 +134,7 @@ ExternalProject_Add(
   DEPENDS cc-clients
 )
 
-# FIXME: This is a WAR for now. We shouldn't have to re-clone the client repo
+# FIXME: [TPRD-310] This is a WAR for now. We shouldn't have to re-clone the client repo
 # Everything to build the wheel should be present in the cc_clients folder.
 # PA needs to have its own build_wheel.py script.
 
