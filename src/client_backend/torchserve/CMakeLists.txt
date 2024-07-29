@@ -46,6 +46,13 @@ add_library(
     ${TS_CLIENT_BACKEND_HDRS}
 )
 
+# Include header files installed by CC client
+target_include_directories(
+  ts-client-backend-library
+  PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include
+)
+
 target_link_libraries(
   ts-client-backend-library
   PUBLIC CURL::libcurl
@@ -53,6 +60,18 @@ target_link_libraries(
 )
 
 if(${TRITON_ENABLE_GPU})
-    target_include_directories(ts-client-backend-library PUBLIC ${CUDA_INCLUDE_DIRS})
-    target_link_libraries(ts-client-backend-library PRIVATE ${CUDA_LIBRARIES})
+  target_include_directories(ts-client-backend-library PUBLIC ${CUDA_INCLUDE_DIRS})
+  target_link_libraries(
+    ts-client-backend-library
+    PRIVATE ${CUDA_LIBRARIES}
+    PRIVATE CUDA::cudart
+  )
+
+  # Need to enable this compilation flag, otherwise, ipc.h
+  # will select mock-struct as opposed to the correct cuda
+  # runtime header file.
+  target_compile_definitions(
+    ts-client-backend-library
+    PUBLIC TRITON_ENABLE_GPU=1
+  )
 endif() # TRITON_ENABLE_GPU
