@@ -30,12 +30,11 @@ FetchContent_Declare(tensorflow-serving-repo
   PREFIX tensorflow-serving-rep
 )
 FetchContent_GetProperties(tensorflow-serving-repo)
-
 if(NOT tensorflow-serving-repo_POPULATED)
   FetchContent_Populate(tensorflow-serving-repo
   GIT_REPOSITORY "https://github.com/tensorflow/serving.git"
   GIT_TAG "2.3.0"
-  SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-serving-repo/src/tensorflow_serving"
+ SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-serving-repo/src/tensorflow_serving"
 )
 endif()
 
@@ -48,7 +47,7 @@ if(NOT tensorflow-repo_POPULATED)
   FetchContent_Populate(tensorflow-repo
   GIT_REPOSITORY "https://github.com/tensorflow/tensorflow.git"
   GIT_TAG "v2.3.0"
-  SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-repo/src/tensorflow"
+ SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/tensorflow-repo/src/tensorflow"
 )
 endif()
 
@@ -109,30 +108,15 @@ add_library(
 
 target_include_directories(tfs-client-backend-library PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/compiled)
 
-# Include header files installed by CC client
-target_include_directories(
-  tfs-client-backend-library
-  PRIVATE
-    ${CMAKE_INSTALL_PREFIX}/include
-)
-
 target_link_libraries(
   tfs-client-backend-library
+  PUBLIC gRPC::grpc++
+  PUBLIC gRPC::grpc
+  PUBLIC protobuf::libprotobuf
+  PUBLIC grpcclient_static
 )
 
 if(${TRITON_ENABLE_GPU})
-  target_include_directories(tfs-client-backend-library PUBLIC ${CUDA_INCLUDE_DIRS})
-  target_link_libraries(
-    tfs-client-backend-library
-    PRIVATE ${CUDA_LIBRARIES}
-    PRIVATE CUDA::cudart
-  )
-
-  # Need to enable this compilation flag, otherwise, ipc.h
-  # will select mock-struct as opposed to the correct cuda
-  # runtime header file.
-  target_compile_definitions(
-    tfs-client-backend-library
-    PUBLIC TRITON_ENABLE_GPU=1
-  )
+    target_include_directories(tfs-client-backend-library PUBLIC ${CUDA_INCLUDE_DIRS})
+    target_link_libraries(tfs-client-backend-library PRIVATE ${CUDA_LIBRARIES})
 endif() # TRITON_ENABLE_GPU

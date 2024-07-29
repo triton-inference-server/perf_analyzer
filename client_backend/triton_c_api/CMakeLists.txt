@@ -1,4 +1,4 @@
-# Copyright 2020-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -26,73 +26,34 @@
 
 cmake_minimum_required (VERSION 3.18)
 
-if(${TRITON_ENABLE_ZLIB})
-  find_package(ZLIB REQUIRED)
-endif()
-
-if(${TRITON_ENABLE_GPU})
-  find_package(CUDAToolkit REQUIRED)
-endif()
-
 set(
-    TRITON_CLIENT_BACKEND_SRCS
-    triton_client_backend.cc
+    TRITON_C_API_CLIENT_BACKEND_SRCS
+    triton_c_api_backend.cc
+    shared_library.cc
+    triton_loader.cc
+    shared_memory_manager.cc
+    scoped_defer.cc
 )
 
 set(
-    TRITON_CLIENT_BACKEND_HDRS
-    triton_client_backend.h
+    TRITON_C_API_CLIENT_BACKEND_HDRS
+    triton_c_api_backend.h
+    shared_library.h
+    shared_memory_manager.h
+    triton_loader.h
+    c_api_infer_results.h
+    scoped_defer.h
 )
 
 add_library(
-    triton-client-backend-library  EXCLUDE_FROM_ALL OBJECT
-    ${TRITON_CLIENT_BACKEND_SRCS}
-    ${TRITON_CLIENT_BACKEND_HDRS}
-)
-
-target_include_directories(
-  triton-client-backend-library
-  PRIVATE
-    ${CMAKE_INSTALL_PREFIX}/include
-)
-
-target_link_directories(
-  triton-client-backend-library
-  PUBLIC
-    ${CMAKE_INSTALL_PREFIX}/lib 
+    triton-c-api-backend-library  EXCLUDE_FROM_ALL OBJECT
+    ${TRITON_C_API_CLIENT_BACKEND_SRCS}
+    ${TRITON_C_API_CLIENT_BACKEND_HDRS}
 )
 
 target_link_libraries(
-  triton-client-backend-library
-  PUBLIC grpcclient_static
-  PUBLIC gRPC::grpc++
-  PUBLIC gRPC::grpc
+  triton-c-api-backend-library
+  grpcclient_static
+  httpclient_static
+  triton-core-serverapi   # from repo-core
 )
-
-target_link_libraries(
-  triton-client-backend-library
-  PUBLIC shm_utils_static
-  PUBLIC httpclient_static
-  PRIVATE CURL::libcurl
-)
-
-if(${TRITON_ENABLE_ZLIB})
-  target_link_libraries(
-    triton-client-backend-library
-    PRIVATE ZLIB::ZLIB
-  )
-endif()
-
-if(${TRITON_ENABLE_GPU})
-  target_link_libraries(
-    triton-client-backend-library
-    PRIVATE CUDA::cudart
-  )
-  # Need to enable this compilation flag, otherwise, ipc.h
-  # will select mock-struct as opposed to the correct cuda
-  # runtime header file.
-  target_compile_definitions(
-    triton-client-backend-library
-    PUBLIC TRITON_ENABLE_GPU=1
-  )
-endif() # TRITON_ENABLE_GPU
