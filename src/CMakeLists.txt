@@ -26,12 +26,63 @@
 
 cmake_minimum_required (VERSION 3.18)
 
-if(WIN32)
-  message("perf_analyzer is not currently supported on Windows because "
-          "is requires functionalities that are UNIX specific.")
-else()
+project(perf-analyzer LANGUAGES C CXX)
+
+#
+# Perf Analyzer Options
+#
+option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
+
+#
+# Client Options
+#
+option(TRITON_ENABLE_CC_HTTP "Build C++ HTTP client libraries" ON)
+option(TRITON_ENABLE_CC_GRPC "Build C++ GRPC client libraries" ON)
+option(TRITON_ENABLE_PYTHON_HTTP "Build Python HTTP client libraries" OFF)
+option(TRITON_ENABLE_PYTHON_GRPC "Build Python GRPC client libraries" OFF)
+option(TRITON_ENABLE_GPU "Enable GPU support in libraries" OFF)
+option(TRITON_ENABLE_ZLIB "Include ZLIB library in build" ON)
+
+#
+# Github branch options
+#
+set(TRITON_REPO_ORGANIZATION "https://github.com/triton-inference-server" CACHE STRING "Git repository to pull from")
+set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
+set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
+
+# Install locations
+set(TRITON_THIRD_PARTY_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/third-party-install" CACHE STRING "Location of third-party build")
+
+# Add third party installation to the search path
+set(CMAKE_PREFIX_PATH ${TRITON_THIRD_PARTY_INSTALL_PREFIX} ${CMAKE_PREFIX_PATH})
+
+#
+# Dependencies
+#
+if(${TRITON_ENABLE_GPU})
+  find_package(CUDAToolkit REQUIRED)
+  message(STATUS "Using CUDA ${CUDA_VERSION}")
+endif() # TRITON_ENABLE_GPU
+
+find_package(gRPC CONFIG REQUIRED)
+include_directories($<TARGET_PROPERTY:gRPC::grpc,INTERFACE_INCLUDE_DIRECTORIES>)
+
+set(protobuf_MODULE_COMPATIBLE TRUE CACHE BOOL "protobuf_MODULE_COMPATIBLE" FORCE)
+find_package(Protobuf CONFIG REQUIRED)
+message(STATUS "Using protobuf ${Protobuf_VERSION}")
+include_directories(${Protobuf_INCLUDE_DIRS})
 
 add_subdirectory(client_backend)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/9406a60c7839052e4944ea4dbc8344762a89f9bd.zip
+)
+FetchContent_MakeAvailable(googletest)
 
 find_package(Git REQUIRED)
 
@@ -120,14 +171,24 @@ add_executable(
   main.cc
   ${PERF_ANALYZER_SRCS}
   ${PERF_ANALYZER_HDRS}
-  $<TARGET_OBJECTS:json-utils-library>
 )
+
 target_link_libraries(
   perf_analyzer
   PRIVATE
+    httpclient_static
+    grpcclient_static
     client-backend-library
     -lb64
     ${CMAKE_DL_LIBS}
+)
+
+target_compile_features(perf_analyzer PRIVATE cxx_std_${TRITON_MIN_CXX_STANDARD})
+
+set_target_properties(
+  perf_analyzer
+  PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
 )
 
 target_compile_definitions(
@@ -144,39 +205,44 @@ if(TRITON_ENABLE_GPU)
     PUBLIC TRITON_ENABLE_GPU=1
   )
 
+  target_compile_definitions(
+    client-backend-library
+    PUBLIC TRITON_ENABLE_GPU=1
+  )
+
   target_link_libraries(
     perf_analyzer
     PRIVATE CUDA::cudart
   )
-endif()
+endif() # TRITON_ENABLE_GPU
 
 if(TRITON_ENABLE_PERF_ANALYZER_C_API)
   target_compile_definitions(
     client-backend-library
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_C_API=1
   )
-endif()
+endif() # TRITON_ENABLE_PERF_ANALYZER_C_API
 
 if(TRITON_ENABLE_PERF_ANALYZER_TFS)
   target_compile_definitions(
     client-backend-library
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_TFS=1
   )
-endif()
+endif() # TRITON_ENABLE_PERF_ANALYZER_TFS
 
 if(TRITON_ENABLE_PERF_ANALYZER_TS)
   target_compile_definitions(
     client-backend-library
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_TS=1
   )
-endif()
+endif() # TRITON_ENABLE_PERF_ANALYZER_TS
 
 if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
   target_compile_definitions(
     client-backend-library
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_OPENAI=1
   )
-endif()
+endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAI
 
 install(
   TARGETS perf_analyzer
@@ -189,8 +255,6 @@ target_compile_definitions(perf_analyzer PUBLIC DOCTEST_CONFIG_DISABLE)
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ./perf_analyzer perf_client
   WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin/)")
 install(CODE "message(\"-- Created symlink: perf_client -> ./perf_analyzer\")")
-
-
 
 set(PERF_ANALYZER_UNIT_TESTS_SRCS ${PERF_ANALYZER_SRCS})
 list(PREPEND PERF_ANALYZER_UNIT_TESTS_SRCS perf_analyzer_unit_tests.cc)
@@ -231,7 +295,6 @@ add_executable(
   test_ctx_id_tracker.cc
   test_profile_data_collector.cc
   test_profile_data_exporter.cc
-  $<TARGET_OBJECTS:json-utils-library>
 )
 
 # -Wno-write-strings is needed for the unit tests in order to statically create
@@ -239,6 +302,12 @@ add_executable(
 #
 set_target_properties(perf_analyzer_unit_tests
   PROPERTIES COMPILE_FLAGS "-Wno-write-strings")
+
+target_include_directories(
+  perf_analyzer_unit_tests
+  PRIVATE
+    client_backend
+)
 
 target_link_libraries(
   perf_analyzer_unit_tests
@@ -248,15 +317,8 @@ target_link_libraries(
     -lb64
 )
 
-target_include_directories(
-  perf_analyzer_unit_tests
-  PRIVATE
-    client_backend
-)
-
 install(
   TARGETS perf_analyzer_unit_tests
   RUNTIME DESTINATION bin
 )
 
-endif()
