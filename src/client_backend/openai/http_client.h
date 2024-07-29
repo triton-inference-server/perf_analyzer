@@ -170,3 +170,4 @@ class HttpClient {
   static std::mutex curl_init_mtx_;
 };
 }}}}  // namespace triton::perfanalyzer::clientbackend::openai
+
