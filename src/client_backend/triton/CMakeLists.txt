@@ -26,6 +26,14 @@
 
 cmake_minimum_required (VERSION 3.18)
 
+if(${TRITON_ENABLE_ZLIB})
+  find_package(ZLIB REQUIRED)
+endif()
+
+if(${TRITON_ENABLE_GPU})
+  find_package(CUDAToolkit REQUIRED)
+endif()
+
 set(
     TRITON_CLIENT_BACKEND_SRCS
     triton_client_backend.cc
@@ -42,21 +50,49 @@ add_library(
     ${TRITON_CLIENT_BACKEND_HDRS}
 )
 
+target_include_directories(
+  triton-client-backend-library
+  PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include
+)
+
+target_link_directories(
+  triton-client-backend-library
+  PUBLIC
+    ${CMAKE_INSTALL_PREFIX}/lib 
+)
+
 target_link_libraries(
   triton-client-backend-library
   PUBLIC grpcclient_static
+  PUBLIC gRPC::grpc++
+  PUBLIC gRPC::grpc
+)
+
+target_link_libraries(
+  triton-client-backend-library
+  PUBLIC shm_utils_static
   PUBLIC httpclient_static
   PRIVATE CURL::libcurl
 )
 
-target_include_directories(
-  triton-client-backend-library
-  PRIVATE CURL::libcurl
-)
+if(${TRITON_ENABLE_ZLIB})
+  target_link_libraries(
+    triton-client-backend-library
+    PRIVATE ZLIB::ZLIB
+  )
+endif()
 
 if(${TRITON_ENABLE_GPU})
   target_link_libraries(
     triton-client-backend-library
     PRIVATE CUDA::cudart
+  )
+  # Need to enable this compilation flag, otherwise, ipc.h
+  # will select mock-struct as opposed to the correct cuda
+  # runtime header file.
+  target_compile_definitions(
+    triton-client-backend-library
+    PUBLIC TRITON_ENABLE_GPU=1
   )
 endif() # TRITON_ENABLE_GPU

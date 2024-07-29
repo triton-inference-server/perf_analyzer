@@ -1,0 +1,17 @@
+#VSCode
+/.vscode
+
+#C++
+/build
+/builddir
+*.so
+
+#Python
+__pycache__/
+*.pyc
+
+#Other
+node_modules
+
+#GenAI-Perf Artifacts
+artifacts/
