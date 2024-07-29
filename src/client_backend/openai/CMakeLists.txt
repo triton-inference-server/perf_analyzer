@@ -1,4 +1,4 @@
-# Copyright 2020-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,36 +27,54 @@
 cmake_minimum_required (VERSION 3.18)
 
 set(
-    TRITON_CLIENT_BACKEND_SRCS
-    triton_client_backend.cc
+    OPENAI_CLIENT_BACKEND_SRCS
+    http_client.cc
+    openai_client_backend.cc
+    openai_client.cc
+    openai_infer_input.cc
 )
 
 set(
-    TRITON_CLIENT_BACKEND_HDRS
-    triton_client_backend.h
+    OPENAI_CLIENT_BACKEND_HDRS
+    http_client.h
+    openai_client_backend.h
+    openai_client.h
+    openai_infer_input.h
 )
 
 add_library(
-    triton-client-backend-library  EXCLUDE_FROM_ALL OBJECT
-    ${TRITON_CLIENT_BACKEND_SRCS}
-    ${TRITON_CLIENT_BACKEND_HDRS}
+    openai-client-backend-library  EXCLUDE_FROM_ALL OBJECT
+    ${OPENAI_CLIENT_BACKEND_SRCS}
+    ${OPENAI_CLIENT_BACKEND_HDRS}
+)
+
+# Include header files installed by CC client
+target_include_directories(
+  openai-client-backend-library
+  PRIVATE
+    ${CMAKE_INSTALL_PREFIX}/include
 )
 
 target_link_libraries(
-  triton-client-backend-library
-  PUBLIC grpcclient_static
+  openai-client-backend-library
+  PUBLIC CURL::libcurl
   PUBLIC httpclient_static
-  PRIVATE CURL::libcurl
-)
-
-target_include_directories(
-  triton-client-backend-library
-  PRIVATE CURL::libcurl
 )
 
 if(${TRITON_ENABLE_GPU})
+  target_include_directories(openai-client-backend-library PUBLIC ${CUDA_INCLUDE_DIRS})
   target_link_libraries(
-    triton-client-backend-library
+    openai-client-backend-library
+    PRIVATE ${CUDA_LIBRARIES}
     PRIVATE CUDA::cudart
   )
+
+  # Need to enable this compilation flag, otherwise, ipc.h
+  # will select mock-struct as opposed to the correct cuda
+  # runtime header file.
+  target_compile_definitions(
+    openai-client-backend-library
+    PUBLIC TRITON_ENABLE_GPU=1
+  )
 endif() # TRITON_ENABLE_GPU
+
