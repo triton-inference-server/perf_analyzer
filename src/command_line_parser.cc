@@ -1752,8 +1752,9 @@ CLParser::VerifyOptions()
         "Failed to parse -i (protocol). The value should be either HTTP or "
         "gRPC.");
   }
-  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC)) {
-    Usage("Streaming is only allowed with gRPC protocol.");
+  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC &&
+                             params_->kind != cb::BackendKind::TRITON_C_API)) {
+    Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
   }
   if (params_->using_grpc_compression &&
       (params_->protocol != cb::ProtocolType::GRPC)) {
@@ -1956,10 +1957,12 @@ CLParser::VerifyOptions()
           "service-kind=triton_c_api.");
     }
 
-    if (params_->async) {
+    // Decoupled models run via Triton C API do not support shared memory
+    if (params_->async && params_->streaming &&
+        params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
       Usage(
-          "Async mode is not supported by triton_c_api service "
-          "kind.");
+          "Cannot use --shared-memory=system or --shared-memory=cuda with "
+          "--service-kind=triton_c_api and --async and --streaming.");
     }
 
     params_->protocol = cb::ProtocolType::UNKNOWN;
