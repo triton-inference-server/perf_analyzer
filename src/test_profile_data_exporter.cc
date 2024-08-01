@@ -70,17 +70,17 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
   RequestRecord::ResponseOutput response_output1{
       {"out_key1",
        {reinterpret_cast<const uint8_t*>(out_bufs[0].data()),
-        out_bufs[0].size()}},
+        out_bufs[0].size(), "BYTES"}},
       {"out_key2",
        {reinterpret_cast<const uint8_t*>(out_bufs[1].data()),
-        out_bufs[1].size()}}};
+        out_bufs[1].size(), "BYTES"}}};
   RequestRecord::ResponseOutput response_output2{
       {"out_key3",
        {reinterpret_cast<const uint8_t*>(out_bufs[2].data()),
-        out_bufs[2].size()}},
+        out_bufs[2].size(), "BYTES"}},
       {"out_key4",
        {reinterpret_cast<const uint8_t*>(out_bufs[3].data()),
-        out_bufs[3].size()}}};
+        out_bufs[3].size(), "BYTES"}}};
 
   RequestRecord request_record{
       request_timestamp,
@@ -190,6 +190,18 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
   CHECK(actual_windows[2] == expected_windows[2]);
 
   CHECK(actual_version == expected_version);
+}
+
+TEST_CASE("profile_data_exporter: AddDataToJSON")
+{
+  MockProfileDataExporter exporter{};
+  rapidjson::Value value;
+  
+  SUBCASE("Test Bool")
+  {
+    const 
+
+  }
 }
 
 TEST_CASE("profile_data_exporter: AddExperiment")

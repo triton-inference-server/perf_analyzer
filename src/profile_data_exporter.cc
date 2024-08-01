@@ -160,6 +160,77 @@ ProfileDataExporter::AddResponseTimestamps(
   }
 }
 
+size_t
+GetDataTypeSize(const std::string& data_type)
+{
+  if (data_type == "BOOL") {
+    return sizeof(bool);
+  } else if (data_type == "UINT8") {
+    return sizeof(uint8_t);
+  } else if (data_type == "UINT16") {
+    return sizeof(uint16_t);
+  } else if (data_type == "UINT32") {
+    return sizeof(uint32_t);
+  } else if (data_type == "UINT64") {
+    return sizeof(uint64_t);
+  } else if (data_type == "INT8") {
+    return sizeof(int8_t);
+  } else if (data_type == "INT16") {
+    return sizeof(int16_t);
+  } else if (data_type == "INT32") {
+    return sizeof(int32_t);
+  } else if (data_type == "INT64") {
+    return sizeof(int64_t);
+  } else if (data_type == "FP32") {
+    return sizeof(float);
+  } else if (data_type == "FP64") {
+    return sizeof(double);
+  } else if (data_type == "BYTES") {
+    return sizeof(char);
+  } else if (data_type == "JSON") {
+    return sizeof(char);
+  } else {
+    std::cerr << "WARNING: unsupported data type: '" + data_type + "'" << std::endl;
+  }
+}
+
+void
+ProfileDataExporter::AddDataToJSON(
+  rapidjson::Value& val, const size_t index, const uint8_t* buf, const size_t byte_size, const std::string& data_type)
+{
+  if (data_type == "BOOL") {
+    val.SetBool(reinterpret_cast<const bool*>(buf)[index]);
+  } else if (data_type == "UINT8") {
+    val.SetUint(reinterpret_cast<const uint8_t*>(buf)[index]);
+  } else if (data_type == "UINT16") {
+    val.SetUint(reinterpret_cast<const uint16_t*>(buf)[index]);
+  } else if (data_type == "UINT32") {
+    val.SetUint(reinterpret_cast<const uint32_t*>(buf)[index]);
+  } else if (data_type == "UINT64") {
+    val.SetUint64(reinterpret_cast<const uint64_t*>(buf)[index]);
+  } else if (data_type == "INT8") {
+    val.SetInt(reinterpret_cast<const int8_t*>(buf)[index]);
+  } else if (data_type == "INT16") {
+    val.SetInt(reinterpret_cast<const int16_t*>(buf)[index]);
+  } else if (data_type == "INT32") {
+    val.SetInt(reinterpret_cast<const int32_t*>(buf)[index]);
+  } else if (data_type == "INT64") {
+    val.SetInt64(reinterpret_cast<const int64_t*>(buf)[index]);
+  } else if (data_type == "FP32") {
+    val.SetFloat(reinterpret_cast<const float*>(buf)[index]);
+  } else if (data_type == "FP64") {
+    val.SetDouble(reinterpret_cast<const double*>(buf)[index]);
+  } else if (data_type == "BYTES" || data_type == "JSON") {
+    val.SetString(
+        reinterpret_cast<const char*>(buf), byte_size,
+        document_.GetAllocator());
+  } else {
+    std::cerr << "WARNING: data type '" + data_type +
+                     "' is not supported with JSON."
+              << std::endl;
+  } 
+}
+
 void
 ProfileDataExporter::AddRequestInputs(
     rapidjson::Value& request_inputs_json,
@@ -172,23 +243,29 @@ ProfileDataExporter::AddRequestInputs(
       const auto& byte_size{input.second.size_};
       const auto& data_type{input.second.data_type_};
       rapidjson::Value name_json(name.c_str(), document_.GetAllocator());
+
       rapidjson::Value input_json{};
-      // TMA-1777: support other data types
+      size_t data_size;
+      if (data_type == "BYTES" || data_type == "JSON") {
+        // return string as is instead of array of chars
+        data_size = 1;
+      } else {
+        data_size = byte_size / GetDataTypeSize(data_type);
+        if (data_size > 1){
+          input_json.SetArray();
+        }
+      }
+
+      // TPA-268: support N-dimensional tensor
       if (buf != nullptr) {
-        if (data_type == "BYTES" || data_type == "JSON") {
-          input_json.SetString(
-              reinterpret_cast<const char*>(buf), byte_size,
-              document_.GetAllocator());
-        } else if (data_type == "INT32") {
-          auto* val = reinterpret_cast<int32_t*>(buf);
-          input_json.SetInt(*val);
-        } else if (data_type == "BOOL") {
-          bool is_true = (*buf > 0);
-          input_json.SetBool(is_true);
+        if (input_json.IsArray()) {
+          for (int i = 0; i < data_size; i++) {
+            rapidjson::Value data_val;
+            AddDataToJSON(data_val, i, buf, byte_size, data_type);
+            input_json.PushBack(data_val, document_.GetAllocator());
+          }
         } else {
-          std::cerr << "WARNING: data type '" + data_type +
-                           "' is not supported with JSON."
-                    << std::endl;
+          AddDataToJSON(input_json, 0 /* index */, buf, byte_size, data_type);
         }
       } else {
         input_json.SetString("", 0, document_.GetAllocator());
@@ -210,13 +287,32 @@ ProfileDataExporter::AddResponseOutputs(
       const auto& name{output.first};
       const auto& buf{output.second.data_.get()};
       const auto& byte_size{output.second.size_};
+      const auto& data_type{output.second.data_type_};
       rapidjson::Value name_json(name.c_str(), document_.GetAllocator());
+      
       rapidjson::Value output_json{};
-      // TMA-1777: support other data types
+      size_t data_size = byte_size / GetDataTypeSize(data_type);
+      if (data_type == "BYTES" || data_type == "JSON") {
+        // set string as is instead of array of chars
+        data_size = 1;
+      } else {
+        data_size = byte_size / GetDataTypeSize(data_type);
+        if (data_size > 1){
+          output_json.SetArray();
+        }
+      }
+
+      // TPA-268: support N-dimensional tensor
       if (buf != nullptr) {
-        output_json.SetString(
-            reinterpret_cast<const char*>(buf), byte_size,
-            document_.GetAllocator());
+        if (output_json.IsArray()) {
+          for (int i = 0; i < data_size; i++) {
+            rapidjson::Value data_val;
+            AddDataToJSON(data_val, i, buf, byte_size, data_type);
+            output_json.PushBack(data_val, document_.GetAllocator());
+          }
+        } else {
+          AddDataToJSON(output_json, 0 /* index */, buf, byte_size, data_type);
+        }
       } else {
         output_json.SetString("", 0, document_.GetAllocator());
       }
