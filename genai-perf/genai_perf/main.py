@@ -127,7 +127,7 @@ def create_plots(args: Namespace) -> None:
         output_dir=plot_dir,
     )
     config_parser = PlotConfigParser(plot_dir / "config.yaml")
-    plot_configs = config_parser.generate_configs()
+    plot_configs = config_parser.generate_configs(args.tokenizer)
     plot_manager = PlotManager(plot_configs)
     plot_manager.generate_plots()
 

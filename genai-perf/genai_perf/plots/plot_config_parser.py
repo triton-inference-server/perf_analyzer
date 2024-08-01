@@ -36,7 +36,7 @@ import yaml  # type: ignore
 from genai_perf.metrics import Statistics
 from genai_perf.plots.plot_config import PlotConfig, PlotType, ProfileRunData
 from genai_perf.profile_data_parser import LLMProfileDataParser
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from genai_perf.tokenizer import DEFAULT_TOKENIZER, Tokenizer, get_tokenizer
 from genai_perf.utils import load_yaml, scale
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,9 @@ class PlotConfigParser:
     def __init__(self, filename: Path) -> None:
         self._filename = filename
 
-    def generate_configs(self) -> List[PlotConfig]:
+    def generate_configs(
+        self, tokenizer_arg: str = DEFAULT_TOKENIZER
+    ) -> List[PlotConfig]:
         """Load YAML configuration file and convert to PlotConfigs."""
         logger.info(
             f"Generating plot configurations by parsing {self._filename}. "
@@ -61,7 +63,7 @@ class PlotConfigParser:
             # Collect profile run data
             profile_data: List[ProfileRunData] = []
             for filepath in config["paths"]:
-                stats = self._get_statistics(filepath)
+                stats = self._get_statistics(filepath, tokenizer_arg)
                 profile_data.append(
                     ProfileRunData(
                         name=self._get_run_name(Path(filepath)),
@@ -85,11 +87,11 @@ class PlotConfigParser:
 
         return plot_configs
 
-    def _get_statistics(self, filepath: str) -> Statistics:
+    def _get_statistics(self, filepath: str, tokenizer_arg: str) -> Statistics:
         """Extract a single profile run data."""
         data_parser = LLMProfileDataParser(
             filename=Path(filepath),
-            tokenizer=get_tokenizer(DEFAULT_TOKENIZER),
+            tokenizer=get_tokenizer(tokenizer_arg),
         )
         load_info = data_parser.get_profile_load_info()
 
