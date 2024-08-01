@@ -59,7 +59,7 @@ target_include_directories(
 target_link_directories(
   triton-client-backend-library
   PUBLIC
-    ${CMAKE_INSTALL_PREFIX}/lib 
+    ${CMAKE_INSTALL_PREFIX}/lib
 )
 
 target_link_libraries(
