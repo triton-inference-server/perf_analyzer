@@ -48,7 +48,7 @@ class PlotConfigParser:
     def __init__(self, filename: Path) -> None:
         self._filename = filename
 
-    def generate_configs(self) -> List[PlotConfig]:
+    def generate_configs(self, tokenizer: str = DEFAULT_TOKENIZER) -> List[PlotConfig]:
         """Load YAML configuration file and convert to PlotConfigs."""
         logger.info(
             f"Generating plot configurations by parsing {self._filename}. "
@@ -61,7 +61,7 @@ class PlotConfigParser:
             # Collect profile run data
             profile_data: List[ProfileRunData] = []
             for filepath in config["paths"]:
-                stats = self._get_statistics(filepath)
+                stats = self._get_statistics(filepath, tokenizer)
                 profile_data.append(
                     ProfileRunData(
                         name=self._get_run_name(Path(filepath)),
@@ -85,11 +85,11 @@ class PlotConfigParser:
 
         return plot_configs
 
-    def _get_statistics(self, filepath: str) -> Statistics:
+    def _get_statistics(self, filepath: str, tokenizer: str) -> Statistics:
         """Extract a single profile run data."""
         data_parser = LLMProfileDataParser(
             filename=Path(filepath),
-            tokenizer=get_tokenizer(DEFAULT_TOKENIZER),
+            tokenizer=get_tokenizer(tokenizer),
         )
         load_info = data_parser.get_profile_load_info()
 
