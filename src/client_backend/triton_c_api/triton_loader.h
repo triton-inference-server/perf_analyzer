@@ -1,4 +1,4 @@
-// Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -34,7 +34,9 @@
 #include <string>
 
 #include "../client_backend.h"
+#include "alloc_payload.h"
 #include "common.h"
+#include "response_output.h"
 #include "shared_library.h"
 #include "shared_memory_manager.h"
 #include "triton/core/tritonserver.h"
@@ -84,6 +86,16 @@ class InferResult;
 
 class TritonLoader : public tc::InferenceServerClient {
  public:
+  using OnCompleteFn = std::function<void(InferResult*)>;
+
+  struct AsyncRequestInfo {
+    std::unique_ptr<AllocPayload> alloc_payload{};
+    std::string request_id{};
+    std::shared_ptr<tc::RequestTimers> timer{};
+    OnCompleteFn callback{};
+    bool enable_stats{true};
+  };
+
   ~TritonLoader();
 
   static Error Create(
@@ -110,9 +122,17 @@ class TritonLoader : public tc::InferenceServerClient {
       const std::vector<const tc::InferRequestedOutput*>& outputs,
       InferResult** result);
 
-  Error CleanUp(
-      TRITONSERVER_InferenceResponse* completed_response,
-      TRITONSERVER_ResponseAllocator* allocator);
+  void InferResponseCompleteAsync(
+      TRITONSERVER_InferenceResponse* response, const uint32_t flags,
+      AsyncRequestInfo* async_request_info);
+
+  Error AsyncInfer(
+      OnCompleteFn callback, const tc::InferOptions& options,
+      const std::vector<tc::InferInput*>& inputs,
+      const std::vector<const tc::InferRequestedOutput*>& outputs,
+      bool enable_stats);
+
+  Error CleanUp(TRITONSERVER_InferenceResponse* completed_response);
 
   Error ModelInferenceStatistics(
       const std::string& model_name, const std::string& model_version,
@@ -419,7 +439,6 @@ class TritonLoader : public tc::InferenceServerClient {
   Error InitializeRequest(
       const tc::InferOptions& options,
       const std::vector<const tc::InferRequestedOutput*>& outputs,
-      TRITONSERVER_ResponseAllocator** allocator,
       TRITONSERVER_InferenceRequest** irequest);
 
   Error AddInputs(
@@ -429,6 +448,10 @@ class TritonLoader : public tc::InferenceServerClient {
   Error AddOutputs(
       const std::vector<const tc::InferRequestedOutput*>& outputs,
       TRITONSERVER_InferenceRequest* irequest);
+
+  Error GetOutputs(
+      TRITONSERVER_InferenceResponse* response,
+      std::unordered_map<std::string, ResponseOutput>& outputs);
 
   void* dlhandle_;
   TritonServerApiVersionFn_t api_version_fn_;
@@ -514,6 +537,8 @@ class TritonLoader : public tc::InferenceServerClient {
   bool model_is_loaded_{false};
   bool server_is_ready_{false};
   std::unique_ptr<SharedMemoryManager> shm_manager_{nullptr};
+  TRITONSERVER_ResponseAllocator* allocator_{};
+  std::mutex update_infer_stat_mutex_{};
 };
 
 }}}}  // namespace triton::perfanalyzer::clientbackend::tritoncapi

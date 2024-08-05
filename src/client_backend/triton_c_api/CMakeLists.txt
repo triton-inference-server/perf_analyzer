@@ -1,4 +1,4 @@
-# Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -52,6 +52,8 @@ set(
     triton_loader.h
     c_api_infer_results.h
     scoped_defer.h
+    response_output.h
+    alloc_payload.h
 )
 
 add_library(
