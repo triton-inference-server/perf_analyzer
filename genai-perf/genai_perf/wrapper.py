@@ -167,5 +167,6 @@ class Profiler:
             if telemetry_data_collector is not None:
                 telemetry_data_collector.stop()
                 metrics = telemetry_data_collector.metrics
+                #This print statement will be removed once the test is in place. 
                 print("Collected Metrics:")
                 print(metrics)
