@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,34 +23,45 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
 #pragma once
 
-#include <exception>
+#include <triton/core/tritonserver.h>
+
+#include <cstdint>
 #include <string>
+#include <unordered_map>
 
-namespace triton { namespace perfanalyzer {
+namespace triton { namespace perfanalyzer { namespace clientbackend {
+namespace tritoncapi {
 
-// Perf Exception error class
-//
-class PerfAnalyzerException : public std::exception {
- public:
-  PerfAnalyzerException(const std::string& message) : message_(message) {}
+struct AllocPayload {
+  struct OutputInfo {
+    enum Kind { BINARY, SHM };
 
-  PerfAnalyzerException(uint32_t error) : error_(error) {}
+    Kind kind_;
+    void* base_;
+    uint64_t byte_size_;
+    TRITONSERVER_MemoryType memory_type_;
+    int64_t device_id_;
 
-  PerfAnalyzerException(const std::string& message, uint32_t error)
-      : message_(message), error_(error)
+    // For shared memory
+    OutputInfo(
+        void* base, uint64_t byte_size, TRITONSERVER_MemoryType memory_type,
+        int64_t device_id)
+        : kind_(SHM), base_(base), byte_size_(byte_size),
+          memory_type_(memory_type), device_id_(device_id)
+    {
+    }
+  };
+
+  ~AllocPayload()
   {
+    for (auto it : output_map_) {
+      delete it.second;
+    }
   }
 
-  virtual const char* what() const throw() { return message_.c_str(); }
-
-  inline int GetError() const { return error_; }
-
- private:
-  const std::string message_{""};
-  uint32_t error_{GENERIC_ERROR};
+  std::unordered_map<std::string, OutputInfo*> output_map_;
 };
 
-}}  // namespace triton::perfanalyzer
+}}}}  // namespace triton::perfanalyzer::clientbackend::tritoncapi

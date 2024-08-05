@@ -165,6 +165,13 @@ PerfAnalyzer::CreateAnalyzerObjects()
     params_->async = true;
   }
 
+  if (parser_->IsDecoupled() &&
+      (params_->async == false || params_->streaming == false)) {
+    throw pa::PerfAnalyzerException(
+        "Decoupled models must be run with `--async` and `--streaming` and "
+        "either `-i grpc` or `--service-kind=triton_c_api`");
+  }
+
   std::unique_ptr<pa::LoadManager> manager;
   if (params_->targeting_concurrency()) {
     if ((parser_->SchedulerType() == pa::ModelParser::SEQUENCE) ||
