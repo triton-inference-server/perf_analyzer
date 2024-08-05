@@ -24,15 +24,4 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-DEFAULT_HTTP_URL = "localhost:8000"
-DEFAULT_GRPC_URL = "localhost:8001"
-DEFAULT_TRITON_METRICS_URL = "http://0.0.0.0:8002/metrics"
-
-OPEN_ORCA = "openorca"
-CNN_DAILY_MAIL = "cnn_dailymail"
-DEFAULT_INPUT_DATA_JSON = "llm_inputs.json"
-
-
-DEFAULT_ARTIFACT_DIR = "artifacts"
-DEFAULT_COMPARE_DIR = "compare"
-DEFAULT_PARQUET_FILE = "all_data"
+from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
