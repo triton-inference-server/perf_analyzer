@@ -413,4 +413,38 @@ ParseTensorFormat(const std::string& content_type_str)
   }
 }
 
+size_t
+GetDataTypeSize(const std::string& data_type)
+{
+  if (data_type == "BOOL") {
+    return sizeof(bool);
+  } else if (data_type == "UINT8") {
+    return sizeof(uint8_t);
+  } else if (data_type == "UINT16") {
+    return sizeof(uint16_t);
+  } else if (data_type == "UINT32") {
+    return sizeof(uint32_t);
+  } else if (data_type == "UINT64") {
+    return sizeof(uint64_t);
+  } else if (data_type == "INT8") {
+    return sizeof(int8_t);
+  } else if (data_type == "INT16") {
+    return sizeof(int16_t);
+  } else if (data_type == "INT32") {
+    return sizeof(int32_t);
+  } else if (data_type == "INT64") {
+    return sizeof(int64_t);
+  } else if (data_type == "FP32") {
+    return sizeof(float);
+  } else if (data_type == "FP64") {
+    return sizeof(double);
+  } else if (data_type == "BYTES") {
+    return sizeof(char);
+  } else if (data_type == "JSON") {
+    return sizeof(char);
+  } else {
+    std::cerr << "WARNING: unsupported data type: '" + data_type + "'" << std::endl;
+  }
+}
+
 }}  // namespace triton::perfanalyzer

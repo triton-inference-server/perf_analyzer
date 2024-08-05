@@ -137,4 +137,7 @@ std::function<std::chrono::nanoseconds(std::mt19937&)> ScheduleDistribution(
 // Parse the HTTP tensor format
 cb::TensorFormat ParseTensorFormat(const std::string& tensor_format_str);
 
+// Returns the size of a given data type in bytes.
+size_t GetDataTypeSize(const std::string& data_type);
+
 }}  // namespace triton::perfanalyzer

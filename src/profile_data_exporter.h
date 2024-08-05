@@ -75,7 +75,8 @@ class ProfileDataExporter {
   void AddRequests(
       rapidjson::Value& entry, rapidjson::Value& requests,
       const Experiment& raw_experiment);
-  void AddDataToJSON(rapidjson::Value& inputs_json, const size_t index, const uint8_t* buf, const size_t byte_size, const std::string& data_type);
+  void SetValueToJSON(rapidjson::Value& json, const size_t index, const uint8_t* buf, const size_t byte_size, const std::string& data_type);
+  void AddDataToJSON(rapidjson::Value& json, const uint8_t* buf, const size_t byte_size, const std::string& data_type);
   void AddRequestInputs(
       rapidjson::Value& inputs_json,
       const std::vector<RequestRecord::RequestInput>& inputs);
