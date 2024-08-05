@@ -62,7 +62,6 @@ class TelemetryDataCollector(ABC):
                 current_values = getattr(self.metrics, metric_name, [])
                 current_values.append(metric_values)
                 setattr(self.metrics, metric_name, current_values)
-        print(self.metrics)
 
     def _collect_metrics(self) -> None:
         while not self._stop_event.is_set():
