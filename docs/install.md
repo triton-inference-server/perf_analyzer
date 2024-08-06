@@ -82,15 +82,15 @@ apt update && apt install -y gpg wget && wget -O - https://apt.kitware.com/keys/
 # install build/runtime dependencies
 apt update && apt install -y cmake-data=3.27.7* cmake=3.27.7* libcurl4-openssl-dev rapidjson-dev
 
-rm -rf client ; git clone --depth 1 https://github.com/triton-inference-server/client
+rm -rf perf_analyzer ; git clone --depth 1 https://github.com/triton-inference-server/perf_analyzer
 
-mkdir client/build ; cd client/build
+mkdir perf_analyzer/build ; cd perf_analyzer/build
 
-cmake -DTRITON_ENABLE_PERF_ANALYZER=ON ..
+cmake ..
 
-make -j8 cc-clients
+make -j8 perf-analyzer
 
-cc-clients/perf_analyzer/perf_analyzer -m <model>
+perf_analyzer/src/perf-analyzer-build/perf_analyzer -m <model>
 ```
 
 - To enable

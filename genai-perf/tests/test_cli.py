@@ -250,7 +250,6 @@ class TestCLIArguments:
         for key, value in expected_attributes.items():
             assert getattr(args, key) == value
 
-
     @pytest.mark.parametrize(
         "models, expected_model_list, formatted_name",
         [
