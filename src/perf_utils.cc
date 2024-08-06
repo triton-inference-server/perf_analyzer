@@ -443,7 +443,8 @@ GetDataTypeSize(const std::string& data_type)
   } else if (data_type == "JSON") {
     return sizeof(char);
   } else {
-    std::cerr << "WARNING: unsupported data type: '" + data_type + "'" << std::endl;
+    std::cerr << "WARNING: unsupported data type: '" + data_type + "'"
+              << std::endl;
   }
 }
 

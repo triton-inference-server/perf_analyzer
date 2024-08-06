@@ -197,23 +197,23 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   MockProfileDataExporter exporter{};
   rapidjson::Value json;
   const uint8_t* buf;
-  
+
   SUBCASE("Test bytes")
   {
     const std::string data{"abc123"};
     buf = reinterpret_cast<const uint8_t*>(data.data());
     exporter.AddDataToJSON(json, buf, data.size(), "BYTES");
-    CHECK(json == "abc123");    
+    CHECK(json == "abc123");
   }
-   
+
   SUBCASE("Test json")
   {
     const std::string data{"{\"abc\":\"def\"}"};
     buf = reinterpret_cast<const uint8_t*>(data.data());
     exporter.AddDataToJSON(json, buf, data.size(), "JSON");
-    CHECK(json == "{\"abc\":\"def\"}");    
+    CHECK(json == "{\"abc\":\"def\"}");
   }
-  
+
   SUBCASE("Test bool")
   {
     const bool data[3] = {true, false, true};
