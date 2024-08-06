@@ -59,10 +59,15 @@ class NaggyMockProfileDataExporter : public ProfileDataExporter {
                   entry, experiment, raw_experiment);
             });
 
-    ON_CALL(*this, AddDataToJSON(testing::_, testing::_, testing::_, testing::_))
-        .WillByDefault([this](rapidjson::Value& json, const uint8_t* buf, const size_t byte_size, const std::string& data_type) -> void {
-          this->ProfileDataExporter::AddDataToJSON(json, buf, byte_size, data_type);
-        });
+    ON_CALL(
+        *this, AddDataToJSON(testing::_, testing::_, testing::_, testing::_))
+        .WillByDefault(
+            [this](
+                rapidjson::Value& json, const uint8_t* buf,
+                const size_t byte_size, const std::string& data_type) -> void {
+              this->ProfileDataExporter::AddDataToJSON(
+                  json, buf, byte_size, data_type);
+            });
 
     ON_CALL(*this, AddServiceKind(testing::_))
         .WillByDefault([this](cb::BackendKind& service_kind) -> void {
@@ -87,7 +92,9 @@ class NaggyMockProfileDataExporter : public ProfileDataExporter {
   MOCK_METHOD(
       void, AddExperiment,
       (rapidjson::Value&, rapidjson::Value&, const Experiment&), (override));
-  MOCK_METHOD(void, AddDataToJSON, (rapidjson::Value&, const uint8_t*, const size_t, const std::string&));
+  MOCK_METHOD(
+      void, AddDataToJSON,
+      (rapidjson::Value&, const uint8_t*, const size_t, const std::string&));
   MOCK_METHOD(void, OutputToFile, (std::string&), (override));
   MOCK_METHOD(void, AddServiceKind, (cb::BackendKind&));
   MOCK_METHOD(void, AddEndpoint, (std::string&));
