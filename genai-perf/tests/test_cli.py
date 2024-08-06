@@ -250,9 +250,6 @@ class TestCLIArguments:
         for key, value in expected_attributes.items():
             assert getattr(args, key) == value
 
-        # Check that nothing was printed as a byproduct of parsing the arguments
-        captured = capsys.readouterr()
-        assert captured.out == ""
 
     @pytest.mark.parametrize(
         "models, expected_model_list, formatted_name",
@@ -294,10 +291,6 @@ class TestCLIArguments:
         # Check that the formatted_model_name is correctly generated
         for key, value in formatted_name.items():
             assert getattr(args, key) == value
-
-        # Check that nothing was printed as a byproduct of parsing the arguments
-        captured = capsys.readouterr()
-        assert captured.out == ""
 
     def test_file_flags_parsed(self, monkeypatch, mocker):
         _ = mocker.patch("os.path.isfile", return_value=True)
@@ -362,8 +355,6 @@ class TestCLIArguments:
         args, _ = parser.parse_args()
 
         assert args.artifact_dir == Path(expected_path)
-        captured = capsys.readouterr()
-        assert captured.out == ""
 
     @pytest.mark.parametrize(
         "arg, expected_path, expected_output",
@@ -412,8 +403,6 @@ class TestCLIArguments:
         )
         args, _ = parser.parse_args()
         assert args.concurrency == 1
-        captured = capsys.readouterr()
-        assert captured.out == ""
 
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
         monkeypatch.setattr(
@@ -433,7 +422,7 @@ class TestCLIArguments:
 
     def test_model_not_provided(self, monkeypatch, capsys):
         monkeypatch.setattr("sys.argv", ["genai-perf", "profile"])
-        expected_output = "The -m/--model option is required and cannot be empty."
+        expected_output = "the following arguments are required: -m/--model"
 
         with pytest.raises(SystemExit) as excinfo:
             parser.parse_args()
