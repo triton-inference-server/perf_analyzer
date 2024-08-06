@@ -85,10 +85,9 @@ def _check_model_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     """
-    Check if model name is provided.
+    Check arguments associated with the model and apply any necessary formatting.
     """
-    if not args.model:
-        parser.error("The -m/--model option is required and cannot be empty.")
+    logger.info(f"Profiling these models: {', '.join(args.model)}")
     args = _convert_str_to_enum_entry(
         args, "model_selection_strategy", ModelSelectionStrategy
     )
@@ -532,7 +531,7 @@ def _add_endpoint_args(parser):
         "-m",
         "--model",
         nargs="+",
-        default=[],
+        required=True,
         help=f"The name of the model(s) to benchmark.",
     )
     endpoint_group.add_argument(
