@@ -33,12 +33,11 @@ import genai_perf.utils as utils
 from genai_perf.constants import (
     DEFAULT_GRPC_URL,
     DEFAULT_INPUT_DATA_JSON,
-    DEFAULT_TRITON_METRICS_URL,
 )
 from genai_perf.llm_inputs.llm_inputs import OutputFormat
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TritonTelemetryDataCollector,
-)
+        TritonTelemetryDataCollector,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -149,13 +148,9 @@ class Profiler:
         return cmd
 
     @staticmethod
-    def run(args: Namespace, extra_args: Optional[List[str]]) -> None:
-        telemetry_data_collector = None
+    def run(telemetry_data_collector: TritonTelemetryDataCollector, args: Namespace, extra_args: Optional[List[str]]) -> None:
         try:
-            if args.service_kind == "triton":
-                telemetry_data_collector = TritonTelemetryDataCollector(
-                    server_metrics_url=DEFAULT_TRITON_METRICS_URL
-                )
+            if telemetry_data_collector is not None:
                 telemetry_data_collector.start()
             cmd = Profiler.build_cmd(args, extra_args)
             logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
@@ -166,7 +161,4 @@ class Profiler:
         finally:
             if telemetry_data_collector is not None:
                 telemetry_data_collector.stop()
-                metrics = telemetry_data_collector.metrics
-                #This print statement will be removed once the test is in place. 
-                print("Collected Metrics:")
-                print(metrics)
+

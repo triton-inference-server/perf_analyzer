@@ -33,9 +33,9 @@ from genai_perf.metrics.metrics import MetricMetadata
 
 class TelemetryMetrics:
     """
-    A class that contains common telemetry level metrics.
+    A class that contains common telemetry metrics.
     Metrics are stored as lists where each inner list corresponds to multiple measurements per GPU.
-    Each measurement is recorded every 1000 ms.
+    Each measurement is recorded every second.
     """
 
     TELEMETRY_METRICS = [
@@ -53,8 +53,8 @@ class TelemetryMetrics:
         gpu_power_limit: List[List[float]] = [],
         energy_consumption: List[List[float]] = [],
         gpu_utilization: List[List[float]] = [],
-        total_gpu_memory: List[List[int]] = [],
-        gpu_memory_used: List[List[int]] = [],
+        total_gpu_memory: List[List[float]] = [],
+        gpu_memory_used: List[List[float]] = [],
     ) -> None:
         self.gpu_power_usage = gpu_power_usage
         self.gpu_power_limit = gpu_power_limit
@@ -63,12 +63,24 @@ class TelemetryMetrics:
         self.total_gpu_memory = total_gpu_memory
         self.gpu_memory_used = gpu_memory_used
 
+    def update_metrics(self, measurement_data: dict) -> None:
+        """Update the metrics with new measurement data"""
+        for metric in self.TELEMETRY_METRICS:
+            metric_key = metric.name
+            if metric_key in measurement_data:
+                getattr(self, metric_key).append(measurement_data[metric_key])
+
     def __repr__(self):
         attr_strs = []
         for k, v in self.__dict__.items():
             if not k.startswith("_"):
                 attr_strs.append(f"{k}={v}")
         return f"TelemetryMetrics({','.join(attr_strs)})"
+
+
+    def __iter__(self):
+        for attr, value in self.__dict__.items():
+            yield attr, value
 
     @property
     def telemetry_metrics(self) -> List[MetricMetadata]:
