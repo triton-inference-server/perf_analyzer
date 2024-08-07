@@ -74,6 +74,9 @@ class TestLLMProfileDataParser:
             elif filename == "openai_vlm_profile_export.json":
                 tmp_file = StringIO(json.dumps(self.openai_vlm_profile_data))
                 return tmp_file
+            elif filename == "tensorrtllm_engine_profile_export.json":
+                tmp_file = StringIO(json.dumps(self.tensorrtllm_engine_profile_data))
+                return tmp_file
             elif filename == "empty_profile_export.json":
                 tmp_file = StringIO(json.dumps(self.empty_profile_data))
                 return tmp_file
@@ -410,6 +413,158 @@ class TestLLMProfileDataParser:
         with pytest.raises(KeyError):
             pd.get_statistics(infer_mode="concurrency", load_level="40")
 
+    def test_tensorrtllm_engine_llm_profile_data(self, mock_read_write: pytest.MonkeyPatch) -> None:
+        """Collect LLM metrics from profile export data and check values.
+
+        Metrics
+        * time to first tokens
+            - experiment 1: [3 - 1, 4 - 2] = [2, 2]
+            - experiment 2: [7 - 5, 6 - 3] = [2, 3]
+        * inter token latencies
+            - experiment 1: [((8 - 1) - 2)/(3 - 1), ((11 - 2) - 2)/(3 - 1)]
+                          : [2.5, 3.5]
+                          : [2, 4]  # rounded
+            - experiment 2: [((18 - 5) - 2)/(4 - 1), ((11 - 3) - 3)/(3 - 1)]
+                          : [11/3, 2.5]
+                          : [4, 2]  # rounded
+        * output token throughputs per request
+            - experiment 1: [3/(8 - 1), 3/(11 - 2)] = [3/7, 1/3]
+            - experiment 2: [4/(18 - 5), 3/(11 - 3)] = [4/13, 3/8]
+        * output token throughputs
+            - experiment 1: [(3 + 3)/(11 - 1)] = [3/5]
+            - experiment 2: [(4 + 3)/(18 - 3)] = [7/15]
+        * output sequence lengths
+            - experiment 1: [3, 3]
+            - experiment 2: [4, 3]
+        * input sequence lengths
+            - experiment 1: [3, 4]
+            - experiment 2: [3, 4]
+        """
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("tensorrtllm_engine_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        # experiment 1 metrics & statistics
+        stat_obj = pd.get_statistics(infer_mode="concurrency", load_level="10")
+        metrics = stat_obj.metrics
+        stat = stat_obj.stats_dict
+
+        assert isinstance(metrics, LLMMetrics)
+
+        assert metrics.time_to_first_tokens == [2, 2]
+        assert metrics.inter_token_latencies == [2, 4]
+        ottpr = [3 / ns_to_sec(7), 1 / ns_to_sec(3)]
+        assert metrics.output_token_throughputs_per_request == pytest.approx(ottpr)
+        ott = [3 / ns_to_sec(5)]
+        assert metrics.output_token_throughputs == pytest.approx(ott)
+        assert metrics.output_sequence_lengths == [3, 3]
+        assert metrics.input_sequence_lengths == [3, 4]
+
+        # Disable Pylance warnings for dynamically set attributes due to Statistics
+        # not having strict attributes listed.
+        assert stat["time_to_first_token"]["avg"] == 2  # type: ignore
+        assert stat["inter_token_latency"]["avg"] == 3  # type: ignore
+        assert stat["output_token_throughput_per_request"]["avg"] == pytest.approx(  # type: ignore
+            np.mean(ottpr)
+        )
+        assert stat["output_sequence_length"]["avg"] == 3  # type: ignore
+        assert stat["input_sequence_length"]["avg"] == 3.5  # type: ignore
+
+        assert stat["time_to_first_token"]["p50"] == 2  # type: ignore
+        assert stat["inter_token_latency"]["p50"] == 3  # type: ignore
+        assert stat["output_token_throughput_per_request"]["p50"] == pytest.approx(  # type: ignore
+            np.percentile(ottpr, 50)
+        )
+        assert stat["output_sequence_length"]["p50"] == 3  # type: ignore
+        assert stat["input_sequence_length"]["p50"] == 3.5  # type: ignore
+
+        assert stat["time_to_first_token"]["min"] == 2  # type: ignore
+        assert stat["inter_token_latency"]["min"] == 2  # type: ignore
+        min_ottpr = 1 / ns_to_sec(3)
+        assert stat["output_token_throughput_per_request"]["min"] == pytest.approx(min_ottpr)  # type: ignore
+        assert stat["output_sequence_length"]["min"] == 3  # type: ignore
+        assert stat["input_sequence_length"]["min"] == 3  # type: ignore
+
+        assert stat["time_to_first_token"]["max"] == 2  # type: ignore
+        assert stat["inter_token_latency"]["max"] == 4  # type: ignore
+        max_ottpr = 3 / ns_to_sec(7)
+        assert stat["output_token_throughput_per_request"]["max"] == pytest.approx(max_ottpr)  # type: ignore
+        assert stat["output_sequence_length"]["max"] == 3  # type: ignore
+        assert stat["input_sequence_length"]["max"] == 4  # type: ignore
+
+        assert stat["time_to_first_token"]["std"] == np.std([2, 2])  # type: ignore
+        assert stat["inter_token_latency"]["std"] == np.std([2, 4])  # type: ignore
+        assert stat["output_token_throughput_per_request"]["std"] == pytest.approx(  # type: ignore
+            np.std(ottpr)
+        )
+        assert stat["output_sequence_length"]["std"] == np.std([3, 3])  # type: ignore
+        assert stat["input_sequence_length"]["std"] == np.std([3, 4])  # type: ignore
+
+        oott = 3 / ns_to_sec(5)
+        assert stat["output_token_throughput"]["avg"] == pytest.approx(oott)  # type: ignore
+
+        # experiment 2 statistics
+        stat_obj = pd.get_statistics(infer_mode="request_rate", load_level="2.0")
+        metrics = stat_obj.metrics
+        stat = stat_obj.stats_dict
+        assert isinstance(metrics, LLMMetrics)
+
+        assert metrics.time_to_first_tokens == [2, 3]
+        assert metrics.inter_token_latencies == [4, 2]
+        ottpr = [4 / ns_to_sec(13), 3 / ns_to_sec(8)]
+        assert metrics.output_token_throughputs_per_request == pytest.approx(ottpr)
+        ott = [7 / ns_to_sec(15)]
+        assert metrics.output_token_throughputs == pytest.approx(ott)
+        assert metrics.output_sequence_lengths == [4, 3]
+        assert metrics.input_sequence_lengths == [3, 4]
+
+        assert stat["time_to_first_token"]["avg"] == pytest.approx(2.5)  # type: ignore
+        assert stat["inter_token_latency"]["avg"] == 3  # type: ignore
+        assert stat["output_token_throughput_per_request"]["avg"] == pytest.approx(  # type: ignore
+            np.mean(ottpr)
+        )
+        assert stat["output_sequence_length"]["avg"] == 3.5  # type: ignore
+        assert stat["input_sequence_length"]["avg"] == 3.5  # type: ignore
+
+        assert stat["time_to_first_token"]["p50"] == pytest.approx(2.5)  # type: ignore
+        assert stat["inter_token_latency"]["p50"] == 3  # type: ignore
+        assert stat["output_token_throughput_per_request"]["p50"] == pytest.approx(  # type: ignore
+            np.percentile(ottpr, 50)
+        )
+        assert stat["output_sequence_length"]["p50"] == 3.5  # type: ignore
+        assert stat["input_sequence_length"]["p50"] == 3.5  # type: ignore
+
+        assert stat["time_to_first_token"]["min"] == pytest.approx(2)  # type: ignore
+        assert stat["inter_token_latency"]["min"] == 2  # type: ignore
+        min_ottpr = 4 / ns_to_sec(13)
+        assert stat["output_token_throughput_per_request"]["min"] == pytest.approx(min_ottpr)  # type: ignore
+        assert stat["output_sequence_length"]["min"] == 3  # type: ignore
+        assert stat["input_sequence_length"]["min"] == 3  # type: ignore
+
+        assert stat["time_to_first_token"]["max"] == pytest.approx(3)  # type: ignore
+        assert stat["inter_token_latency"]["max"] == 4  # type: ignore
+        max_ottpr = 3 / ns_to_sec(8)
+        assert stat["output_token_throughput_per_request"]["max"] == pytest.approx(max_ottpr)  # type: ignore
+        assert stat["output_sequence_length"]["max"] == 4  # type: ignore
+        assert stat["input_sequence_length"]["max"] == 4  # type: ignore
+
+        assert stat["time_to_first_token"]["std"] == np.std([2, 3]) * (1)  # type: ignore
+        assert stat["inter_token_latency"]["std"] == np.std([4, 2]) * (1)  # type: ignore
+        assert stat["output_token_throughput_per_request"]["std"] == pytest.approx(  # type: ignore
+            np.std(ottpr)
+        )
+        assert stat["output_sequence_length"]["std"] == np.std([4, 3])  # type: ignore
+        assert stat["input_sequence_length"]["std"] == np.std([3, 4])  # type: ignore
+
+        oott = 7 / ns_to_sec(15)
+        assert stat["output_token_throughput"]["avg"] == pytest.approx(oott)  # type: ignore
+
+        # check non-existing profile data
+        with pytest.raises(KeyError):
+            pd.get_statistics(infer_mode="concurrency", load_level="30")
+
     def test_merged_sse_response(self, mock_read_write: pytest.MonkeyPatch) -> None:
         """Test merging the multiple sse response."""
         res_timestamps = [0, 1, 2, 3]
@@ -734,6 +889,150 @@ class TestLLMProfileDataParser:
                             {"text_output": "it's"},
                             {"text_output": " very"},
                             {"text_output": " simple work"},
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    tensorrtllm_engine_profile_data = {
+        "service_kind": "triton_c_api",
+        "endpoint": "",
+        "experiments": [
+            {
+                "experiment": {
+                    "mode": "concurrency",
+                    "value": 10,
+                },
+                "requests": [
+                    {
+                        "timestamp": 1,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 3,
+                            "min_length": 3,
+                            "input_lengths": 3,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                            ],
+                        },
+                        "response_timestamps": [3, 5, 8],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_ids": 789,
+                            },
+                        ],
+                    },
+                    {
+                        "timestamp": 2,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 3,
+                            "min_length": 3,
+                            "input_lengths": 4,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                                444,
+                            ],
+                        },
+                        "response_timestamps": [4, 7, 11],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 789,
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "experiment": {
+                    "mode": "request_rate",
+                    "value": 2.0,
+                },
+                "requests": [
+                    {
+                        "timestamp": 5,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 4,
+                            "min_length": 4,
+                            "input_lengths": 3,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                            ],
+                        },
+                        "response_timestamps": [7, 8, 13, 18],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 789,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 1011,
+                            },
+                        ],
+                    },
+                    {
+                        "timestamp": 3,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 3,
+                            "min_length": 3,
+                            "input_lengths": 4,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                                444,
+                            ],
+                        },
+                        "response_timestamps": [6, 8, 11],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 789,
+                            },
                         ],
                     },
                 ],
