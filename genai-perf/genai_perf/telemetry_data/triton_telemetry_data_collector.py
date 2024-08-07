@@ -26,44 +26,57 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import re
 from typing import Dict, List
-
 from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
 
 
 class TritonTelemetryDataCollector(TelemetryDataCollector):
     """Class to collect telemetry metrics from Triton server"""
 
-    def _parse_metrics(self, data: str) -> None:
-        # Parsing logic for Prometheus metrics
-        metrics = {
-            "gpu_power_usage": [],
-            "gpu_power_limit": [],
-            "energy_consumption": [],
-            "gpu_utilization": [],
-            "total_gpu_memory": [],
-            "gpu_memory_used": [],
-        }
+    """Mapping from Triton metric names to GenAI-Perf telemetry metric names"""
+    METRIC_NAME_MAPPING = {
+        "nv_gpu_power_usage": "gpu_power_usage",
+        "nv_gpu_power_limit": "gpu_power_limit",
+        "nv_energy_consumption": "energy_consumption",
+        "nv_gpu_utilization": "gpu_utilization",
+        "nv_gpu_memory_total_bytes": "total_gpu_memory",
+        "nv_gpu_memory_used_bytes": "gpu_memory_used",
+    }
 
-        for line in data.splitlines():
-            if line.startswith("nv_gpu_power_usage"):
-                self._extract_metric(line, metrics["gpu_power_usage"])
-            elif line.startswith("nv_gpu_power_limit"):
-                self._extract_metric(line, metrics["gpu_power_limit"])
-            elif line.startswith("nv_energy_consumption"):
-                self._extract_metric(line, metrics["energy_consumption"])
-            elif line.startswith("nv_gpu_utilization"):
-                self._extract_metric(line, metrics["gpu_utilization"])
-            elif line.startswith("nv_gpu_memory_total_bytes"):
-                self._extract_metric(line, metrics["total_gpu_memory"])
-            elif line.startswith("nv_gpu_memory_used_bytes"):
-                self._extract_metric(line, metrics["gpu_memory_used"])
-        return metrics
+    def _process_and_update_metrics(self, metrics_data: str) -> None:
+        """Process the response from Triton metrics endpoint and update metrics.
 
-    def _extract_metric(
-        self, metric_line: str, metric_list: List[List[float]]
-    ) -> Dict[str, List[List[float]]]:
-        metric_components = metric_line.split()
-        metric_value = float(metric_components[1])
-        metric_list.append(metric_value)
+        This method extracts metric names and values from the raw data. Metric names 
+        are extracted from the start of each line up to the '{' character, as all metrics 
+        follow the format 'metric_name{labels} value'. Only metrics defined in 
+        METRIC_NAME_MAPPING are processed.
+
+        Args:
+            data (str): Raw metrics data from the Triton endpoint.
+
+        Example:
+            Given the metric data:
+            ```
+            nv_gpu_power_usage{gpu_uuid="GPU-abschdinjacgdo65gdj7"} 27.01
+            nv_gpu_utilization{gpu_uuid="GPU-abcdef123456"} 75.5
+            nv_energy_consumption{gpu_uuid="GPU-xyz789"} 1234.56
+            ```
+
+            The method will extract and process:
+            - `nv_gpu_power_usage` as `gpu_power_usage`
+            - `nv_gpu_utilization` as `gpu_utilization`
+            - `nv_energy_consumption` as `energy_consumption`
+        """
+
+        current_measurement_data = {metric.name: [] for metric in self.metrics.TELEMETRY_METRICS}
+
+        for metric_data in metrics_data.splitlines():
+            triton_metric_key = metric_data.split('{')[0]  # Extract metric name before '{'
+            metric_value = metric_data.split()[1]    # Extract metric value
+            
+            if triton_metric_key in self.METRIC_NAME_MAPPING:
+                metric_key = self.METRIC_NAME_MAPPING[triton_metric_key]
+                if metric_key in current_measurement_data:
+                    current_measurement_data[metric_key].append(float(metric_value))
+        
+        self.metrics.update_metrics(current_measurement_data)

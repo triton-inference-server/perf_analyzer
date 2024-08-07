@@ -45,39 +45,6 @@ class TelemetryDataCollector(ABC):
         self._stop_event = threading.Event()
         self._thread = None
 
-    def _fetch_metrics(self) -> None:
-        """Fetch the metrics from the metrics endpoint"""
-        response = requests.get(self._server_metrics_url)
-        response.raise_for_status()
-        return response.text
-
-    @abstractmethod
-    def _parse_metrics(self) -> None:
-        """Parse metrics data. This method should be implemented by subclasses."""
-        pass
-
-    def _update_metrics(self, parsed_data) -> None:
-        for metric_name, metric_values in parsed_data.items():
-            if len(metric_values) > len(getattr(self.metrics, metric_name, [])):
-                current_values = getattr(self.metrics, metric_name, [])
-                current_values.append(metric_values)
-                setattr(self.metrics, metric_name, current_values)
-
-    def _collect_metrics(self) -> None:
-        while not self._stop_event.is_set():
-            metrics_data = self._fetch_metrics()
-            parsed_data = self._parse_metrics(metrics_data)
-            self._update_metrics(parsed_data)
-
-            self.metrics.gpu_power_usage.append(parsed_data["gpu_power_usage"])
-            self.metrics.gpu_power_limit.append(parsed_data["gpu_power_limit"])
-            self.metrics.energy_consumption.append(parsed_data["energy_consumption"])
-            self.metrics.gpu_utilization.append(parsed_data["gpu_utilization"])
-            self.metrics.total_gpu_memory.append(parsed_data["total_gpu_memory"])
-            self.metrics.gpu_memory_used.append(parsed_data["gpu_memory_used"])
-
-            time.sleep(self._collection_interval)
-
     def start(self) -> None:
         """Start the telemetry data collection thread."""
         if self._thread is None or not self._thread.is_alive():
@@ -90,6 +57,24 @@ class TelemetryDataCollector(ABC):
         if self._thread is not None and self._thread.is_alive():
             self._stop_event.set()
             self._thread.join()
+
+    def _fetch_metrics(self) -> str:
+        """Fetch metrics from the metrics endpoint"""
+        response = requests.get(self._server_metrics_url)
+        response.raise_for_status()
+        return response.text
+
+    @abstractmethod
+    def _process_and_update_metrics(self) -> None:
+        """This method should be implemented by subclasses."""
+        pass
+
+    def _collect_metrics(self) -> None:
+        """Continuously collect telemetry metrics at for every second"""
+        while not self._stop_event.is_set():
+            metrics_data = self._fetch_metrics()
+            self._process_and_update_metrics(metrics_data)
+            time.sleep(self._collection_interval)
 
     @property
     def metrics(self) -> TelemetryMetrics:
