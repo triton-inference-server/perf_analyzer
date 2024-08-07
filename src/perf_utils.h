@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <random>
 
 #include "client_backend/client_backend.h"
@@ -138,6 +139,6 @@ std::function<std::chrono::nanoseconds(std::mt19937&)> ScheduleDistribution(
 cb::TensorFormat ParseTensorFormat(const std::string& tensor_format_str);
 
 // Returns the size of a given data type in bytes.
-size_t GetDataTypeSize(const std::string& data_type);
+std::optional<size_t> GetDataTypeSize(const std::string& data_type);
 
 }}  // namespace triton::perfanalyzer

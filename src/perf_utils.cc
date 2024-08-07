@@ -413,7 +413,7 @@ ParseTensorFormat(const std::string& content_type_str)
   }
 }
 
-size_t
+std::optional<size_t>
 GetDataTypeSize(const std::string& data_type)
 {
   if (data_type == "BOOL") {
@@ -445,6 +445,7 @@ GetDataTypeSize(const std::string& data_type)
   } else {
     std::cerr << "WARNING: unsupported data type: '" + data_type + "'"
               << std::endl;
+    return {};
   }
 }
 

@@ -205,11 +205,16 @@ ProfileDataExporter::AddDataToJSON(
 {
   // TPA-268: support N-dimensional tensor
   size_t data_size;
+  // TODO TPA-283: Add support for N-dimensional string tensors
   if (data_type == "BYTES" || data_type == "JSON") {
     // return string as is instead of array of chars
     data_size = 1;
   } else {
-    data_size = byte_size / GetDataTypeSize(data_type);
+    const std::optional<size_t> data_type_size{GetDataTypeSize(data_type)};
+    if (!data_type_size) {
+      return;
+    }
+    data_size = byte_size / data_type_size.value();
     if (data_size > 1) {
       json.SetArray();
     }

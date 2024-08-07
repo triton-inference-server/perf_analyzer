@@ -35,7 +35,7 @@ namespace triton { namespace perfanalyzer {
 
 /// A record containing the data of a single request input or response output
 struct RecordData {
-  RecordData(const uint8_t* buf, size_t size, std::string data_type = "")
+  RecordData(const uint8_t* buf, size_t size, std::string data_type)
   {
     uint8_t* array = new uint8_t[size];
     std::memcpy(array, buf, size);
