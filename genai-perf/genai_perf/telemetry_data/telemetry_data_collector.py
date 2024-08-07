@@ -26,10 +26,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import threading
+
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from threading import Event, Thread
+from typing import Optional
 
 import requests
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
@@ -42,14 +43,14 @@ class TelemetryDataCollector(ABC):
         self._server_metrics_url = server_metrics_url
         self._collection_interval = collection_interval
         self._metrics = TelemetryMetrics()
-        self._stop_event = threading.Event()
-        self._thread = None
+        self._stop_event = Event()
+        self._thread: Optional[Thread] = None
 
     def start(self) -> None:
         """Start the telemetry data collection thread."""
         if self._thread is None or not self._thread.is_alive():
             self._stop_event.clear()
-            self._thread = threading.Thread(target=self._collect_metrics)
+            self._thread = Thread(target=self._collect_metrics)
             self._thread.start()
 
     def stop(self) -> None:
@@ -65,7 +66,7 @@ class TelemetryDataCollector(ABC):
         return response.text
 
     @abstractmethod
-    def _process_and_update_metrics(self) -> None:
+    def _process_and_update_metrics(self, metrics_data: str) -> None:
         """This method should be implemented by subclasses."""
         pass
 

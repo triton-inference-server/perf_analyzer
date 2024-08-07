@@ -77,7 +77,6 @@ class TelemetryMetrics:
                 attr_strs.append(f"{k}={v}")
         return f"TelemetryMetrics({','.join(attr_strs)})"
 
-
     def __iter__(self):
         for attr, value in self.__dict__.items():
             yield attr, value
