@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from typing import Dict, List
+
 from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
 
 
@@ -46,9 +47,9 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
     def _process_and_update_metrics(self, metrics_data: str) -> None:
         """Process the response from Triton metrics endpoint and update metrics.
 
-        This method extracts metric names and values from the raw data. Metric names 
-        are extracted from the start of each line up to the '{' character, as all metrics 
-        follow the format 'metric_name{labels} value'. Only metrics defined in 
+        This method extracts metric names and values from the raw data. Metric names
+        are extracted from the start of each line up to the '{' character, as all metrics
+        follow the format 'metric_name{labels} value'. Only metrics defined in
         METRIC_NAME_MAPPING are processed.
 
         Args:
@@ -68,15 +69,19 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
             - `nv_energy_consumption` as `energy_consumption`
         """
 
-        current_measurement_data = {metric.name: [] for metric in self.metrics.TELEMETRY_METRICS}
+        current_measurement_data = {
+            metric.name: [] for metric in self.metrics.TELEMETRY_METRICS
+        }  # type: Dict[str, List[float]]
 
         for metric_data in metrics_data.splitlines():
-            triton_metric_key = metric_data.split('{')[0]  # Extract metric name before '{'
-            metric_value = metric_data.split()[1]    # Extract metric value
-            
+            triton_metric_key = metric_data.split("{")[
+                0
+            ]  # Extract metric name before '{'
+            metric_value = metric_data.split()[1]  # Extract metric value
+
             if triton_metric_key in self.METRIC_NAME_MAPPING:
                 metric_key = self.METRIC_NAME_MAPPING[triton_metric_key]
                 if metric_key in current_measurement_data:
                     current_measurement_data[metric_key].append(float(metric_value))
-        
+
         self.metrics.update_metrics(current_measurement_data)
