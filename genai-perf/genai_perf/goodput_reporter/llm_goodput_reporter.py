@@ -44,7 +44,7 @@ class LLMGoodputReporter(GoodputReporter):
 
     def set_valid_slos(self) -> None:
         """Check user's Service Level Objectives (SLOs) inputs. 
-        Set the valid ones while logging the invalid ones. 
+        Set the valid ones or raise error for the invalid ones. 
         """
         invalid_slos = []
         self._valid_slos = {}
@@ -56,8 +56,6 @@ class LLMGoodputReporter(GoodputReporter):
             else:
                 self._valid_slos[slo_name] = slo_value * self.MS_TO_NS_CONVERSION
         if invalid_slos:
-            print("These are valid request metrics", self._metric.request_metrics)
-            print(self._metric.request_metrics[0].name)
             raise ValueError(f"Invalid SLOs found: {', '.join(invalid_slos)}, "
                             "Make sure these are supported request metrics.")
 
