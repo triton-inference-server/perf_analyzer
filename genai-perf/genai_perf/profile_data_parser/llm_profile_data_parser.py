@@ -184,9 +184,10 @@ class LLMProfileDataParser(ProfileDataParser):
                                 res_outputs[i - 1]["response"] + response.strip()
                             )
                             res_outputs[i]["response"] = ""
-                        else:                        
+                        else:
                             res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"] + response[0:first_data].strip()
+                                res_outputs[i - 1]["response"]
+                                + response[0:first_data].strip()
                             )
                             res_outputs[i]["response"] = response[first_data:].strip()
             # PA sometimes receives multiple SSE responses at once (as a single
