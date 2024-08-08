@@ -172,16 +172,25 @@ class LLMProfileDataParser(ProfileDataParser):
     ) -> None:
         """Helper function to preprocess responses of a request."""
         if self._service_kind == "openai":
+            # Sometimes streamed chunks are returned in a splintered fashion.
+            # This forces a merge with the previous chunk if error detected.
+            if len(res_outputs) > 1:
+                for i in reversed(range(len(res_outputs))):
+                    response = res_outputs[i]["response"]
+                    if not response.startswith("data: "):
+                        first_data = response.find("data: ")
+                        if first_data == -1:
+                            res_outputs[i - 1]["response"] = (
+                                res_outputs[i - 1]["response"] + response.strip()
+                            )
+                            res_outputs[i]["response"] = ""
+                        else:                        
+                            res_outputs[i - 1]["response"] = (
+                                res_outputs[i - 1]["response"] + response[0:first_data].strip()
+                            )
+                            res_outputs[i]["response"] = response[first_data:].strip()
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
-            for i in range(len(res_outputs) - 1, -1, -1):
-                response = res_outputs[i]["response"]
-                if not response.startswith("data: "):
-                    first_data = response.find("data: ")
-                    res_outputs[i - 1]["response"] = (
-                        res_outputs[i - 1]["response"] + response[0:first_data].strip()
-                    )
-                    res_outputs[i]["response"] = response[first_data:].strip()
             for i in range(len(res_outputs)):
                 response = res_outputs[i]["response"]
                 responses = response.strip().split("\n\n")
@@ -278,9 +287,7 @@ class LLMProfileDataParser(ProfileDataParser):
         """Extracts text/content of the OpenAI response object."""
         response = remove_sse_prefix(response)
 
-        if response == "[DONE]" or not (
-            response.strip().startswith("{") and response.strip().endswith("}")
-        ):
+        if response == "[DONE]":
             return ""
 
         data = load_json_str(response)
