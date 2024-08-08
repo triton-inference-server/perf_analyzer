@@ -538,6 +538,27 @@ class TestLLMProfileDataParser:
         pd._preprocess_response(res_timestamps, res_outputs)
         assert res_outputs[0]["response"] == expected_response
 
+    def test_non_sse_response(self, mock_read_write: pytest.MonkeyPatch) -> None:
+        """Check if it handles single responses."""
+        res_timestamps = [
+            0,
+        ]
+        res_outputs = [
+            {
+                "response": '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+            },
+        ]
+        expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        pd._preprocess_response(res_timestamps, res_outputs)
+        assert res_outputs[0]["response"] == expected_response
+
     empty_profile_data = {
         "service_kind": "openai",
         "endpoint": "v1/chat/completions",
