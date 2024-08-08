@@ -27,7 +27,7 @@
 import json
 from io import StringIO
 from pathlib import Path
-from typing import Any, List, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import pytest
@@ -41,81 +41,91 @@ def ns_to_sec(ns: int) -> Union[int, float]:
     return ns / 1e9
 
 
-def create_stats_dict(ttft, itl, ottpr, ott, osl, isl):
+def create_stats_dict(
+    time_to_first_tokens: List[int],
+    inter_token_latencies: List[int],
+    output_token_throughputs_per_request: List[float],
+    output_token_throughput: List[float],
+    output_sequence_lengths: List[int],
+    input_sequence_lengths: List[int],
+) -> Dict[str, Dict[str, Any]]:
     return {
         "time_to_first_token": {
-            "min": min(ttft),
-            "max": max(ttft),
-            "avg": np.mean(ttft),
-            "p25": np.percentile(ttft, 25),
-            "p50": np.percentile(ttft, 50),
-            "p75": np.percentile(ttft, 75),
-            "p90": np.percentile(ttft, 90),
-            "p95": np.percentile(ttft, 95),
-            "p99": np.percentile(ttft, 99),
-            "std": np.std(ttft),
+            "min": min(time_to_first_tokens),
+            "max": max(time_to_first_tokens),
+            "avg": np.mean(time_to_first_tokens),
+            "p25": np.percentile(time_to_first_tokens, 25),
+            "p50": np.percentile(time_to_first_tokens, 50),
+            "p75": np.percentile(time_to_first_tokens, 75),
+            "p90": np.percentile(time_to_first_tokens, 90),
+            "p95": np.percentile(time_to_first_tokens, 95),
+            "p99": np.percentile(time_to_first_tokens, 99),
+            "std": np.std(time_to_first_tokens),
             "unit": "ms",
         },
         "inter_token_latency": {
-            "min": min(itl),
-            "max": max(itl),
-            "avg": np.mean(itl),
-            "p25": np.percentile(itl, 25),
-            "p50": np.percentile(itl, 50),
-            "p75": np.percentile(itl, 75),
-            "p90": np.percentile(itl, 90),
-            "p95": np.percentile(itl, 95),
-            "p99": np.percentile(itl, 99),
-            "std": np.std(itl),
+            "min": min(inter_token_latencies),
+            "max": max(inter_token_latencies),
+            "avg": np.mean(inter_token_latencies),
+            "p25": np.percentile(inter_token_latencies, 25),
+            "p50": np.percentile(inter_token_latencies, 50),
+            "p75": np.percentile(inter_token_latencies, 75),
+            "p90": np.percentile(inter_token_latencies, 90),
+            "p95": np.percentile(inter_token_latencies, 95),
+            "p99": np.percentile(inter_token_latencies, 99),
+            "std": np.std(inter_token_latencies),
             "unit": "ms",
         },
         "output_token_throughput_per_request": {
-            "min": min(ottpr),
-            "max": max(ottpr),
-            "avg": np.mean(ottpr),
-            "p25": np.percentile(ottpr, 25),
-            "p50": np.percentile(ottpr, 50),
-            "p75": np.percentile(ottpr, 75),
-            "p90": np.percentile(ottpr, 90),
-            "p95": np.percentile(ottpr, 95),
-            "p99": np.percentile(ottpr, 99),
-            "std": np.std(ottpr),
+            "min": min(output_token_throughputs_per_request),
+            "max": max(output_token_throughputs_per_request),
+            "avg": np.mean(output_token_throughputs_per_request),
+            "p25": np.percentile(output_token_throughputs_per_request, 25),
+            "p50": np.percentile(output_token_throughputs_per_request, 50),
+            "p75": np.percentile(output_token_throughputs_per_request, 75),
+            "p90": np.percentile(output_token_throughputs_per_request, 90),
+            "p95": np.percentile(output_token_throughputs_per_request, 95),
+            "p99": np.percentile(output_token_throughputs_per_request, 99),
+            "std": np.std(output_token_throughputs_per_request),
             "unit": "tokens/sec",
         },
         "output_sequence_length": {
-            "min": min(osl),
-            "max": max(osl),
-            "avg": np.mean(osl),
-            "p25": np.percentile(osl, 25),
-            "p50": np.percentile(osl, 50),
-            "p75": np.percentile(osl, 75),
-            "p90": np.percentile(osl, 90),
-            "p95": np.percentile(osl, 95),
-            "p99": np.percentile(osl, 99),
-            "std": np.std(osl),
+            "min": min(output_sequence_lengths),
+            "max": max(output_sequence_lengths),
+            "avg": np.mean(output_sequence_lengths),
+            "p25": np.percentile(output_sequence_lengths, 25),
+            "p50": np.percentile(output_sequence_lengths, 50),
+            "p75": np.percentile(output_sequence_lengths, 75),
+            "p90": np.percentile(output_sequence_lengths, 90),
+            "p95": np.percentile(output_sequence_lengths, 95),
+            "p99": np.percentile(output_sequence_lengths, 99),
+            "std": np.std(output_sequence_lengths),
             "unit": "tokens",
         },
         "input_sequence_length": {
-            "min": min(isl),
-            "max": max(isl),
-            "avg": np.mean(isl),
-            "p25": np.percentile(isl, 25),
-            "p50": np.percentile(isl, 50),
-            "p75": np.percentile(isl, 75),
-            "p90": np.percentile(isl, 90),
-            "p95": np.percentile(isl, 95),
-            "p99": np.percentile(isl, 99),
-            "std": np.std(isl),
+            "min": min(input_sequence_lengths),
+            "max": max(input_sequence_lengths),
+            "avg": np.mean(input_sequence_lengths),
+            "p25": np.percentile(input_sequence_lengths, 25),
+            "p50": np.percentile(input_sequence_lengths, 50),
+            "p75": np.percentile(input_sequence_lengths, 75),
+            "p90": np.percentile(input_sequence_lengths, 90),
+            "p95": np.percentile(input_sequence_lengths, 95),
+            "p99": np.percentile(input_sequence_lengths, 99),
+            "std": np.std(input_sequence_lengths),
             "unit": "tokens",
         },
         "output_token_throughput": {
-            "avg": np.mean(ott),
+            "avg": np.mean(output_token_throughput),
             "unit": "tokens/sec",
         },
     }
 
 
-def check_stats_dict(actual_stat, expected_stat):
+def check_stats_dict(
+    actual_stat: Dict[str, Dict[str, Any]],
+    expected_stat: Dict[str, Dict[str, Any]],
+) -> None:
     for metric in expected_stat.keys():
         for stat_name, value in expected_stat[metric].items():
             if stat_name != "unit":
@@ -551,12 +561,12 @@ class TestLLMProfileDataParser:
         assert metrics.input_sequence_lengths == isl
 
         expected_stat = create_stats_dict(
-            ttft=ttft,
-            itl=itl,
-            ottpr=ottpr,
-            ott=ott,
-            osl=osl,
-            isl=isl,
+            time_to_first_tokens=ttft,
+            inter_token_latencies=itl,
+            output_token_throughputs_per_request=ottpr,
+            output_token_throughput=ott,
+            output_sequence_lengths=osl,
+            input_sequence_lengths=isl,
         )
         check_stats_dict(stat, expected_stat)
 
@@ -582,12 +592,12 @@ class TestLLMProfileDataParser:
         assert metrics.input_sequence_lengths == isl
 
         expected_stat = create_stats_dict(
-            ttft=ttft,
-            itl=itl,
-            ottpr=ottpr,
-            ott=ott,
-            osl=osl,
-            isl=isl,
+            time_to_first_tokens=ttft,
+            inter_token_latencies=itl,
+            output_token_throughputs_per_request=ottpr,
+            output_token_throughput=ott,
+            output_sequence_lengths=osl,
+            input_sequence_lengths=isl,
         )
         check_stats_dict(stat, expected_stat)
 
