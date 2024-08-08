@@ -27,11 +27,13 @@
 import json
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, cast
 
 import numpy as np
 import pytest
 from genai_perf.metrics import LLMMetrics
+from genai_perf.metrics.metrics import Metrics
+from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 
@@ -41,95 +43,26 @@ def ns_to_sec(ns: int) -> Union[int, float]:
     return ns / 1e9
 
 
-def create_stats_dict(
-    time_to_first_tokens: List[int],
-    inter_token_latencies: List[int],
-    output_token_throughputs_per_request: List[float],
-    output_token_throughput: List[float],
-    output_sequence_lengths: List[int],
-    input_sequence_lengths: List[int],
-) -> Dict[str, Dict[str, Any]]:
-    return {
-        "time_to_first_token": {
-            "min": min(time_to_first_tokens),
-            "max": max(time_to_first_tokens),
-            "avg": np.mean(time_to_first_tokens),
-            "p25": np.percentile(time_to_first_tokens, 25),
-            "p50": np.percentile(time_to_first_tokens, 50),
-            "p75": np.percentile(time_to_first_tokens, 75),
-            "p90": np.percentile(time_to_first_tokens, 90),
-            "p95": np.percentile(time_to_first_tokens, 95),
-            "p99": np.percentile(time_to_first_tokens, 99),
-            "std": np.std(time_to_first_tokens),
-            "unit": "ms",
-        },
-        "inter_token_latency": {
-            "min": min(inter_token_latencies),
-            "max": max(inter_token_latencies),
-            "avg": np.mean(inter_token_latencies),
-            "p25": np.percentile(inter_token_latencies, 25),
-            "p50": np.percentile(inter_token_latencies, 50),
-            "p75": np.percentile(inter_token_latencies, 75),
-            "p90": np.percentile(inter_token_latencies, 90),
-            "p95": np.percentile(inter_token_latencies, 95),
-            "p99": np.percentile(inter_token_latencies, 99),
-            "std": np.std(inter_token_latencies),
-            "unit": "ms",
-        },
-        "output_token_throughput_per_request": {
-            "min": min(output_token_throughputs_per_request),
-            "max": max(output_token_throughputs_per_request),
-            "avg": np.mean(output_token_throughputs_per_request),
-            "p25": np.percentile(output_token_throughputs_per_request, 25),
-            "p50": np.percentile(output_token_throughputs_per_request, 50),
-            "p75": np.percentile(output_token_throughputs_per_request, 75),
-            "p90": np.percentile(output_token_throughputs_per_request, 90),
-            "p95": np.percentile(output_token_throughputs_per_request, 95),
-            "p99": np.percentile(output_token_throughputs_per_request, 99),
-            "std": np.std(output_token_throughputs_per_request),
-            "unit": "tokens/sec",
-        },
-        "output_sequence_length": {
-            "min": min(output_sequence_lengths),
-            "max": max(output_sequence_lengths),
-            "avg": np.mean(output_sequence_lengths),
-            "p25": np.percentile(output_sequence_lengths, 25),
-            "p50": np.percentile(output_sequence_lengths, 50),
-            "p75": np.percentile(output_sequence_lengths, 75),
-            "p90": np.percentile(output_sequence_lengths, 90),
-            "p95": np.percentile(output_sequence_lengths, 95),
-            "p99": np.percentile(output_sequence_lengths, 99),
-            "std": np.std(output_sequence_lengths),
-            "unit": "tokens",
-        },
-        "input_sequence_length": {
-            "min": min(input_sequence_lengths),
-            "max": max(input_sequence_lengths),
-            "avg": np.mean(input_sequence_lengths),
-            "p25": np.percentile(input_sequence_lengths, 25),
-            "p50": np.percentile(input_sequence_lengths, 50),
-            "p75": np.percentile(input_sequence_lengths, 75),
-            "p90": np.percentile(input_sequence_lengths, 90),
-            "p95": np.percentile(input_sequence_lengths, 95),
-            "p99": np.percentile(input_sequence_lengths, 99),
-            "std": np.std(input_sequence_lengths),
-            "unit": "tokens",
-        },
-        "output_token_throughput": {
-            "avg": np.mean(output_token_throughput),
-            "unit": "tokens/sec",
-        },
-    }
-
-
-def check_stats_dict(
-    actual_stat: Dict[str, Dict[str, Any]],
-    expected_stat: Dict[str, Dict[str, Any]],
-) -> None:
-    for metric in expected_stat.keys():
-        for stat_name, value in expected_stat[metric].items():
+def check_statistics(s1: Statistics, s2: Statistics) -> None:
+    s1_dict = s1.stats_dict
+    s2_dict = s2.stats_dict
+    for metric in s1_dict.keys():
+        for stat_name, value in s1_dict[metric].items():
             if stat_name != "unit":
-                assert actual_stat[metric][stat_name] == pytest.approx(value)
+                assert s2_dict[metric][stat_name] == pytest.approx(value)
+
+
+def check_llm_metrics(m1: LLMMetrics, m2: LLMMetrics) -> None:
+    assert m1.request_latencies == m2.request_latencies
+    assert m1.request_throughputs == pytest.approx(m2.request_throughputs)
+    assert m1.time_to_first_tokens == m2.time_to_first_tokens
+    assert m1.inter_token_latencies == m2.inter_token_latencies
+    assert m1.output_token_throughputs_per_request == pytest.approx(
+        m2.output_token_throughputs_per_request
+    )
+    assert m1.output_token_throughputs == pytest.approx(m2.output_token_throughputs)
+    assert m1.output_sequence_lengths == m2.output_sequence_lengths
+    assert m1.input_sequence_lengths == m2.input_sequence_lengths
 
 
 class TestLLMProfileDataParser:
@@ -504,12 +437,61 @@ class TestLLMProfileDataParser:
         with pytest.raises(KeyError):
             pd.get_statistics(infer_mode="concurrency", load_level="40")
 
+    @pytest.mark.parametrize(
+        "infer_mode, load_level, expected_metrics",
+        [
+            (
+                "concurrency",
+                "10",
+                {
+                    "request_latencies": [7, 9],
+                    "request_throughputs": [1 / ns_to_sec(5)],
+                    "time_to_first_tokens": [2, 2],
+                    "inter_token_latencies": [2, 4],
+                    "output_token_throughputs_per_request": [
+                        3 / ns_to_sec(7),
+                        1 / ns_to_sec(3),
+                    ],
+                    "output_token_throughputs": [3 / ns_to_sec(5)],
+                    "output_sequence_lengths": [3, 3],
+                    "input_sequence_lengths": [3, 4],
+                },
+            ),
+            (
+                "request_rate",
+                "2.0",
+                {
+                    "request_latencies": [13, 8],
+                    "request_throughputs": [2 / ns_to_sec(15)],
+                    "time_to_first_tokens": [2, 3],
+                    "inter_token_latencies": [4, 2],
+                    "output_token_throughputs_per_request": [
+                        4 / ns_to_sec(13),
+                        3 / ns_to_sec(8),
+                    ],
+                    "output_token_throughputs": [7 / ns_to_sec(15)],
+                    "output_sequence_lengths": [4, 3],
+                    "input_sequence_lengths": [3, 4],
+                },
+            ),
+        ],
+    )
     def test_tensorrtllm_engine_llm_profile_data(
-        self, mock_read_write: pytest.MonkeyPatch
+        self,
+        mock_read_write: pytest.MonkeyPatch,
+        infer_mode,
+        load_level,
+        expected_metrics,
     ) -> None:
         """Collect LLM metrics from profile export data and check values.
 
         Metrics
+        * request_latencies
+            - experiment 1: [8 - 1, 11 - 2] = [7, 9]
+            - experiment 2: [18 - 5, 11 -3] = [13, 8]
+        * request_throughputs
+            - experiment 1: [2/(11 - 1)] = [1/5]
+            - experiment 2: [2/(18 - 3)] = [2/15]
         * time to first tokens
             - experiment 1: [3 - 1, 4 - 2] = [2, 2]
             - experiment 2: [7 - 5, 6 - 3] = [2, 3]
@@ -539,67 +521,14 @@ class TestLLMProfileDataParser:
             tokenizer=tokenizer,
         )
 
-        # experiment 1 metrics & statistics
-        stat_obj = pd.get_statistics(infer_mode="concurrency", load_level="10")
-        metrics = stat_obj.metrics
-        stat = stat_obj.stats_dict
+        statistics = pd.get_statistics(infer_mode=infer_mode, load_level=load_level)
+        metrics = cast(LLMMetrics, statistics.metrics)
 
-        # expected metrics
-        ttft = [2, 2]
-        itl = [2, 4]
-        ottpr = [3 / ns_to_sec(7), 1 / ns_to_sec(3)]
-        ott = [3 / ns_to_sec(5)]
-        osl = [3, 3]
-        isl = [3, 4]
+        expected_metrics = LLMMetrics(**expected_metrics)
+        expected_statistics = Statistics(expected_metrics)
 
-        assert isinstance(metrics, LLMMetrics)
-        assert metrics.time_to_first_tokens == ttft
-        assert metrics.inter_token_latencies == itl
-        assert metrics.output_token_throughputs_per_request == pytest.approx(ottpr)
-        assert metrics.output_token_throughputs == pytest.approx(ott)
-        assert metrics.output_sequence_lengths == osl
-        assert metrics.input_sequence_lengths == isl
-
-        expected_stat = create_stats_dict(
-            time_to_first_tokens=ttft,
-            inter_token_latencies=itl,
-            output_token_throughputs_per_request=ottpr,
-            output_token_throughput=ott,
-            output_sequence_lengths=osl,
-            input_sequence_lengths=isl,
-        )
-        check_stats_dict(stat, expected_stat)
-
-        # experiment 2 statistics
-        stat_obj = pd.get_statistics(infer_mode="request_rate", load_level="2.0")
-        metrics = stat_obj.metrics
-        stat = stat_obj.stats_dict
-
-        # expected metrics
-        ttft = [2, 3]
-        itl = [4, 2]
-        ottpr = [4 / ns_to_sec(13), 3 / ns_to_sec(8)]
-        ott = [7 / ns_to_sec(15)]
-        osl = [4, 3]
-        isl = [3, 4]
-
-        assert isinstance(metrics, LLMMetrics)
-        assert metrics.time_to_first_tokens == ttft
-        assert metrics.inter_token_latencies == itl
-        assert metrics.output_token_throughputs_per_request == pytest.approx(ottpr)
-        assert metrics.output_token_throughputs == pytest.approx(ott)
-        assert metrics.output_sequence_lengths == osl
-        assert metrics.input_sequence_lengths == isl
-
-        expected_stat = create_stats_dict(
-            time_to_first_tokens=ttft,
-            inter_token_latencies=itl,
-            output_token_throughputs_per_request=ottpr,
-            output_token_throughput=ott,
-            output_sequence_lengths=osl,
-            input_sequence_lengths=isl,
-        )
-        check_stats_dict(stat, expected_stat)
+        check_llm_metrics(metrics, expected_metrics)
+        check_statistics(statistics, expected_statistics)
 
         # check non-existing profile data
         with pytest.raises(KeyError):
