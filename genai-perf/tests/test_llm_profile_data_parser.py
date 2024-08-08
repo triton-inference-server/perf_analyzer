@@ -27,12 +27,11 @@
 import json
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, List, Union, cast
+from typing import Any, List, Union, cast
 
 import numpy as np
 import pytest
 from genai_perf.metrics import LLMMetrics
-from genai_perf.metrics.metrics import Metrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
