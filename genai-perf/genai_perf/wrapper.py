@@ -46,6 +46,9 @@ class Profiler:
                 cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
             if args.output_format == OutputFormat.TENSORRTLLM:
                 cmd += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
+        elif args.service_kind == "tensorrtllm_engine":
+            args.service_kind = "triton_c_api"  # for PA
+            cmd += ["--streaming"]
         elif args.service_kind == "openai":
             cmd += ["-i", "http"]
         return cmd
@@ -110,6 +113,9 @@ class Profiler:
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
+        cmd += Profiler.add_protocol_args(args)
+        cmd += Profiler.add_inference_load_args(args)
+
         for arg, value in vars(args).items():
             if arg in skip_args:
                 pass
@@ -122,22 +128,12 @@ class Profiler:
                     cmd += [f"-{arg}"]
                 else:
                     cmd += [f"--{arg}"]
-
-            # (TPA-237) GAP needs to call PA using triton_c_api service kind.
-            # Currently, it just calls using triton service kind to verify that
-            # it runs.
-            elif arg == "service_kind" and value == "tensorrtllm_engine":
-                cmd += ["--service-kind", "triton"]
-                args.service_kind = "triton"
             else:
                 if len(arg) == 1:
                     cmd += [f"-{arg}", f"{value}"]
                 else:
                     arg = utils.convert_option_name(arg)
                     cmd += [f"--{arg}", f"{value}"]
-
-        cmd += Profiler.add_protocol_args(args)
-        cmd += Profiler.add_inference_load_args(args)
 
         if extra_args is not None:
             for arg in extra_args:
