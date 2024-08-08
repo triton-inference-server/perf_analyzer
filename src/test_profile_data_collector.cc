@@ -70,14 +70,14 @@ TEST_CASE("profile_data_collector: AddData")
   uint8_t fake_data_in[] = {0x01, 0x02, 0x03, 0x04};
   uint8_t fake_data_out[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
   RequestRecord::RequestInput request1_request_input{
-      {"key1", RecordData(fake_data_in, 1)},
-      {"key2", RecordData(fake_data_in, 2)}};
+      {"key1", RecordData(fake_data_in, 1, "fake_datatype")},
+      {"key2", RecordData(fake_data_in, 2, "fake_datatype")}};
   RequestRecord::ResponseOutput request1_response1_output{
-      {"key1", RecordData(fake_data_out, 1)},
-      {"key2", RecordData(fake_data_out, 2)}};
+      {"key1", RecordData(fake_data_out, 1, "fake_datatype")},
+      {"key2", RecordData(fake_data_out, 2, "fake_datatype")}};
   RequestRecord::ResponseOutput request1_response2_output{
-      {"key3", RecordData(fake_data_out, 3)},
-      {"key4", RecordData(fake_data_out, 4)}};
+      {"key3", RecordData(fake_data_out, 3, "fake_datatype")},
+      {"key4", RecordData(fake_data_out, 4, "fake_datatype")}};
 
   RequestRecord request_record1{
       request1_timestamp,
@@ -95,14 +95,14 @@ TEST_CASE("profile_data_collector: AddData")
   auto request2_response1_timestamp{clock_epoch + nanoseconds(5)};
   auto request2_response2_timestamp{clock_epoch + nanoseconds(6)};
   RequestRecord::RequestInput request2_request_input{
-      {"key3", RecordData(fake_data_in, 3)},
-      {"key4", RecordData(fake_data_in, 4)}};
+      {"key3", RecordData(fake_data_in, 3, "fake_datatype")},
+      {"key4", RecordData(fake_data_in, 4, "fake_datatype")}};
   RequestRecord::ResponseOutput request2_response1_output{
-      {"key5", RecordData(fake_data_out, 5)},
-      {"key6", RecordData(fake_data_out, 6)}};
+      {"key5", RecordData(fake_data_out, 5, "fake_datatype")},
+      {"key6", RecordData(fake_data_out, 6, "fake_datatype")}};
   RequestRecord::ResponseOutput request2_response2_output{
-      {"key7", RecordData(fake_data_out, 7)},
-      {"key8", RecordData(fake_data_out, 8)}};
+      {"key7", RecordData(fake_data_out, 7, "fake_datatype")},
+      {"key8", RecordData(fake_data_out, 8, "fake_datatype")}};
 
   RequestRecord request_record2{
       request2_timestamp,

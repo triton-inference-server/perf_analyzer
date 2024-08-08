@@ -215,7 +215,8 @@ class TritonCApiInferRequestedOutput : public InferRequestedOutput {
       const std::string& name, size_t byte_size, size_t offset = 0) override;
 
  private:
-  explicit TritonCApiInferRequestedOutput(const std::string& name);
+  explicit TritonCApiInferRequestedOutput(
+      const std::string& name, const std::string& datatype);
 
   std::unique_ptr<tc::InferRequestedOutput> output_;
 };
