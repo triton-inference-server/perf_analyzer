@@ -26,15 +26,18 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 import requests
-from unittest.mock import patch, MagicMock
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
+
 
 class MockTelemetryDataCollector(TelemetryDataCollector):
     def _process_and_update_metrics(self, metrics_data: str) -> None:
         pass
+
 
 class TestTelemetryDataCollector:
 
@@ -55,8 +58,10 @@ class TestTelemetryDataCollector:
     def collector(self) -> MockTelemetryDataCollector:
         return MockTelemetryDataCollector(self.TEST_SERVER_URL)
 
-    @patch('genai_perf.telemetry_data.telemetry_data_collector.Thread')
-    def test_start(self, mock_thread_class: MagicMock, collector: MockTelemetryDataCollector) -> None:
+    @patch("genai_perf.telemetry_data.telemetry_data_collector.Thread")
+    def test_start(
+        self, mock_thread_class: MagicMock, collector: MockTelemetryDataCollector
+    ) -> None:
         mock_thread_instance = MagicMock()
         mock_thread_class.return_value = mock_thread_instance
 
@@ -67,61 +72,75 @@ class TestTelemetryDataCollector:
         mock_thread_class.assert_called_once_with(target=collector._collect_metrics)
         mock_thread_instance.start.assert_called_once()
 
-    @patch('genai_perf.telemetry_data.telemetry_data_collector.Thread')
-    def test_stop(self, mock_thread_class: MagicMock, collector: MockTelemetryDataCollector) -> None:
+    @patch("genai_perf.telemetry_data.telemetry_data_collector.Thread")
+    def test_stop(
+        self, mock_thread_class: MagicMock, collector: MockTelemetryDataCollector
+    ) -> None:
         mock_thread_instance = MagicMock()
         mock_thread_class.return_value = mock_thread_instance
-        
+
         collector.start()
 
         assert collector._thread is not None
         assert collector._thread.is_alive()
-        
+
         collector.stop()
-        
+
         assert collector._stop_event.is_set()
         mock_thread_instance.join.assert_called_once()
 
         mock_thread_instance.is_alive.return_value = False
         assert not collector._thread.is_alive()
 
-    @patch('requests.get')
-    def test_fetch_metrics_success(self, mock_requests_get: MagicMock, collector: MockTelemetryDataCollector) -> None:
-        
+    @patch("requests.get")
+    def test_fetch_metrics_success(
+        self, mock_requests_get: MagicMock, collector: MockTelemetryDataCollector
+    ) -> None:
+
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = self.triton_metrics_response
         mock_requests_get.return_value = mock_response
-    
+
         result = collector._fetch_metrics()
 
         mock_requests_get.assert_called_once_with(self.TEST_SERVER_URL)
 
         assert result == self.triton_metrics_response
 
-    @patch('requests.get')
-    def test_fetch_metrics_failure(self, mock_requests_get: MagicMock, collector: MockTelemetryDataCollector) -> None:
+    @patch("requests.get")
+    def test_fetch_metrics_failure(
+        self, mock_requests_get: MagicMock, collector: MockTelemetryDataCollector
+    ) -> None:
         mock_requests_get.side_effect = requests.exceptions.HTTPError("Not Found")
-        
+
         with pytest.raises(requests.exceptions.HTTPError):
             collector._fetch_metrics()
 
-    @patch.object(MockTelemetryDataCollector, '_fetch_metrics')
-    @patch('genai_perf.telemetry_data.telemetry_data_collector.time.sleep')
-    def test_collect_metrics(self, mock_sleep: MagicMock, mock_fetch_metrics: MagicMock, collector: MockTelemetryDataCollector) -> None:
+    @patch.object(MockTelemetryDataCollector, "_fetch_metrics")
+    @patch("genai_perf.telemetry_data.telemetry_data_collector.time.sleep")
+    def test_collect_metrics(
+        self,
+        mock_sleep: MagicMock,
+        mock_fetch_metrics: MagicMock,
+        collector: MockTelemetryDataCollector,
+    ) -> None:
 
         mock_fetch_metrics.return_value = self.triton_metrics_response
-    
-        collector._process_and_update_metrics = MagicMock()
-    
-        collector._stop_event.is_set = MagicMock(side_effect=[False, True])  # Ensure loop exits immediately
-    
-        collector._collect_metrics()
-    
-        mock_fetch_metrics.assert_called_once()
-    
-        collector._process_and_update_metrics.assert_called_once_with(self.triton_metrics_response)
-        mock_sleep.assert_called_once()
 
-    
-    
+        with patch.object(
+            collector, "_process_and_update_metrics", new_callable=MagicMock
+        ) as mock_process_and_update_metrics:
+            # Mock _stop_event.is_set
+            collector._stop_event = MagicMock()
+            collector._stop_event.is_set = MagicMock(
+                side_effect=[False, True]
+            )  # Ensure loop exits immediately
+
+            collector._collect_metrics()
+
+            mock_fetch_metrics.assert_called_once()
+            mock_process_and_update_metrics.assert_called_once_with(
+                self.triton_metrics_response
+            )
+            mock_sleep.assert_called_once()
