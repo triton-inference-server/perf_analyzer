@@ -46,9 +46,6 @@ class Profiler:
                 cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
             if args.output_format == OutputFormat.TENSORRTLLM:
                 cmd += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
-        elif args.service_kind == "tensorrtllm_engine":
-            args.service_kind = "triton_c_api"  # for PA
-            cmd += ["--streaming"]
         elif args.service_kind == "openai":
             cmd += ["-i", "http"]
         return cmd
@@ -128,6 +125,10 @@ class Profiler:
                     cmd += [f"-{arg}"]
                 else:
                     cmd += [f"--{arg}"]
+            # GAP needs to call PA using triton_c_api service kind when running
+            # against tensorrtllm engine.
+            elif arg == "service_kind" and value == "tensorrtllm_engine":
+                cmd += ["--service-kind", "triton_c_api", "--streaming"]
             else:
                 if len(arg) == 1:
                     cmd += [f"-{arg}", f"{value}"]
