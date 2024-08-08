@@ -29,8 +29,10 @@
 from typing import Dict, List
 
 from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
+import genai_perf.logging as logging
 
 
+logger = logging.getLogger(__name__)
 class TritonTelemetryDataCollector(TelemetryDataCollector):
     """Class to collect telemetry metrics from Triton server"""
 
@@ -69,19 +71,27 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
             - `nv_energy_consumption` as `energy_consumption`
         """
 
-        current_measurement_data = {
-            metric.name: [] for metric in self.metrics.TELEMETRY_METRICS
-        }  # type: Dict[str, List[float]]
+        if not metrics_data.strip():
+            logger.info("Response from Triton metrics endpoint is empty")
+            return
 
-        for metric_data in metrics_data.splitlines():
-            triton_metric_key = metric_data.split("{")[
-                0
-            ]  # Extract metric name before '{'
-            metric_value = metric_data.split()[1]  # Extract metric value
-
-            if triton_metric_key in self.METRIC_NAME_MAPPING:
-                metric_key = self.METRIC_NAME_MAPPING[triton_metric_key]
-                if metric_key in current_measurement_data:
-                    current_measurement_data[metric_key].append(float(metric_value))
-
-        self.metrics.update_metrics(current_measurement_data)
+        self.current_measurement_interval = {metric.name: [] for metric in self.metrics.TELEMETRY_METRICS}
+    
+        for line in metrics_data.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+        
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+        
+            triton_metric_key = parts[0].split('{')[0]
+            metric_value = parts[1]
+        
+            metric_key = self.METRIC_NAME_MAPPING.get(triton_metric_key, None)
+        
+            if metric_key and metric_key in self.current_measurement_interval:
+                self.current_measurement_interval[metric_key].append(float(metric_value))
+    
+        self.metrics.update_metrics(self.current_measurement_interval)
