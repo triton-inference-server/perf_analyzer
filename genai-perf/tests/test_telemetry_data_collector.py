@@ -30,7 +30,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
 
 
