@@ -30,9 +30,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from genai_perf import parser
 from genai_perf.constants import DEFAULT_GRPC_URL
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TritonTelemetryDataCollector,
-)
 from genai_perf.wrapper import Profiler
 
 

@@ -162,3 +162,4 @@ class Profiler:
         finally:
             if telemetry_data_collector is not None:
                 telemetry_data_collector.stop()
+

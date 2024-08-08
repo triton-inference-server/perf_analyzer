@@ -77,15 +77,8 @@ class TelemetryMetrics:
                 attr_strs.append(f"{k}={v}")
         return f"TelemetryMetrics({','.join(attr_strs)})"
 
-    def __iter__(self):
-        for attr, value in self.__dict__.items():
-            yield attr, value
 
     @property
     def telemetry_metrics(self) -> List[MetricMetadata]:
         return self.TELEMETRY_METRICS
 
-    @property
-    def data(self) -> dict:
-        """Returns all the metrics."""
-        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
