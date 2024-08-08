@@ -249,7 +249,7 @@ class LLMProfileDataParser(ProfileDataParser):
         return output_token_counts, full_text_token_count
 
     def _get_tensorrtllm_engine_token_counts(
-            self, res_outputs: List[Dict]
+        self, res_outputs: List[Dict]
     ) -> Tuple[List[int], int]:
         token_ids = []
         for r in res_outputs:
