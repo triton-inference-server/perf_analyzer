@@ -28,11 +28,12 @@
 
 from typing import Dict, List
 
-from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
 import genai_perf.logging as logging
-
+from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
 
 logger = logging.getLogger(__name__)
+
+
 class TritonTelemetryDataCollector(TelemetryDataCollector):
     """Class to collect telemetry metrics from Triton server"""
 
@@ -75,23 +76,25 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
             logger.info("Response from Triton metrics endpoint is empty")
             return
 
-        self.current_measurement_interval = {metric.name: [] for metric in self.metrics.TELEMETRY_METRICS}
-    
+        current_measurement_interval = {
+            metric.name: [] for metric in self.metrics.TELEMETRY_METRICS
+        }  # type: Dict[str, List[float]]
+
         for line in metrics_data.splitlines():
             line = line.strip()
             if not line:
                 continue
-        
+
             parts = line.split()
             if len(parts) < 2:
                 continue
-        
-            triton_metric_key = parts[0].split('{')[0]
+
+            triton_metric_key = parts[0].split("{")[0]
             metric_value = parts[1]
-        
+
             metric_key = self.METRIC_NAME_MAPPING.get(triton_metric_key, None)
-        
-            if metric_key and metric_key in self.current_measurement_interval:
-                self.current_measurement_interval[metric_key].append(float(metric_value))
-    
-        self.metrics.update_metrics(self.current_measurement_interval)
+
+            if metric_key and metric_key in current_measurement_interval:
+                current_measurement_interval[metric_key].append(float(metric_value))
+
+        self.metrics.update_metrics(current_measurement_interval)

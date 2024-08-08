@@ -26,11 +26,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from unittest.mock import MagicMock, PropertyMock, patch
+
 import pytest
-from unittest.mock import patch, PropertyMock, MagicMock
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
-from genai_perf.telemetry_data.triton_telemetry_data_collector import TritonTelemetryDataCollector
-from genai_perf.metrics.telemetry_metrics import MetricMetadata
+from genai_perf.metrics.telemetry_metrics import MetricMetadata, TelemetryMetrics
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TritonTelemetryDataCollector,
+)
+
 
 class TestTritonTelemetryDataCollector:
 
@@ -39,7 +42,7 @@ class TestTritonTelemetryDataCollector:
     @pytest.fixture
     def triton_collector(self) -> TritonTelemetryDataCollector:
         return TritonTelemetryDataCollector(self.TEST_SERVER_URL)
-    
+
     @pytest.fixture
     def mock_telemetry_metrics(self) -> MagicMock:
         mock_telemetry_metrics = MagicMock(spec=TelemetryMetrics)
@@ -53,12 +56,12 @@ class TestTritonTelemetryDataCollector:
         ]
         return mock_telemetry_metrics
 
-    @patch.object(TritonTelemetryDataCollector, 'metrics', new_callable=PropertyMock)
+    @patch.object(TritonTelemetryDataCollector, "metrics", new_callable=PropertyMock)
     def test_process_and_update_metrics_single_gpu(
         self,
         mock_metrics: PropertyMock,
         triton_collector: TritonTelemetryDataCollector,
-        mock_telemetry_metrics: MagicMock
+        mock_telemetry_metrics: MagicMock,
     ) -> None:
 
         mock_metrics.return_value = mock_telemetry_metrics
@@ -71,7 +74,7 @@ class TestTritonTelemetryDataCollector:
         nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 4000000000.0"""
 
         triton_collector._process_and_update_metrics(triton_metrics_data)
-    
+
         expected_data = {
             "gpu_power_usage": [35.0],
             "gpu_power_limit": [250.0],
@@ -80,17 +83,17 @@ class TestTritonTelemetryDataCollector:
             "total_gpu_memory": [8000000000.0],
             "gpu_memory_used": [4000000000.0],
         }
-    
+
         mock_metrics.return_value.update_metrics.assert_called_once_with(expected_data)
 
-    @patch.object(TritonTelemetryDataCollector, 'metrics', new_callable=PropertyMock)
+    @patch.object(TritonTelemetryDataCollector, "metrics", new_callable=PropertyMock)
     def test_process_and_update_metrics_multiple_gpus(
         self,
         mock_metrics: PropertyMock,
         triton_collector: TritonTelemetryDataCollector,
-        mock_telemetry_metrics: MagicMock
+        mock_telemetry_metrics: MagicMock,
     ) -> None:
-        
+
         mock_metrics.return_value = mock_telemetry_metrics
 
         triton_metrics_data = """nv_gpu_power_usage{gpu_uuid="GPU-1234"} 35.0
@@ -105,9 +108,9 @@ class TestTritonTelemetryDataCollector:
         nv_gpu_memory_total_bytes{gpu_uuid="GPU-1234"} 9000000000.0
         nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 4000000000.0
         nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 4500000000.0"""
-        
+
         triton_collector._process_and_update_metrics(triton_metrics_data)
-        
+
         expected_data = {
             "gpu_power_usage": [35.0, 40.0],
             "gpu_power_limit": [250.0, 300.0],
@@ -119,19 +122,18 @@ class TestTritonTelemetryDataCollector:
 
         mock_metrics.return_value.update_metrics.assert_called_once_with(expected_data)
 
-    @patch.object(TritonTelemetryDataCollector, 'metrics', new_callable=PropertyMock)
+    @patch.object(TritonTelemetryDataCollector, "metrics", new_callable=PropertyMock)
     def test_process_and_update_metrics_empty_data(
         self,
         mock_metrics: PropertyMock,
         triton_collector: TritonTelemetryDataCollector,
-        mock_telemetry_metrics: MagicMock
+        mock_telemetry_metrics: MagicMock,
     ) -> None:
-       
+
         mock_metrics.return_value = mock_telemetry_metrics
 
         trtion_metrics_data = ""
 
         triton_collector._process_and_update_metrics(trtion_metrics_data)
-        
-        mock_telemetry_metrics.update_metrics.assert_not_called()
 
+        mock_telemetry_metrics.update_metrics.assert_not_called()

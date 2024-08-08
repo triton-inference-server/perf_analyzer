@@ -77,8 +77,6 @@ class TelemetryMetrics:
                 attr_strs.append(f"{k}={v}")
         return f"TelemetryMetrics({','.join(attr_strs)})"
 
-
     @property
     def telemetry_metrics(self) -> List[MetricMetadata]:
         return self.TELEMETRY_METRICS
-
