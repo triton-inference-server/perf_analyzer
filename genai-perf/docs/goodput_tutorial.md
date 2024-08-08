@@ -80,7 +80,7 @@ genai-perf profile \
   --measurement-interval 800 \
   --profile-export-file my_profile_export.json \
   --url localhost:8001 \
-  --goodput ttft:10 itl:2
+  --goodput time_to_first_tokens:10 inter_token_latencies:1.6
 ```
 
 Example output:
@@ -90,13 +90,14 @@ Example output:
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
-│ Time to first token (ms) │   9.30 │   5.78 │  20.62 │  20.61 │  18.51 │  10.00 │
-│ Inter token latency (ms) │   2.22 │   1.74 │   3.01 │   2.96 │   2.78 │   2.28 │
-│     Request latency (ms) │ 256.65 │ 216.91 │ 345.47 │ 345.46 │ 303.17 │ 267.83 │
-│   Output sequence length │ 112.41 │ 106.00 │ 125.00 │ 123.71 │ 117.70 │ 115.00 │
+│ Time to first token (ms) │   5.60 │   4.00 │  13.03 │  12.69 │   7.02 │   5.04 │
+│ Inter token latency (ms) │   1.63 │   1.38 │   2.28 │   2.23 │   1.82 │   1.63 │
+│     Request latency (ms) │ 184.84 │ 173.10 │ 237.81 │ 237.75 │ 228.81 │ 180.72 │
+│   Output sequence length │ 111.43 │ 103.00 │ 126.00 │ 124.55 │ 115.10 │ 114.00 │
 │    Input sequence length │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │
 └──────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
-Output token throughput (per sec): 1751.15
-Request goodput (per sec): 2.83
-Request throughput (per sec): 15.58
+Output token throughput (per sec): 1205.26
+Request goodput (per sec): 7.21
+Request throughput (per sec): 10.82
 ```
+

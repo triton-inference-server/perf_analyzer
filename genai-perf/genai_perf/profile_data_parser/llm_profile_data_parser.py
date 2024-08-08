@@ -31,6 +31,7 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from genai_perf.goodput_reporter.llm_goodput_reporter import LLMGoodputReporter
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -151,15 +152,7 @@ class LLMProfileDataParser(ProfileDataParser):
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        # request goodput
-        request_goodputs = []
-        if self._goodput_constraints:
-            request_good_count = self._count_good_req(
-                time_to_first_tokens, inter_token_latencies
-            )
-            request_goodputs = [request_good_count / benchmark_duration]
-
-        return LLMMetrics(
+        llm_metric = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -169,20 +162,20 @@ class LLMProfileDataParser(ProfileDataParser):
             output_sequence_lengths,
             input_sequence_lengths,
             chunked_inter_token_latencies,
-            request_goodputs,
         )
 
-    def _count_good_req(self, time_to_first_tokens, inter_token_latencies):
-        ttft_constraint_ms = self._goodput_constraints['ttft']
-        itl_constraint_ms = self._goodput_constraints['itl']
-        # ms to ns
-        ttft_constraint = ttft_constraint_ms * 1e6
-        itl_constraint = itl_constraint_ms * 1e6 
-        good_req_count = 0
-        for ttft, itl in zip(time_to_first_tokens, inter_token_latencies):
-            if ttft <= ttft_constraint and itl <= itl_constraint:
-                good_req_count += 1
-        return good_req_count
+        # request goodput
+        if self._goodput_constraints:
+            llm_goodput_reporter = LLMGoodputReporter(
+                self._goodput_constraints,
+                llm_metric,
+                benchmark_duration,
+            )
+
+            llm_goodput_reporter.report()
+            llm_metric.request_goodputs = llm_goodput_reporter.goodput
+
+        return llm_metric
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""

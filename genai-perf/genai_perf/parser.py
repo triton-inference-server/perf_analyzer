@@ -248,6 +248,7 @@ def _check_goodput_args(args):
     """
     Parse and check goodput args
     """
+    '''
     if args.goodput:
         args.goodput = parse_goodput(args.goodput)
         if 'ttft' not in args.goodput and 'itl' not in args.goodput:
@@ -261,6 +262,9 @@ def _check_goodput_args(args):
             args.goodput['itl'] = 1e9
         if args.goodput['ttft'] < 0 or args.goodput['itl'] < 0:
             raise ValueError("Goodput constraint values must be non-negative.")
+    '''
+    if args.goodput:
+        args.goodput = parse_goodput(args.goodput)
     return args
 
 def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
