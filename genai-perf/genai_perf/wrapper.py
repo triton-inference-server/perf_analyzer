@@ -32,6 +32,9 @@ import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL, DEFAULT_INPUT_DATA_JSON
 from genai_perf.llm_inputs.llm_inputs import OutputFormat
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TritonTelemetryDataCollector,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -138,10 +141,20 @@ class Profiler:
         return cmd
 
     @staticmethod
-    def run(args: Namespace, extra_args: Optional[List[str]]) -> None:
-        cmd = Profiler.build_cmd(args, extra_args)
-        logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
-        if args and args.verbose:
-            subprocess.run(cmd, check=True, stdout=None)
-        else:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+    def run(
+        telemetry_data_collector: TritonTelemetryDataCollector,
+        args: Namespace,
+        extra_args: Optional[List[str]],
+    ) -> None:
+        try:
+            if telemetry_data_collector is not None:
+                telemetry_data_collector.start()
+            cmd = Profiler.build_cmd(args, extra_args)
+            logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
+            if args and args.verbose:
+                subprocess.run(cmd, check=True, stdout=None)
+            else:
+                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+        finally:
+            if telemetry_data_collector is not None:
+                telemetry_data_collector.stop()
