@@ -68,11 +68,12 @@
     }                                                                       \
   } while (false)
 
-#define REPORT_TRITONSERVER_ERROR(E)                                      \
+#define REPORT_TRITONSERVER_ERROR(E, MSG)                                 \
   do {                                                                    \
     TRITONSERVER_Error* err__ = (E);                                      \
     if (err__ != nullptr) {                                               \
-      std::cout << GetSingleton()->error_message_fn_(err__) << std::endl; \
+      std::cerr << "error: " << (MSG) << ": "                             \
+                << GetSingleton()->error_message_fn_(err__) << std::endl; \
       GetSingleton()->error_delete_fn_(err__);                            \
     }                                                                     \
   } while (false)

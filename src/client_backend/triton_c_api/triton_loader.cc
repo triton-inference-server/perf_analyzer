@@ -242,7 +242,8 @@ TritonLoader::StartTriton()
   // Check API version.
   uint32_t api_version_major, api_version_minor;
   REPORT_TRITONSERVER_ERROR(
-      api_version_fn_(&api_version_major, &api_version_minor));
+      api_version_fn_(&api_version_major, &api_version_minor),
+      "unable to get api version");
   if ((TRITONSERVER_API_VERSION_MAJOR != api_version_major) ||
       (TRITONSERVER_API_VERSION_MINOR > api_version_minor)) {
     std::stringstream sstream;
@@ -264,10 +265,10 @@ TritonLoader::StartTriton()
   RETURN_IF_TRITONSERVER_ERROR(
       set_cuda_memory_pool_byte_size_(server_options, 0, 1073741824),
       "setting cuda memory pool byte size failed.");
-  RETURN_IF_TRITONSERVER_ERROR(
+  REPORT_TRITONSERVER_ERROR(
       set_log_verbose_fn_(server_options, verbose_level_),
       "setting verbose logging level");
-  RETURN_IF_TRITONSERVER_ERROR(
+  REPORT_TRITONSERVER_ERROR(
       set_log_info_fn_(server_options, verbose_),
       "setting if log verbose level is true");
   RETURN_IF_TRITONSERVER_ERROR(
@@ -1050,7 +1051,9 @@ TritonLoader::InferResponseCompleteAsync(
     TRITONSERVER_InferenceResponse* response, const uint32_t flags,
     AsyncRequestInfo* async_request_info)
 {
-  REPORT_TRITONSERVER_ERROR(inference_response_error_fn_(response));
+  REPORT_TRITONSERVER_ERROR(
+      inference_response_error_fn_(response),
+      "unable to get inference response error");
 
   if (async_request_info->enable_stats) {
     tc::RequestTimers timer{*async_request_info->timer};
