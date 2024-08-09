@@ -77,6 +77,9 @@ class TestLLMProfileDataParser:
             elif filename == "empty_profile_export.json":
                 tmp_file = StringIO(json.dumps(self.empty_profile_data))
                 return tmp_file
+            elif filename == "unfinished_responses_profile_export.json":
+                tmp_file = StringIO(json.dumps(self.unfinished_responses_profile_data))
+                return tmp_file
             elif filename == "profile_export.csv":
                 tmp_file = StringIO()
                 tmp_file.write = write.__get__(tmp_file)
@@ -511,6 +514,50 @@ class TestLLMProfileDataParser:
             filename=Path("empty_profile_export.json"),
             tokenizer=tokenizer,
         )
+
+    def test_unfinished_responses(self, mock_read_write: pytest.MonkeyPatch) -> None:
+        """Check if it handles unfinished responses."""
+        res_timestamps = [0, 1, 2]
+        res_outputs = [
+            {
+                "response": 'data: {"id":"8ae835f2ecbb67f3-SJC","object":"chat.completion.chunk","created":1722875835,"choices":[{"index":0,"text"'
+            },
+            {
+                "response": ':" writing","logprobs":null,"finish_reason":null,"seed":null,"delta":{"token_id":4477,"role":"assistant","content":" writing","tool_calls":null}}],"model":"meta-llama/Llama-3-8b-chat-hf","usage":null}'
+            },
+            {"response": "data: [DONE]\n\n"},
+        ]
+        expected_response = 'data: {"id":"8ae835f2ecbb67f3-SJC","object":"chat.completion.chunk","created":1722875835,"choices":[{"index":0,"text":" writing","logprobs":null,"finish_reason":null,"seed":null,"delta":{"token_id":4477,"role":"assistant","content":" writing","tool_calls":null}}],"model":"meta-llama/Llama-3-8b-chat-hf","usage":null}'
+
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        pd._preprocess_response(res_timestamps, res_outputs)
+        assert res_outputs[0]["response"] == expected_response
+
+    def test_non_sse_response(self, mock_read_write: pytest.MonkeyPatch) -> None:
+        """Check if it handles single responses."""
+        res_timestamps = [
+            0,
+        ]
+        res_outputs = [
+            {
+                "response": '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+            },
+        ]
+        expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        pd._preprocess_response(res_timestamps, res_outputs)
+        assert res_outputs[0]["response"] == expected_response
 
     empty_profile_data = {
         "service_kind": "openai",

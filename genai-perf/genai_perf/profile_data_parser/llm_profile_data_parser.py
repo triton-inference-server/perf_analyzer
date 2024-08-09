@@ -172,6 +172,24 @@ class LLMProfileDataParser(ProfileDataParser):
     ) -> None:
         """Helper function to preprocess responses of a request."""
         if self._service_kind == "openai":
+            # Sometimes streamed chunks are returned in a splintered fashion.
+            # This forces a merge with the previous chunk if error detected.
+            if len(res_outputs) > 1:
+                for i in reversed(range(len(res_outputs))):
+                    response = res_outputs[i]["response"]
+                    if not response.startswith("data: "):
+                        first_data = response.find("data: ")
+                        if first_data == -1:
+                            res_outputs[i - 1]["response"] = (
+                                res_outputs[i - 1]["response"] + response.strip()
+                            )
+                            res_outputs[i]["response"] = ""
+                        else:
+                            res_outputs[i - 1]["response"] = (
+                                res_outputs[i - 1]["response"]
+                                + response[0:first_data].strip()
+                            )
+                            res_outputs[i]["response"] = response[first_data:].strip()
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
@@ -193,7 +211,9 @@ class LLMProfileDataParser(ProfileDataParser):
             # Remove responses without any content
             indices_to_remove = []
             for idx, out in enumerate(res_outputs):
-                if self._is_openai_empty_response(out["response"]):
+                if not out["response"] or self._is_openai_empty_response(
+                    out["response"]
+                ):
                     indices_to_remove.append(idx)
             indices_to_remove.sort(reverse=True)
             for index in indices_to_remove:
