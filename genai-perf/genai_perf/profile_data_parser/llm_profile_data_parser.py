@@ -31,6 +31,7 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from genai_perf.goodput_reporter.llm_goodput_reporter import LLMGoodputReporter
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -69,8 +70,10 @@ class LLMProfileDataParser(ProfileDataParser):
         self,
         filename: Path,
         tokenizer: Tokenizer,
+        goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._tokenizer = tokenizer
+        self._goodput_constraints = goodput_constraints
         super().__init__(filename)
 
     def _parse_requests(self, requests: dict) -> Metrics:
@@ -145,11 +148,11 @@ class LLMProfileDataParser(ProfileDataParser):
             chunked_inter_token_latencies.append(chunked_inter_token_latency)
 
         # request & output token throughput
-        benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # nanosec
+        benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        return LLMMetrics(
+        llm_metric = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -160,6 +163,19 @@ class LLMProfileDataParser(ProfileDataParser):
             input_sequence_lengths,
             chunked_inter_token_latencies,
         )
+
+        # request goodput
+        if self._goodput_constraints:
+            llm_goodput_reporter = LLMGoodputReporter(
+                self._goodput_constraints,
+                llm_metric,
+                benchmark_duration,
+            )
+
+            llm_goodput_reporter.report()
+            llm_metric.request_goodputs = llm_goodput_reporter.goodput
+
+        return llm_metric
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""
