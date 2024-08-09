@@ -27,11 +27,12 @@
 import json
 from io import StringIO
 from pathlib import Path
-from typing import Any, List, Union
+from typing import Any, List, Union, cast
 
 import numpy as np
 import pytest
 from genai_perf.metrics import LLMMetrics
+from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 
@@ -39,6 +40,28 @@ from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 def ns_to_sec(ns: int) -> Union[int, float]:
     """Convert from nanosecond to second."""
     return ns / 1e9
+
+
+def check_statistics(s1: Statistics, s2: Statistics) -> None:
+    s1_dict = s1.stats_dict
+    s2_dict = s2.stats_dict
+    for metric in s1_dict.keys():
+        for stat_name, value in s1_dict[metric].items():
+            if stat_name != "unit":
+                assert s2_dict[metric][stat_name] == pytest.approx(value)
+
+
+def check_llm_metrics(m1: LLMMetrics, m2: LLMMetrics) -> None:
+    assert m1.request_latencies == m2.request_latencies
+    assert m1.request_throughputs == pytest.approx(m2.request_throughputs)
+    assert m1.time_to_first_tokens == m2.time_to_first_tokens
+    assert m1.inter_token_latencies == m2.inter_token_latencies
+    assert m1.output_token_throughputs_per_request == pytest.approx(
+        m2.output_token_throughputs_per_request
+    )
+    assert m1.output_token_throughputs == pytest.approx(m2.output_token_throughputs)
+    assert m1.output_sequence_lengths == m2.output_sequence_lengths
+    assert m1.input_sequence_lengths == m2.input_sequence_lengths
 
 
 class TestLLMProfileDataParser:
@@ -73,6 +96,9 @@ class TestLLMProfileDataParser:
                 return tmp_file
             elif filename == "openai_vlm_profile_export.json":
                 tmp_file = StringIO(json.dumps(self.openai_vlm_profile_data))
+                return tmp_file
+            elif filename == "tensorrtllm_engine_profile_export.json":
+                tmp_file = StringIO(json.dumps(self.tensorrtllm_engine_profile_data))
                 return tmp_file
             elif filename == "empty_profile_export.json":
                 tmp_file = StringIO(json.dumps(self.empty_profile_data))
@@ -412,6 +438,103 @@ class TestLLMProfileDataParser:
         # check non-existing profile data
         with pytest.raises(KeyError):
             pd.get_statistics(infer_mode="concurrency", load_level="40")
+
+    @pytest.mark.parametrize(
+        "infer_mode, load_level, expected_metrics",
+        [
+            (
+                "concurrency",
+                "10",
+                {
+                    "request_latencies": [7, 9],
+                    "request_throughputs": [1 / ns_to_sec(5)],
+                    "time_to_first_tokens": [2, 2],
+                    "inter_token_latencies": [2, 4],
+                    "output_token_throughputs_per_request": [
+                        3 / ns_to_sec(7),
+                        1 / ns_to_sec(3),
+                    ],
+                    "output_token_throughputs": [3 / ns_to_sec(5)],
+                    "output_sequence_lengths": [3, 3],
+                    "input_sequence_lengths": [3, 4],
+                },
+            ),
+            (
+                "request_rate",
+                "2.0",
+                {
+                    "request_latencies": [13, 8],
+                    "request_throughputs": [2 / ns_to_sec(15)],
+                    "time_to_first_tokens": [2, 3],
+                    "inter_token_latencies": [4, 2],
+                    "output_token_throughputs_per_request": [
+                        4 / ns_to_sec(13),
+                        3 / ns_to_sec(8),
+                    ],
+                    "output_token_throughputs": [7 / ns_to_sec(15)],
+                    "output_sequence_lengths": [4, 3],
+                    "input_sequence_lengths": [3, 4],
+                },
+            ),
+        ],
+    )
+    def test_tensorrtllm_engine_llm_profile_data(
+        self,
+        mock_read_write: pytest.MonkeyPatch,
+        infer_mode,
+        load_level,
+        expected_metrics,
+    ) -> None:
+        """Collect LLM metrics from profile export data and check values.
+
+        Metrics
+        * request_latencies
+            - experiment 1: [8 - 1, 11 - 2] = [7, 9]
+            - experiment 2: [18 - 5, 11 -3] = [13, 8]
+        * request_throughputs
+            - experiment 1: [2/(11 - 1)] = [1/5]
+            - experiment 2: [2/(18 - 3)] = [2/15]
+        * time to first tokens
+            - experiment 1: [3 - 1, 4 - 2] = [2, 2]
+            - experiment 2: [7 - 5, 6 - 3] = [2, 3]
+        * inter token latencies
+            - experiment 1: [((8 - 1) - 2)/(3 - 1), ((11 - 2) - 2)/(3 - 1)]
+                          : [2.5, 3.5]
+                          : [2, 4]  # rounded
+            - experiment 2: [((18 - 5) - 2)/(4 - 1), ((11 - 3) - 3)/(3 - 1)]
+                          : [11/3, 2.5]
+                          : [4, 2]  # rounded
+        * output token throughputs per request
+            - experiment 1: [3/(8 - 1), 3/(11 - 2)] = [3/7, 1/3]
+            - experiment 2: [4/(18 - 5), 3/(11 - 3)] = [4/13, 3/8]
+        * output token throughputs
+            - experiment 1: [(3 + 3)/(11 - 1)] = [3/5]
+            - experiment 2: [(4 + 3)/(18 - 3)] = [7/15]
+        * output sequence lengths
+            - experiment 1: [3, 3]
+            - experiment 2: [4, 3]
+        * input sequence lengths
+            - experiment 1: [3, 4]
+            - experiment 2: [3, 4]
+        """
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("tensorrtllm_engine_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        statistics = pd.get_statistics(infer_mode=infer_mode, load_level=load_level)
+        metrics = cast(LLMMetrics, statistics.metrics)
+
+        expected_metrics = LLMMetrics(**expected_metrics)
+        expected_statistics = Statistics(expected_metrics)
+
+        check_llm_metrics(metrics, expected_metrics)
+        check_statistics(statistics, expected_statistics)
+
+        # check non-existing profile data
+        with pytest.raises(KeyError):
+            pd.get_statistics(infer_mode="concurrency", load_level="30")
 
     def test_merged_sse_response(self, mock_read_write: pytest.MonkeyPatch) -> None:
         """Test merging the multiple sse response."""
@@ -781,6 +904,150 @@ class TestLLMProfileDataParser:
                             {"text_output": "it's"},
                             {"text_output": " very"},
                             {"text_output": " simple work"},
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    tensorrtllm_engine_profile_data = {
+        "service_kind": "triton_c_api",
+        "endpoint": "",
+        "experiments": [
+            {
+                "experiment": {
+                    "mode": "concurrency",
+                    "value": 10,
+                },
+                "requests": [
+                    {
+                        "timestamp": 1,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 3,
+                            "min_length": 3,
+                            "input_lengths": 3,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                            ],
+                        },
+                        "response_timestamps": [3, 5, 8],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_ids": 789,
+                            },
+                        ],
+                    },
+                    {
+                        "timestamp": 2,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 3,
+                            "min_length": 3,
+                            "input_lengths": 4,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                                444,
+                            ],
+                        },
+                        "response_timestamps": [4, 7, 11],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 789,
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "experiment": {
+                    "mode": "request_rate",
+                    "value": 2.0,
+                },
+                "requests": [
+                    {
+                        "timestamp": 5,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 4,
+                            "min_length": 4,
+                            "input_lengths": 3,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                            ],
+                        },
+                        "response_timestamps": [7, 8, 13, 18],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 789,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 1011,
+                            },
+                        ],
+                    },
+                    {
+                        "timestamp": 3,
+                        "request_inputs": {
+                            "streaming": True,
+                            "request_output_len": 3,
+                            "min_length": 3,
+                            "input_lengths": 4,
+                            "input_ids": [
+                                111,
+                                222,
+                                333,
+                                444,
+                            ],
+                        },
+                        "response_timestamps": [6, 8, 11],
+                        "response_outputs": [
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 123,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 456,
+                            },
+                            {
+                                "output_log_probs": [0, 0],
+                                "output_ids": 789,
+                            },
                         ],
                     },
                 ],
