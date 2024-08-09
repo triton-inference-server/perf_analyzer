@@ -579,7 +579,7 @@ TEST_CASE("Testing Command Line Parser")
       //
       CHECK_THROWS_WITH_AS(
           act = parser.Parse(argc, argv),
-          "Streaming is only allowed with gRPC protocol.",
+          "Streaming is only allowed with gRPC protocol and Triton C API.",
           PerfAnalyzerException);
 
       check_params = false;
@@ -592,7 +592,7 @@ TEST_CASE("Testing Command Line Parser")
 
       CHECK_THROWS_WITH_AS(
           act = parser.Parse(argc, argv),
-          "Streaming is only allowed with gRPC protocol.",
+          "Streaming is only allowed with gRPC protocol and Triton C API.",
           PerfAnalyzerException);
 
       check_params = false;

@@ -1,4 +1,4 @@
-// Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -45,36 +45,6 @@
 namespace triton { namespace perfanalyzer { namespace clientbackend {
 namespace tritoncapi {
 namespace {
-
-struct AllocPayload {
-  struct OutputInfo {
-    enum Kind { BINARY, SHM };
-
-    Kind kind_;
-    void* base_;
-    uint64_t byte_size_;
-    TRITONSERVER_MemoryType memory_type_;
-    int64_t device_id_;
-
-    // For shared memory
-    OutputInfo(
-        void* base, uint64_t byte_size, TRITONSERVER_MemoryType memory_type,
-        int64_t device_id)
-        : kind_(SHM), base_(base), byte_size_(byte_size),
-          memory_type_(memory_type), device_id_(device_id)
-    {
-    }
-  };
-
-  ~AllocPayload()
-  {
-    for (auto it : output_map_) {
-      delete it.second;
-    }
-  }
-
-  std::unordered_map<std::string, OutputInfo*> output_map_;
-};
 
 bool helper_verbose = false;
 /// Helper function for allocating memory
@@ -272,7 +242,8 @@ TritonLoader::StartTriton()
   // Check API version.
   uint32_t api_version_major, api_version_minor;
   REPORT_TRITONSERVER_ERROR(
-      api_version_fn_(&api_version_major, &api_version_minor));
+      api_version_fn_(&api_version_major, &api_version_minor),
+      "unable to get api version");
   if ((TRITONSERVER_API_VERSION_MAJOR != api_version_major) ||
       (TRITONSERVER_API_VERSION_MINOR > api_version_minor)) {
     std::stringstream sstream;
@@ -294,10 +265,10 @@ TritonLoader::StartTriton()
   RETURN_IF_TRITONSERVER_ERROR(
       set_cuda_memory_pool_byte_size_(server_options, 0, 1073741824),
       "setting cuda memory pool byte size failed.");
-  RETURN_IF_TRITONSERVER_ERROR(
+  REPORT_TRITONSERVER_ERROR(
       set_log_verbose_fn_(server_options, verbose_level_),
       "setting verbose logging level");
-  RETURN_IF_TRITONSERVER_ERROR(
+  REPORT_TRITONSERVER_ERROR(
       set_log_info_fn_(server_options, verbose_),
       "setting if log verbose level is true");
   RETURN_IF_TRITONSERVER_ERROR(
@@ -364,6 +335,30 @@ TritonLoader::StartTriton()
         message_delete_fn_(server_metadata_message),
         "deleting status metadata");
   }
+
+  // Create the allocator that will be used to allocate buffers for
+  // the result tensors.
+  RETURN_IF_TRITONSERVER_ERROR(
+      GetSingleton()->response_allocator_new_fn_(
+          &allocator_,
+          reinterpret_cast<
+              TRITONSERVER_Error* (*)(TRITONSERVER_ResponseAllocator* allocator,
+                                      const char* tensor_name, size_t byte_size,
+                                      TRITONSERVER_MemoryType memory_type,
+                                      int64_t memory_type_id, void* userp,
+                                      void** buffer, void** buffer_userp,
+                                      TRITONSERVER_MemoryType*
+                                          actual_memory_type,
+                                      int64_t* actual_memory_type_id)>(
+              ResponseAlloc),
+          reinterpret_cast<
+              TRITONSERVER_Error* (*)(TRITONSERVER_ResponseAllocator* allocator,
+                                      void* buffer, void* buffer_userp,
+                                      size_t byte_size,
+                                      TRITONSERVER_MemoryType memory_type,
+                                      int64_t memory_type_id)>(ResponseRelease),
+          nullptr /* start_fn */),
+      "creating response allocator");
 
   return Error::Success;
 }
@@ -918,16 +913,15 @@ TritonLoader::Infer(
     return Error("Server is not ready and/or requested model is not loaded");
   }
 
-  TRITONSERVER_ResponseAllocator* allocator = nullptr;
   TRITONSERVER_InferenceRequest* irequest = nullptr;
   TRITONSERVER_InferenceResponse* completed_response = nullptr;
   tc::RequestTimers timer;
   timer.Reset();
   timer.CaptureTimestamp(tc::RequestTimers::Kind::REQUEST_START);
 
-  RETURN_IF_ERROR(InitializeRequest(options, outputs, &allocator, &irequest));
-  ScopedDefer error_handler([&error, &completed_response, &allocator, this] {
-    error = CleanUp(completed_response, allocator);
+  RETURN_IF_ERROR(InitializeRequest(options, outputs, &irequest));
+  ScopedDefer error_handler([&error, &completed_response, this] {
+    error = CleanUp(completed_response);
   });
   RETURN_IF_ERROR(AddInputs(inputs, irequest));
   RETURN_IF_ERROR(AddOutputs(outputs, irequest));
@@ -966,7 +960,7 @@ TritonLoader::Infer(
   std::future<TRITONSERVER_InferenceResponse*> completed = p->get_future();
   RETURN_IF_TRITONSERVER_ERROR(
       inference_request_set_response_callback_fn_(
-          irequest, allocator, &alloc_payload /* response_allocator_userp */,
+          irequest, allocator_, &alloc_payload /* response_allocator_userp */,
           InferResponseComplete, reinterpret_cast<void*>(p)),
       "setting response callback");
   RETURN_IF_TRITONSERVER_ERROR(
@@ -990,26 +984,174 @@ TritonLoader::Infer(
     std::cerr << "Failed to update context stat: " << err << std::endl;
   }
 
-  InferResult::Create(result, err, id);
+  std::unordered_map<std::string, ResponseOutput> response_outputs{};
+  GetOutputs(completed_response, response_outputs);
 
-  // CleanUp the response allocators
+  // Synchronous mode requests only ever have one response, which is "final"
+  bool is_final_response{true};
+  bool is_null_response{completed_response == nullptr};
+
+  InferResult::Create(
+      result, err, id, std::move(response_outputs), is_final_response,
+      is_null_response);
+
+  // CleanUp the response
   error_handler.Complete();
 
   return error;
 }
 
 Error
-TritonLoader::CleanUp(
-    TRITONSERVER_InferenceResponse* completed_response,
-    TRITONSERVER_ResponseAllocator* allocator)
+TritonLoader::GetOutputs(
+    TRITONSERVER_InferenceResponse* response,
+    std::unordered_map<std::string, ResponseOutput>& outputs)
+{
+  uint32_t count{};
+  RETURN_IF_TRITONSERVER_ERROR(
+      inference_response_output_count_fn_(response, &count),
+      "inference_response_output_count_fn_ error");
+
+  for (uint32_t index{0}; index < count; index++) {
+    const char* name{};
+    TRITONSERVER_DataType datatype{};
+    const int64_t* shape{};
+    uint64_t dim_count{};
+    const void* base{};
+    size_t byte_size{};
+    TRITONSERVER_MemoryType memory_type{};
+    int64_t memory_type_id{};
+    void* userp{};
+
+    RETURN_IF_TRITONSERVER_ERROR(
+        inference_response_output_fn_(
+            response, index, &name, &datatype, &shape, &dim_count, &base,
+            &byte_size, &memory_type, &memory_type_id, &userp),
+        "inference_response_output_fn_ error");
+
+    outputs.emplace(
+        name, ResponseOutput{
+                  name, datatype, shape, dim_count, base, byte_size,
+                  memory_type, memory_type_id, userp});
+  }
+
+  return Error::Success;
+}
+
+void
+InferResponseCompleteAsyncNonMember(
+    TRITONSERVER_InferenceResponse* response, const uint32_t flags, void* userp)
+{
+  TritonLoader::GetSingleton()->InferResponseCompleteAsync(
+      response, flags,
+      reinterpret_cast<TritonLoader::AsyncRequestInfo*>(userp));
+}
+
+void
+TritonLoader::InferResponseCompleteAsync(
+    TRITONSERVER_InferenceResponse* response, const uint32_t flags,
+    AsyncRequestInfo* async_request_info)
+{
+  REPORT_TRITONSERVER_ERROR(
+      inference_response_error_fn_(response),
+      "unable to get inference response error");
+
+  if (async_request_info->enable_stats) {
+    tc::RequestTimers timer{*async_request_info->timer};
+
+    timer.CaptureTimestamp(tc::RequestTimers::Kind::RECV_START);
+    timer.CaptureTimestamp(tc::RequestTimers::Kind::RECV_END);
+    timer.CaptureTimestamp(tc::RequestTimers::Kind::REQUEST_END);
+
+    {
+      std::lock_guard<std::mutex> lock(update_infer_stat_mutex_);
+      tc::Error err{UpdateInferStat(timer)};
+      if (!err.IsOk()) {
+        std::cerr << "Failed to update context stat: " << err << std::endl;
+      }
+    }
+  }
+
+  std::unordered_map<std::string, ResponseOutput> outputs{};
+  Error err{GetOutputs(response, outputs)};
+  if (!err.IsOk()) {
+    std::cerr << "Failed to get outputs: " << err << std::endl;
+  }
+
+  bool is_final_response{flags == TRITONSERVER_RESPONSE_COMPLETE_FINAL};
+  bool is_null_response{response == nullptr};
+
+  InferResult* infer_result{};
+  InferResult::Create(
+      &infer_result, tc::Error::Success, async_request_info->request_id,
+      std::move(outputs), is_final_response, is_null_response);
+
+  async_request_info->callback(infer_result);
+
+  if (is_final_response) {
+    delete async_request_info;
+  }
+
+  CleanUp(response);
+}
+
+Error
+TritonLoader::AsyncInfer(
+    OnCompleteFn callback, const tc::InferOptions& options,
+    const std::vector<tc::InferInput*>& inputs,
+    const std::vector<const tc::InferRequestedOutput*>& outputs,
+    bool enable_stats)
+{
+  Error error = Error::Success;
+  if (!ServerIsReady() || !ModelIsLoaded()) {
+    return Error("Server is not ready and/or requested model is not loaded");
+  }
+
+  TRITONSERVER_InferenceRequest* irequest = nullptr;
+  TRITONSERVER_InferenceResponse* completed_response = nullptr;
+  std::shared_ptr<tc::RequestTimers> timer{
+      std::make_shared<tc::RequestTimers>()};
+  timer->Reset();
+  timer->CaptureTimestamp(tc::RequestTimers::Kind::REQUEST_START);
+
+  RETURN_IF_ERROR(InitializeRequest(options, outputs, &irequest));
+  RETURN_IF_ERROR(AddInputs(inputs, irequest));
+  RETURN_IF_ERROR(AddOutputs(outputs, irequest));
+
+  const char* cid = nullptr;
+  RETURN_IF_TRITONSERVER_ERROR(
+      request_id_fn_(irequest, &cid), "Failed to get request id");
+
+  // Perform inference...
+  timer->CaptureTimestamp(tc::RequestTimers::Kind::SEND_START);
+  AsyncRequestInfo* async_request_info{new AsyncRequestInfo};
+  async_request_info->alloc_payload = std::make_unique<AllocPayload>();
+  async_request_info->request_id = cid;
+  async_request_info->timer = timer;
+  async_request_info->callback = callback;
+  async_request_info->enable_stats = enable_stats;
+  RETURN_IF_TRITONSERVER_ERROR(
+      inference_request_set_response_callback_fn_(
+          irequest, allocator_,
+          async_request_info->alloc_payload
+              .get() /* response_allocator_userp */,
+          InferResponseCompleteAsyncNonMember, async_request_info),
+      "setting response callback");
+  RETURN_IF_TRITONSERVER_ERROR(
+      infer_async_fn_((server_).get(), irequest, nullptr /* trace */),
+      "running inference");
+  timer->CaptureTimestamp(tc::RequestTimers::Kind::SEND_END);
+
+  return error;
+}
+
+Error
+TritonLoader::CleanUp(TRITONSERVER_InferenceResponse* completed_response)
 {
   TRITONSERVER_Error* response_err = nullptr;
   if (completed_response != nullptr) {
     response_err = inference_response_delete_fn_(completed_response);
+    RETURN_IF_TRITONSERVER_ERROR(response_err, "deleting inference response");
   }
-  TRITONSERVER_Error* allocator_err = response_allocator_delete_fn_(allocator);
-  RETURN_IF_TRITONSERVER_ERROR(response_err, "deleting inference response");
-  RETURN_IF_TRITONSERVER_ERROR(allocator_err, "deleting response allocator");
   return Error::Success;
 }
 
@@ -1017,33 +1159,8 @@ Error
 TritonLoader::InitializeRequest(
     const tc::InferOptions& options,
     const std::vector<const tc::InferRequestedOutput*>& outputs,
-    TRITONSERVER_ResponseAllocator** allocator,
     TRITONSERVER_InferenceRequest** irequest)
 {
-  // Create the allocator that will be used to allocate buffers for
-  // the result tensors.
-  RETURN_IF_TRITONSERVER_ERROR(
-      GetSingleton()->response_allocator_new_fn_(
-          allocator,
-          reinterpret_cast<
-              TRITONSERVER_Error* (*)(TRITONSERVER_ResponseAllocator* allocator,
-                                      const char* tensor_name, size_t byte_size,
-                                      TRITONSERVER_MemoryType memory_type,
-                                      int64_t memory_type_id, void* userp,
-                                      void** buffer, void** buffer_userp,
-                                      TRITONSERVER_MemoryType*
-                                          actual_memory_type,
-                                      int64_t* actual_memory_type_id)>(
-              ResponseAlloc),
-          reinterpret_cast<
-              TRITONSERVER_Error* (*)(TRITONSERVER_ResponseAllocator* allocator,
-                                      void* buffer, void* buffer_userp,
-                                      size_t byte_size,
-                                      TRITONSERVER_MemoryType memory_type,
-                                      int64_t memory_type_id)>(ResponseRelease),
-          nullptr /* start_fn */),
-      "creating response allocator");
-
   // set up inference request
   RETURN_IF_TRITONSERVER_ERROR(
       inference_request_new_fn_(
@@ -1233,6 +1350,9 @@ TritonLoader::GetSingleton()
 
 TritonLoader::~TritonLoader()
 {
+  TRITONSERVER_Error* allocator_err = response_allocator_delete_fn_(allocator_);
+  FAIL_IF_TRITONSERVER_ERROR(allocator_err, "deleting response allocator");
+
   FAIL_IF_ERR(Delete(), "dereferencing server instance...");
   FAIL_IF_ERR(CloseLibraryHandle(dlhandle_), "error on closing triton loader");
   ClearHandles();

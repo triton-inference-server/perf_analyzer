@@ -110,6 +110,9 @@ class Profiler:
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
+        cmd += Profiler.add_protocol_args(args)
+        cmd += Profiler.add_inference_load_args(args)
+
         for arg, value in vars(args).items():
             if arg in skip_args:
                 pass
@@ -122,15 +125,16 @@ class Profiler:
                     cmd += [f"-{arg}"]
                 else:
                     cmd += [f"--{arg}"]
+            # GAP needs to call PA using triton_c_api service kind when running
+            # against tensorrtllm engine.
+            elif arg == "service_kind" and value == "tensorrtllm_engine":
+                cmd += ["--service-kind", "triton_c_api", "--streaming"]
             else:
                 if len(arg) == 1:
                     cmd += [f"-{arg}", f"{value}"]
                 else:
                     arg = utils.convert_option_name(arg)
                     cmd += [f"--{arg}", f"{value}"]
-
-        cmd += Profiler.add_protocol_args(args)
-        cmd += Profiler.add_inference_load_args(args)
 
         if extra_args is not None:
             for arg in extra_args:

@@ -54,7 +54,7 @@ class LLMMetrics(Metrics):
         time_to_first_tokens: List[int] = [],
         inter_token_latencies: List[int] = [],
         output_token_throughputs: List[float] = [],
-        output_token_throughputs_per_request: List[int] = [],
+        output_token_throughputs_per_request: List[float] = [],
         output_sequence_lengths: List[int] = [],
         input_sequence_lengths: List[int] = [],
         chunked_inter_token_latencies: List[List[int]] = [[]],

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -98,6 +98,20 @@ class TritonCApiClientBackend : public ClientBackend {
       const std::vector<InferInput*>& inputs,
       const std::vector<const InferRequestedOutput*>& outputs) override;
 
+  /// See ClientBackend::AsyncInfer()
+  Error AsyncInfer(
+      OnCompleteFn callback, const InferOptions& options,
+      const std::vector<InferInput*>& inputs,
+      const std::vector<const InferRequestedOutput*>& outputs) override;
+
+  /// See ClientBackend::StartStream()
+  Error StartStream(OnCompleteFn callback, bool enable_stats) override;
+
+  /// See ClientBackend::AsyncStreamInfer()
+  Error AsyncStreamInfer(
+      const InferOptions& options, const std::vector<InferInput*>& inputs,
+      const std::vector<const InferRequestedOutput*>& outputs) override;
+
   /// See ClientBackend::ClientInferStat()
   Error ClientInferStat(InferStat* infer_stat) override;
 
@@ -140,6 +154,8 @@ class TritonCApiClientBackend : public ClientBackend {
   void ParseInferStat(
       const tc::InferStat& triton_infer_stat, InferStat* infer_stat);
   TritonLoader* triton_loader_;
+  OnCompleteFn stream_callback_{};
+  bool enable_stats_{true};
 };
 
 //==============================================================
@@ -171,6 +187,9 @@ class TritonCApiInferInput : public InferInput {
   Error SetSharedMemory(
       const std::string& name, size_t byte_size, size_t offset = 0) override;
 
+  /// See InferInput::RawData()
+  Error RawData(const uint8_t** buf, size_t* byte_size) override;
+
  private:
   explicit TritonCApiInferInput(
       const std::string& name, const std::string& datatype);
@@ -196,7 +215,8 @@ class TritonCApiInferRequestedOutput : public InferRequestedOutput {
       const std::string& name, size_t byte_size, size_t offset = 0) override;
 
  private:
-  explicit TritonCApiInferRequestedOutput(const std::string& name);
+  explicit TritonCApiInferRequestedOutput(
+      const std::string& name, const std::string& datatype);
 
   std::unique_ptr<tc::InferRequestedOutput> output_;
 };
@@ -216,6 +236,10 @@ class TritonCApiInferResult : public cb::InferResult {
   Error RawData(
       const std::string& output_name, const uint8_t** buf,
       size_t* byte_size) const override;
+  /// See InferResult::IsFinalResponse()
+  Error IsFinalResponse(bool* is_final_response) const override;
+  /// See InferResult::IsNullResponse()
+  Error IsNullResponse(bool* is_null_response) const override;
 
  private:
   std::unique_ptr<capi::InferResult> result_;

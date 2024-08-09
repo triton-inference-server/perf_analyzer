@@ -1,4 +1,4 @@
-// Copyright 2021-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -121,6 +121,66 @@ TritonCApiClientBackend::Infer(
   return Error::Success;
 }
 
+Error
+TritonCApiClientBackend::AsyncInfer(
+    OnCompleteFn callback, const InferOptions& options,
+    const std::vector<InferInput*>& inputs,
+    const std::vector<const InferRequestedOutput*>& outputs)
+{
+  auto wrapped_callback = [callback](capi::InferResult* client_result) {
+    cb::InferResult* result = new TritonCApiInferResult(client_result);
+    callback(result);
+  };
+
+  std::vector<tc::InferInput*> triton_inputs;
+  ParseInferInputToTriton(inputs, &triton_inputs);
+
+  std::vector<const tc::InferRequestedOutput*> triton_outputs;
+  ParseInferRequestedOutputToTriton(outputs, &triton_outputs);
+
+  tc::InferOptions triton_options(options.model_name_);
+  ParseInferOptionsToTriton(options, &triton_options);
+
+  RETURN_IF_ERROR(triton_loader_->AsyncInfer(
+      wrapped_callback, triton_options, triton_inputs, triton_outputs,
+      enable_stats_));
+
+  return Error::Success;
+}
+
+Error
+TritonCApiClientBackend::StartStream(OnCompleteFn callback, bool enable_stats)
+{
+  stream_callback_ = callback;
+  enable_stats_ = enable_stats;
+  return Error::Success;
+}
+
+Error
+TritonCApiClientBackend::AsyncStreamInfer(
+    const InferOptions& options, const std::vector<InferInput*>& inputs,
+    const std::vector<const InferRequestedOutput*>& outputs)
+{
+  auto wrapped_callback = [this](capi::InferResult* client_result) {
+    cb::InferResult* result = new TritonCApiInferResult(client_result);
+    stream_callback_(result);
+  };
+
+  std::vector<tc::InferInput*> triton_inputs;
+  ParseInferInputToTriton(inputs, &triton_inputs);
+
+  std::vector<const tc::InferRequestedOutput*> triton_outputs;
+  ParseInferRequestedOutputToTriton(outputs, &triton_outputs);
+
+  tc::InferOptions triton_options(options.model_name_);
+  ParseInferOptionsToTriton(options, &triton_options);
+
+  RETURN_IF_ERROR(triton_loader_->AsyncInfer(
+      wrapped_callback, triton_options, triton_inputs, triton_outputs,
+      enable_stats_));
+
+  return Error::Success;
+}
 
 Error
 TritonCApiClientBackend::ClientInferStat(InferStat* infer_stat)
@@ -324,6 +384,13 @@ TritonCApiInferInput::SetSharedMemory(
   return Error::Success;
 }
 
+Error
+TritonCApiInferInput::RawData(const uint8_t** buf, size_t* byte_size)
+{
+  RETURN_IF_TRITON_ERROR(input_->RawData(buf, byte_size));
+  return Error::Success;
+}
+
 TritonCApiInferInput::TritonCApiInferInput(
     const std::string& name, const std::string& datatype)
     : InferInput(BackendKind::TRITON_C_API, name, datatype)
@@ -339,7 +406,7 @@ TritonCApiInferRequestedOutput::Create(
     const size_t class_count, const std::string& datatype)
 {
   TritonCApiInferRequestedOutput* local_infer_output =
-      new TritonCApiInferRequestedOutput(name);
+      new TritonCApiInferRequestedOutput(name, datatype);
 
   tc::InferRequestedOutput* triton_infer_output;
   RETURN_IF_TRITON_ERROR(tc::InferRequestedOutput::Create(
@@ -360,8 +427,8 @@ TritonCApiInferRequestedOutput::SetSharedMemory(
 }
 
 TritonCApiInferRequestedOutput::TritonCApiInferRequestedOutput(
-    const std::string& name)
-    : InferRequestedOutput(BackendKind::TRITON_C_API, name)
+    const std::string& name, const std::string& datatype)
+    : InferRequestedOutput(BackendKind::TRITON_C_API, name, datatype)
 {
 }
 
@@ -391,9 +458,22 @@ TritonCApiInferResult::RawData(
     const std::string& output_name, const uint8_t** buf,
     size_t* byte_size) const
 {
-  return Error(
-      "Output retrieval is not currently supported for Triton C API client "
-      "backend");
+  RETURN_IF_TRITON_ERROR(result_->RawData(output_name, buf, byte_size));
+  return Error::Success;
+}
+
+Error
+TritonCApiInferResult::IsFinalResponse(bool* is_final_response) const
+{
+  RETURN_IF_TRITON_ERROR(result_->IsFinalResponse(is_final_response));
+  return Error::Success;
+}
+
+Error
+TritonCApiInferResult::IsNullResponse(bool* is_null_response) const
+{
+  RETURN_IF_TRITON_ERROR(result_->IsNullResponse(is_null_response));
+  return Error::Success;
 }
 
 //==============================================================================
