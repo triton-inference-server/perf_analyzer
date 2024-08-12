@@ -68,6 +68,18 @@ genai-perf profile \
     --input-file embeddings.jsonl
 ```
 
+* `-m intfloat/e5-mistral-7b-instruct` is to specify what model you want to run
+  (`intfloat/e5-mistral-7b-instruct`)
+* `--service-kind openai` is to specify that the server type is OpenAI-API
+  compatible
+* `--endpoint-type embeddings` is to specify that the sent requests should be
+  formatted to follow the [embeddings API]
+(https://platform.openai.com/docs/api-reference/embeddings/create)
+* `--batch-size 2` is to specify that each request will contain the inputs for 2
+  individual inferences, making a batch size of 2
+* `--input-file embeddings.jsonl` is to specify the input data to be used for
+  inferencing
+
 This will use default values for optional arguments. You can also pass in
 additional arguments with the `--extra-inputs` [flag](../README.md#input-options).
 For example, you could use this command:
