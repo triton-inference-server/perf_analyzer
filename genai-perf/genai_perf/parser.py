@@ -778,7 +778,11 @@ def profile_handler(args, extra_args):
             server_metrics_url=DEFAULT_TRITON_METRICS_URL
         )
 
-    Profiler.run(telemetry_data_collector, args=args, extra_args=extra_args)
+    Profiler.run(
+        args=args,
+        extra_args=extra_args,
+        telemetry_data_collector=telemetry_data_collector,
+    )
 
 
 ### Parser Initialization ###

@@ -33,7 +33,7 @@ import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL, DEFAULT_INPUT_DATA_JSON
 from genai_perf.llm_inputs.llm_inputs import OutputFormat
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TritonTelemetryDataCollector,
+    TelemetryDataCollector,
 )
 
 logger = logging.getLogger(__name__)
@@ -146,9 +146,9 @@ class Profiler:
 
     @staticmethod
     def run(
-        telemetry_data_collector: TritonTelemetryDataCollector,
         args: Namespace,
         extra_args: Optional[List[str]],
+        telemetry_data_collector: Optional[TelemetryDataCollector] = None,
     ) -> None:
         try:
             if telemetry_data_collector is not None:
