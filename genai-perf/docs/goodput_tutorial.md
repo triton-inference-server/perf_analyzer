@@ -297,3 +297,143 @@ Example output:
 Request throughput (per sec): 44.35
 Request goodput (per sec): N/A
 ```
+
+## Profile Ranking Models Goodput with GenAI-Perf
+
+GenAI-Perf allows you to profile ranking models compatible with Hugging Face's
+[Text Embeddings Inference's re-ranker API](https://huggingface.co/docs/text-embeddings-inference/en/quick_tour#re-rankers).
+
+## Create a Sample Rankings Input Directory
+
+To create a sample rankings input directory, follow these steps:
+
+Create a directory called rankings_jsonl:
+```bash
+mkdir rankings_jsonl
+```
+
+Inside this directory, create a JSONL file named queries.jsonl with queries data:
+
+```bash
+echo '{"text": "What was the first car ever driven?"}
+{"text": "Who served as the 5th President of the United States of America?"}
+{"text": "Is the Sydney Opera House located in Australia?"}
+{"text": "In what state did they film Shrek 2?"}' > rankings_jsonl/queries.jsonl
+```
+
+Create another JSONL file named passages.jsonl with passages data:
+
+```bash
+echo '{"text": "Eric Anderson (born January 18, 1968) is an American sociologist and sexologist."}
+{"text": "Kevin Loader is a British film and television producer."}
+{"text": "Francisco Antonio Zea Juan Francisco Antonio Hilari was a Colombian journalist, botanist, diplomat, politician, and statesman who served as the 1st Vice President of Colombia."}
+{"text": "Daddys Home 2 Principal photography on the film began in Massachusetts in March 2017 and it was released in the United States by Paramount Pictures on November 10, 2017. Although the film received unfavorable reviews, it has grossed over $180 million worldwide on a $69 million budget."}' > rankings_jsonl/passages.jsonl
+```
+
+## Start a Hugging Face Re-Ranker-Compatible Server
+To start a Hugging Face re-ranker-compatible server, run the following commands:
+
+```bash
+model=BAAI/bge-reranker-large
+revision=refs/pr/4
+volume=$PWD/data
+
+docker run --gpus all -p 8080:80 -v $volume:/data --pull always ghcr.io/huggingface/text-embeddings-inference:1.3 --model-id $model --revision $revision
+```
+## Run GenAI-Perf
+
+### Run GenAI-Perf with no goodput constraints
+To profile ranking models using GenAI-Perf, use the following command:
+
+```bash
+genai-perf profile \
+    -m BAAI/bge-reranker-large \
+    --service-kind openai \
+    --endpoint-type rankings \
+    --endpoint rerank \
+    --input-file rankings_jsonl/ \
+    -u localhost:8080 \
+    --extra-inputs rankings:tei \
+    --batch-size 2 \
+    --measurement-interval 1000
+```
+
+This command specifies the use of Hugging Face's ranking API with `--endpoint rerank` and `--extra-inputs rankings:tei`.
+
+Example output:
+
+```
+                         Rankings Metrics                         
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
+┃            Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
+│ Request latency (ms) │ 3.31 │ 1.71 │ 9.34 │ 3.89 │ 3.64 │ 3.56 │
+└──────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘
+Request throughput (per sec): 300.12
+```
+
+### Run GenAI-Perf with valid goodput constraints
+To profile ranking models using GenAI-Perf, use the following command:
+
+```bash
+genai-perf profile \
+    -m BAAI/bge-reranker-large \
+    --service-kind openai \
+    --endpoint-type rankings \
+    --endpoint rerank \
+    --input-file rankings_jsonl/ \
+    -u localhost:8080 \
+    --extra-inputs rankings:tei \
+    --batch-size 2 \
+    --measurement-interval 1000 \
+    --goodput request_latencies:3.3
+```
+
+This command specifies the use of Hugging Face's ranking API with `--endpoint rerank` and `--extra-inputs rankings:tei`.
+
+Example output:
+
+```
+                         Rankings Metrics                          
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
+┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
+│ Request latency (ms) │ 3.42 │ 1.77 │ 13.03 │ 4.59 │ 3.69 │ 3.59 │
+└──────────────────────┴──────┴──────┴───────┴──────┴──────┴──────┘
+Request throughput (per sec): 291.76
+Request goodput (per sec): 30.01
+```
+
+### Run GenAI-Perf with invalid goodput constraints
+To profile ranking models using GenAI-Perf, use the following command:
+
+```bash
+genai-perf profile \
+    -m BAAI/bge-reranker-large \
+    --service-kind openai \
+    --endpoint-type rankings \
+    --endpoint rerank \
+    --input-file rankings_jsonl/ \
+    -u localhost:8080 \
+    --extra-inputs rankings:tei \
+    --batch-size 2 \
+    --measurement-interval 1000 \
+    --goodput request_latencies:3.3 inter_token_latencies:0.2
+```
+
+This command specifies the use of Hugging Face's ranking API with `--endpoint rerank` and `--extra-inputs rankings:tei`.
+
+Example output:
+
+```
+2024-08-12 20:52 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:90 - Invalid SLOs found: inter_token_latencies. The goodput will be N/A. Valid SLOs are: request_latency in plural forms.
+                         Rankings Metrics                          
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
+┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
+│ Request latency (ms) │ 3.33 │ 1.72 │ 12.77 │ 3.83 │ 3.64 │ 3.56 │
+└──────────────────────┴──────┴──────┴───────┴──────┴──────┴──────┘
+Request throughput (per sec): 296.33
+Request goodput (per sec): N/A
+```
+

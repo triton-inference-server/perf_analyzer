@@ -90,4 +90,3 @@ class GoodputCalculator(ABC):
     @property
     def goodput(self) -> List[float]:
         return self._goodput
-    

@@ -73,7 +73,6 @@ class LLMProfileDataParser(ProfileDataParser):
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._tokenizer = tokenizer
-        self._goodput_constraints = goodput_constraints
         super().__init__(filename, goodput_constraints)
 
     def _parse_requests(self, requests: dict) -> Metrics:
