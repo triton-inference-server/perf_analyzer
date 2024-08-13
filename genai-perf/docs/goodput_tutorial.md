@@ -437,3 +437,121 @@ Request throughput (per sec): 296.33
 Request goodput (per sec): N/A
 ```
 
+## Profile Vision-Language Models Goodput with GenAI-Perf
+
+GenAI-Perf allows you to profile Vision-Language Models (VLM) running on
+[OpenAI Chat Completions API](https://platform.openai.com/docs/guides/chat-completions)-compatible server
+by sending [multi-modal content](https://platform.openai.com/docs/guides/vision) to the server.
+
+You can start OpenAI API compatible server with a VLM model using following command:
+
+```bash
+docker run --runtime nvidia --gpus all \
+    --pull=always \
+    -p 8000:8000 --ipc=host \
+    vllm/vllm-openai:latest \
+    --model llava-hf/llava-v1.6-mistral-7b-hf --dtype float16
+```
+
+### Run GenAI-Perf with no goodput constraints
+
+```bash
+genai-perf profile \
+    -m llava-hf/llava-v1.6-mistral-7b-hf \
+    --service-kind openai \
+    --endpoint-type vision \
+    --image-width-mean 512 \
+    --image-width-stddev 30 \
+    --image-height-mean 512 \
+    --image-height-stddev 30 \
+    --image-format png \
+    --synthetic-input-tokens-mean 100 \
+    --synthetic-input-tokens-stddev 0 \
+    --measurement-interval 8000 \
+    --streaming
+```
+Example Output
+```
+                                         LLM Metrics                                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Time to first token (ms) │   351.20 │   327.85 │   373.22 │   373.21 │   373.14 │   368.56 │
+│ Inter token latency (ms) │    17.52 │    16.56 │    18.04 │    18.03 │    17.95 │    17.83 │
+│     Request latency (ms) │ 2,597.64 │ 1,943.21 │ 4,086.64 │ 4,016.24 │ 3,382.57 │ 2,602.77 │
+│   Output sequence length │   129.00 │    92.00 │   209.00 │   205.25 │   171.50 │   129.50 │
+│    Input sequence length │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │
+└──────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+Output token throughput (per sec): 49.37
+Request throughput (per sec): 0.38
+```
+### Run GenAI-Perf with valid goodput constraints
+
+```bash
+genai-perf profile \
+    -m llava-hf/llava-v1.6-mistral-7b-hf \
+    --service-kind openai \
+    --endpoint-type vision \
+    --image-width-mean 512 \
+    --image-width-stddev 30 \
+    --image-height-mean 512 \
+    --image-height-stddev 30 \
+    --image-format png \
+    --synthetic-input-tokens-mean 100 \
+    --synthetic-input-tokens-stddev 0 \
+    --measurement-interval 8000 \
+    --goodput time_to_first_tokens:350 inter_token_latencies:17.5 request_latencies:3200 \
+    --streaming
+```
+Example Output
+```
+                                         LLM Metrics                                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Time to first token (ms) │   356.68 │   323.48 │   384.56 │   384.33 │   382.28 │   376.36 │
+│ Inter token latency (ms) │    17.61 │    17.03 │    18.13 │    18.10 │    17.83 │    17.78 │
+│     Request latency (ms) │ 2,794.33 │ 1,872.50 │ 4,978.38 │ 4,840.64 │ 3,600.96 │ 2,993.10 │
+│   Output sequence length │   139.70 │    87.00 │   269.00 │   260.09 │   179.90 │   153.75 │
+│    Input sequence length │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │
+└──────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+Output token throughput (per sec): 49.70
+Request throughput (per sec): 0.36
+Request goodput (per sec): 0.04
+```
+### Run GenAI-Perf with invalid goodput constraints
+
+```bash
+genai-perf profile \
+    -m llava-hf/llava-v1.6-mistral-7b-hf \
+    --service-kind openai \
+    --endpoint-type vision \
+    --image-width-mean 512 \
+    --image-width-stddev 30 \
+    --image-height-mean 512 \
+    --image-height-stddev 30 \
+    --image-format png \
+    --synthetic-input-tokens-mean 100 \
+    --synthetic-input-tokens-stddev 0 \
+    --measurement-interval 8000 \
+    --goodput time_to_first_tokens:400 inter_token_latencies:50 request_latencies:5000 output_token_throughputs_per_requestd:6 \
+    --streaming
+```
+Example Output
+```
+2024-08-13 11:17 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:90 - Invalid SLOs found: output_token_throughputs_per_requestd. The goodput will be N/A. Valid SLOs are: time_to_first_token, inter_token_latency, request_latency, output_token_throughput_per_request in plural forms.
+                                         LLM Metrics                                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Time to first token (ms) │   372.74 │   346.39 │   397.60 │   396.96 │   391.16 │   386.53 │
+│ Inter token latency (ms) │    17.56 │    17.11 │    18.15 │    18.14 │    17.99 │    17.85 │
+│     Request latency (ms) │ 2,723.72 │ 2,146.69 │ 3,471.17 │ 3,467.55 │ 3,434.91 │ 3,082.90 │
+│   Output sequence length │   134.70 │    98.00 │   172.00 │   172.00 │   172.00 │   153.00 │
+│    Input sequence length │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │
+└──────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+Output token throughput (per sec): 49.15
+Request throughput (per sec): 0.36
+Request goodput (per sec): N/A
+```
+
