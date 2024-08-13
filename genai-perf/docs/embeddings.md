@@ -73,8 +73,8 @@ genai-perf profile \
 * `--service-kind openai` is to specify that the server type is OpenAI-API
   compatible
 * `--endpoint-type embeddings` is to specify that the sent requests should be
-  formatted to follow the [embeddings API]
-(https://platform.openai.com/docs/api-reference/embeddings/create)
+  formatted to follow the [embeddings
+  API](https://platform.openai.com/docs/api-reference/embeddings/create)
 * `--batch-size 2` is to specify that each request will contain the inputs for 2
   individual inferences, making a batch size of 2
 * `--input-file embeddings.jsonl` is to specify the input data to be used for
