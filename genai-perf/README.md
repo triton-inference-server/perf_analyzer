@@ -341,6 +341,7 @@ inference. Other modes such as the [embeddings](docs/embeddings.md) and
 [rankings](docs/rankings.md) endpoints support client-side batching, where
 `--batch-size N` means that each request sent will include the inputs for `N`
 separate inferences, allowing them to be processed together.
+
 </br>
 
 <!--
