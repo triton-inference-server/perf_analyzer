@@ -48,9 +48,11 @@ class TestMetrics:
             request_latencies=[3, 44],
         )
         sys_metrics = m.system_metrics
-        assert len(sys_metrics) == 1
+        assert len(sys_metrics) == 2
         assert sys_metrics[0].name == "request_throughput"
         assert sys_metrics[0].unit == "per sec"
+        assert sys_metrics[1].name == "request_goodput"
+        assert sys_metrics[1].unit == "per sec"
 
     def test_metrics_get_base_name(self) -> None:
         """Test get_base_name method in Metrics class."""

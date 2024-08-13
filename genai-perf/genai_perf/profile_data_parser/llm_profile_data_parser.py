@@ -31,7 +31,7 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from genai_perf.goodput_reporter.llm_goodput_reporter import LLMGoodputReporter
+from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -74,7 +74,7 @@ class LLMProfileDataParser(ProfileDataParser):
     ) -> None:
         self._tokenizer = tokenizer
         self._goodput_constraints = goodput_constraints
-        super().__init__(filename)
+        super().__init__(filename, goodput_constraints)
 
     def _parse_requests(self, requests: dict) -> Metrics:
         """Parse each requests in profile export data to extract key metrics."""
@@ -166,14 +166,14 @@ class LLMProfileDataParser(ProfileDataParser):
 
         # request goodput
         if self._goodput_constraints:
-            llm_goodput_reporter = LLMGoodputReporter(
+            llm_goodput_calculator = LLMGoodputCalculator(
                 self._goodput_constraints,
                 llm_metric,
                 benchmark_duration,
             )
 
-            llm_goodput_reporter.report()
-            llm_metric.request_goodputs = llm_goodput_reporter.goodput
+            llm_goodput_calculator.compute()
+            llm_metric.request_goodputs = llm_goodput_calculator.goodput
 
         return llm_metric
 

@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Union
 
 
 @dataclass
@@ -39,25 +39,33 @@ class MetricMetadata:
 class Metrics:
     """A base class that contains common request level metrics."""
 
-    REQUEST_METRICS = [
+    REQUEST_TIME_METRICS = [
         MetricMetadata("request_latency", "ms"),
     ]
+
+    REQUEST_THROUGHPUT_METRICS = []
+
+    REQUEST_METRICS = REQUEST_TIME_METRICS + REQUEST_THROUGHPUT_METRICS
 
     SYSTEM_METRICS = [
         # (TMA-1977) Make the unit consistent with statistics dict (e.g. tokens/sec)
         MetricMetadata("request_throughput", "per sec"),
+        MetricMetadata("request_goodput", "per sec"),
     ]
 
     def __init__(
         self,
         request_throughputs: List[float] = [],
         request_latencies: List[int] = [],
+        request_goodputs: Union[List[float], None] = [],
     ) -> None:
         self.request_throughputs = request_throughputs
         self.request_latencies = request_latencies
+        self.request_goodputs = request_goodputs
         self._base_names = {
             "request_throughputs": "request_throughput",
             "request_latencies": "request_latency",
+            "request_goodputs": "request_goodput",
         }
 
     def __repr__(self):
@@ -74,6 +82,14 @@ class Metrics:
     @property
     def system_metrics(self) -> List[MetricMetadata]:
         return self.SYSTEM_METRICS
+
+    @property
+    def request_time_metrics(self) -> List[MetricMetadata]:
+        return self.REQUEST_TIME_METRICS
+    
+    @property
+    def request_throughput_metrics(self) -> List[MetricMetadata]:
+        return self.REQUEST_THROUGHPUT_METRICS
 
     @property
     def data(self) -> dict:

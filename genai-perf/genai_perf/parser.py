@@ -248,23 +248,14 @@ def _check_goodput_args(args):
     """
     Parse and check goodput args
     """
-    '''
     if args.goodput:
         args.goodput = parse_goodput(args.goodput)
-        if 'ttft' not in args.goodput and 'itl' not in args.goodput:
-            raise argparse.ArgumentTypeError(
-                f"Invalid goodput constraints format: {args.goodput}. "
-                "Expected format is 'ttft:x itl:y', where x and y are numbers in milliseconds."
-            )
-        if 'ttft' not in args.goodput:
-            args.goodput['ttft'] = 1e9
-        if 'itl' not in args.goodput:
-            args.goodput['itl'] = 1e9
-        if args.goodput['ttft'] < 0 or args.goodput['itl'] < 0:
-            raise ValueError("Goodput constraint values must be non-negative.")
-    '''
-    if args.goodput:
-        args.goodput = parse_goodput(args.goodput)
+        for target_metric, target_val in args.goodput.items():
+            if target_val < 0:
+                raise ValueError(
+                    f"Invalid value found, {target_metric}: {target_val}. "
+                    f"The SLO value should be non-negative. "
+                )
     return args
 
 def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
@@ -315,8 +306,10 @@ def parse_goodput(values):
             constraints[target_metric] = float(target_val)
     except ValueError:
         raise argparse.ArgumentTypeError(
-            f"Invalid goodput constraints format: {values}. "
-            "Expected format is 'ttft:x itl:y', where x and y are numbers in milliseconds."
+            f"Invalid format for goodput constraints: {values}. "
+            f"The expected format is 'key:value' pairs, where the key should be a "
+            f"valid service level objective name and the value should be a number "
+            f"representing either milliseconds or a throughput value per second."
         )
     return constraints
 
@@ -693,8 +686,12 @@ def _add_goodput_args(parser):
         "-g",
         nargs='+',
         required=False,
-        help="The goodput constraints are in the format of 'ttft:x itl:y', "
-        "where x and y are numbers in milliseconds."
+        help="An option to provide Service Level Objectives to compute goodput. "
+        "Specify goodput constraints as 'key:value' pairs, where the key is a "
+        "valid Service Level Objective name, and the value is a number representing "
+        "either milliseconds or a throughput value per second. For example, "
+        "'request_latencies:300' or 'output_token_throughputs_per_request:600'. "
+        "Multiple key:value pairs can be provided, separated by spaces. "
     )
 
 def get_extra_inputs_as_dict(args: argparse.Namespace) -> dict:

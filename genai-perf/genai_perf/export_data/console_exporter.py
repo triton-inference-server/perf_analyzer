@@ -66,8 +66,15 @@ class ConsoleExporter:
         # System metrics are printed after the table
         for metric in self._metrics.system_metrics:
             line = metric.name.replace("_", " ").capitalize()
-            if metric.name == "request_goodput" and not self._args.goodput:
-                continue
+            if metric.name == "request_goodput":
+                if not self._args.goodput:
+                    continue
+                value = self._stats[metric.name]["avg"]
+                if value is None:
+                    value = "N/A"
+                    line += f" ({metric.unit}): {value}"
+                    print(line)
+                    continue
             value = self._stats[metric.name]["avg"]
             line += f" ({metric.unit}): {value:.2f}"
             print(line)

@@ -28,12 +28,12 @@
 
 
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from genai_perf.metrics import Metrics
 
-class GoodputReporter(ABC):
-    """A base class to report goodput according to SLOs."""
+class GoodputCalculator(ABC):
+    """A base class to calculate goodput according to SLOs."""
 
     MS_TO_NS_CONVERSION = 1e6
     
@@ -46,46 +46,48 @@ class GoodputReporter(ABC):
         self._goodput_constraints = goodput_constraints
         self._benchmark_duration = benchmark_duration
         self._metric = metric
-        self._goodput = None
+        self._goodput = "N/A"
     
-    def report(self) -> None:
-        """Template method to report goodput. Subclasses should not modify this method.
+    def compute(self) -> None:
         """
-        self.set_valid_slos()
-        self.combine_requests_metric_values()
-        self.count_good_reqs()
-        self.compute_goodput()
+        Compute the goodput result.
+
+        The GoodputCalculator class sets valid SLOs from users' input, aggregates
+        request metric values, counts the number of good requests, and calculates
+        the final goodput.
+        """
+        self._set_valid_slos()
+        self._combine_requests_metric_values()
+        good_count = self._count_good_reqs()
+        self._compute_goodput(good_count)
     
     @abstractmethod
-    def set_valid_slos(self) -> None:
-        """Check user's Service Level Objectives (SLOs) inputs. 
+    def _set_valid_slos(self) -> None:
+        """
+        Check users' Service Level Objectives (SLOs) inputs. 
         Set the valid ones while logging the invalid ones. 
-        To be implemented by subclasses.
         """
         pass
     
     @abstractmethod
-    def combine_requests_metric_values(self) -> None:
-        """Combine metric values at per request level.
-        Only the metrics from valid SLOs.  
-        To be implemented by subclasses.
+    def _combine_requests_metric_values(self) -> None:
+        """
+        Combine values from the metrics that match with the valid SLOs at a
+        per request level.  
         """
         pass
     
     @abstractmethod
-    def count_good_reqs(self) -> None:
-        """Count the number of good requests according to SLOs. 
-        To be implemented by subclasses.
-        """
+    def _count_good_reqs(self) -> Optional[int]:
+        """Count the number of good requests according to SLOs."""
         pass
     
     @abstractmethod
-    def compute_goodput(self) -> None:
-        """Compute the goodput. To be implemented by subclasses."""
+    def _compute_goodput(self, good_count) -> None:
+        """Compute the goodput."""
         pass
 
     @property
     def goodput(self) -> List[float]:
         return self._goodput
     
-

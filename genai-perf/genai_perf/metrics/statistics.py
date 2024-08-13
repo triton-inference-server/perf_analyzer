@@ -28,7 +28,7 @@
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -69,20 +69,29 @@ class Statistics:
                 self._calculate_minmax(data, attr)
                 self._calculate_std(data, attr)
 
-    def _should_skip(self, data: List[Union[int, float]], attr: str) -> bool:
+    def _should_skip(self, data: Optional[List[Union[int, float]]], attr: str) -> bool:
         """Checks if some metrics should be skipped."""
         # No data points
-        if len(data) == 0:
+        if data is None:
+            return False
+        elif len(data) == 0:
             return True
         # Skip ITL when non-streaming (all zero)
         elif attr == "inter_token_latencies" and sum(data) == 0:
             return True
         return False
 
-    def _calculate_mean(self, data: List[Union[int, float]], attr: str) -> None:
-        avg = np.mean(data)
-        setattr(self, "avg_" + attr, avg)
-        self._stats_dict[attr]["avg"] = float(avg)
+    def _calculate_mean(
+            self, data: Optional[List[Union[int, float]]], attr: str
+    ) -> None:
+        if data is None:
+            avg = None
+            setattr(self, "avg_" + attr, avg)
+            self._stats_dict[attr]["avg"] = avg
+        else:
+            avg = np.mean(data)
+            setattr(self, "avg_" + attr, avg)
+            self._stats_dict[attr]["avg"] = float(avg)
 
     def _calculate_percentiles(self, data: List[Union[int, float]], attr: str) -> None:
         p25, p50, p75 = np.percentile(data, [25, 50, 75])
@@ -129,9 +138,7 @@ class Statistics:
     def _add_units(self, key) -> None:
         if self._is_time_metric(key):
             self._stats_dict[key]["unit"] = "ms"
-        elif key == "request_throughput":
-            self._stats_dict[key]["unit"] = "requests/sec"
-        elif key == "request_goodput":
+        elif key == "request_throughput" or key == "request_goodput":
             self._stats_dict[key]["unit"] = "requests/sec"
         elif key.startswith("output_token_throughput"):
             self._stats_dict[key]["unit"] = "tokens/sec"

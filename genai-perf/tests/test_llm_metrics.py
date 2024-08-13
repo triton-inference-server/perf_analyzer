@@ -74,9 +74,9 @@ class TestLLMMetrics:
         assert len(sys_metrics) == 3
         assert sys_metrics[0].name == "output_token_throughput"
         assert sys_metrics[0].unit == "per sec"
-        assert sys_metrics[1].name == "request_goodput"
+        assert sys_metrics[1].name == "request_throughput"
         assert sys_metrics[1].unit == "per sec"
-        assert sys_metrics[2].name == "request_throughput"
+        assert sys_metrics[2].name == "request_goodput"
         assert sys_metrics[2].unit == "per sec"
 
     def test_llm_metrics_get_base_name(self) -> None:

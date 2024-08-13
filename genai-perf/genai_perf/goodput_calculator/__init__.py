@@ -24,5 +24,5 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.goodput_reporter.llm_goodput_reporter import LLMGoodputReporter
-from genai_perf.goodput_reporter.goodput_reporter import GoodputReporter
+from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
+from genai_perf.goodput_calculator.goodput_calculator import GoodputCalculator
