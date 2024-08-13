@@ -134,8 +134,16 @@ class TestProfileDataParser:
             - [3 - 1, 5 - 2] = [2, 3]
         * request throughputs
             - [2 / (5e-9 - 1e-9)] = [5e8]
+        * request goodputs
+            - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
-        pd = ProfileDataParser(filename=Path("embedding_profile_export.json"))
+        test_goodput_constraints = {
+            "request_latencies": 2.5e-6 # ms
+        }
+        pd = ProfileDataParser(
+            filename=Path("embedding_profile_export.json"),
+            goodput_constraints=test_goodput_constraints,
+        )
 
         # experiment 1 statistics
         stats = pd.get_statistics(infer_mode="concurrency", load_level="10")
@@ -153,6 +161,7 @@ class TestProfileDataParser:
         assert stats_dict["request_latency"]["std"] == np.std([2, 3])  # type: ignore
 
         assert stats_dict["request_throughput"]["avg"] == pytest.approx(5e8)  # type: ignore
+        assert stats_dict["request_goodput"]["avg"] == pytest.approx(2.5e8)  # type: ignore
 
     # ================================================
     # RANKINGS API
@@ -204,8 +213,16 @@ class TestProfileDataParser:
             - [3 - 1, 5 - 2] = [2, 3]
         * request throughputs
             - [2 / (5e-9 - 1e-9)] = [5e8]
+        * request goodputs
+            - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
-        pd = ProfileDataParser(filename=Path("ranking_profile_export.json"))
+        test_goodput_constraints = {
+            "request_latencies": 2.5e-6 # ms
+        }
+        pd = ProfileDataParser(
+            filename=Path("ranking_profile_export.json"),
+            goodput_constraints=test_goodput_constraints,
+        )
 
         # experiment 1 statistics
         stats = pd.get_statistics(infer_mode="concurrency", load_level="10")
@@ -223,6 +240,7 @@ class TestProfileDataParser:
         assert stats_dict["request_latency"]["std"] == np.std([2, 3])  # type: ignore
 
         assert stats_dict["request_throughput"]["avg"] == pytest.approx(5e8)  # type: ignore
+        assert stats_dict["request_goodput"]["avg"] == pytest.approx(2.5e8)  # type: ignore
 
     # ================================================
     # HUGGINGFACE RANKINGS API
@@ -276,8 +294,16 @@ class TestProfileDataParser:
             - [3 - 1, 5 - 2] = [2, 3]
         * request throughputs
             - [2 / (5e-9 - 1e-9)] = [5e8]
+        * request goodputs
+            - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
-        pd = ProfileDataParser(filename=Path("huggingface_ranking_profile_export.json"))
+        test_goodput_constraints = {
+            "request_latencies": 2.5e-6 # ms
+        }
+        pd = ProfileDataParser(
+            filename=Path("huggingface_ranking_profile_export.json"),
+            goodput_constraints=test_goodput_constraints,
+        )
 
         # experiment 1 statistics
         stats = pd.get_statistics(infer_mode="concurrency", load_level="10")
@@ -295,3 +321,4 @@ class TestProfileDataParser:
         assert stats_dict["request_latency"]["std"] == np.std([2, 3])  # type: ignore
 
         assert stats_dict["request_throughput"]["avg"] == pytest.approx(5e8)  # type: ignore
+        assert stats_dict["request_goodput"]["avg"] == pytest.approx(2.5e8)  # type: ignore

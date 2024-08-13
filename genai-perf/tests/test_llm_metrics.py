@@ -41,6 +41,7 @@ class TestLLMMetrics:
             output_token_throughputs_per_request=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
+            request_goodputs=[9.88, 10.22],
         )
         req_metrics = m.request_metrics
         assert len(req_metrics) == 6
@@ -68,6 +69,7 @@ class TestLLMMetrics:
             output_token_throughputs_per_request=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
+            request_goodputs=[9.88, 10.22],
         )
 
         sys_metrics = m.system_metrics
@@ -91,6 +93,7 @@ class TestLLMMetrics:
             output_token_throughputs_per_request=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
+            request_goodputs=[9.88, 10.22],
         )
         assert metrics.get_base_name("time_to_first_tokens") == "time_to_first_token"
         assert metrics.get_base_name("inter_token_latencies") == "inter_token_latency"
@@ -103,6 +106,9 @@ class TestLLMMetrics:
         )
         assert (
             metrics.get_base_name("input_sequence_lengths") == "input_sequence_length"
+        )
+        assert (
+            metrics.get_base_name("request_goodputs") == "request_goodput"
         )
         with pytest.raises(KeyError):
             metrics.get_base_name("hello1234")

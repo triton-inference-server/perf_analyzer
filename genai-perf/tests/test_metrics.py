@@ -35,6 +35,7 @@ class TestMetrics:
         m = Metrics(
             request_throughputs=[10.12, 11.33],
             request_latencies=[3, 44],
+            request_goodputs=[9.88, 10.22],
         )
         req_metrics = m.request_metrics
         assert len(req_metrics) == 1
@@ -46,6 +47,7 @@ class TestMetrics:
         m = Metrics(
             request_throughputs=[10.12, 11.33],
             request_latencies=[3, 44],
+            request_goodputs=[9.88, 10.22],
         )
         sys_metrics = m.system_metrics
         assert len(sys_metrics) == 2
@@ -59,8 +61,10 @@ class TestMetrics:
         metrics = Metrics(
             request_throughputs=[10.12, 11.33],
             request_latencies=[3, 44],
+            request_goodputs=[9.88, 10.22],
         )
         assert metrics.get_base_name("request_throughputs") == "request_throughput"
         assert metrics.get_base_name("request_latencies") == "request_latency"
+        assert metrics.get_base_name("request_goodputs") == "request_goodput"
         with pytest.raises(KeyError):
             metrics.get_base_name("hello1234")
