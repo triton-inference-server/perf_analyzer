@@ -138,7 +138,7 @@ class TestProfileDataParser:
             - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
         test_goodput_constraints = {
-            "request_latencies": 2.5e-6 # ms
+            "request_latency": 2.5e-6 # ms
         }
         pd = ProfileDataParser(
             filename=Path("embedding_profile_export.json"),
@@ -153,6 +153,7 @@ class TestProfileDataParser:
 
         assert metrics.request_latencies == [2, 3]
         assert metrics.request_throughputs == [pytest.approx(5e8)]
+        assert metrics.request_goodputs == [pytest.approx(2.5e8)]
 
         assert stats_dict["request_latency"]["avg"] == pytest.approx(2.5)  # type: ignore
         assert stats_dict["request_latency"]["p50"] == pytest.approx(2.5)  # type: ignore
@@ -217,7 +218,7 @@ class TestProfileDataParser:
             - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
         test_goodput_constraints = {
-            "request_latencies": 2.5e-6 # ms
+            "request_latency": 2.5e-6 # ms
         }
         pd = ProfileDataParser(
             filename=Path("ranking_profile_export.json"),
@@ -232,6 +233,7 @@ class TestProfileDataParser:
 
         assert metrics.request_latencies == [2, 3]
         assert metrics.request_throughputs == [pytest.approx(5e8)]
+        assert metrics.request_goodputs == [pytest.approx(2.5e8)]
 
         assert stats_dict["request_latency"]["avg"] == pytest.approx(2.5)  # type: ignore
         assert stats_dict["request_latency"]["p50"] == pytest.approx(2.5)  # type: ignore
@@ -298,7 +300,7 @@ class TestProfileDataParser:
             - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
         test_goodput_constraints = {
-            "request_latencies": 2.5e-6 # ms
+            "request_latency": 2.5e-6 # ms
         }
         pd = ProfileDataParser(
             filename=Path("huggingface_ranking_profile_export.json"),
@@ -313,6 +315,7 @@ class TestProfileDataParser:
 
         assert metrics.request_latencies == [2, 3]
         assert metrics.request_throughputs == [pytest.approx(5e8)]
+        assert metrics.request_goodputs == [pytest.approx(2.5e8)]
 
         assert stats_dict["request_latency"]["avg"] == pytest.approx(2.5)  # type: ignore
         assert stats_dict["request_latency"]["p50"] == pytest.approx(2.5)  # type: ignore

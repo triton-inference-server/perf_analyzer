@@ -36,7 +36,8 @@ class GoodputCalculator(ABC):
     """A base class to calculate goodput according to SLOs."""
 
     MS_TO_NS_CONVERSION = 1e6
-    
+    INVALID_GOODPUT = [-1]
+
     def __init__(
             self,
             goodput_constraints: Dict[str, float],
@@ -46,7 +47,10 @@ class GoodputCalculator(ABC):
         self._goodput_constraints = goodput_constraints
         self._benchmark_duration = benchmark_duration
         self._metric = metric
-        self._goodput = "N/A"
+        self._goodput = None
+        self._slo_base_names = {
+            "request_latency": "request_latencies",
+        }
     
     def compute(self) -> None:
         """
@@ -90,3 +94,10 @@ class GoodputCalculator(ABC):
     @property
     def goodput(self) -> List[float]:
         return self._goodput
+
+    def get_slo_base_name(self, metric_name: str) -> str:
+        """Returns the plural name of a given metric."""
+        if metric_name in self._slo_base_names:
+            return self._slo_base_names[metric_name]
+        else:
+            raise KeyError(f"No metric named '{metric_name}' exists.")

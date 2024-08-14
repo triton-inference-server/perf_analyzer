@@ -24,20 +24,35 @@ OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
+# Context
+
+Goodput, defined as the number of completed requests per second that meet the Service Level Objectives (SLOs), provides an enhanced measure of AI serving performance by accounting for both cost efficiency and user satisfaction.
+
+GenAI-Perf is continually evolving to meet the demands of next-generation GenAI workflows. We are excited to introduce our latest feature: goodput support for measuring Service Level Objectives.
+
+This new feature empowers you to more precisely evaluate the efficiency and effectiveness of your AI models and services. By measuring goodput, GenAI-Perf delivers deeper insights into how well your services adhere to your defined SLOs, enabling you to optimize both performance and cost efficiency while prioritizing the user experience.
+
 # Tutorials
 
-## Profile GPT2 Goodput running on Triton + vLLM <a id="triton-vllm"></a>
+This is a tutorial on how to use our goodput feature by examples.
+## Examples
+
+- [LLM Examples](#LLM)
+
+- [Embedding Model Examples](#embeddings)
+
+- [Ranking Model Examples](#rankings)
+
+- [VLM Examples](#VLM)
+
+## Profile GPT2 Goodput running on Triton + vLLM <a id="LLM"></a>
 
 ### Run GPT2 on Triton Inference Server using vLLM
-
-<details>
-<summary>See instructions</summary>
 
 Run Triton Inference Server with vLLM backend container:
 
 ```bash
 export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
-
 
 docker run -it --net=host --gpus=1 --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/tritonserver:${RELEASE}-vllm-python-py3
 
@@ -51,22 +66,9 @@ triton import -m gpt2 --backend vllm
 triton start
 ```
 
-</details>
-
-### Run GenAI-Perf
-
-Run GenAI-Perf from Triton Inference Server SDK container:
-
-```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
-
-docker run -it --net=host --gpus=1 nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-```
-
 ### Run GenAI-Perf with valid goodput constraints
 
 ```bash
-# Valid goodput constraints
 genai-perf profile \
   -m gpt2 \
   --service-kind triton \
@@ -84,7 +86,7 @@ genai-perf profile \
   --measurement-interval 800 \
   --profile-export-file my_profile_export.json \
   --url localhost:8001 \
-  --goodput time_to_first_tokens:8 inter_token_latencies:2 request_latencies:300
+  --goodput time_to_first_token:8 inter_token_latency:2 request_latency:300
 ```
 
 Example output:
@@ -94,21 +96,20 @@ Example output:
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
-│ Time to first token (ms) │   5.95 │   3.96 │  17.73 │  17.72 │   8.00 │   5.01 │
-│ Inter token latency (ms) │   1.67 │   1.46 │   1.98 │   1.95 │   1.80 │   1.72 │
-│     Request latency (ms) │ 191.52 │ 176.96 │ 212.54 │ 212.54 │ 210.86 │ 196.97 │
-│   Output sequence length │ 112.27 │ 104.00 │ 124.00 │ 123.71 │ 119.00 │ 115.00 │
+│ Time to first token (ms) │   5.50 │   3.78 │  19.25 │  19.20 │   5.86 │   4.98 │
+│ Inter token latency (ms) │   1.52 │   1.35 │   1.67 │   1.66 │   1.62 │   1.58 │
+│     Request latency (ms) │ 176.02 │ 165.97 │ 197.03 │ 196.99 │ 181.80 │ 177.86 │
+│   Output sequence length │ 113.34 │ 107.00 │ 127.00 │ 125.14 │ 118.00 │ 116.00 │
 │    Input sequence length │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │
 └──────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
-Output token throughput (per sec): 1171.61
-Request throughput (per sec): 10.44
-Request goodput (per sec): 9.39
+Output token throughput (per sec): 1287.08
+Request throughput (per sec): 11.36
+Request goodput (per sec): 10.65
 ```
 
 ### Run GenAI-Perf with invalid goodput constraints
 
 ```bash
-# Invalid goodput constraints
 genai-perf profile \
   -m gpt2 \
   --service-kind triton \
@@ -132,29 +133,25 @@ genai-perf profile \
 Example output:
 
 ```
-2024-08-12 17:03 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:90 - 
-Invalid SLOs found: output_token_throughputs_per_requesdt. The goodput will be N/A. 
-Valid SLOs are: time_to_first_token, inter_token_latency, request_latency, 
-output_token_throughput_per_request in plural forms.
+2024-08-14 15:18 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: time_to_first_tokens, inter_token_latencies, output_token_throughputs_per_requesdt. The goodput will be -1. Valid SLOs are: time_to_first_token, inter_token_latency, request_latency, output_token_throughput_per_request.
                                    LLM Metrics                                    
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
-│ Time to first token (ms) │   5.52 │   3.91 │  21.72 │  21.62 │   5.94 │   4.98 │
-│ Inter token latency (ms) │   1.53 │   1.29 │   1.79 │   1.78 │   1.59 │   1.56 │
-│     Request latency (ms) │ 176.91 │ 170.80 │ 214.56 │ 214.49 │ 179.84 │ 176.55 │
-│   Output sequence length │ 113.47 │ 107.00 │ 130.00 │ 127.21 │ 119.80 │ 116.00 │
+│ Time to first token (ms) │   5.19 │   3.88 │  16.79 │  16.77 │   5.94 │   4.96 │
+│ Inter token latency (ms) │   1.56 │   1.44 │   1.69 │   1.68 │   1.63 │   1.60 │
+│     Request latency (ms) │ 176.93 │ 170.95 │ 197.70 │ 197.68 │ 177.86 │ 176.21 │
+│   Output sequence length │ 111.47 │ 103.00 │ 123.00 │ 122.38 │ 118.80 │ 114.00 │
 │    Input sequence length │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │
 └──────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
-Output token throughput (per sec): 1282.33
+Output token throughput (per sec): 1259.65
 Request throughput (per sec): 11.30
-Request goodput (per sec): N/A
+Request goodput (per sec): -1.00
 ```
 
 ### Run GenAI-Perf with no goodput constraints
 
 ```bash
-# No goodput constraints
 genai-perf profile \
   -m gpt2 \
   --service-kind triton \
@@ -181,17 +178,17 @@ Example output:
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
-│ Time to first token (ms) │   6.87 │   4.83 │  24.95 │  24.95 │   7.09 │   5.93 │
-│ Inter token latency (ms) │   1.84 │   1.48 │   2.85 │   2.77 │   1.96 │   1.84 │
-│     Request latency (ms) │ 210.63 │ 192.89 │ 329.89 │ 329.88 │ 210.44 │ 206.05 │
-│   Output sequence length │ 112.19 │ 102.00 │ 140.00 │ 135.50 │ 119.00 │ 113.00 │
+│ Time to first token (ms) │   6.24 │   4.82 │  21.70 │  21.69 │   6.24 │   5.00 │
+│ Inter token latency (ms) │   1.70 │   1.47 │   1.85 │   1.83 │   1.79 │   1.76 │
+│     Request latency (ms) │ 195.38 │ 183.89 │ 215.47 │ 215.46 │ 198.31 │ 197.22 │
+│   Output sequence length │ 112.46 │ 104.00 │ 131.00 │ 128.84 │ 119.30 │ 114.00 │
 │    Input sequence length │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │
 └──────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
-Output token throughput (per sec): 1065.01
-Request throughput (per sec): 9.49
+Output token throughput (per sec): 1150.71
+Request throughput (per sec): 10.23
 ```
 
-## Profile Embeddings Models Goodput with GenAI-Perf
+## Profile Embeddings Models Goodput with GenAI-Perf <a id="embeddings"></a>
 
 ## Create a Sample Embeddings Input File
 
@@ -213,6 +210,7 @@ This will generate a file named embeddings.jsonl with the following content:
 ```
 
 ## Start an OpenAI Embeddings-Compatible Server
+
 To start an OpenAI embeddings-compatible server, run the following command:
 ```bash
 docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model intfloat/e5-mistral-7b-instruct --dtype float16 --max-model-len 1024
@@ -224,7 +222,6 @@ To profile embeddings models using GenAI-Perf, use the following command:
 ### Run GenAI-Perf with no goodput constraints
 
 ```bash
-# No goodput constraints
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
@@ -236,19 +233,18 @@ genai-perf profile \
 Example output:
 
 ```
-                           Embeddings Metrics                           
-┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
-┃            Statistic ┃   avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
-│ Request latency (ms) │ 22.54 │ 22.02 │ 31.68 │ 23.74 │ 22.83 │ 22.58 │
-└──────────────────────┴───────┴───────┴───────┴───────┴───────┴───────┘
-Request throughput (per sec): 44.16
+                           Embeddings Metrics                            
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃            Statistic ┃   avg ┃   min ┃    max ┃   p99 ┃   p90 ┃   p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ Request latency (ms) │ 23.51 │ 21.84 │ 200.79 │ 23.17 │ 22.70 │ 22.47 │
+└──────────────────────┴───────┴───────┴────────┴───────┴───────┴───────┘
+Request throughput (per sec): 42.39
 ```
 
 ### Run GenAI-Perf with valid goodput constraints
 
 ```bash
-# Valid goodput constraints
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
@@ -256,7 +252,7 @@ genai-perf profile \
     --batch-size 2 \
     --input-file embeddings.jsonl \
     --measurement-interval 1000 \
-    --goodput request_latencies:22.5
+    --goodput request_latency:22.5
 ```
 Example output:
 
@@ -265,16 +261,15 @@ Example output:
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
 ┃            Statistic ┃   avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
-│ Request latency (ms) │ 22.57 │ 22.11 │ 31.78 │ 24.06 │ 22.86 │ 22.56 │
+│ Request latency (ms) │ 22.23 │ 21.67 │ 31.96 │ 22.90 │ 22.48 │ 22.31 │
 └──────────────────────┴───────┴───────┴───────┴───────┴───────┴───────┘
-Request throughput (per sec): 44.14
-Request goodput (per sec): 28.22
+Request throughput (per sec): 44.73
+Request goodput (per sec): 40.28
 ```
 
 ### Run GenAI-Perf with invalid goodput constraints
 
 ```bash
-# Invalid goodput constraints
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
@@ -287,18 +282,18 @@ genai-perf profile \
 Example output:
 
 ```
-2024-08-12 17:42 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:90 - Invalid SLOs found: time_to_first_tokens. The goodput will be N/A. Valid SLOs are: request_latency in plural forms.
+2024-08-14 15:24 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: request_latencies, time_to_first_tokens. The goodput will be -1. Valid SLOs are: request_latency.
                            Embeddings Metrics                           
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
 ┃            Statistic ┃   avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
-│ Request latency (ms) │ 22.49 │ 22.04 │ 31.82 │ 23.74 │ 22.82 │ 22.50 │
+│ Request latency (ms) │ 22.38 │ 21.89 │ 32.48 │ 22.94 │ 22.61 │ 22.46 │
 └──────────────────────┴───────┴───────┴───────┴───────┴───────┴───────┘
-Request throughput (per sec): 44.35
-Request goodput (per sec): N/A
+Request throughput (per sec): 44.50
+Request goodput (per sec): -1.00
 ```
 
-## Profile Ranking Models Goodput with GenAI-Perf
+## Profile Ranking Models Goodput with GenAI-Perf <a id="rankings"></a>
 
 GenAI-Perf allows you to profile ranking models compatible with Hugging Face's
 [Text Embeddings Inference's re-ranker API](https://huggingface.co/docs/text-embeddings-inference/en/quick_tour#re-rankers).
@@ -363,13 +358,13 @@ This command specifies the use of Hugging Face's ranking API with `--endpoint re
 Example output:
 
 ```
-                         Rankings Metrics                         
-┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
-┃            Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
-│ Request latency (ms) │ 3.31 │ 1.71 │ 9.34 │ 3.89 │ 3.64 │ 3.56 │
-└──────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘
-Request throughput (per sec): 300.12
+                         Rankings Metrics                          
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
+┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
+│ Request latency (ms) │ 3.20 │ 1.66 │ 21.72 │ 4.29 │ 3.49 │ 3.40 │
+└──────────────────────┴──────┴──────┴───────┴──────┴──────┴──────┘
+Request throughput (per sec): 308.70
 ```
 
 ### Run GenAI-Perf with valid goodput constraints
@@ -386,7 +381,7 @@ genai-perf profile \
     --extra-inputs rankings:tei \
     --batch-size 2 \
     --measurement-interval 1000 \
-    --goodput request_latencies:3.3
+    --goodput request_latency:3.3
 ```
 
 This command specifies the use of Hugging Face's ranking API with `--endpoint rerank` and `--extra-inputs rankings:tei`.
@@ -398,10 +393,10 @@ Example output:
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
 ┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
-│ Request latency (ms) │ 3.42 │ 1.77 │ 13.03 │ 4.59 │ 3.69 │ 3.59 │
+│ Request latency (ms) │ 3.17 │ 1.65 │ 11.67 │ 3.70 │ 3.46 │ 3.39 │
 └──────────────────────┴──────┴──────┴───────┴──────┴──────┴──────┘
-Request throughput (per sec): 291.76
-Request goodput (per sec): 30.01
+Request throughput (per sec): 313.41
+Request goodput (per sec): 128.37
 ```
 
 ### Run GenAI-Perf with invalid goodput constraints
@@ -426,18 +421,18 @@ This command specifies the use of Hugging Face's ranking API with `--endpoint re
 Example output:
 
 ```
-2024-08-12 20:52 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:90 - Invalid SLOs found: inter_token_latencies. The goodput will be N/A. Valid SLOs are: request_latency in plural forms.
+2024-08-14 15:26 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: request_latencies, inter_token_latencies. The goodput will be -1. Valid SLOs are: request_latency.
                          Rankings Metrics                          
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
 ┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
-│ Request latency (ms) │ 3.33 │ 1.72 │ 12.77 │ 3.83 │ 3.64 │ 3.56 │
+│ Request latency (ms) │ 3.16 │ 1.64 │ 13.15 │ 3.84 │ 3.48 │ 3.40 │
 └──────────────────────┴──────┴──────┴───────┴──────┴──────┴──────┘
-Request throughput (per sec): 296.33
-Request goodput (per sec): N/A
+Request throughput (per sec): 313.07
+Request goodput (per sec): -1.00
 ```
 
-## Profile Vision-Language Models Goodput with GenAI-Perf
+## Profile Vision-Language Models Goodput with GenAI-Perf <a id="VLM"></a>
 
 GenAI-Perf allows you to profile Vision-Language Models (VLM) running on
 [OpenAI Chat Completions API](https://platform.openai.com/docs/guides/chat-completions)-compatible server
@@ -470,20 +465,22 @@ genai-perf profile \
     --measurement-interval 8000 \
     --streaming
 ```
+
 Example Output
+
 ```
                                          LLM Metrics                                          
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
 ┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
-│ Time to first token (ms) │   351.20 │   327.85 │   373.22 │   373.21 │   373.14 │   368.56 │
-│ Inter token latency (ms) │    17.52 │    16.56 │    18.04 │    18.03 │    17.95 │    17.83 │
-│     Request latency (ms) │ 2,597.64 │ 1,943.21 │ 4,086.64 │ 4,016.24 │ 3,382.57 │ 2,602.77 │
-│   Output sequence length │   129.00 │    92.00 │   209.00 │   205.25 │   171.50 │   129.50 │
+│ Time to first token (ms) │   363.85 │   312.47 │   556.26 │   537.84 │   372.08 │   361.68 │
+│ Inter token latency (ms) │    17.66 │    16.96 │    18.56 │    18.51 │    18.11 │    17.87 │
+│     Request latency (ms) │ 2,516.98 │ 1,407.99 │ 3,826.30 │ 3,739.81 │ 2,961.44 │ 2,935.26 │
+│   Output sequence length │   123.00 │    58.00 │   193.00 │   188.70 │   150.00 │   148.00 │
 │    Input sequence length │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │
 └──────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
-Output token throughput (per sec): 49.37
-Request throughput (per sec): 0.38
+Output token throughput (per sec): 48.55
+Request throughput (per sec): 0.39
 ```
 ### Run GenAI-Perf with valid goodput constraints
 
@@ -500,23 +497,25 @@ genai-perf profile \
     --synthetic-input-tokens-mean 100 \
     --synthetic-input-tokens-stddev 0 \
     --measurement-interval 8000 \
-    --goodput time_to_first_tokens:350 inter_token_latencies:17.5 request_latencies:3200 \
+    --goodput time_to_first_token:350 inter_token_latency:17.5 request_latency:3200 \
     --streaming
 ```
+
 Example Output
+
 ```
-                                         LLM Metrics                                          
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
-┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
-│ Time to first token (ms) │   356.68 │   323.48 │   384.56 │   384.33 │   382.28 │   376.36 │
-│ Inter token latency (ms) │    17.61 │    17.03 │    18.13 │    18.10 │    17.83 │    17.78 │
-│     Request latency (ms) │ 2,794.33 │ 1,872.50 │ 4,978.38 │ 4,840.64 │ 3,600.96 │ 2,993.10 │
-│   Output sequence length │   139.70 │    87.00 │   269.00 │   260.09 │   179.90 │   153.75 │
-│    Input sequence length │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │
-└──────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
-Output token throughput (per sec): 49.70
-Request throughput (per sec): 0.36
+                                        LLM Metrics                                         
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃                Statistic ┃      avg ┃    min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│ Time to first token (ms) │   356.96 │ 323.30 │   386.87 │   386.30 │   381.25 │   371.97 │
+│ Inter token latency (ms) │    17.58 │  16.45 │    18.30 │    18.27 │    18.01 │    17.91 │
+│     Request latency (ms) │ 2,525.10 │ 752.85 │ 4,047.83 │ 3,990.77 │ 3,477.18 │ 3,037.24 │
+│   Output sequence length │   124.27 │  21.00 │   209.00 │   205.60 │   175.00 │   151.00 │
+│    Input sequence length │   100.00 │ 100.00 │   100.00 │   100.00 │   100.00 │   100.00 │
+└──────────────────────────┴──────────┴────────┴──────────┴──────────┴──────────┴──────────┘
+Output token throughput (per sec): 48.89
+Request throughput (per sec): 0.39
 Request goodput (per sec): 0.04
 ```
 ### Run GenAI-Perf with invalid goodput constraints
@@ -537,21 +536,23 @@ genai-perf profile \
     --goodput time_to_first_tokens:400 inter_token_latencies:50 request_latencies:5000 output_token_throughputs_per_requestd:6 \
     --streaming
 ```
+
 Example Output
+
 ```
-2024-08-13 11:17 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:90 - Invalid SLOs found: output_token_throughputs_per_requestd. The goodput will be N/A. Valid SLOs are: time_to_first_token, inter_token_latency, request_latency, output_token_throughput_per_request in plural forms.
+2024-08-14 15:34 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: time_to_first_tokens, inter_token_latencies, request_latencies, output_token_throughputs_per_requestd. The goodput will be -1. Valid SLOs are: time_to_first_token, inter_token_latency, request_latency, output_token_throughput_per_request.
                                          LLM Metrics                                          
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
 ┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
-│ Time to first token (ms) │   372.74 │   346.39 │   397.60 │   396.96 │   391.16 │   386.53 │
-│ Inter token latency (ms) │    17.56 │    17.11 │    18.15 │    18.14 │    17.99 │    17.85 │
-│     Request latency (ms) │ 2,723.72 │ 2,146.69 │ 3,471.17 │ 3,467.55 │ 3,434.91 │ 3,082.90 │
-│   Output sequence length │   134.70 │    98.00 │   172.00 │   172.00 │   172.00 │   153.00 │
+│ Time to first token (ms) │   367.03 │   340.40 │   403.55 │   402.81 │   396.20 │   380.03 │
+│ Inter token latency (ms) │    17.32 │    16.42 │    18.24 │    18.20 │    17.88 │    17.57 │
+│     Request latency (ms) │ 2,728.97 │ 1,325.37 │ 4,864.16 │ 4,798.33 │ 4,205.89 │ 2,896.01 │
+│   Output sequence length │   137.40 │    55.00 │   260.00 │   256.13 │   221.30 │   145.00 │
 │    Input sequence length │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │   100.00 │
 └──────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
-Output token throughput (per sec): 49.15
+Output token throughput (per sec): 50.04
 Request throughput (per sec): 0.36
-Request goodput (per sec): N/A
+Request goodput (per sec): -1.00
 ```
 

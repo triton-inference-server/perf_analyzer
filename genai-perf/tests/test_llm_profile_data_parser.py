@@ -114,11 +114,20 @@ class TestLLMProfileDataParser:
         * input sequence lengths
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
+        * request goodputs
+            - experiment 1: [1 / (11 - 1)] = [1 / 10]
+            - experiment 2: [0 / (18 - 3)] = [0]
         """
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        test_goodput_constraints = {
+            "time_to_first_token": 2.5e-6, # ms
+            "inter_token_latency": 2.5e-6, # ms
+            "output_token_throughput_per_request": 0.5e9, # s
+        }
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
             tokenizer=tokenizer,
+            goodput_constraints=test_goodput_constraints,
         )
 
         # experiment 1 metrics & statistics
@@ -136,6 +145,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [3, 6]
         assert metrics.input_sequence_lengths == [3, 4]
+        gp = [1 / ns_to_sec(10)]
+        assert metrics.request_goodputs == pytest.approx(gp)
 
         # Disable Pylance warnings for dynamically set attributes due to Statistics
         # not having strict attributes listed.
@@ -194,6 +205,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [4, 6]
         assert metrics.input_sequence_lengths == [3, 4]
+        gp = [0 / ns_to_sec(15)]
+        assert metrics.request_goodputs == pytest.approx(gp)
 
         assert stat["time_to_first_token"]["avg"] == pytest.approx(2.5)  # type: ignore
         assert stat["inter_token_latency"]["avg"] == pytest.approx(2.5)  # type: ignore
@@ -258,11 +271,19 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 6]
         * input sequence lengths
             - experiment 1: [3, 4]
+        * request goodputs
+            - experiment 1: [1 / (15 - 1)] = [1/14]
         """
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        test_goodput_constraints = {
+            "time_to_first_token": 5e-6, # ms
+            "inter_token_latency": 3.5e-6, # ms
+            "output_token_throughput_per_request": 0.4e9, # s
+        }
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
+            goodput_constraints=test_goodput_constraints,
         )
 
         # experiment 1 statistics
@@ -279,6 +300,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [3, 6]
         assert metrics.input_sequence_lengths == [3, 4]
+        gp = [1 / ns_to_sec(14)]
+        assert metrics.request_goodputs == pytest.approx(gp)
 
         assert stat["time_to_first_token"]["avg"] == pytest.approx(4.5)  # type: ignore
         assert stat["inter_token_latency"]["avg"] == pytest.approx(3)  # type: ignore
@@ -343,11 +366,19 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 6]
         * input sequence lengths
             - experiment 1: [3, 4]
+         * request goodputs
+            - experiment 1: [1 / (15 - 1)] = [1/14]
         """
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        test_goodput_constraints = {
+            "time_to_first_token": 5e-6, # ms
+            "inter_token_latency": 3.5e-6, # ms
+            "output_token_throughput_per_request": 0.4e9, # s
+        }
         pd = LLMProfileDataParser(
             filename=Path("openai_vlm_profile_export.json"),
             tokenizer=tokenizer,
+            goodput_constraints=test_goodput_constraints,
         )
 
         # experiment 1 statistics
@@ -364,6 +395,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [3, 6]
         assert metrics.input_sequence_lengths == [3, 4]
+        gp = [1 / ns_to_sec(14)]
+        assert metrics.request_goodputs == pytest.approx(gp)
 
         assert stat["time_to_first_token"]["avg"] == pytest.approx(4.5)  # type: ignore
         assert stat["inter_token_latency"]["avg"] == pytest.approx(3)  # type: ignore

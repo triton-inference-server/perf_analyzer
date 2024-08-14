@@ -43,6 +43,161 @@ class TestConsoleExporter:
             "--endpoint-type",
             "chat",
             "--streaming",
+            "--goodput",
+            "request_latency:100",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        metrics = LLMMetrics(
+            request_throughputs=[123],
+            request_latencies=[4, 5, 6],
+            time_to_first_tokens=[7, 8, 9],
+            inter_token_latencies=[10, 11, 12],
+            output_token_throughputs=[456],
+            output_sequence_lengths=[1, 2, 3],
+            input_sequence_lengths=[5, 6, 7],
+            request_goodputs=[100],
+        )
+        stats = Statistics(metrics=metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.metrics = stats.metrics
+        config.args = args
+
+        exporter = ConsoleExporter(config)
+        exporter.export()
+
+        expected_content = (
+            "                                LLM Metrics                                 \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓\n"
+            "┃                Statistic ┃   avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩\n"
+            "│ Time to first token (ms) │  8.00 │  7.00 │  9.00 │  8.98 │  8.80 │  8.50 │\n"
+            "│ Inter token latency (ms) │ 11.00 │ 10.00 │ 12.00 │ 11.98 │ 11.80 │ 11.50 │\n"
+            "│     Request latency (ms) │  5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│   Output sequence length │  2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│    Input sequence length │  6.00 │  5.00 │  7.00 │  6.98 │  6.80 │  6.50 │\n"
+            "└──────────────────────────┴───────┴───────┴───────┴───────┴───────┴───────┘\n"
+            "Output token throughput (per sec): 456.00\n"
+            "Request throughput (per sec): 123.00\n"
+            "Request goodput (per sec): 100.00\n"
+        )
+
+        returned_data = capsys.readouterr().out
+        assert returned_data == expected_content
+
+    def test_nonstreaming_llm_output(self, monkeypatch, capsys) -> None:
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+            "--goodput",
+            "request_latency:100",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        metrics = LLMMetrics(
+            request_throughputs=[123],
+            request_latencies=[4, 5, 6],
+            time_to_first_tokens=[4, 5, 6],  # same as request_latency
+            inter_token_latencies=[],  # no ITL
+            output_token_throughputs=[456],
+            output_sequence_lengths=[1, 2, 3],
+            input_sequence_lengths=[5, 6, 7],
+            request_goodputs=[100],
+        )
+        stats = Statistics(metrics=metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.metrics = stats.metrics
+        config.args = args
+
+        exporter = ConsoleExporter(config)
+        exporter.export()
+
+        # No TTFT and ITL in the output
+        expected_content = (
+            "                            LLM Metrics                             \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃              Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│   Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
+            "│ Output sequence length │ 2.00 │ 1.00 │ 3.00 │ 2.98 │ 2.80 │ 2.50 │\n"
+            "│  Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
+            "└────────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘\n"
+            "Output token throughput (per sec): 456.00\n"
+            "Request throughput (per sec): 123.00\n"
+            "Request goodput (per sec): 100.00\n"
+        )
+
+        returned_data = capsys.readouterr().out
+        assert returned_data == expected_content
+
+    def test_embedding_output(self, monkeypatch, capsys) -> None:
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "embeddings",
+            "--goodput",
+            "request_latency:100",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        metrics = Metrics(
+            request_throughputs=[123],
+            request_latencies=[4, 5, 6],
+            request_goodputs=[100],
+        )
+        stats = Statistics(metrics=metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.metrics = stats.metrics
+        config.args = args
+
+        exporter = ConsoleExporter(config)
+        exporter.export()
+
+        expected_content = (
+            "                        Embeddings Metrics                        \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃            Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│ Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
+            "└──────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘\n"
+            "Request throughput (per sec): 123.00\n"
+            "Request goodput (per sec): 100.00\n"
+        )
+
+        returned_data = capsys.readouterr().out
+        assert returned_data == expected_content
+
+    def test_no_goodput_output(self, monkeypatch, capsys) -> None:
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+            "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -83,8 +238,8 @@ class TestConsoleExporter:
 
         returned_data = capsys.readouterr().out
         assert returned_data == expected_content
-
-    def test_nonstreaming_llm_output(self, monkeypatch, capsys) -> None:
+    
+    def test_invalid_goodput_output(self, monkeypatch, capsys) -> None:
         argv = [
             "genai-perf",
             "profile",
@@ -94,6 +249,9 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             "chat",
+            "--streaming",
+            "--goodput",
+            "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -101,11 +259,12 @@ class TestConsoleExporter:
         metrics = LLMMetrics(
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
-            time_to_first_tokens=[4, 5, 6],  # same as request_latency
-            inter_token_latencies=[],  # no ITL
+            time_to_first_tokens=[7, 8, 9],
+            inter_token_latencies=[10, 11, 12],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
+            request_goodputs=[-1],
         )
         stats = Statistics(metrics=metrics)
 
@@ -117,59 +276,20 @@ class TestConsoleExporter:
         exporter = ConsoleExporter(config)
         exporter.export()
 
-        # No TTFT and ITL in the output
         expected_content = (
-            "                            LLM Metrics                             \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
-            "┃              Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
-            "│   Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
-            "│ Output sequence length │ 2.00 │ 1.00 │ 3.00 │ 2.98 │ 2.80 │ 2.50 │\n"
-            "│  Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
-            "└────────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘\n"
+            "                                LLM Metrics                                 \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓\n"
+            "┃                Statistic ┃   avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩\n"
+            "│ Time to first token (ms) │  8.00 │  7.00 │  9.00 │  8.98 │  8.80 │  8.50 │\n"
+            "│ Inter token latency (ms) │ 11.00 │ 10.00 │ 12.00 │ 11.98 │ 11.80 │ 11.50 │\n"
+            "│     Request latency (ms) │  5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│   Output sequence length │  2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│    Input sequence length │  6.00 │  5.00 │  7.00 │  6.98 │  6.80 │  6.50 │\n"
+            "└──────────────────────────┴───────┴───────┴───────┴───────┴───────┴───────┘\n"
             "Output token throughput (per sec): 456.00\n"
             "Request throughput (per sec): 123.00\n"
-        )
-
-        returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
-
-    def test_embedding_output(self, monkeypatch, capsys) -> None:
-        argv = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "model_name",
-            "--service-kind",
-            "openai",
-            "--endpoint-type",
-            "embeddings",
-        ]
-        monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
-
-        metrics = Metrics(
-            request_throughputs=[123],
-            request_latencies=[4, 5, 6],
-        )
-        stats = Statistics(metrics=metrics)
-
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
-
-        exporter = ConsoleExporter(config)
-        exporter.export()
-
-        expected_content = (
-            "                        Embeddings Metrics                        \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
-            "┃            Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
-            "│ Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
-            "└──────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘\n"
-            "Request throughput (per sec): 123.00\n"
+            "Request goodput (per sec): -1.00\n"
         )
 
         returned_data = capsys.readouterr().out

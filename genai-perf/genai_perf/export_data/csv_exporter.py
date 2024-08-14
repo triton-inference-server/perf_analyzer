@@ -97,11 +97,6 @@ class CsvExporter:
             if metric.name == "request_goodput":
                 if not self._args.goodput:
                     continue
-                value = self._stats[metric.name]["avg"]
-                if value is None:
-                    value = "N/A"
-                    csv_writer.writerow([metric_str, f"{value}"])
-                    continue
             value = self._stats[metric.name]["avg"]
             csv_writer.writerow([metric_str, f"{value:.2f}"])
 

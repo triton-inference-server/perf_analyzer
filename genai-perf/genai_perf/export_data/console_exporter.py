@@ -69,12 +69,6 @@ class ConsoleExporter:
             if metric.name == "request_goodput":
                 if not self._args.goodput:
                     continue
-                value = self._stats[metric.name]["avg"]
-                if value is None:
-                    value = "N/A"
-                    line += f" ({metric.unit}): {value}"
-                    print(line)
-                    continue
             value = self._stats[metric.name]["avg"]
             line += f" ({metric.unit}): {value:.2f}"
             print(line)
