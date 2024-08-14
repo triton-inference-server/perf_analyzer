@@ -112,6 +112,7 @@ def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
+    # TPA-274 - Integrate telemetry metrics with other metrics for export
     stats = data_parser.get_statistics(infer_mode, load_level)
     reporter = OutputReporter(stats, args)
     reporter.report_output()

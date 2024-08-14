@@ -38,6 +38,7 @@ from genai_perf.constants import (
     CNN_DAILY_MAIL,
     DEFAULT_ARTIFACT_DIR,
     DEFAULT_COMPARE_DIR,
+    DEFAULT_TRITON_METRICS_URL,
     OPEN_ORCA,
 )
 from genai_perf.llm_inputs.llm_inputs import (
@@ -765,9 +766,23 @@ def compare_handler(args: argparse.Namespace):
 
 
 def profile_handler(args, extra_args):
+    from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+        TritonTelemetryDataCollector,
+    )
     from genai_perf.wrapper import Profiler
 
-    Profiler.run(args=args, extra_args=extra_args)
+    telemetry_data_collector = None
+    if args.service_kind == "triton":
+        # TPA-275: pass server url as a CLI option in non-default case
+        telemetry_data_collector = TritonTelemetryDataCollector(
+            server_metrics_url=DEFAULT_TRITON_METRICS_URL
+        )
+
+    Profiler.run(
+        args=args,
+        extra_args=extra_args,
+        telemetry_data_collector=telemetry_data_collector,
+    )
 
 
 ### Parser Initialization ###
