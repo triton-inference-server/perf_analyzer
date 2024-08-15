@@ -43,7 +43,7 @@ class Metrics:
         MetricMetadata("request_latency", "ms"),
     ]
 
-    REQUEST_THROUGHPUT_METRICS = []
+    REQUEST_THROUGHPUT_METRICS: List[MetricMetadata] = []
 
     REQUEST_METRICS = REQUEST_TIME_METRICS + REQUEST_THROUGHPUT_METRICS
 
