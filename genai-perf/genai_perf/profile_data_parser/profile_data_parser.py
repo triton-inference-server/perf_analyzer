@@ -51,9 +51,9 @@ class ProfileDataParser:
     """
 
     def __init__(
-            self, 
-            filename: Path, 
-            goodput_constraints: Dict[str, float] = {},
+        self, 
+        filename: Path, 
+        goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._goodput_constraints = goodput_constraints
         data = load_json(filename)

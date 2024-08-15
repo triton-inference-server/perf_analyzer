@@ -359,7 +359,7 @@ class TestJsonExporter:
         }
       }
     """
-    
+
     def test_valid_goodput_json_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
@@ -617,7 +617,9 @@ class TestJsonExporter:
         config.extra_inputs = parser.get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args == json.loads(expected_valid_goodput_json_output)
+        assert json_exporter._stats_and_args == json.loads(
+            expected_valid_goodput_json_output
+        )
         json_exporter.export()
         expected_filename = "profile_export_genai_perf.json"
         written_data = [
@@ -630,7 +632,9 @@ class TestJsonExporter:
                 f"Expected file {expected_filename} not found in written data."
             )
         assert len(written_data) == 1
-        assert json.loads(written_data[0]) == json.loads(expected_valid_goodput_json_output)
+        assert json.loads(written_data[0]) == json.loads(
+            expected_valid_goodput_json_output
+        )
 
     def test_invalid_goodput_json_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -889,7 +893,9 @@ class TestJsonExporter:
         config.extra_inputs = parser.get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args == json.loads(expected_invalid_goodput_json_output)
+        assert json_exporter._stats_and_args == json.loads(
+            expected_invalid_goodput_json_output
+        )
         json_exporter.export()
         expected_filename = "profile_export_genai_perf.json"
         written_data = [
@@ -902,4 +908,6 @@ class TestJsonExporter:
                 f"Expected file {expected_filename} not found in written data."
             )
         assert len(written_data) == 1
-        assert json.loads(written_data[0]) == json.loads(expected_invalid_goodput_json_output)
+        assert json.loads(written_data[0]) == json.loads(
+            expected_invalid_goodput_json_output
+        )

@@ -137,9 +137,7 @@ class TestProfileDataParser:
         * request goodputs
             - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
-        test_goodput_constraints = {
-            "request_latency": 2.5e-6 # ms
-        }
+        test_goodput_constraints = {"request_latency": 2.5e-6}  # ms
         pd = ProfileDataParser(
             filename=Path("embedding_profile_export.json"),
             goodput_constraints=test_goodput_constraints,
@@ -217,9 +215,7 @@ class TestProfileDataParser:
         * request goodputs
             - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
-        test_goodput_constraints = {
-            "request_latency": 2.5e-6 # ms
-        }
+        test_goodput_constraints = {"request_latency": 2.5e-6}  # ms
         pd = ProfileDataParser(
             filename=Path("ranking_profile_export.json"),
             goodput_constraints=test_goodput_constraints,
@@ -299,9 +295,7 @@ class TestProfileDataParser:
         * request goodputs
             - [1 / (5e-9 - 1e-9)] = [2.5e8]
         """
-        test_goodput_constraints = {
-            "request_latency": 2.5e-6 # ms
-        }
+        test_goodput_constraints = {"request_latency": 2.5e-6}  # ms
         pd = ProfileDataParser(
             filename=Path("huggingface_ranking_profile_export.json"),
             goodput_constraints=test_goodput_constraints,

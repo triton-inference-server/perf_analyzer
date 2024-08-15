@@ -39,10 +39,10 @@ class GoodputCalculator(ABC):
     INVALID_GOODPUT = [-1]
 
     def __init__(
-            self,
-            goodput_constraints: Dict[str, float],
-            metric: Metrics,
-            benchmark_duration: float,
+        self,
+        goodput_constraints: Dict[str, float],
+        metric: Metrics,
+        benchmark_duration: float,
     ) -> None:
         self._goodput_constraints = goodput_constraints
         self._benchmark_duration = benchmark_duration
@@ -51,7 +51,7 @@ class GoodputCalculator(ABC):
         self._slo_base_names = {
             "request_latency": "request_latencies",
         }
-    
+
     def compute(self) -> None:
         """
         Compute the goodput result.
@@ -64,28 +64,28 @@ class GoodputCalculator(ABC):
         self._combine_requests_metric_values()
         good_count = self._count_good_reqs()
         self._compute_goodput(good_count)
-    
+
     @abstractmethod
     def _set_valid_slos(self) -> None:
         """
-        Check users' Service Level Objectives (SLOs) inputs. 
-        Set the valid ones while logging the invalid ones. 
+        Check users' Service Level Objectives (SLOs) inputs.
+        Set the valid ones while logging the invalid ones.
         """
         pass
-    
+
     @abstractmethod
     def _combine_requests_metric_values(self) -> None:
         """
         Combine values from the metrics that match with the valid SLOs at a
-        per request level.  
+        per request level.
         """
         pass
-    
+
     @abstractmethod
     def _count_good_reqs(self) -> Optional[int]:
         """Count the number of good requests according to SLOs."""
         pass
-    
+
     @abstractmethod
     def _compute_goodput(self, good_count) -> None:
         """Compute the goodput."""

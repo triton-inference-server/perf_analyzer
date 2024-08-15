@@ -120,9 +120,9 @@ class TestLLMProfileDataParser:
         """
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
         test_goodput_constraints = {
-            "time_to_first_token": 2.5e-6, # ms
-            "inter_token_latency": 2.5e-6, # ms
-            "output_token_throughput_per_request": 0.5e9, # s
+            "time_to_first_token": 2.5e-6,  # ms
+            "inter_token_latency": 2.5e-6,  # ms
+            "output_token_throughput_per_request": 0.5e9,  # s
         }
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
@@ -276,9 +276,9 @@ class TestLLMProfileDataParser:
         """
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
         test_goodput_constraints = {
-            "time_to_first_token": 5e-6, # ms
-            "inter_token_latency": 3.5e-6, # ms
-            "output_token_throughput_per_request": 0.4e9, # s
+            "time_to_first_token": 5e-6,  # ms
+            "inter_token_latency": 3.5e-6,  # ms
+            "output_token_throughput_per_request": 0.4e9,  # s
         }
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
@@ -371,9 +371,9 @@ class TestLLMProfileDataParser:
         """
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
         test_goodput_constraints = {
-            "time_to_first_token": 5e-6, # ms
-            "inter_token_latency": 3.5e-6, # ms
-            "output_token_throughput_per_request": 0.4e9, # s
+            "time_to_first_token": 5e-6,  # ms
+            "inter_token_latency": 3.5e-6,  # ms
+            "output_token_throughput_per_request": 0.4e9,  # s
         }
         pd = LLMProfileDataParser(
             filename=Path("openai_vlm_profile_export.json"),

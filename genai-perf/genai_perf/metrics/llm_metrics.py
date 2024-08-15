@@ -43,10 +43,14 @@ class LLMMetrics(Metrics):
         MetricMetadata("output_token_throughput_per_request", "tokens/sec"),
     ]
 
-    LLM_REQUEST_METRICS = LLM_REQUEST_TIME_METRICS + LLM_REQUEST_THROUGHPUT_METRICS + [
-        MetricMetadata("output_sequence_length", "tokens"),
-        MetricMetadata("input_sequence_length", "tokens"),
-    ]
+    LLM_REQUEST_METRICS = (
+        LLM_REQUEST_TIME_METRICS 
+        + LLM_REQUEST_THROUGHPUT_METRICS 
+        + [
+            MetricMetadata("output_sequence_length", "tokens"),
+            MetricMetadata("input_sequence_length", "tokens"),
+        ]
+    )
 
     LLM_SYSTEM_METRICS = [
         # (TMA-1977) Make the unit consistent with statistics dict (e.g. tokens/sec)
@@ -73,7 +77,7 @@ class LLMMetrics(Metrics):
         self.output_token_throughputs_per_request = output_token_throughputs_per_request
         self.output_sequence_lengths = output_sequence_lengths
         self.input_sequence_lengths = input_sequence_lengths
-        
+
         # Keeping chunked ITL (old) as a WAR to preserve visualization.
         # Excluded from data.
         self._chunked_inter_token_latencies = chunked_inter_token_latencies
@@ -113,12 +117,12 @@ class LLMMetrics(Metrics):
         # line to enable this order:
         # return base_metrics + self.LLM_SYSTEM_METRICS
         return self.LLM_SYSTEM_METRICS + base_metrics
-    
+
     @property
     def request_time_metrics(self) -> List[MetricMetadata]:
         base_metrics = super().request_time_metrics
         return self.LLM_REQUEST_TIME_METRICS + base_metrics
-    
+
     @property
     def request_throughput_metrics(self) -> List[MetricMetadata]:
         base_metrics = super().request_throughput_metrics

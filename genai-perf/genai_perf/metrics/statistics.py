@@ -28,7 +28,7 @@
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -69,7 +69,7 @@ class Statistics:
                 self._calculate_minmax(data, attr)
                 self._calculate_std(data, attr)
 
-    def _should_skip(self, data: Optional[List[Union[int, float]]], attr: str) -> bool:
+    def _should_skip(self, data: List[Union[int, float]], attr: str) -> bool:
         """Checks if some metrics should be skipped."""
         # No data points
         if len(data) == 0:
@@ -80,16 +80,11 @@ class Statistics:
         return False
 
     def _calculate_mean(
-            self, data: Optional[List[Union[int, float]]], attr: str
+        self, data: List[Union[int, float]], attr: str
     ) -> None:
-        if data is None:
-            avg = None
-            setattr(self, "avg_" + attr, avg)
-            self._stats_dict[attr]["avg"] = avg
-        else:
-            avg = np.mean(data)
-            setattr(self, "avg_" + attr, avg)
-            self._stats_dict[attr]["avg"] = float(avg)
+        avg = np.mean(data)
+        setattr(self, "avg_" + attr, avg)
+        self._stats_dict[attr]["avg"] = float(avg)
 
     def _calculate_percentiles(self, data: List[Union[int, float]], attr: str) -> None:
         p25, p50, p75 = np.percentile(data, [25, 50, 75])

@@ -31,13 +31,15 @@ from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalcu
 from genai_perf.metrics import Metrics
 from genai_perf.metrics.llm_metrics import LLMMetrics
 
+
 def ns_to_sec(ns: int) -> Union[int, float]:
     """Convert from nanosecond to second."""
     return ns / 1e9
 
+
 class TestLLMGoodputCalculator:
 
-    TEST_METRIC = Metrics(
+    TEST_METRIC = LLMMetrics(
         request_throughputs=[10.12, 11.33],
         request_latencies=[3, 44],
         request_goodputs=[9.88, 10.23],
@@ -45,9 +47,7 @@ class TestLLMGoodputCalculator:
 
     TEST_BENCHMARK_DURATION = 10
 
-    TEST_GOODPUT_CONSTRAINTS = {
-        "request_latency": 10e-6 # ms
-    }
+    TEST_GOODPUT_CONSTRAINTS = {"request_latency": 10e-6}  # ms
 
     def test_goodputcalculator_goodput(self) -> None:
         """Test goodput property."""
@@ -56,11 +56,11 @@ class TestLLMGoodputCalculator:
             metric=self.TEST_METRIC,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
-        
-        assert gc.goodput == None # before computing
+
+        assert gc.goodput == None  # before computing
         gc.compute()
-        assert gc.goodput == [0.1] # after computing
-        
+        assert gc.goodput == [0.1]  # after computing
+
     def test_goodputcalculator_get_slo_base_name(self) -> None:
         """Test get_slo_base_name method in GoodputCalculator class."""
         gc = LLMGoodputCalculator(
@@ -88,7 +88,7 @@ class TestLLMGoodputCalculator:
         * output_token_throughput_per_request: 0.5e9 s
 
         Benchmark durationfor experiment 1 and 2: 10 s
-        
+
         LLMMetrics
         * time to first tokens
             - experiment 1: [3 - 1, 4 - 2] = [2, 2]
@@ -103,53 +103,49 @@ class TestLLMGoodputCalculator:
         * output token throughputs per request
             - experiment 1: [3/(8 - 1), 6/(11 - 2)] = [3/7, 6/9]
             - experiment 2: [4/(18 - 5), 6/(11 - 3)] = [4/13, 6/8]
-        
+
         Request good counts according to constraints:
             - experiment 1: 1
             - experiment 2: 0
-        
+
         Request goodputs
             - experiment 1: [1 / 10] = [0.1]
             - experiment 2: [0 / 10] = [0]
         """
         test_goodput_constraints = {
-            "time_to_first_token": 2.5e-6, # ms
-            "inter_token_latency": 2.5e-6, # ms
-            "output_token_throughput_per_request": 0.5e9, # s
+            "time_to_first_token": 2.5e-6,  # ms
+            "inter_token_latency": 1.5e-6,  # ms
+            "output_token_throughput_per_request": 0.5e9,  # s
         }
 
         # experiment 1
         test_llm_metrics_1 = LLMMetrics(
             time_to_first_tokens=[2, 2],
-            inter_token_latencies=[2.5, 1.4],
-            output_token_throughputs_per_request=[
-                3 / ns_to_sec(7), 6 / ns_to_sec(9)
-            ],
+            inter_token_latencies=[2, 1],
+            output_token_throughputs_per_request=[3 / ns_to_sec(7), 6 / ns_to_sec(9)],
         )
-        
+
         gc_1 = LLMGoodputCalculator(
             goodput_constraints=test_goodput_constraints,
             metric=test_llm_metrics_1,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
-        assert gc_1.goodput == None # before computing
+        assert gc_1.goodput == None  # before computing
         gc_1.compute()
-        assert gc_1.goodput == [0.1] # after computing
+        assert gc_1.goodput == [0.1]  # after computing
 
         # experiment 2
         test_llm_metrics_2 = LLMMetrics(
             time_to_first_tokens=[2, 3],
-            inter_token_latencies=[3/11, 1],
-            output_token_throughputs_per_request=[
-                4 / ns_to_sec(13), 6 / ns_to_sec(8)
-            ],
+            inter_token_latencies=[4, 1],
+            output_token_throughputs_per_request=[4 / ns_to_sec(13), 6 / ns_to_sec(8)],
         )
-        
+
         gc_2 = LLMGoodputCalculator(
             goodput_constraints=test_goodput_constraints,
             metric=test_llm_metrics_2,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
-        assert gc_2.goodput == None # before computing
+        assert gc_2.goodput == None  # before computing
         gc_2.compute()
-        assert gc_2.goodput == [0.0] # after computing
+        assert gc_2.goodput == [0.0]  # after computing

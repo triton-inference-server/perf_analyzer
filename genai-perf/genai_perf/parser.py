@@ -244,6 +244,7 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
         args.concurrency = 1
     return args
 
+
 def _check_goodput_args(args):
     """
     Parse and check goodput args
@@ -257,6 +258,7 @@ def _check_goodput_args(args):
                     f"The SLO value should be non-negative. "
                 )
     return args
+
 
 def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
     """
@@ -298,6 +300,7 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
     args.profile_export_file = args.artifact_dir / args.profile_export_file
     return args
 
+
 def parse_goodput(values):
     constraints = {}
     try:
@@ -312,6 +315,7 @@ def parse_goodput(values):
             f"representing either milliseconds or a throughput value per second."
         )
     return constraints
+
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
     if args.input_dataset:
@@ -678,21 +682,23 @@ def _add_other_args(parser):
         help="An option to enable verbose mode.",
     )
 
+
 def _add_goodput_args(parser):
     goodput_group = parser.add_argument_group("Goodput")
 
     goodput_group.add_argument(
         "--goodput",
         "-g",
-        nargs='+',
+        nargs="+",
         required=False,
         help="An option to provide Service Level Objectives to compute goodput. "
         "Specify goodput constraints as 'key:value' pairs, where the key is a "
         "valid Service Level Objective name, and the value is a number representing "
         "either milliseconds or a throughput value per second. For example, "
         "'request_latency:300' or 'output_token_throughput_per_request:600'. "
-        "Multiple key:value pairs can be provided, separated by spaces. "
+        "Multiple key:value pairs can be provided, separated by spaces. ",
     )
+
 
 def get_extra_inputs_as_dict(args: argparse.Namespace) -> dict:
     request_inputs = {}

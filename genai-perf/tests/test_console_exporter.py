@@ -238,7 +238,7 @@ class TestConsoleExporter:
 
         returned_data = capsys.readouterr().out
         assert returned_data == expected_content
-    
+
     def test_invalid_goodput_output(self, monkeypatch, capsys) -> None:
         argv = [
             "genai-perf",

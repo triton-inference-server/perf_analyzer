@@ -92,7 +92,7 @@ genai-perf profile \
 Example output:
 
 ```
-                                   LLM Metrics                                    
+                                   LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
@@ -134,7 +134,7 @@ Example output:
 
 ```
 2024-08-14 15:18 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: time_to_first_tokens, inter_token_latencies, output_token_throughputs_per_requesdt. The goodput will be -1. Valid SLOs are: time_to_first_token, inter_token_latency, request_latency, output_token_throughput_per_request.
-                                   LLM Metrics                                    
+                                   LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
@@ -174,7 +174,7 @@ genai-perf profile \
 Example output:
 
 ```
-                                   LLM Metrics                                    
+                                   LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
@@ -233,7 +233,7 @@ genai-perf profile \
 Example output:
 
 ```
-                           Embeddings Metrics                            
+                           Embeddings Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
 ┃            Statistic ┃   avg ┃   min ┃    max ┃   p99 ┃   p90 ┃   p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
@@ -257,7 +257,7 @@ genai-perf profile \
 Example output:
 
 ```
-                           Embeddings Metrics                           
+                           Embeddings Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
 ┃            Statistic ┃   avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
@@ -283,7 +283,7 @@ Example output:
 
 ```
 2024-08-14 15:24 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: request_latencies, time_to_first_tokens. The goodput will be -1. Valid SLOs are: request_latency.
-                           Embeddings Metrics                           
+                           Embeddings Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
 ┃            Statistic ┃   avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
@@ -358,7 +358,7 @@ This command specifies the use of Hugging Face's ranking API with `--endpoint re
 Example output:
 
 ```
-                         Rankings Metrics                          
+                         Rankings Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
 ┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
@@ -389,7 +389,7 @@ This command specifies the use of Hugging Face's ranking API with `--endpoint re
 Example output:
 
 ```
-                         Rankings Metrics                          
+                         Rankings Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
 ┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
@@ -422,7 +422,7 @@ Example output:
 
 ```
 2024-08-14 15:26 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: request_latencies, inter_token_latencies. The goodput will be -1. Valid SLOs are: request_latency.
-                         Rankings Metrics                          
+                         Rankings Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓
 ┃            Statistic ┃  avg ┃  min ┃   max ┃  p99 ┃  p90 ┃  p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩
@@ -469,7 +469,7 @@ genai-perf profile \
 Example Output
 
 ```
-                                         LLM Metrics                                          
+                                         LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
 ┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
@@ -504,7 +504,7 @@ genai-perf profile \
 Example Output
 
 ```
-                                        LLM Metrics                                         
+                                        LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
 ┃                Statistic ┃      avg ┃    min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
@@ -541,7 +541,7 @@ Example Output
 
 ```
 2024-08-14 15:34 [INFO] genai_perf.goodput_calculator.llm_goodput_calculator:92 - Invalid SLOs found: time_to_first_tokens, inter_token_latencies, request_latencies, output_token_throughputs_per_requestd. The goodput will be -1. Valid SLOs are: time_to_first_token, inter_token_latency, request_latency, output_token_throughput_per_request.
-                                         LLM Metrics                                          
+                                         LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
 ┃                Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩

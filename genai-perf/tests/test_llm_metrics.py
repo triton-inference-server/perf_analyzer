@@ -79,7 +79,7 @@ class TestLLMMetrics:
         assert req_metrics[1].unit == "ms"
         assert req_metrics[2].name == "request_latency"
         assert req_metrics[2].unit == "ms"
-    
+
     def test_llm_metric_request_throughput_metrics(self) -> None:
         """Test request_throughput_metrics property."""
         m = LLMMetrics(
@@ -147,8 +147,6 @@ class TestLLMMetrics:
         assert (
             metrics.get_base_name("input_sequence_lengths") == "input_sequence_length"
         )
-        assert (
-            metrics.get_base_name("request_goodputs") == "request_goodput"
-        )
+        assert metrics.get_base_name("request_goodputs") == "request_goodput"
         with pytest.raises(KeyError):
             metrics.get_base_name("hello1234")

@@ -86,7 +86,7 @@ class Metrics:
     @property
     def request_time_metrics(self) -> List[MetricMetadata]:
         return self.REQUEST_TIME_METRICS
-    
+
     @property
     def request_throughput_metrics(self) -> List[MetricMetadata]:
         return self.REQUEST_THROUGHPUT_METRICS
