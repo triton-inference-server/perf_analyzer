@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import genai_perf.logging as logging
 from genai_perf.goodput_calculator.goodput_calculator import GoodputCalculator
@@ -148,14 +148,14 @@ class LLMGoodputCalculator(GoodputCalculator):
         good_req_count = 0
         for idx in range(num_of_requests):
             is_good_request = True
-            request_time_metric_values = []
-            request_throughput_metric_values = []
+            request_time_metric_values: List[float] = []
+            request_throughput_metric_values: List[float] = []
             if self._has_time_target:
-                request_time_metric_values = self._combined_requests_time_metric_values[
-                    idx
-                ]
+                request_time_metric_values = list(
+                    self._combined_requests_time_metric_values[idx]
+                )
             if self._has_throughput_target:
-                request_throughput_metric_values = (
+                request_throughput_metric_values = list(
                     self._combined_requests_throughput_metric_values[idx]
                 )
             for val, slo in zip(request_time_metric_values, target_time_metric_values):
