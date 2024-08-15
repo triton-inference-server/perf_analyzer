@@ -79,9 +79,7 @@ class Statistics:
             return True
         return False
 
-    def _calculate_mean(
-        self, data: List[Union[int, float]], attr: str
-    ) -> None:
+    def _calculate_mean(self, data: List[Union[int, float]], attr: str) -> None:
         avg = np.mean(data)
         setattr(self, "avg_" + attr, avg)
         self._stats_dict[attr]["avg"] = float(avg)

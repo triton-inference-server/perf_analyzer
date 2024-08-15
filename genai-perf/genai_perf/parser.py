@@ -305,7 +305,7 @@ def parse_goodput(values):
     constraints = {}
     try:
         for item in values:
-            target_metric, target_val = item.split(':')
+            target_metric, target_val = item.split(":")
             constraints[target_metric] = float(target_val)
     except ValueError:
         raise argparse.ArgumentTypeError(

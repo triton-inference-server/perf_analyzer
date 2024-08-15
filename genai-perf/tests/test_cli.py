@@ -246,8 +246,8 @@ class TestCLIArguments:
                 ],
                 {
                     "goodput": {
-                        "time_to_first_token":5, 
-                        "output_token_throughput_per_request":6,
+                        "time_to_first_token": 5,
+                        "output_token_throughput_per_request": 6,
                     }
                 },
             ),

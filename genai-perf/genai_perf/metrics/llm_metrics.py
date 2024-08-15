@@ -44,8 +44,8 @@ class LLMMetrics(Metrics):
     ]
 
     LLM_REQUEST_METRICS = (
-        LLM_REQUEST_TIME_METRICS 
-        + LLM_REQUEST_THROUGHPUT_METRICS 
+        LLM_REQUEST_TIME_METRICS
+        + LLM_REQUEST_THROUGHPUT_METRICS
         + [
             MetricMetadata("output_sequence_length", "tokens"),
             MetricMetadata("input_sequence_length", "tokens"),

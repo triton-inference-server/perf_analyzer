@@ -51,8 +51,8 @@ class ProfileDataParser:
     """
 
     def __init__(
-        self, 
-        filename: Path, 
+        self,
+        filename: Path,
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._goodput_constraints = goodput_constraints

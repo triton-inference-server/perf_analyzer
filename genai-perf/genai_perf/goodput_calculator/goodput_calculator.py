@@ -32,6 +32,7 @@ from typing import Dict, List, Optional
 
 from genai_perf.metrics import Metrics
 
+
 class GoodputCalculator(ABC):
     """A base class to calculate goodput according to SLOs."""
 
