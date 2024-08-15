@@ -101,6 +101,7 @@ class Profiler:
             "image_height_mean",
             "image_height_stddev",
             "image_format",
+            "server_metrics_url",
             "goodput",
             "server_metrics_url",
         ]
@@ -170,3 +171,4 @@ class Profiler:
         finally:
             if telemetry_data_collector is not None:
                 telemetry_data_collector.stop()
+                print(telemetry_data_collector.metrics)
