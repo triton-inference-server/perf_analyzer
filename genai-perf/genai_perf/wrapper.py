@@ -102,6 +102,7 @@ class Profiler:
             "image_height_stddev",
             "image_format",
             "goodput",
+            "server_metrics_url",
         ]
 
         utils.remove_file(args.profile_export_file)
@@ -169,3 +170,4 @@ class Profiler:
         finally:
             if telemetry_data_collector is not None:
                 telemetry_data_collector.stop()
+                print(telemetry_data_collector.metrics)

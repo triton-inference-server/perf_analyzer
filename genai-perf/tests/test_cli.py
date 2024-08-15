@@ -917,3 +917,75 @@ class TestCLIArguments:
         namespace.extra_inputs = extra_inputs_list
         actual_dict = parser.get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
+
+    TEST_TRITON_METRICS_URL = "http://custom-metrics-url:8002/metrics"
+    INVALID_URL = "invalid_url"
+    INVALID_URL_ERROR_MESSAGE = (
+        "The URL passed for --server-metrics-url is invalid. "
+        "It must use 'http' or 'https', have a valid domain, "
+        "and contain '/metrics' in the path. The expected structure is: "
+        "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
+    )
+
+    @pytest.mark.parametrize(
+        "args_list, expected_url, expected_error",
+        [
+            # Test with a custom URL
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    TEST_TRITON_METRICS_URL,
+                ],
+                TEST_TRITON_METRICS_URL,
+                None,
+            ),
+            # Test with default URL
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                ],
+                None,
+                None,
+            ),
+            # Test with invalid URL
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    INVALID_URL,
+                ],
+                None,
+                INVALID_URL_ERROR_MESSAGE,
+            ),
+        ],
+    )
+    def test_server_metrics_url_for_triton(
+        self, args_list, expected_url, expected_error, monkeypatch, capsys
+    ):
+        monkeypatch.setattr("sys.argv", args_list)
+
+        if expected_error:
+            with pytest.raises(SystemExit) as excinfo:
+                parser.parse_args()
+            captured = capsys.readouterr()
+            assert expected_error in captured.err
+            assert excinfo.value.code != 0
+        else:
+            args, _ = parser.parse_args()
+            assert args.server_metrics_url == expected_url
