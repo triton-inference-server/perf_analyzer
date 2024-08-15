@@ -33,7 +33,6 @@ from genai_perf.goodput_calculator.goodput_calculator import GoodputCalculator
 from genai_perf.metrics.llm_metrics import LLMMetrics
 from genai_perf.metrics.metrics import Metrics
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -81,9 +80,9 @@ class LLMGoodputCalculator(GoodputCalculator):
                 if slo_name in self._valid_time_related_names:
                     self._valid_time_related_slos[slo_name] = (
                         slo_value * self.MS_TO_NS_CONVERSION
-                    )                
+                    )
                 elif slo_name in self._valid_throughput_related_names:
-                    self._valid_throughput_related_slos[slo_name] = slo_value 
+                    self._valid_throughput_related_slos[slo_name] = slo_value
             else:
                 invalid_slos.append(slo_name)
         if self._valid_time_related_slos:

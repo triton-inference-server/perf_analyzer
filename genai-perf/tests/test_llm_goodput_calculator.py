@@ -28,7 +28,6 @@ from typing import Union
 
 import pytest
 from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
-from genai_perf.metrics import Metrics
 from genai_perf.metrics.llm_metrics import LLMMetrics
 
 
@@ -57,7 +56,7 @@ class TestLLMGoodputCalculator:
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
 
-        assert gc.goodput == None  # before computing
+        assert gc.goodput is None  # before computing
         gc.compute()
         assert gc.goodput == [0.1]  # after computing
 
@@ -130,7 +129,7 @@ class TestLLMGoodputCalculator:
             metric=test_llm_metrics_1,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
-        assert gc_1.goodput == None  # before computing
+        assert gc_1.goodput is None  # before computing
         gc_1.compute()
         assert gc_1.goodput == [0.1]  # after computing
 
@@ -146,6 +145,6 @@ class TestLLMGoodputCalculator:
             metric=test_llm_metrics_2,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
-        assert gc_2.goodput == None  # before computing
+        assert gc_2.goodput is None  # before computing
         gc_2.compute()
         assert gc_2.goodput == [0.0]  # after computing
