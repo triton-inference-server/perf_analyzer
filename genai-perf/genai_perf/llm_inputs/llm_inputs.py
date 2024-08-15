@@ -51,6 +51,7 @@ class OutputFormat(Enum):
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
+    IMAGE_RETRIEVAL = auto()
     TENSORRTLLM = auto()
     VLLM = auto()
     TENSORRTLLM_ENGINE = auto()
