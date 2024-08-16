@@ -655,39 +655,71 @@ class TestLlmInputs:
 
         assert trtllm_json == expected_json
 
-    def test_add_image_inputs_openai_vision(self) -> None:
-        generic_json = {
-            "rows": [
+    @pytest.mark.parametrize(
+        "row, expected_content",
+        [
+            # text and image
+            (
                 {"text_input": "test input one", "image": "test_image1"},
-                {"text_input": "test input two", "image": "test_image2"},
+                [
+                    {
+                        "type": "text",
+                        "text": "test input one",
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": "test_image1",
+                        },
+                    },
+                ],
+            ),
+            # image only
+            (
+                {"image": "test_image1"},
+                [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": "test_image1",
+                        },
+                    },
+                ],
+            ),
+        ],
+    )
+    def test_openai_multi_modal_json(self, row, expected_content) -> None:
+        generic_json = {"rows": [row]}
+
+        pa_json = LlmInputs._convert_generic_json_to_openai_chat_completions_format(
+            dataset_json=generic_json,
+            add_model_name=True,
+            add_stream=True,
+            extra_inputs={},
+            output_tokens_mean=10,
+            output_tokens_stddev=0,
+            model_name=["test_model"],
+        )
+
+        assert pa_json == {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "model": "test_model",
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": expected_content,
+                                }
+                            ],
+                            "stream": True,
+                            "max_tokens": 10,
+                        }
+                    ]
+                }
             ]
         }
-
-        generic_json = LlmInputs._convert_to_openai_multi_modal_content(generic_json)
-
-        row1 = generic_json["rows"][0]["text_input"]
-        assert row1 == [
-            {
-                "type": "text",
-                "text": "test input one",
-            },
-            {
-                "type": "image_url",
-                "image_url": {"url": "test_image1"},
-            },
-        ]
-
-        row2 = generic_json["rows"][1]["text_input"]
-        assert row2 == [
-            {
-                "type": "text",
-                "text": "test input two",
-            },
-            {
-                "type": "image_url",
-                "image_url": {"url": "test_image2"},
-            },
-        ]
 
     @patch(
         "genai_perf.llm_inputs.llm_inputs.LlmInputs._create_synthetic_prompt",
@@ -708,6 +740,7 @@ class TestLlmInputs:
             OutputFormat.VLLM,
             OutputFormat.TENSORRTLLM,
             OutputFormat.TENSORRTLLM_ENGINE,
+            OutputFormat.IMAGE_RETRIEVAL,
         ],
     )
     def test_get_input_dataset_from_synthetic(

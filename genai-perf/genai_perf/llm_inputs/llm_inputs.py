@@ -322,7 +322,19 @@ class LlmInputs:
             input_file_dataset = cls._get_input_dataset_from_rankings_files(
                 queries_filename, passages_filename, batch_size, num_of_output_prompts
             )
-
+            generic_dataset_json = (
+                cls._convert_input_synthetic_or_file_dataset_to_generic_json(
+                    input_file_dataset
+                )
+            )
+        elif output_format == OutputFormat.IMAGE_RETRIEVAL:
+            if input_type != PromptSource.FILE:
+                raise GenAIPerfException(
+                    f"{OutputFormat.IMAGE_RETRIEVAL.to_lowercase()} only supports a file as input."
+                )
+            input_filename = cast(Path, input_filename)
+            input_file_dataset = cls._get_input_dataset_from_file(input_filename)
+            input_file_dataset = cls._encode_images_in_input_dataset(input_file_dataset)
             generic_dataset_json = (
                 cls._convert_input_synthetic_or_file_dataset_to_generic_json(
                     input_file_dataset
@@ -373,14 +385,6 @@ class LlmInputs:
                 )
             else:
                 raise GenAIPerfException("Input source is not recognized.")
-
-            # When the generic_dataset_json contains multi-modal data (e.g. images),
-            # convert the format of the content to OpenAI multi-modal format:
-            # see https://platform.openai.com/docs/guides/vision
-            if output_format == OutputFormat.OPENAI_VISION:
-                generic_dataset_json = cls._convert_to_openai_multi_modal_content(
-                    generic_dataset_json
-                )
 
         return generic_dataset_json
 
@@ -610,8 +614,11 @@ class LlmInputs:
         dataset_json["features"] = [{"name": "text_input"}]
         dataset_json["rows"] = []
         for prompt, image in zip(prompts, images):
-            content = {"text_input": prompt}
-            content.update({"image": image} if image else {})
+            content = {}
+            if prompt is not None:
+                content["text_input"] = prompt
+            if image is not None:
+                content["image"] = image
             dataset_json["rows"].append({"row": content})
 
         return dataset_json
@@ -638,36 +645,17 @@ class LlmInputs:
         with open(input_filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
-                    prompts.append(load_json_str(line).get("text_input", "").strip())
-                    images.append(load_json_str(line).get("image", "").strip())
+                    # None if not provided
+                    prompt = load_json_str(line).get("text_input")
+                    image = load_json_str(line).get("image")
+                    prompts.append(prompt.strip() if prompt else prompt)
+                    images.append(image.strip() if image else image)
         return prompts, images
 
     @classmethod
     def verify_file(cls, input_filename: Path) -> None:
         if not input_filename.exists():
             raise FileNotFoundError(f"The file '{input_filename}' does not exist.")
-
-    @classmethod
-    def _convert_to_openai_multi_modal_content(
-        cls, generic_dataset_json: Dict[str, List[Dict]]
-    ) -> Dict[str, List[Dict]]:
-        """
-        Converts to multi-modal content format of OpenAI Chat Completions API.
-        """
-        for row in generic_dataset_json["rows"]:
-            if row["image"]:
-                row["text_input"] = [
-                    {
-                        "type": "text",
-                        "text": row["text_input"],
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": row["image"]},
-                    },
-                ]
-
-        return generic_dataset_json
 
     @classmethod
     def _encode_images_in_input_dataset(cls, input_file_dataset: Dict) -> Dict:
@@ -705,6 +693,7 @@ class LlmInputs:
         if (
             output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
             or output_format == OutputFormat.OPENAI_VISION
+            or output_format == OutputFormat.IMAGE_RETRIEVAL
         ):
             output_json = cls._convert_generic_json_to_openai_chat_completions_format(
                 generic_dataset,
@@ -713,7 +702,6 @@ class LlmInputs:
                 extra_inputs,
                 output_tokens_mean,
                 output_tokens_stddev,
-                output_tokens_deterministic,
                 model_name,
                 model_selection_strategy,
             )
@@ -725,7 +713,6 @@ class LlmInputs:
                 extra_inputs,
                 output_tokens_mean,
                 output_tokens_stddev,
-                output_tokens_deterministic,
                 model_name,
                 model_selection_strategy,
             )
@@ -793,7 +780,6 @@ class LlmInputs:
         extra_inputs: Dict,
         output_tokens_mean: int,
         output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
         model_name: list = [],
         model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
@@ -812,7 +798,6 @@ class LlmInputs:
             extra_inputs,
             output_tokens_mean,
             output_tokens_stddev,
-            output_tokens_deterministic,
             model_name,
             model_selection_strategy,
         )
@@ -828,7 +813,6 @@ class LlmInputs:
         extra_inputs: Dict,
         output_tokens_mean: int,
         output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
         model_name: list = [],
         model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
@@ -847,7 +831,6 @@ class LlmInputs:
             extra_inputs,
             output_tokens_mean,
             output_tokens_stddev,
-            output_tokens_deterministic,
             model_name,
             model_selection_strategy,
         )
@@ -1065,8 +1048,7 @@ class LlmInputs:
         text_input_headers: List[str] = []
 
         if "features" in dataset_json.keys():
-            # TODO (TPA-53) remove enumerate if index isnt useful
-            for index, feature in enumerate(dataset_json["features"]):
+            for feature in dataset_json["features"]:
                 if feature in SYSTEM_ROLE_LIST:
                     system_role_headers.append(feature)
                 if feature in USER_ROLE_LIST:
@@ -1104,7 +1086,6 @@ class LlmInputs:
         extra_inputs: Dict,
         output_tokens_mean: int,
         output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
         model_name: list = [],
         model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
@@ -1114,29 +1095,61 @@ class LlmInputs:
             iter_model_name = cls._select_model_name(
                 model_name, index, model_selection_strategy
             )
-            pa_json["data"].append({"payload": []})
-            pa_json["data"][index]["payload"].append({"messages": []})
+            openai_json: Dict = {"payload": [{"messages": []}]}
 
-            for header, content in entry.items():
-                new_message = cls._create_new_openai_chat_completions_message(
-                    header, system_role_headers, user_role_headers, content
-                )
+            # multi-modal content format
+            if "image" in entry:
+                contents: List[Dict] = cls._extract_chat_contents(entry)
+                openai_json = {
+                    "payload": [{"messages": [{"role": "user", "content": contents}]}]
+                }
+            else:
+                for header, content in entry.items():
+                    message = cls._create_new_openai_chat_completions_message(
+                        header, system_role_headers, user_role_headers, content
+                    )
+                    cls._add_message_to_json(openai_json, message)
 
-                pa_json = cls._add_new_message_to_json(pa_json, index, new_message)
-
-            pa_json = cls._add_optional_tags_to_openai_json(
-                pa_json,
-                index,
+            cls._add_optional_tags_to_openai_json(
+                openai_json,
                 add_model_name,
                 add_stream,
                 extra_inputs,
                 output_tokens_mean,
                 output_tokens_stddev,
-                output_tokens_deterministic,
                 iter_model_name,
             )
+            pa_json["data"].append(openai_json)
 
         return pa_json
+
+    @classmethod
+    def _extract_chat_contents(cls, entry: Dict) -> List[Dict]:
+        contents = []
+        for content_type, content in entry.items():
+            if content_type == "text_input":
+                contents.append(
+                    {
+                        "type": "text",
+                        "text": content,
+                    }
+                )
+            elif content_type == "image":
+                contents.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": content,
+                        },
+                    }
+                )
+            else:
+                raise GenAIPerfException(
+                    "Failed to construct OpenAI chat completions message "
+                    f"contents. Unknown content type: '{content_type}'."
+                )
+
+        return contents
 
     @classmethod
     def _populate_openai_completions_output_json(
@@ -1150,7 +1163,6 @@ class LlmInputs:
         extra_inputs: Dict,
         output_tokens_mean: int,
         output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
         model_name: list = [],
         model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
@@ -1174,15 +1186,13 @@ class LlmInputs:
 
                 pa_json = cls._add_new_prompt_to_json(pa_json, index, new_prompt)
 
-            pa_json = cls._add_optional_tags_to_openai_json(
-                pa_json,
-                index,
+            cls._add_optional_tags_to_openai_json(
+                pa_json["data"][index],
                 add_model_name,
                 add_stream,
                 extra_inputs,
                 output_tokens_mean,
                 output_tokens_stddev,
-                output_tokens_deterministic,
                 iter_model_name,
             )
 
@@ -1365,19 +1375,19 @@ class LlmInputs:
             return {}
 
         if header in system_role_headers:
-            new_message = {
+            message = {
                 "role": "system",
                 "content": content,
             }
         elif header in user_role_headers:
-            new_message = {
+            message = {
                 "role": "user",
                 "content": content,
             }
         else:
-            new_message = {}
+            message = {}
 
-        return new_message
+        return message
 
     @classmethod
     def _create_new_prompt(
@@ -1420,13 +1430,11 @@ class LlmInputs:
         return new_text_input
 
     @classmethod
-    def _add_new_message_to_json(
-        cls, pa_json: Dict, index: int, new_message: Optional[Dict]
-    ) -> Dict:
-        if new_message:
-            pa_json["data"][index]["payload"][0]["messages"].append(new_message)
+    def _add_message_to_json(cls, openai_json: Dict, message: Optional[Dict]) -> Dict:
+        if message:
+            openai_json["payload"][0]["messages"].append(message)
 
-        return pa_json
+        return openai_json
 
     @classmethod
     def _add_new_text_input_to_json(
@@ -1460,29 +1468,25 @@ class LlmInputs:
     @classmethod
     def _add_optional_tags_to_openai_json(
         cls,
-        pa_json: Dict,
-        index: int,
+        openai_json: Dict,
         add_model_name: bool,
         add_stream: bool,
         extra_inputs: Dict,
         output_tokens_mean: int,
         output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
         model_name: str = "",
-    ) -> Dict:
-        row = pa_json["data"][index]["payload"][0]
+    ) -> None:
+        payload = openai_json["payload"][0]
         if add_model_name:
-            row["model"] = model_name
+            payload["model"] = model_name
         if add_stream:
-            row["stream"] = True
+            payload["stream"] = True
         if output_tokens_mean != cls.DEFAULT_OUTPUT_TOKENS_MEAN:
-            row["max_tokens"] = int(
+            payload["max_tokens"] = int(
                 random.gauss(output_tokens_mean, output_tokens_stddev)
             )
         for key, value in extra_inputs.items():
-            row[key] = value
-
-        return pa_json
+            payload[key] = value
 
     @classmethod
     def _add_optional_tags_to_vllm_json(

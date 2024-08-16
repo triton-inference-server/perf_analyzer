@@ -695,7 +695,7 @@ class TestLLMProfileDataParser:
                     {
                         "timestamp": 1,
                         "request_inputs": {
-                            "payload": '{"messages":[{"role":"user","content":"This is test"}],"model":"llama-2-7b","stream":true}',
+                            "payload": '{"messages":[{"role":"user","content":[{"type":"text","text":"This is test"}]}],"model":"llama-2-7b","stream":true}',
                         },
                         "response_timestamps": [3, 5, 8],
                         "response_outputs": [
