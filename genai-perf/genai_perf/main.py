@@ -124,7 +124,6 @@ def report_telemetry_data(
     telemetry_data_collector: TelemetryDataCollector, args: Namespace
 ) -> None:
     stats = telemetry_data_collector.get_statistics()
-    print(stats.stats_dict)
     reporter = OutputReporter(stats, args, is_telemetry_data=True)
     reporter.report_output()
 

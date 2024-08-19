@@ -104,7 +104,7 @@ class CsvExporter:
 
     def _export_telemetry_metrics(self) -> None:
         telemetry_filename = (
-            self._output_dir / f"{self._args.profile_export_file.stem}_telemetry.csv"
+            self._output_dir / f"{self._args.profile_export_file.stem}_telemetry_genai_perf.csv"
         )
         logger.info(f"Generating {telemetry_filename}")
 
