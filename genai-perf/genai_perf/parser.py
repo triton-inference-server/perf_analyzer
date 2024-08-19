@@ -79,6 +79,7 @@ _endpoint_type_map = {
     "embeddings": "v1/embeddings",
     "rankings": "v1/ranking",
     "vision": "v1/chat/completions",
+    "image_retrieval": "v1/infer",
 }
 
 
@@ -158,6 +159,8 @@ def _check_conditional_args(
                 args.output_format = OutputFormat.OPENAI_EMBEDDINGS
             elif args.endpoint_type == "rankings":
                 args.output_format = OutputFormat.RANKINGS
+            elif args.endpoint_type == "image_retrieval":
+                args.output_format = OutputFormat.IMAGE_RETRIEVAL
 
             # (TMA-1986) deduce vision format from chat completions + image CLI
             # because there's no openai vision endpoint.
@@ -210,6 +213,7 @@ def _check_conditional_args_embeddings_rankings(
     if args.output_format in [
         OutputFormat.OPENAI_EMBEDDINGS,
         OutputFormat.RANKINGS,
+        OutputFormat.IMAGE_RETRIEVAL,
     ]:
         if args.streaming:
             parser.error(
@@ -223,7 +227,7 @@ def _check_conditional_args_embeddings_rankings(
     else:
         if args.batch_size != LlmInputs.DEFAULT_BATCH_SIZE:
             parser.error(
-                "The --batch-size option is currently only supported with the embeddings and rankings endpoint types."
+                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types."
             )
 
     if args.input_file:
@@ -576,7 +580,14 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--endpoint-type",
         type=str,
-        choices=["chat", "completions", "embeddings", "rankings", "vision"],
+        choices=[
+            "chat",
+            "completions",
+            "embeddings",
+            "rankings",
+            "vision",
+            "image_retrieval",
+        ],
         required=False,
         help=f"The endpoint-type to send requests to on the "
         'server. This is only used with the "openai" service-kind.',
