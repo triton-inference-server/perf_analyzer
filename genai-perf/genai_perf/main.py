@@ -120,6 +120,15 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
         )
 
 
+def report_telemetry_data(
+    telemetry_data_collector: TelemetryDataCollector, args: Namespace
+) -> None:
+    stats = telemetry_data_collector.get_statistics()
+    print(stats.stats_dict)
+    reporter = OutputReporter(stats, args, is_telemetry_data=True)
+    reporter.report_output()
+
+
 def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
     if args.concurrency:
         infer_mode = "concurrency"
@@ -132,7 +141,7 @@ def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
 
     # TPA-274 - Integrate telemetry metrics with other metrics for export
     stats = data_parser.get_statistics(infer_mode, load_level)
-    reporter = OutputReporter(stats, args)
+    reporter = OutputReporter(stats, args, is_telemetry_data=False)
     reporter.report_output()
     if args.generate_plots:
         create_plots(args)

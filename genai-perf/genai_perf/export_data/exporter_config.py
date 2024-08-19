@@ -35,6 +35,7 @@ class ExporterConfig:
         self._args = None
         self._extra_inputs = None
         self._artifact_dir = None
+        self._is_telemetry_data = False
 
     @property
     def stats(self):
@@ -75,3 +76,11 @@ class ExporterConfig:
     @artifact_dir.setter
     def artifact_dir(self, artifact_dir_value):
         self._artifact_dir = artifact_dir_value
+
+    @property
+    def is_telemetry_data(self):
+        return self._is_telemetry_data
+
+    @is_telemetry_data.setter
+    def is_telemetry_data(self, is_telemetry_data):
+        self._is_telemetry_data = is_telemetry_data

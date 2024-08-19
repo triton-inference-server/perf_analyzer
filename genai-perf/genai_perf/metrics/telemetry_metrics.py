@@ -80,3 +80,8 @@ class TelemetryMetrics:
     @property
     def telemetry_metrics(self) -> List[MetricMetadata]:
         return self.TELEMETRY_METRICS
+
+    @property
+    def data(self) -> dict:
+        """Returns all the metrics."""
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}

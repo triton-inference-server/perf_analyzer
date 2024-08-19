@@ -34,6 +34,7 @@ from typing import Optional
 
 import requests
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+from genai_perf.metrics.telemetry_metrics_statistics import TelemetryMetricsStatistics
 
 
 class TelemetryDataCollector(ABC):
@@ -68,6 +69,11 @@ class TelemetryDataCollector(ABC):
         if self._thread is not None and self._thread.is_alive():
             self._stop_event.set()
             self._thread.join()
+
+    def get_statistics(self) -> TelemetryMetricsStatistics:
+        """Return Telemtry Metrics Statistics if they exist"""
+        telemetry_metrics_statistics = TelemetryMetricsStatistics(self._metrics)
+        return telemetry_metrics_statistics
 
     def _fetch_metrics(self) -> str:
         response = requests.get(self._server_metrics_url)

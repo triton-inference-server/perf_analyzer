@@ -56,15 +56,43 @@ class CsvExporter:
         "Value",
     ]
 
+    TELEMETRY_AGGREGATED_METRICS_HEADER = [
+        "Metric",
+        "GPU",
+        "avg",
+        "min",
+        "max",
+        "p99",
+        "p95",
+        "p90",
+        "p75",
+        "p50",
+        "p25",
+    ]
+
+    TELEMETRY_CONSTANT_METRICS_HEADER = [
+        "Metric",
+        "GPU",
+        "Value",
+    ]
+
     def __init__(self, config: ExporterConfig):
         self._stats = config.stats
         self._metrics = config.metrics
         self._output_dir = config.artifact_dir
         self._args = config.args
+        self._is_telemetry_data = config.is_telemetry_data
 
     def export(self) -> None:
+        if self._is_telemetry_data:
+            self._export_telemetry_metrics()
+        else:
+            self._export_llm_metrics()
+
+    def _export_llm_metrics(self) -> None:
         filename = (
-            self._output_dir / f"{self._args.profile_export_file.stem}_genai_perf.csv"
+            self._output_dir
+            / f"{self._args.profile_export_file.stem}_llm_genai_perf.csv"
         )
         logger.info(f"Generating {filename}")
 
@@ -73,6 +101,18 @@ class CsvExporter:
             self._write_request_metrics(writer)
             writer.writerow([])
             self._write_system_metrics(writer)
+
+    def _export_telemetry_metrics(self) -> None:
+        telemetry_filename = (
+            self._output_dir / f"{self._args.profile_export_file.stem}_telemetry.csv"
+        )
+        logger.info(f"Generating {telemetry_filename}")
+
+        with open(telemetry_filename, mode="w", newline="") as f:
+            writer = csv.writer(f)
+            self._write_telemetry_metrics(writer)
+            writer.writerow([])
+            self._write_constant_metrics(writer)
 
     def _write_request_metrics(self, csv_writer) -> None:
         csv_writer.writerow(self.REQUEST_METRICS_HEADER)
@@ -99,6 +139,48 @@ class CsvExporter:
                     continue
             value = self._stats[metric.name]["avg"]
             csv_writer.writerow([metric_str, f"{value:.2f}"])
+
+    def _write_telemetry_metrics(self, csv_writer) -> None:
+        csv_writer.writerow(self.TELEMETRY_AGGREGATED_METRICS_HEADER)
+
+        for metric_name, metric_data in self._stats.items():
+            # Skip constant metrics
+            if metric_name in ["gpu_power_limit", "total_gpu_memory"]:
+                continue
+
+            metric_str = metric_name.replace("_", " ").title()
+            metric_str += f" ({metric_data['unit']})"
+
+            # Iterate through each GPU
+            for gpu in metric_data["avg"].keys():
+                row_values = [metric_str, gpu]
+
+                for stat in self.TELEMETRY_AGGREGATED_METRICS_HEADER[2:]:
+                    value = metric_data[stat][gpu]
+                    row_values.append(f"{value:,.2f}")
+
+                csv_writer.writerow(row_values)
+
+    def _write_constant_metrics(self, csv_writer) -> None:
+        csv_writer.writerow(self.TELEMETRY_CONSTANT_METRICS_HEADER)
+
+        for metric_name, metric_data in self._stats.items():
+            # Skip non-constant metrics
+            if metric_name not in ["gpu_power_limit", "total_gpu_memory"]:
+                continue
+
+            metric_str = metric_name.replace("_", " ").title()
+            metric_str += f" ({metric_data['unit']})"
+            for gpu in metric_data.keys():
+                if gpu == "unit":
+                    continue
+                value = metric_data[gpu]
+                csv_writer.writerow([metric_str, gpu, f"{value:.2f}"])
+
+    def _format_value(self, value) -> str:
+        if isinstance(value, (int, float)):
+            return f"{value:,.2f}"  # Format with commas and two decimal places
+        return value
 
     def _should_skip(self, metric_name: str) -> bool:
         if self._args.endpoint_type == "embeddings":

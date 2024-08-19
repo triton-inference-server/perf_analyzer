@@ -38,10 +38,12 @@ class OutputReporter:
     A class to orchestrate output generation.
     """
 
-    def __init__(self, stats: Statistics, args: Namespace):
+    def __init__(self, stats, args: Namespace, is_telemetry_data: bool):
         self.args = args
         self.stats = stats
-        self.stats.scale_data()
+        self.is_telemetry_data = is_telemetry_data
+        if not self.is_telemetry_data:
+            self.stats.scale_data()
 
     def report_output(self) -> None:
         factory = DataExporterFactory()
@@ -57,5 +59,10 @@ class OutputReporter:
         config.metrics = self.stats.metrics
         config.args = self.args
         config.artifact_dir = self.args.artifact_dir
-        config.extra_inputs = get_extra_inputs_as_dict(self.args)
+        config.is_telemetry_data = self.is_telemetry_data
+
+        # Only set extra_inputs if dealing with LLM metrics (Statistics)
+        if isinstance(self.stats, Statistics):
+            config.extra_inputs = get_extra_inputs_as_dict(self.args)
+
         return config

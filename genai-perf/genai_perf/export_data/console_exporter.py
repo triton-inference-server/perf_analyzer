@@ -25,9 +25,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+from typing import Dict
+
 from genai_perf.export_data.exporter_config import ExporterConfig
+from genai_perf.metrics import TelemetryMetrics
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 
 class ConsoleExporter:
@@ -36,11 +40,13 @@ class ConsoleExporter:
     """
 
     STAT_COLUMN_KEYS = ["avg", "min", "max", "p99", "p90", "p75"]
+    CONSTANT_TELEMETRY_METRICS = {"gpu_power_limit", "total_gpu_memory"}
 
     def __init__(self, config: ExporterConfig):
         self._stats = config.stats
         self._metrics = config.metrics
         self._args = config.args
+        self._is_telemetry_data = config.is_telemetry_data
 
     def _get_title(self):
         title = "NVIDIA GenAI-Perf | "
@@ -55,16 +61,21 @@ class ConsoleExporter:
         return title
 
     def export(self) -> None:
-        table = Table(title=self._get_title())
+        console = Console()
+        title = self._get_title()
 
-        table.add_column("Statistic", justify="right", style="cyan", no_wrap=True)
+        if self._is_telemetry_data:
+            self._export_telemetry_metrics(console, title)
+        else:
+            self._export_llm_metrics(console, title)
+
+    def _export_llm_metrics(self, console: Console, title: str) -> None:
+        table = Table(title=title)
+        table.add_column("Metric", justify="left")
         for stat in self.STAT_COLUMN_KEYS:
             table.add_column(stat, justify="right", style="green")
 
-        # Request metrics table
-        self._construct_table(table)
-
-        console = Console()
+        self._construct_llm_table(table)
         console.print(table)
 
     def _construct_table(self, table: Table) -> None:
@@ -96,6 +107,46 @@ class ConsoleExporter:
                 else:
                     row_values.append("N/A")
             table.add_row(*row_values)
+
+    def _export_telemetry_metrics(self, console: Console, title: str) -> None:
+
+        # Iterate over all telemetry metrics and print them in separate tables
+        for metric_name, metric_data in self._stats.items():
+            unit = metric_data.get("unit", "N/A")
+            table_title = f"{metric_name.replace('_', ' ').title()} ({unit})"
+            table = Table(title=table_title)
+
+            if metric_name in self.CONSTANT_TELEMETRY_METRICS:
+                table.add_column("GPU Index", justify="left")
+                table.add_column("Value", justify="right", style="green")
+
+                for gpu_index in metric_data.keys():
+                    if gpu_index != "unit":
+                        value = metric_data.get(gpu_index, "N/A")
+                        table.add_row(
+                            gpu_index, f"{value:.2f}" if value != "N/A" else "N/A"
+                        )
+            else:
+                table.add_column("GPU Index", justify="left")
+                for stat in self.STAT_COLUMN_KEYS:
+                    table.add_column(stat, justify="right", style="green")
+
+                self._construct_telemetry_table(table, metric_data)
+
+            console.print(table)
+
+    def _construct_telemetry_table(
+        self, table: Table, metric_data: Dict[str, Dict[str, float]]
+    ) -> None:
+        avg_metric = metric_data.get("avg", {})
+        gpu_indices = list(avg_metric.keys())
+
+        for gpu_index in gpu_indices:
+            row = [f"{gpu_index}"]
+            for stat in self.STAT_COLUMN_KEYS:
+                value = metric_data.get(stat, {}).get(gpu_index, "N/A")
+                row.append(f"{value:.2f}" if isinstance(value, (int, float)) else "N/A")
+            table.add_row(*row)
 
     # (TMA-1976) Refactor this method as the csv exporter shares identical method.
     def _should_skip(self, metric_name: str) -> bool:
