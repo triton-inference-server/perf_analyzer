@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,34 +23,26 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
 #pragma once
 
-#include <exception>
-#include <string>
+#include <triton/core/tritonserver.h>
 
-namespace triton { namespace perfanalyzer {
+#include <cstddef>
+#include <cstdint>
 
-// Perf Exception error class
-//
-class PerfAnalyzerException : public std::exception {
- public:
-  PerfAnalyzerException(const std::string& message) : message_(message) {}
+namespace triton { namespace perfanalyzer { namespace clientbackend {
+namespace tritoncapi {
 
-  PerfAnalyzerException(uint32_t error) : error_(error) {}
-
-  PerfAnalyzerException(const std::string& message, uint32_t error)
-      : message_(message), error_(error)
-  {
-  }
-
-  virtual const char* what() const throw() { return message_.c_str(); }
-
-  inline int GetError() const { return error_; }
-
- private:
-  const std::string message_{""};
-  uint32_t error_{GENERIC_ERROR};
+struct ResponseOutput {
+  const char* name{};
+  TRITONSERVER_DataType datatype{};
+  const int64_t* shape{};
+  uint64_t dim_count{};
+  const void* base{};
+  size_t byte_size{};
+  TRITONSERVER_MemoryType memory_type{};
+  int64_t memory_type_id{};
+  void* userp{};
 };
 
-}}  // namespace triton::perfanalyzer
+}}}}  // namespace triton::perfanalyzer::clientbackend::tritoncapi

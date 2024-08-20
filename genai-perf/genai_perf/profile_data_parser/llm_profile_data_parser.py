@@ -187,6 +187,24 @@ class LLMProfileDataParser(ProfileDataParser):
     ) -> None:
         """Helper function to preprocess responses of a request."""
         if self._service_kind == "openai":
+            # Sometimes streamed chunks are returned in a splintered fashion.
+            # This forces a merge with the previous chunk if error detected.
+            if len(res_outputs) > 1:
+                for i in reversed(range(len(res_outputs))):
+                    response = res_outputs[i]["response"]
+                    if not response.startswith("data: "):
+                        first_data = response.find("data: ")
+                        if first_data == -1:
+                            res_outputs[i - 1]["response"] = (
+                                res_outputs[i - 1]["response"] + response.strip()
+                            )
+                            res_outputs[i]["response"] = ""
+                        else:
+                            res_outputs[i - 1]["response"] = (
+                                res_outputs[i - 1]["response"]
+                                + response[0:first_data].strip()
+                            )
+                            res_outputs[i]["response"] = response[first_data:].strip()
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
@@ -208,7 +226,9 @@ class LLMProfileDataParser(ProfileDataParser):
             # Remove responses without any content
             indices_to_remove = []
             for idx, out in enumerate(res_outputs):
-                if self._is_openai_empty_response(out["response"]):
+                if not out["response"] or self._is_openai_empty_response(
+                    out["response"]
+                ):
                     indices_to_remove.append(idx)
             indices_to_remove.sort(reverse=True)
             for index in indices_to_remove:
@@ -219,6 +239,8 @@ class LLMProfileDataParser(ProfileDataParser):
         """Deserialize the request input and return tokenized inputs."""
         if self._service_kind == "triton":
             input_text = req_inputs["text_input"]
+        elif self._service_kind == "triton_c_api":
+            return len(req_inputs["input_ids"])  # no tokenizer required
         elif self._service_kind == "openai":
             input_text = self._get_openai_input_text(req_inputs)
         else:
@@ -247,6 +269,9 @@ class LLMProfileDataParser(ProfileDataParser):
         """Return response-level token counts and total token count."""
         if self._service_kind == "triton":
             output_texts = self._get_triton_output_tokens(res_outputs)
+        elif self._service_kind == "triton_c_api":
+            # No tokenizer is need to get the token counts.
+            return self._get_tensorrtllm_engine_token_counts(res_outputs)
         elif self._service_kind == "openai":
             output_texts = self._get_openai_output_tokens(res_outputs)
         else:
@@ -257,6 +282,17 @@ class LLMProfileDataParser(ProfileDataParser):
         output_tokens = self._get_response_output_tokens(output_texts)
         output_token_counts = list(map(len, output_tokens))
         return output_token_counts, full_text_token_count
+
+    def _get_tensorrtllm_engine_token_counts(
+        self, res_outputs: List[Dict]
+    ) -> Tuple[List[int], int]:
+        token_ids = []
+        for r in res_outputs:
+            if isinstance(r["output_ids"], list):
+                token_ids += r["output_ids"]
+            else:
+                token_ids.append(r["output_ids"])
+        return token_ids, len(token_ids)
 
     def _get_triton_output_tokens(self, res_outputs: List[Dict]) -> List[str]:
         """Return a list of Triton response texts."""

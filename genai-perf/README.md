@@ -335,6 +335,13 @@ You can optionally set additional model inputs with the following option:
   model with a singular value, such as `stream:true` or `max_tokens:5`. This
   flag can be repeated to supply multiple extra inputs.
 
+For [Large Language Models](docs/tutorial.md), there is no batch size (i.e.
+batch size is always `1`). Each request includes the inputs for one individual
+inference. Other modes such as the [embeddings](docs/embeddings.md) and
+[rankings](docs/rankings.md) endpoints support client-side batching, where
+`--batch-size N` means that each request sent will include the inputs for `N`
+separate inferences, allowing them to be processed together.
+
 </br>
 
 <!--

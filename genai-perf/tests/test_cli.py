@@ -204,6 +204,10 @@ class TestCLIArguments:
             (["-s", "99.5"], {"stability_percentage": 99.5}),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
             (
+                ["--service-kind", "tensorrtllm_engine"],
+                {"service_kind": "tensorrtllm_engine"},
+            ),
+            (
                 ["--service-kind", "openai", "--endpoint-type", "chat"],
                 {"service_kind": "openai", "endpoint": "v1/chat/completions"},
             ),
@@ -543,7 +547,7 @@ class TestCLIArguments:
                     "100",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean-deterministic option is only supported with the Triton service-kind",
+                "The --output-tokens-mean-deterministic option is only supported with the Triton and TensorRT-LLM Engine service-kind",
             ),
             (
                 [
@@ -655,6 +659,7 @@ class TestCLIArguments:
                 OutputFormat.TENSORRTLLM,
             ),
             (["--service-kind", "triton", "--backend", "vllm"], OutputFormat.VLLM),
+            (["--service-kind", "tensorrtllm_engine"], OutputFormat.TENSORRTLLM_ENGINE),
         ],
     )
     def test_inferred_output_format(self, monkeypatch, args, expected_format):

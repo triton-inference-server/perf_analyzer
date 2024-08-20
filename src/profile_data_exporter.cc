@@ -161,6 +161,81 @@ ProfileDataExporter::AddResponseTimestamps(
 }
 
 void
+ProfileDataExporter::SetValueToJSON(
+    rapidjson::Value& json, const size_t index, const uint8_t* buf,
+    const size_t byte_size, const std::string& data_type)
+{
+  if (data_type == "BOOL") {
+    json.SetBool(reinterpret_cast<const bool*>(buf)[index]);
+  } else if (data_type == "UINT8") {
+    json.SetUint(reinterpret_cast<const uint8_t*>(buf)[index]);
+  } else if (data_type == "UINT16") {
+    json.SetUint(reinterpret_cast<const uint16_t*>(buf)[index]);
+  } else if (data_type == "UINT32") {
+    json.SetUint(reinterpret_cast<const uint32_t*>(buf)[index]);
+  } else if (data_type == "UINT64") {
+    json.SetUint64(reinterpret_cast<const uint64_t*>(buf)[index]);
+  } else if (data_type == "INT8") {
+    json.SetInt(reinterpret_cast<const int8_t*>(buf)[index]);
+  } else if (data_type == "INT16") {
+    json.SetInt(reinterpret_cast<const int16_t*>(buf)[index]);
+  } else if (data_type == "INT32") {
+    json.SetInt(reinterpret_cast<const int32_t*>(buf)[index]);
+  } else if (data_type == "INT64") {
+    json.SetInt64(reinterpret_cast<const int64_t*>(buf)[index]);
+  } else if (data_type == "FP32") {
+    json.SetFloat(reinterpret_cast<const float*>(buf)[index]);
+  } else if (data_type == "FP64") {
+    json.SetDouble(reinterpret_cast<const double*>(buf)[index]);
+  } else if (data_type == "BYTES" || data_type == "JSON") {
+    json.SetString(
+        reinterpret_cast<const char*>(buf), byte_size,
+        document_.GetAllocator());
+  } else {
+    std::cerr << "WARNING: data type '" + data_type +
+                     "' is not supported with JSON."
+              << std::endl;
+  }
+}
+
+void
+ProfileDataExporter::AddDataToJSON(
+    rapidjson::Value& json, const uint8_t* buf, const size_t byte_size,
+    const std::string& data_type)
+{
+  // TPA-268: support N-dimensional tensor
+  size_t data_size;
+  // TODO TPA-283: Add support for N-dimensional string tensors
+  if (data_type == "BYTES" || data_type == "JSON") {
+    // return string as is instead of array of chars
+    data_size = 1;
+  } else {
+    const std::optional<size_t> data_type_size{GetDataTypeSize(data_type)};
+    if (!data_type_size) {
+      return;
+    }
+    data_size = byte_size / data_type_size.value();
+    if (data_size > 1) {
+      json.SetArray();
+    }
+  }
+
+  if (buf != nullptr) {
+    if (json.IsArray()) {
+      for (int i = 0; i < data_size; i++) {
+        rapidjson::Value data_val;
+        SetValueToJSON(data_val, i, buf, byte_size, data_type);
+        json.PushBack(data_val, document_.GetAllocator());
+      }
+    } else {
+      SetValueToJSON(json, 0 /* index */, buf, byte_size, data_type);
+    }
+  } else {
+    json.SetString("", 0, document_.GetAllocator());
+  }
+}
+
+void
 ProfileDataExporter::AddRequestInputs(
     rapidjson::Value& request_inputs_json,
     const std::vector<RequestRecord::RequestInput>& request_inputs)
@@ -172,27 +247,8 @@ ProfileDataExporter::AddRequestInputs(
       const auto& byte_size{input.second.size_};
       const auto& data_type{input.second.data_type_};
       rapidjson::Value name_json(name.c_str(), document_.GetAllocator());
-      rapidjson::Value input_json{};
-      // TMA-1777: support other data types
-      if (buf != nullptr) {
-        if (data_type == "BYTES" || data_type == "JSON") {
-          input_json.SetString(
-              reinterpret_cast<const char*>(buf), byte_size,
-              document_.GetAllocator());
-        } else if (data_type == "INT32") {
-          auto* val = reinterpret_cast<int32_t*>(buf);
-          input_json.SetInt(*val);
-        } else if (data_type == "BOOL") {
-          bool is_true = (*buf > 0);
-          input_json.SetBool(is_true);
-        } else {
-          std::cerr << "WARNING: data type '" + data_type +
-                           "' is not supported with JSON."
-                    << std::endl;
-        }
-      } else {
-        input_json.SetString("", 0, document_.GetAllocator());
-      }
+      rapidjson::Value input_json;
+      AddDataToJSON(input_json, buf, byte_size, data_type);
       request_inputs_json.AddMember(
           name_json, input_json, document_.GetAllocator());
     }
@@ -210,16 +266,10 @@ ProfileDataExporter::AddResponseOutputs(
       const auto& name{output.first};
       const auto& buf{output.second.data_.get()};
       const auto& byte_size{output.second.size_};
+      const auto& data_type{output.second.data_type_};
       rapidjson::Value name_json(name.c_str(), document_.GetAllocator());
-      rapidjson::Value output_json{};
-      // TMA-1777: support other data types
-      if (buf != nullptr) {
-        output_json.SetString(
-            reinterpret_cast<const char*>(buf), byte_size,
-            document_.GetAllocator());
-      } else {
-        output_json.SetString("", 0, document_.GetAllocator());
-      }
+      rapidjson::Value output_json;
+      AddDataToJSON(output_json, buf, byte_size, data_type);
       response_output_json.AddMember(
           name_json, output_json, document_.GetAllocator());
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
+// Copyright 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,7 +25,14 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+#include <utility>
+
 #include "common.h"
+#include "response_output.h"
 
 namespace tc = triton::client;
 
@@ -38,9 +45,12 @@ namespace tritoncapi {
 class InferResult {
  public:
   static void Create(
-      InferResult** infer_result, const tc::Error& err, const std::string& id)
+      InferResult** infer_result, const tc::Error& err, const std::string& id,
+      std::unordered_map<std::string, ResponseOutput>&& outputs,
+      bool is_final_response, bool is_null_response)
   {
-    *infer_result = reinterpret_cast<InferResult*>(new InferResult(err, id));
+    *infer_result = reinterpret_cast<InferResult*>(new InferResult(
+        err, id, std::move(outputs), is_final_response, is_null_response));
   }
 
   tc::Error Id(std::string* id) const
@@ -50,13 +60,56 @@ class InferResult {
   }
   tc::Error RequestStatus() const { return status_; }
 
+  tc::Error RawData(
+      const std::string& output_name, const uint8_t** buf,
+      size_t* byte_size) const
+  {
+    auto it = outputs_.find(output_name);
+    if (it != outputs_.end()) {
+      *buf = reinterpret_cast<const uint8_t*>(it->second.base);
+      *byte_size = it->second.byte_size;
+    } else {
+      return tc::Error(
+          "The response does not contain results for output name '" +
+          output_name + "'");
+    }
+
+    return tc::Error::Success;
+  }
+
+  tc::Error IsFinalResponse(bool* is_final_response) const
+  {
+    if (is_final_response == nullptr) {
+      return tc::Error("is_final_response cannot be nullptr");
+    }
+    *is_final_response = is_final_response_;
+    return tc::Error::Success;
+  }
+
+  tc::Error IsNullResponse(bool* is_null_response) const
+  {
+    if (is_null_response == nullptr) {
+      return tc::Error("is_null_response cannot be nullptr");
+    }
+    *is_null_response = is_null_response_;
+    return tc::Error::Success;
+  }
+
  private:
-  InferResult(const tc::Error& err, const std::string& id)
-      : status_(err), request_id_(id)
+  InferResult(
+      const tc::Error& err, const std::string& id,
+      std::unordered_map<std::string, ResponseOutput>&& outputs,
+      bool is_final_response, bool is_null_response)
+      : status_(err), request_id_(id), outputs_(std::move(outputs)),
+        is_final_response_(is_final_response),
+        is_null_response_(is_null_response)
   {
   }
 
   std::string request_id_;
   tc::Error status_;
+  std::unordered_map<std::string, ResponseOutput> outputs_{};
+  bool is_final_response_{true};
+  bool is_null_response_{false};
 };
 }}}}  // namespace triton::perfanalyzer::clientbackend::tritoncapi

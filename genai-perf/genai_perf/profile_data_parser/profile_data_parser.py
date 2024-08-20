@@ -104,6 +104,8 @@ class ProfileDataParser:
 
         elif self._service_kind == "triton":
             self._response_format = ResponseFormat.TRITON
+        elif self._service_kind == "triton_c_api":
+            pass  # ignore
         else:
             raise ValueError(f"Unknown service kind: {self._service_kind}")
 

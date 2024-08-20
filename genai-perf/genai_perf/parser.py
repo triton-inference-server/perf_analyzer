@@ -38,6 +38,7 @@ from genai_perf.constants import (
     CNN_DAILY_MAIL,
     DEFAULT_ARTIFACT_DIR,
     DEFAULT_COMPARE_DIR,
+    DEFAULT_TRITON_METRICS_URL,
     OPEN_ORCA,
 )
 from genai_perf.llm_inputs.llm_inputs import (
@@ -176,6 +177,9 @@ def _check_conditional_args(
         args = _convert_str_to_enum_entry(args, "backend", OutputFormat)
         args.output_format = args.backend
 
+    if args.service_kind == "tensorrtllm_engine":
+        args.output_format = OutputFormat.TENSORRTLLM_ENGINE
+
     # Output token distribution checks
     if args.output_tokens_mean == LlmInputs.DEFAULT_OUTPUT_TOKENS_MEAN:
         if args.output_tokens_stddev != LlmInputs.DEFAULT_OUTPUT_TOKENS_STDDEV:
@@ -187,10 +191,11 @@ def _check_conditional_args(
                 "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic."
             )
 
-    if args.service_kind != "triton":
+    if args.service_kind not in ["triton", "tensorrtllm_engine"]:
         if args.output_tokens_mean_deterministic:
             parser.error(
-                "The --output-tokens-mean-deterministic option is only supported with the Triton service-kind."
+                "The --output-tokens-mean-deterministic option is only supported "
+                "with the Triton and TensorRT-LLM Engine service-kind."
             )
 
     _check_conditional_args_embeddings_rankings(parser, args)
@@ -282,6 +287,8 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
             name += [f"{args.service_kind}-{args.endpoint_type}"]
         elif args.service_kind == "triton":
             name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
+        elif args.service_kind == "tensorrtllm_engine":
+            name += [f"{args.service_kind}"]
         else:
             raise ValueError(f"Unknown service kind '{args.service_kind}'.")
 
@@ -610,7 +617,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--service-kind",
         type=str,
-        choices=["triton", "openai"],
+        choices=["triton", "openai", "tensorrtllm_engine"],
         default="triton",
         required=False,
         help="The kind of service perf_analyzer will "
@@ -657,9 +664,8 @@ def _add_output_args(parser):
         default=Path("profile_export.json"),
         help="The path where the perf_analyzer profile export will be "
         "generated. By default, the profile export will be to profile_export.json. "
-        "The genai-perf files will be exported to <profile_export_file>_genai_perf.json and "
-        "<profile_export_file>_genai_perf.csv. "
-        "For example, if the profile export file is profile_export.json, the genai-perf CSV file will be "
+        "The genai-perf file will be exported to <profile_export_file>_genai_perf.csv. "
+        "For example, if the profile export file is profile_export.json, the genai-perf file will be "
         "exported to profile_export_genai_perf.csv.",
     )
 
@@ -810,9 +816,23 @@ def compare_handler(args: argparse.Namespace):
 
 
 def profile_handler(args, extra_args):
+    from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+        TritonTelemetryDataCollector,
+    )
     from genai_perf.wrapper import Profiler
 
-    Profiler.run(args=args, extra_args=extra_args)
+    telemetry_data_collector = None
+    if args.service_kind == "triton":
+        # TPA-275: pass server url as a CLI option in non-default case
+        telemetry_data_collector = TritonTelemetryDataCollector(
+            server_metrics_url=DEFAULT_TRITON_METRICS_URL
+        )
+
+    Profiler.run(
+        args=args,
+        extra_args=extra_args,
+        telemetry_data_collector=telemetry_data_collector,
+    )
 
 
 ### Parser Initialization ###
