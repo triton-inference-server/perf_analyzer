@@ -36,6 +36,15 @@ from genai_perf.profile_data_parser import ImageRetrievalProfileDataParser
 from .test_utils import check_statistics, ns_to_sec
 
 
+def check_image_retrieval_metrics(
+    m1: ImageRetrievalMetrics, m2: ImageRetrievalMetrics
+) -> None:
+    assert m1.request_latencies == m2.request_latencies
+    assert m1.request_throughputs == pytest.approx(m2.request_throughputs)
+    assert m1.image_latencies == m2.image_latencies
+    assert m1.image_throughputs == pytest.approx(m2.image_throughputs)
+
+
 class TestImageRetrievalProfileDataParser:
 
     image_retrieval_profile_data = {
@@ -121,11 +130,11 @@ class TestImageRetrievalProfileDataParser:
             filename=Path("image_retrieval_profile_export.json")
         )
 
-        # experiment 1 statistics
         statistics = pd.get_statistics(infer_mode="concurrency", load_level="10")
         metrics = cast(ImageRetrievalMetrics, statistics.metrics)
 
         expected_metrics = ImageRetrievalMetrics(**expected_metrics)
         expected_statistics = Statistics(expected_metrics)
 
+        check_image_retrieval_metrics(metrics, expected_metrics)
         check_statistics(statistics, expected_statistics)

@@ -58,7 +58,3 @@ class ImageRetrievalMetrics(Metrics):
     def request_metrics(self) -> List[MetricMetadata]:
         base_metrics = super().request_metrics  # base metrics
         return base_metrics + self.IMAGE_RETRIEVAL_REQUEST_METRICS
-
-    @property
-    def system_metrics(self) -> List[MetricMetadata]:
-        return super().system_metrics  # base metrics
