@@ -118,8 +118,7 @@ class LLMGoodputCalculator(GoodputCalculator):
 
         if self._has_throughput_target:
             throughput_names = [
-                self.get_slo_name(key)
-                for key in self._valid_throughput_related_slos
+                self.get_slo_name(key) for key in self._valid_throughput_related_slos
             ]
             requests_throughput_metric_values = [
                 self._metric.data[name] for name in throughput_names
