@@ -38,7 +38,11 @@ from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.llm_inputs.llm_inputs import LlmInputs
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
-from genai_perf.profile_data_parser import LLMProfileDataParser, ProfileDataParser
+from genai_perf.profile_data_parser import (
+    ImageRetrievalProfileDataParser,
+    LLMProfileDataParser,
+    ProfileDataParser,
+)
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
 
 
@@ -95,6 +99,8 @@ def generate_inputs(args: Namespace, tokenizer: Tokenizer) -> None:
 def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParser:
     if args.endpoint_type in ["embeddings", "rankings"]:
         return ProfileDataParser(args.profile_export_file)
+    elif args.endpoint_type == "image_retrieval":
+        return ImageRetrievalProfileDataParser(args.profile_export_file)
     else:
         return LLMProfileDataParser(
             filename=args.profile_export_file,

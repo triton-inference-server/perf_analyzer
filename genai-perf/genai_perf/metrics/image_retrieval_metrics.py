@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,8 +26,39 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.metrics.image_retrieval_metrics import ImageRetrievalMetrics
-from genai_perf.metrics.llm_metrics import LLMMetrics
+from typing import List
+
 from genai_perf.metrics.metrics import MetricMetadata, Metrics
-from genai_perf.metrics.statistics import Statistics
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+
+
+class ImageRetrievalMetrics(Metrics):
+    """A simple dataclass that holds core Image Retrieval performance metrics."""
+
+    IMAGE_RETRIEVAL_REQUEST_METRICS = [
+        MetricMetadata("image_throughput", "images/sec"),
+        MetricMetadata("image_latency", "ms/image"),
+    ]
+
+    def __init__(
+        self,
+        request_throughputs: List[float] = [],
+        request_latencies: List[int] = [],
+        image_throughputs: List[int] = [],
+        image_latencies: List[int] = [],
+    ) -> None:
+        super().__init__(request_throughputs, request_latencies)
+        self.image_throughputs = image_throughputs
+        self.image_latencies = image_latencies
+
+        # add base name mapping
+        self._base_names["image_throughputs"] = "image_throughput"
+        self._base_names["image_latencies"] = "image_latency"
+
+    @property
+    def request_metrics(self) -> List[MetricMetadata]:
+        base_metrics = super().request_metrics  # base metrics
+        return base_metrics + self.IMAGE_RETRIEVAL_REQUEST_METRICS
+
+    @property
+    def system_metrics(self) -> List[MetricMetadata]:
+        return super().system_metrics  # base metrics
