@@ -255,7 +255,7 @@ def _check_goodput_args(args):
             if target_val < 0:
                 raise ValueError(
                     f"Invalid value found, {target_metric}: {target_val}. "
-                    f"The SLO value should be non-negative. "
+                    f"The Service Level Objective value should be non-negative. "
                 )
     return args
 
@@ -309,10 +309,11 @@ def parse_goodput(values):
             constraints[target_metric] = float(target_val)
     except ValueError:
         raise argparse.ArgumentTypeError(
-            f"Invalid format for goodput constraints: {values}. "
-            f"The expected format is 'key:value' pairs, where the key should be a "
-            f"valid service level objective name and the value should be a number "
-            f"representing either milliseconds or a throughput value per second."
+            f"Invalid format found for goodput constraints. "
+            f"The expected format is 'key:value' pairs. The key should be a "
+            f"service level objective name (e.g. request_latency). The value "
+            f"should be a number representing either milliseconds "
+            f"or a throughput value per second."
         )
     return constraints
 

@@ -48,8 +48,7 @@ class TestLLMGoodputCalculator:
 
     TEST_GOODPUT_CONSTRAINTS = {"request_latency": 10e-6}  # ms
 
-    def test_goodputcalculator_goodput(self) -> None:
-        """Test goodput property."""
+    def test_goodput_property(self) -> None:
         gc = LLMGoodputCalculator(
             goodput_constraints=self.TEST_GOODPUT_CONSTRAINTS,
             metric=self.TEST_METRIC,
@@ -60,33 +59,30 @@ class TestLLMGoodputCalculator:
         gc.compute()
         assert gc.goodput == [0.1]  # after computing
 
-    def test_goodputcalculator_get_slo_base_name(self) -> None:
-        """Test get_slo_base_name method in GoodputCalculator class."""
+    def test_get_slo_name(self) -> None:
         gc = LLMGoodputCalculator(
             goodput_constraints=self.TEST_GOODPUT_CONSTRAINTS,
             metric=self.TEST_METRIC,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
 
-        assert gc.get_slo_base_name("request_latency") == "request_latencies"
-        assert gc.get_slo_base_name("time_to_first_token") == "time_to_first_tokens"
-        assert gc.get_slo_base_name("inter_token_latency") == "inter_token_latencies"
-        assert gc.get_slo_base_name("output_token_throughput_per_request") == (
+        assert gc.get_slo_name("request_latency") == "request_latencies"
+        assert gc.get_slo_name("time_to_first_token") == "time_to_first_tokens"
+        assert gc.get_slo_name("inter_token_latency") == "inter_token_latencies"
+        assert gc.get_slo_name("output_token_throughput_per_request") == (
             "output_token_throughputs_per_request"
         )
         with pytest.raises(KeyError):
-            gc.get_slo_base_name("hello1234")
+            gc.get_slo_name("hello1234")
 
-    def test_llmgoodputcalculator_compute(self) -> None:
+    def test_compute(self) -> None:
         """
-        Test compute method
-
         Goodput constraints for experiment 1 and 2:
         * time_to_first_token: 2.5e-6 ms
         * inter_token_latency: 2.5e-6 ms
         * output_token_throughput_per_request: 0.5e9 s
 
-        Benchmark durationfor experiment 1 and 2: 10 s
+        Benchmark duration for experiment 1 and 2: 10 s
 
         LLMMetrics
         * time to first tokens

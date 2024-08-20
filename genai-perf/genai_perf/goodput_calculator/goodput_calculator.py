@@ -34,7 +34,7 @@ from genai_perf.metrics import Metrics
 
 
 class GoodputCalculator(ABC):
-    """A base class to calculate goodput according to SLOs."""
+    """A base class to calculate goodput according to goodput constraints."""
 
     MS_TO_NS_CONVERSION = 1e6
     INVALID_GOODPUT = [-1.0]
@@ -48,8 +48,10 @@ class GoodputCalculator(ABC):
         self._goodput_constraints = goodput_constraints
         self._benchmark_duration = benchmark_duration
         self._metric = metric
+        # goodput is defined as the number of completed requests per second
+        # that meet the Service Level Objectives
         self._goodput: Optional[List[float]] = None
-        self._slo_base_names = {
+        self._slo_names = {
             "request_latency": "request_latencies",
         }
 
@@ -57,9 +59,9 @@ class GoodputCalculator(ABC):
         """
         Compute the goodput result.
 
-        The GoodputCalculator class sets valid SLOs from users' input, aggregates
-        request metric values, counts the number of good requests, and calculates
-        the final goodput.
+        The GoodputCalculator class sets valid goodput constraints from users'
+        input, aggregates request metric values, counts the number of good requests,
+        and calculates the final goodput.
         """
         self._set_valid_slos()
         self._combine_requests_metric_values()
@@ -69,7 +71,7 @@ class GoodputCalculator(ABC):
     @abstractmethod
     def _set_valid_slos(self) -> None:
         """
-        Check users' Service Level Objectives (SLOs) inputs.
+        Check users' inputs of goodput constraints.
         Set the valid ones while logging the invalid ones.
         """
         pass
@@ -77,14 +79,14 @@ class GoodputCalculator(ABC):
     @abstractmethod
     def _combine_requests_metric_values(self) -> None:
         """
-        Combine values from the metrics that match with the valid SLOs at a
-        per request level.
+        Combine values from the metrics that match with the valid
+        goodput constraints at a per request level.
         """
         pass
 
     @abstractmethod
     def _count_good_reqs(self) -> Optional[int]:
-        """Count the number of good requests according to SLOs."""
+        """Count the number of good requests according to goodput constraints."""
         pass
 
     @abstractmethod
@@ -96,9 +98,9 @@ class GoodputCalculator(ABC):
     def goodput(self) -> Optional[List[float]]:
         return self._goodput
 
-    def get_slo_base_name(self, metric_name: str) -> str:
+    def get_slo_name(self, metric_name: str) -> str:
         """Returns the plural name of a given metric."""
-        if metric_name in self._slo_base_names:
-            return self._slo_base_names[metric_name]
+        if metric_name in self._slo_names:
+            return self._slo_names[metric_name]
         else:
             raise KeyError(f"No metric named '{metric_name}' exists.")

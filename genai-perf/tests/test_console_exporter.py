@@ -43,8 +43,6 @@ class TestConsoleExporter:
             "--endpoint-type",
             "chat",
             "--streaming",
-            "--goodput",
-            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -57,7 +55,6 @@ class TestConsoleExporter:
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
-            request_goodputs=[100],
         )
         stats = Statistics(metrics=metrics)
 
@@ -82,7 +79,6 @@ class TestConsoleExporter:
             "└──────────────────────────┴───────┴───────┴───────┴───────┴───────┴───────┘\n"
             "Output token throughput (per sec): 456.00\n"
             "Request throughput (per sec): 123.00\n"
-            "Request goodput (per sec): 100.00\n"
         )
 
         returned_data = capsys.readouterr().out
@@ -98,8 +94,6 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             "chat",
-            "--goodput",
-            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -112,7 +106,6 @@ class TestConsoleExporter:
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
-            request_goodputs=[100],
         )
         stats = Statistics(metrics=metrics)
 
@@ -136,7 +129,6 @@ class TestConsoleExporter:
             "└────────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘\n"
             "Output token throughput (per sec): 456.00\n"
             "Request throughput (per sec): 123.00\n"
-            "Request goodput (per sec): 100.00\n"
         )
 
         returned_data = capsys.readouterr().out
@@ -152,8 +144,6 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             "embeddings",
-            "--goodput",
-            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -161,7 +151,6 @@ class TestConsoleExporter:
         metrics = Metrics(
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
-            request_goodputs=[100],
         )
         stats = Statistics(metrics=metrics)
 
@@ -181,13 +170,12 @@ class TestConsoleExporter:
             "│ Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
             "└──────────────────────┴──────┴──────┴──────┴──────┴──────┴──────┘\n"
             "Request throughput (per sec): 123.00\n"
-            "Request goodput (per sec): 100.00\n"
         )
 
         returned_data = capsys.readouterr().out
         assert returned_data == expected_content
 
-    def test_no_goodput_output(self, monkeypatch, capsys) -> None:
+    def test_valid_goodput(self, monkeypatch, capsys) -> None:
         argv = [
             "genai-perf",
             "profile",
@@ -198,6 +186,8 @@ class TestConsoleExporter:
             "--endpoint-type",
             "chat",
             "--streaming",
+            "--goodput",
+            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -210,6 +200,7 @@ class TestConsoleExporter:
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
+            request_goodputs=[100],
         )
         stats = Statistics(metrics=metrics)
 
@@ -234,6 +225,7 @@ class TestConsoleExporter:
             "└──────────────────────────┴───────┴───────┴───────┴───────┴───────┴───────┘\n"
             "Output token throughput (per sec): 456.00\n"
             "Request throughput (per sec): 123.00\n"
+            "Request goodput (per sec): 100.00\n"
         )
 
         returned_data = capsys.readouterr().out

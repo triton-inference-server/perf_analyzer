@@ -76,8 +76,6 @@ class TestCsvExporter:
             "--endpoint-type",
             "chat",
             "--streaming",
-            "--goodput",
-            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -90,7 +88,6 @@ class TestCsvExporter:
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
-            request_goodputs=[101],
         )
         stats = Statistics(metrics=metrics)
 
@@ -114,7 +111,6 @@ class TestCsvExporter:
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
-            "Request Goodput (per sec),101.00\r\n",
         ]
         expected_filename = "profile_export_genai_perf.csv"
         returned_data = [
@@ -149,8 +145,6 @@ class TestCsvExporter:
             "chat",
             "--profile-export-file",
             custom_filename,
-            "--goodput",
-            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -163,7 +157,6 @@ class TestCsvExporter:
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
-            request_goodputs=[101],
         )
         stats = Statistics(metrics=metrics)
 
@@ -185,7 +178,6 @@ class TestCsvExporter:
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
-            "Request Goodput (per sec),101.00\r\n",
         ]
         returned_data = [
             data for filename, data in mock_read_write if filename == expected_filename
@@ -208,8 +200,6 @@ class TestCsvExporter:
             "openai",
             "--endpoint-type",
             "embeddings",
-            "--goodput",
-            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -217,7 +207,6 @@ class TestCsvExporter:
         metrics = Metrics(
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
-            request_goodputs=[100],
         )
         stats = Statistics(metrics=metrics)
 
@@ -236,12 +225,11 @@ class TestCsvExporter:
             "\r\n",
             "Metric,Value\r\n",
             "Request Throughput (per sec),123.00\r\n",
-            "Request Goodput (per sec),100.00\r\n",
         ]
         returned_data = [data for _, data in mock_read_write]
         assert returned_data == expected_content
 
-    def test_no_goodput_csv_output(
+    def test_valid_goodput_csv_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
         argv = [
@@ -254,6 +242,8 @@ class TestCsvExporter:
             "--endpoint-type",
             "chat",
             "--streaming",
+            "--goodput",
+            "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -266,6 +256,7 @@ class TestCsvExporter:
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
+            request_goodputs=[100],
         )
         stats = Statistics(metrics=metrics)
 
@@ -289,6 +280,7 @@ class TestCsvExporter:
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
+            "Request Goodput (per sec),100.00\r\n",
         ]
         expected_filename = "profile_export_genai_perf.csv"
         returned_data = [

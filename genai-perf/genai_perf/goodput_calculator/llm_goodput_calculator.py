@@ -38,7 +38,8 @@ logger = logging.getLogger(__name__)
 
 class LLMGoodputCalculator(GoodputCalculator):
     """
-    A subclass to calculate goodput for LLMs according to LLM-related SLOs.
+    A subclass to calculate goodput for LLMs according to
+    LLM-related goodput constraints.
     """
 
     def __init__(
@@ -60,54 +61,52 @@ class LLMGoodputCalculator(GoodputCalculator):
         self._has_time_target = False
         self._has_throughput_target = False
 
-        # add slo base name mapping
-        self._slo_base_names["time_to_first_token"] = "time_to_first_tokens"
-        self._slo_base_names["inter_token_latency"] = "inter_token_latencies"
-        self._slo_base_names["output_token_throughput_per_request"] = (
+        # add slo name mapping
+        self._slo_names["time_to_first_token"] = "time_to_first_tokens"
+        self._slo_names["inter_token_latency"] = "inter_token_latencies"
+        self._slo_names["output_token_throughput_per_request"] = (
             "output_token_throughputs_per_request"
         )
 
     def _set_valid_slos(self) -> None:
         """
-        Check users' Service Level Objectives (SLOs) inputs.
-        Set the valid ones while logging the invalid ones.s
+        Check users' inputs of goodput constraints.
+        Set the valid ones while logging the invalid ones.
         """
         invalid_slos = []
         self._valid_time_related_slos = {}
         self._valid_throughput_related_slos = {}
         for slo_name, slo_value in self._goodput_constraints.items():
-            if slo_name in self._valid_metric_names:
-                if slo_name in self._valid_time_related_names:
-                    self._valid_time_related_slos[slo_name] = (
-                        slo_value * self.MS_TO_NS_CONVERSION
-                    )
-                elif slo_name in self._valid_throughput_related_names:
-                    self._valid_throughput_related_slos[slo_name] = slo_value
+            if slo_name in self._valid_time_related_names:
+                self._valid_time_related_slos[slo_name] = (
+                    slo_value * self.MS_TO_NS_CONVERSION
+                )
+                self._has_time_target = True
+            elif slo_name in self._valid_throughput_related_names:
+                self._valid_throughput_related_slos[slo_name] = slo_value
+                self._has_throughput_target = True
             else:
                 invalid_slos.append(slo_name)
-        if self._valid_time_related_slos:
-            self._has_time_target = True
-        if self._valid_throughput_related_slos:
-            self._has_throughput_target = True
+
         if invalid_slos:
             valid_slos_list = ", ".join(self._valid_metric_names)
             logger.info(
-                f"Invalid SLOs found: {', '.join(invalid_slos)}. "
-                f"The goodput will be -1. Valid SLOs are: {valid_slos_list}."
+                f"Invalid Service Level Objectives found: {', '.join(invalid_slos)}. "
+                f"Valid Service Level Objectives are: {valid_slos_list}."
             )
             self._goodput = self.INVALID_GOODPUT
 
     def _combine_requests_metric_values(self) -> None:
         """
-        Combine values from the metrics that match with the valid SLOs at a
-        per request level.
+        Combine values from the metrics that match with the valid
+        goodput constraints at a per request level.
         """
         if self.goodput == self.INVALID_GOODPUT:
             return
 
         if self._has_time_target:
             time_names = [
-                self.get_slo_base_name(key) for key in self._valid_time_related_slos
+                self.get_slo_name(key) for key in self._valid_time_related_slos
             ]
             requests_time_metric_values = [
                 self._metric.data[name] for name in time_names
@@ -119,7 +118,7 @@ class LLMGoodputCalculator(GoodputCalculator):
 
         if self._has_throughput_target:
             throughput_names = [
-                self.get_slo_base_name(key)
+                self.get_slo_name(key)
                 for key in self._valid_throughput_related_slos
             ]
             requests_throughput_metric_values = [
@@ -131,7 +130,7 @@ class LLMGoodputCalculator(GoodputCalculator):
             )
 
     def _count_good_reqs(self) -> Optional[int]:
-        """Count the number of good requests according to SLOs."""
+        """Count the number of good requests according to goodput constraints."""
         if self.goodput == self.INVALID_GOODPUT:
             return None
         target_time_metric_values = []
@@ -158,11 +157,12 @@ class LLMGoodputCalculator(GoodputCalculator):
                 request_throughput_metric_values = list(
                     self._combined_requests_throughput_metric_values[idx]
                 )
+
             for val, slo in zip(request_time_metric_values, target_time_metric_values):
                 if val > slo:
                     is_good_request = False
                     break
-            else:
+            if is_good_request:
                 for val, slo in zip(
                     request_throughput_metric_values, target_throughput_metric_values
                 ):

@@ -58,7 +58,7 @@ class TestLLMMetrics:
         assert req_metrics[5].name == "input_sequence_length"
         assert req_metrics[5].unit == "tokens"
 
-    def test_llm_metric_request_time_metrics(self) -> None:
+    def test_llm_request_time_metrics(self) -> None:
         """Test request_time_metrics property."""
         m = LLMMetrics(
             request_throughputs=[10.12, 11.33],
@@ -80,7 +80,7 @@ class TestLLMMetrics:
         assert req_metrics[2].name == "request_latency"
         assert req_metrics[2].unit == "ms"
 
-    def test_llm_metric_request_throughput_metrics(self) -> None:
+    def test_request_throughput_metrics(self) -> None:
         """Test request_throughput_metrics property."""
         m = LLMMetrics(
             request_throughputs=[10.12, 11.33],
