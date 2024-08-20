@@ -706,7 +706,7 @@ class TestCLIArguments:
         [
             (
                 ["--goodput", "time_to_first_token:-1"],
-                "Invalid value found, time_to_first_token: -1.0. The SLO value should be non-negative. ",
+                "Invalid value found, time_to_first_token: -1.0. The Service Level Objective value should be non-negative. ",
             ),
         ],
     )
