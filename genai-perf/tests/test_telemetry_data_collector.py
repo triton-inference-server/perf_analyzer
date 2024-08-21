@@ -143,3 +143,44 @@ class TestTelemetryDataCollector:
                 self.triton_metrics_response
             )
             mock_sleep.assert_called_once()
+
+    @patch("requests.get")
+    def test_url_reachability_check_success(
+        self,
+        mock_get: MagicMock,
+        collector: MockTelemetryDataCollector,
+    ) -> None:
+        mock_get.return_value.status_code = requests.codes.ok  # 200
+        assert collector.check_url_reachability() is True
+
+    @patch("requests.get")
+    def test_url_reachability_check_failure(
+        self, mock_get: MagicMock, collector: MockTelemetryDataCollector
+    ) -> None:
+        # Simulate a 404 Not Found error
+        mock_get.return_value.status_code = requests.codes.not_found  # 404
+        assert collector.check_url_reachability() is False
+
+        # Simulate a 500 Internal Server Error
+        mock_get.return_value.status_code = requests.codes.server_error  # 500
+        assert collector.check_url_reachability() is False
+
+        # Simulate a 403 Forbidden error
+        mock_get.return_value.status_code = requests.codes.forbidden  # 403
+        assert collector.check_url_reachability() is False
+
+        # Simulate a timeout exception
+        mock_get.side_effect = requests.exceptions.Timeout
+        assert collector.check_url_reachability() is False
+
+        # Simulate a connection error
+        mock_get.side_effect = requests.exceptions.ConnectionError
+        assert collector.check_url_reachability() is False
+
+        # Simulate too many redirects
+        mock_get.side_effect = requests.exceptions.TooManyRedirects
+        assert collector.check_url_reachability() is False
+
+        # Simulate a generic request exception
+        mock_get.side_effect = requests.exceptions.RequestException
+        assert collector.check_url_reachability() is False

@@ -46,6 +46,16 @@ class TelemetryDataCollector(ABC):
         self._stop_event = Event()
         self._thread: Optional[Thread] = None
 
+    def check_url_reachability(self) -> bool:
+        """Check if the server metrics URL is reachable"""
+        if self._server_metrics_url:
+            try:
+                response = requests.get(self._server_metrics_url, timeout=5)
+                return response.status_code == requests.codes.ok
+            except requests.RequestException:
+                return False
+        return True
+
     def start(self) -> None:
         """Start the telemetry data collection thread."""
         if self._thread is None or not self._thread.is_alive():
@@ -81,3 +91,8 @@ class TelemetryDataCollector(ABC):
     def metrics(self) -> TelemetryMetrics:
         """Return the collected metrics."""
         return self._metrics
+
+    @property
+    def metrics_url(self) -> str:
+        """Return server metrics url"""
+        return self._server_metrics_url
