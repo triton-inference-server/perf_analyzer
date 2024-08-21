@@ -52,6 +52,7 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
         "energy_consumption": 1e-6,  # joules to megajoules (MJ)
         "gpu_memory_used": 1e-9,  # bytes to gigabytes (GB)
         "total_gpu_memory": 1e-9,  # bytes to gigabytes (GB)
+        "gpu_utilization": 100,  # ratio to percentage (%)
     }
 
     def _process_and_update_metrics(self, metrics_data: str) -> None:
