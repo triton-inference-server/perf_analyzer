@@ -350,14 +350,15 @@ def _add_input_args(parser):
         default=LlmInputs.DEFAULT_BATCH_SIZE,
         required=False,
         help=f"The batch size of the requests GenAI-Perf should send. "
-        "This is currently only supported with the embeddings and rankings endpoint types.",
+        "This is currently only supported with the embeddings, rankings, and "
+        "image_retrieval endpoint types.",
     )
 
     input_group.add_argument(
         "--extra-inputs",
         action="append",
         help="Provide additional inputs to include with every request. "
-        "You can repeat this flag for multiple inputs. Inputs should be in an input_name:value format."
+        "You can repeat this flag for multiple inputs. Inputs should be in an input_name:value format. "
         "Alternatively, a string representing a json formatted dict can be provided.",
     )
 
