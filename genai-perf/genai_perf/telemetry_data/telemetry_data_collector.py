@@ -46,11 +46,13 @@ class TelemetryDataCollector(ABC):
         self._stop_event = Event()
         self._thread: Optional[Thread] = None
 
-    def check_url_reachability(self) -> bool:
-        """Check if the server metrics URL is reachable"""
+    def is_url_reachable(self) -> bool:
+        TIMEOUT_SECONDS = 5
         if self._server_metrics_url:
             try:
-                response = requests.get(self._server_metrics_url, timeout=5)
+                response = requests.get(
+                    self._server_metrics_url, timeout=TIMEOUT_SECONDS
+                )
                 return response.status_code == requests.codes.ok
             except requests.RequestException:
                 return False

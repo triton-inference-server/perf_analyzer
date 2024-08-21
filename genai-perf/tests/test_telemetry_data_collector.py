@@ -150,37 +150,37 @@ class TestTelemetryDataCollector:
         mock_get: MagicMock,
         collector: MockTelemetryDataCollector,
     ) -> None:
-        mock_get.return_value.status_code = requests.codes.ok  # 200
-        assert collector.check_url_reachability() is True
+        mock_get.return_value.status_code = requests.codes.ok
+        assert collector.is_url_reachable() is True
 
     @patch("requests.get")
     def test_url_reachability_check_failure(
         self, mock_get: MagicMock, collector: MockTelemetryDataCollector
     ) -> None:
         # Simulate a 404 Not Found error
-        mock_get.return_value.status_code = requests.codes.not_found  # 404
-        assert collector.check_url_reachability() is False
+        mock_get.return_value.status_code = requests.codes.not_found
+        assert collector.is_url_reachable() is False
 
         # Simulate a 500 Internal Server Error
-        mock_get.return_value.status_code = requests.codes.server_error  # 500
-        assert collector.check_url_reachability() is False
+        mock_get.return_value.status_code = requests.codes.server_error
+        assert collector.is_url_reachable() is False
 
         # Simulate a 403 Forbidden error
-        mock_get.return_value.status_code = requests.codes.forbidden  # 403
-        assert collector.check_url_reachability() is False
+        mock_get.return_value.status_code = requests.codes.forbidden
+        assert collector.is_url_reachable() is False
 
         # Simulate a timeout exception
         mock_get.side_effect = requests.exceptions.Timeout
-        assert collector.check_url_reachability() is False
+        assert collector.is_url_reachable() is False
 
         # Simulate a connection error
         mock_get.side_effect = requests.exceptions.ConnectionError
-        assert collector.check_url_reachability() is False
+        assert collector.is_url_reachable() is False
 
         # Simulate too many redirects
         mock_get.side_effect = requests.exceptions.TooManyRedirects
-        assert collector.check_url_reachability() is False
+        assert collector.is_url_reachable() is False
 
         # Simulate a generic request exception
         mock_get.side_effect = requests.exceptions.RequestException
-        assert collector.check_url_reachability() is False
+        assert collector.is_url_reachable() is False
