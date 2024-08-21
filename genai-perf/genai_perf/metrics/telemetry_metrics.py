@@ -39,12 +39,12 @@ class TelemetryMetrics:
     """
 
     TELEMETRY_METRICS = [
-        MetricMetadata("gpu_power_usage", "watts"),
-        MetricMetadata("gpu_power_limit", "watts"),
-        MetricMetadata("energy_consumption", "joules"),
-        MetricMetadata("gpu_utilization", "percentage"),
-        MetricMetadata("total_gpu_memory", "bytes"),
-        MetricMetadata("gpu_memory_used", "bytes"),
+        MetricMetadata("gpu_power_usage", "W"),  # Watts (W)
+        MetricMetadata("gpu_power_limit", "W"),  # Watts (W)
+        MetricMetadata("energy_consumption", "MJ"),  # Megajoules (MJ)
+        MetricMetadata("gpu_utilization", "%"),  # Percentage (%)
+        MetricMetadata("total_gpu_memory", "GB"),  # Gigabytes (GB)
+        MetricMetadata("gpu_memory_used", "GB"),  # Gigabytes (GB)
     ]
 
     def __init__(

@@ -43,27 +43,22 @@ class JsonExporter:
 
     def __init__(self, config: ExporterConfig):
         self._stats: Dict = config.stats
+        self._telemetry_stats = config.telemetry_stats
         self._args = dict(vars(config.args))
         self._output_dir = config.artifact_dir
-        self._is_telemetry_data = config.is_telemetry_data
-        if not self._is_telemetry_data:
-            self._extra_inputs = config.extra_inputs
-            self._stats_and_args: Dict = {}
-            self._prepare_args_for_export()
-            self._merge_stats_and_args()
+        self._extra_inputs = config.extra_inputs
+        self._stats_and_args: Dict = {}
+        self._prepare_args_for_export()
+        self._merge_stats_and_args()
 
     def export(self) -> None:
         prefix = os.path.splitext(os.path.basename(self._args["profile_export_file"]))[
             0
         ]
-
-        if self._is_telemetry_data:
-            filename = self._output_dir / f"{prefix}_genai_perf_telemetry_data.json"
-            data_to_export = self._stats
-        else:
-            filename = self._output_dir / f"{prefix}_genai_perf.json"
-            data_to_export = self._stats_and_args
-        self._write_to_json(filename, data_to_export)
+        filename = self._output_dir / f"{prefix}_genai_perf.json"
+        logger.info(f"Generating {filename}")
+        with open(str(filename), "w") as f:
+            f.write(json.dumps(self._stats_and_args, indent=2))
 
     def _prepare_args_for_export(self) -> None:
         self._args.pop("func", None)
@@ -81,13 +76,7 @@ class JsonExporter:
         self._args.update({"extra_inputs": self._extra_inputs})
 
     def _merge_stats_and_args(self) -> None:
-        self._stats_and_args = dict(self._stats)
+        self._stats_and_args = dict()
+        self._stats_and_args.update({"llm_metrics": self._stats})
+        self._stats_and_args.update({"telemetry_metrics": self._telemetry_stats})
         self._stats_and_args.update({"input_config": self._args})
-
-    def _write_to_json(self, filename: str, data: Dict) -> None:
-        """
-        Write metrics data to a JSON file.
-        """
-        logger.info(f"Generating {filename}")
-        with open(str(filename), "w") as f:
-            json.dump(data, f, indent=2)

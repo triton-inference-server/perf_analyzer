@@ -25,36 +25,46 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from collections import defaultdict
-from typing import DefaultDict, Dict, List
+from typing import DefaultDict, Dict
 
 import numpy as np
-from genai_perf.metrics import MetricMetadata, TelemetryMetrics
+from genai_perf.metrics import TelemetryMetrics
 
 
 class TelemetryMetricsStatistics:
+    SCALING_FACTORS = {
+        "energy_consumption": 1e-3,  # joules to kilojoules (kJ)
+        "gpu_memory_used": 1e-9,  # bytes to gigabytes (GB)
+        "total_gpu_memory": 1e-9,  # bytes to gigabytes (GB)
+    }
+
     def __init__(self, telemetry_metrics: TelemetryMetrics):
         self._metrics = telemetry_metrics
-        self._stats_dict: DefaultDict[str, Dict[str, float]] = defaultdict(dict)
+        self._stats_dict: DefaultDict[str, Dict[str, Dict[str, float]]] = defaultdict(
+            dict
+        )
+        self._initialize_stats()
         self._aggregate_metrics()
+
+    def _initialize_stats(self):
+        if len(self._metrics.data) > 0:
+            num_gpus = len(self._metrics.data[next(iter(self._metrics.data))][0])
+            for attr in self._metrics.data:
+                self._stats_dict[attr] = {"unit": self._get_metric_unit(attr)}
+                for i in range(num_gpus):
+                    self._stats_dict[attr][f"gpu{i}"] = {}
 
     def _aggregate_metrics(self):
         for attr, data in self._metrics.data.items():
             if self._should_skip(data, attr):
                 if len(data) > 0:
-                    unit = self._get_metric_unit(attr)
-                    # Take the first measurement value for gpu_power_limit and total_gpu_memory since they are constant
-                    self._stats_dict[attr] = {
-                        "unit": unit,
-                        **{f"gpu{i}": value for i, value in enumerate(data[0])},
-                    }
+                    for i, values in enumerate(data[0]):
+                        self._stats_dict[attr][f"gpu{i}"] = {"avg": values}
                 continue
-            unit = self._get_metric_unit(attr)
-            # Aggregating non-constant metrics
-            self._stats_dict[attr]["unit"] = unit
+
             self._calculate_statistics(data, attr)
 
     def _should_skip(self, data, attr):
-        # Skip constant metrics or empty data
         return len(data) == 0 or attr in ["gpu_power_limit", "total_gpu_memory"]
 
     def _calculate_statistics(self, data, attr):
@@ -69,67 +79,35 @@ class TelemetryMetricsStatistics:
         return ""
 
     def _calculate_mean(self, data, attr):
-        mean_values = [round(np.mean(gpu_data), 2) for gpu_data in zip(*data)]
-        self._stats_dict[attr]["avg"] = {
-            f"gpu{i}": value for i, value in enumerate(mean_values)
-        }
+        mean_values = [np.mean(gpu_data) for gpu_data in zip(*data)]
+        for i, value in enumerate(mean_values):
+            self._stats_dict[attr][f"gpu{i}"]["avg"] = value
 
     def _calculate_percentiles(self, data, attr):
         percentiles = [
             self._calculate_percentiles_for_gpu(gpu_data) for gpu_data in zip(*data)
         ]
-        self._stats_dict[attr]["p25"] = {
-            f"gpu{i}": gpu_percentiles[0]
-            for i, gpu_percentiles in enumerate(percentiles)
-        }
-        self._stats_dict[attr]["p50"] = {
-            f"gpu{i}": gpu_percentiles[1]
-            for i, gpu_percentiles in enumerate(percentiles)
-        }
-        self._stats_dict[attr]["p75"] = {
-            f"gpu{i}": gpu_percentiles[2]
-            for i, gpu_percentiles in enumerate(percentiles)
-        }
-        self._stats_dict[attr]["p90"] = {
-            f"gpu{i}": gpu_percentiles[3]
-            for i, gpu_percentiles in enumerate(percentiles)
-        }
-        self._stats_dict[attr]["p95"] = {
-            f"gpu{i}": gpu_percentiles[4]
-            for i, gpu_percentiles in enumerate(percentiles)
-        }
-        self._stats_dict[attr]["p99"] = {
-            f"gpu{i}": gpu_percentiles[5]
-            for i, gpu_percentiles in enumerate(percentiles)
-        }
+        percentiles_names = ["p25", "p50", "p75", "p90", "p95", "p99"]
+        for idx, name in enumerate(percentiles_names):
+            for i, gpu_percentiles in enumerate(percentiles):
+                self._stats_dict[attr][f"gpu{i}"][name] = gpu_percentiles[idx]
 
     def _calculate_percentiles_for_gpu(self, gpu_data):
         p25, p50, p75 = np.percentile(gpu_data, [25, 50, 75])
         p90, p95, p99 = np.percentile(gpu_data, [90, 95, 99])
-        return [
-            round(p25, 2),
-            round(p50, 2),
-            round(p75, 2),
-            round(p90, 2),
-            round(p95, 2),
-            round(p99, 2),
-        ]
+        return [p25, p50, p75, p90, p95, p99]
 
     def _calculate_minmax(self, data, attr):
-        min_values = [round(np.min(gpu_data), 2) for gpu_data in zip(*data)]
-        max_values = [round(np.max(gpu_data), 2) for gpu_data in zip(*data)]
-        self._stats_dict[attr]["min"] = {
-            f"gpu{i}": value for i, value in enumerate(min_values)
-        }
-        self._stats_dict[attr]["max"] = {
-            f"gpu{i}": value for i, value in enumerate(max_values)
-        }
+        min_values = [np.min(gpu_data) for gpu_data in zip(*data)]
+        max_values = [np.max(gpu_data) for gpu_data in zip(*data)]
+        for i, (min_value, max_value) in enumerate(zip(min_values, max_values)):
+            self._stats_dict[attr][f"gpu{i}"]["min"] = min_value
+            self._stats_dict[attr][f"gpu{i}"]["max"] = max_value
 
     @property
     def metrics(self) -> TelemetryMetrics:
-        """Return the underlying metrics used to calculate the statistics."""
         return self._metrics
 
     @property
     def stats_dict(self) -> Dict:
-        return dict(self._stats_dict)  # Convert defaultdict to regular dict
+        return dict(self._stats_dict)

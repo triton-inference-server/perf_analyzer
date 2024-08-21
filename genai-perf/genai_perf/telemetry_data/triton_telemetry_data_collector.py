@@ -47,6 +47,13 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
         "nv_gpu_memory_used_bytes": "gpu_memory_used",
     }
 
+    """Scaling factors for specific metrics"""
+    SCALING_FACTORS = {
+        "energy_consumption": 1e-6,  # joules to megajoules (MJ)
+        "gpu_memory_used": 1e-9,  # bytes to gigabytes (GB)
+        "total_gpu_memory": 1e-9,  # bytes to gigabytes (GB)
+    }
+
     def _process_and_update_metrics(self, metrics_data: str) -> None:
         """Process the response from Triton metrics endpoint and update metrics.
 
@@ -95,6 +102,11 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
             metric_key = self.METRIC_NAME_MAPPING.get(triton_metric_key, None)
 
             if metric_key and metric_key in current_measurement_interval:
-                current_measurement_interval[metric_key].append(float(metric_value))
+                metric_value_float = float(metric_value)
+                if metric_key in self.SCALING_FACTORS:
+                    metric_value_float = (
+                        metric_value_float * self.SCALING_FACTORS[metric_key]
+                    )
+                current_measurement_interval[metric_key].append(metric_value_float)
 
         self.metrics.update_metrics(current_measurement_interval)

@@ -28,7 +28,6 @@
 from typing import Dict
 
 from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.metrics import TelemetryMetrics
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -40,13 +39,17 @@ class ConsoleExporter:
     """
 
     STAT_COLUMN_KEYS = ["avg", "min", "max", "p99", "p90", "p75"]
-    CONSTANT_TELEMETRY_METRICS = {"gpu_power_limit", "total_gpu_memory"}
+    TELEMETRY_GROUPS = {
+        "Power": ["gpu_power_usage", "gpu_power_limit", "energy_consumption"],
+        "Memory": ["gpu_memory_used", "total_gpu_memory"],
+        "Utilization": ["gpu_utilization"],
+    }
 
     def __init__(self, config: ExporterConfig):
         self._stats = config.stats
+        self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
         self._args = config.args
-        self._is_telemetry_data = config.is_telemetry_data
 
     def _get_title(self):
         title = "NVIDIA GenAI-Perf | "
@@ -64,10 +67,9 @@ class ConsoleExporter:
         console = Console()
         title = self._get_title()
 
-        if self._is_telemetry_data:
-            self._export_telemetry_metrics(console, title)
-        else:
-            self._export_llm_metrics(console, title)
+        if self._args.verbose:
+            self._export_telemetry_metrics(console)
+        self._export_llm_metrics(console, title)
 
     def _export_llm_metrics(self, console: Console, title: str) -> None:
         table = Table(title=title)
@@ -129,24 +131,35 @@ class ConsoleExporter:
             else:
                 table.add_column("GPU Index", justify="left")
                 for stat in self.STAT_COLUMN_KEYS:
-                    table.add_column(stat, justify="right", style="green")
+                    sub_table.add_column(stat, justify="right", style="green")
 
-                self._construct_telemetry_table(table, metric_data)
+                self._construct_telemetry_table(sub_table, metric_data)
+                table.add_row(sub_table)
 
             console.print(table)
 
     def _construct_telemetry_table(
         self, table: Table, metric_data: Dict[str, Dict[str, float]]
     ) -> None:
-        avg_metric = metric_data.get("avg", {})
-        gpu_indices = list(avg_metric.keys())
+        gpu_indices = [key for key in metric_data.keys() if key != "unit"]
 
         for gpu_index in gpu_indices:
             row = [f"{gpu_index}"]
             for stat in self.STAT_COLUMN_KEYS:
-                value = metric_data.get(stat, {}).get(gpu_index, "N/A")
+                value = metric_data.get(gpu_index, {}).get(stat, "N/A")
                 row.append(f"{value:.2f}" if isinstance(value, (int, float)) else "N/A")
             table.add_row(*row)
+
+    def _capitalize_abbreviation(self, text: str) -> str:
+        """
+        Capitalizes abbreviations (e.g., GPU) while normalizing other text.
+        """
+        words = text.split()
+        capitalized_words = [
+            word.upper() if word.lower() in ["gpu"] else word.capitalize()
+            for word in words
+        ]
+        return " ".join(capitalized_words)
 
     # (TMA-1976) Refactor this method as the csv exporter shares identical method.
     def _should_skip(self, metric_name: str) -> bool:

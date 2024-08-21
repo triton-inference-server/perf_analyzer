@@ -29,7 +29,7 @@ from argparse import Namespace
 
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.metrics import Statistics
+from genai_perf.metrics import Statistics, TelemetryMetricsStatistics
 from genai_perf.parser import get_extra_inputs_as_dict
 
 
@@ -38,12 +38,16 @@ class OutputReporter:
     A class to orchestrate output generation.
     """
 
-    def __init__(self, stats, args: Namespace, is_telemetry_data: bool):
+    def __init__(
+        self,
+        stats: Statistics,
+        telemetry_stats: TelemetryMetricsStatistics,
+        args: Namespace,
+    ):
         self.args = args
         self.stats = stats
-        self.is_telemetry_data = is_telemetry_data
-        if not self.is_telemetry_data:
-            self.stats.scale_data()
+        self.telemetry_stats = telemetry_stats
+        self.stats.scale_data()
 
     def report_output(self) -> None:
         factory = DataExporterFactory()
@@ -56,13 +60,10 @@ class OutputReporter:
     def _create_exporter_config(self) -> ExporterConfig:
         config = ExporterConfig()
         config.stats = self.stats.stats_dict
+        config.telemetry_stats = self.telemetry_stats.stats_dict
         config.metrics = self.stats.metrics
         config.args = self.args
         config.artifact_dir = self.args.artifact_dir
-        config.is_telemetry_data = self.is_telemetry_data
-
-        # Only set extra_inputs if dealing with LLM metrics (Statistics)
-        if isinstance(self.stats, Statistics):
-            config.extra_inputs = get_extra_inputs_as_dict(self.args)
+        config.extra_inputs = get_extra_inputs_as_dict(self.args)
 
         return config

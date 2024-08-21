@@ -31,11 +31,11 @@ from genai_perf.metrics import Metrics
 class ExporterConfig:
     def __init__(self):
         self._stats = None
+        self._telemetry_stats = None
         self._metrics = None
         self._args = None
         self._extra_inputs = None
         self._artifact_dir = None
-        self._is_telemetry_data = False
 
     @property
     def stats(self):
@@ -44,6 +44,14 @@ class ExporterConfig:
     @stats.setter
     def stats(self, stats_value):
         self._stats = stats_value
+
+    @property
+    def telemetry_stats(self):
+        return self._telemetry_stats
+
+    @telemetry_stats.setter
+    def telemetry_stats(self, telemetry_stats):
+        self._telemetry_stats = telemetry_stats
 
     @property
     def metrics(self):
@@ -76,11 +84,3 @@ class ExporterConfig:
     @artifact_dir.setter
     def artifact_dir(self, artifact_dir_value):
         self._artifact_dir = artifact_dir_value
-
-    @property
-    def is_telemetry_data(self):
-        return self._is_telemetry_data
-
-    @is_telemetry_data.setter
-    def is_telemetry_data(self, is_telemetry_data):
-        self._is_telemetry_data = is_telemetry_data
