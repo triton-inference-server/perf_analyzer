@@ -260,7 +260,7 @@ def _check_goodput_args(args):
             if target_val < 0:
                 raise ValueError(
                     f"Invalid value found, {target_metric}: {target_val}. "
-                    f"The Service Level Objective value should be non-negative. "
+                    f"The goodput constraint value should be non-negative. "
                 )
     return args
 
@@ -472,6 +472,19 @@ def _add_input_args(parser):
         default=LlmInputs.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
+    )
+
+    input_group.add_argument(
+        "--goodput",
+        "-g",
+        nargs="+",
+        required=False,
+        help="An option to provide constraints in order to compute goodput. "
+        "Specify goodput constraints as 'key:value' pairs, where the key is a "
+        "valid metric name, and the value is a number representing "
+        "either milliseconds or a throughput value per second. For example, "
+        "'request_latency:300' or 'output_token_throughput_per_request:600'. "
+        "Multiple key:value pairs can be provided, separated by spaces. ",
     )
 
 
@@ -689,24 +702,6 @@ def _add_other_args(parser):
         help="An option to enable verbose mode.",
     )
 
-
-def _add_goodput_args(parser):
-    goodput_group = parser.add_argument_group("Goodput")
-
-    goodput_group.add_argument(
-        "--goodput",
-        "-g",
-        nargs="+",
-        required=False,
-        help="An option to provide Service Level Objectives to compute goodput. "
-        "Specify goodput constraints as 'key:value' pairs, where the key is a "
-        "valid Service Level Objective name, and the value is a number representing "
-        "either milliseconds or a throughput value per second. For example, "
-        "'request_latency:300' or 'output_token_throughput_per_request:600'. "
-        "Multiple key:value pairs can be provided, separated by spaces. ",
-    )
-
-
 def get_extra_inputs_as_dict(args: argparse.Namespace) -> dict:
     request_inputs = {}
     if args.extra_inputs:
@@ -788,7 +783,6 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     _add_profile_args(profile)
     _add_output_args(profile)
     _add_other_args(profile)
-    _add_goodput_args(profile)
     profile.set_defaults(func=profile_handler)
     return profile
 

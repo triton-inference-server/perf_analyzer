@@ -144,22 +144,27 @@ class ProfileDataParser:
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
 
-        metric = Metrics(
+        self._metric = Metrics(
             request_throughputs,
             request_latencies,
         )
 
-        # request goodput
+        self._calculate_goodput(benchmark_duration)
+
+        return self._metric
+
+    def _calculate_goodput(self, benchmark_duration) -> None:
         if self._goodput_constraints:
             llm_goodput_calculator = LLMGoodputCalculator(
                 self._goodput_constraints,
-                metric,
+                self._metric,
                 benchmark_duration,
             )
 
             llm_goodput_calculator.compute()
-            metric.request_goodputs = llm_goodput_calculator.goodput
-        return metric
+            self._metric.request_goodputs = llm_goodput_calculator.goodput
+        else:
+            return
 
     def get_statistics(self, infer_mode: str, load_level: str) -> Statistics:
         """Return profile statistics if it exists."""

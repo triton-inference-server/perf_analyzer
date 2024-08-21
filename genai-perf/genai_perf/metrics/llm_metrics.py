@@ -43,13 +43,15 @@ class LLMMetrics(Metrics):
         MetricMetadata("output_token_throughput_per_request", "tokens/sec"),
     ]
 
+    LLM_REQUEST_OTHER_METRICS = [
+        MetricMetadata("output_sequence_length", "tokens"),
+        MetricMetadata("input_sequence_length", "tokens"),
+    ]
+
     LLM_REQUEST_METRICS = (
         LLM_REQUEST_TIME_METRICS
         + LLM_REQUEST_THROUGHPUT_METRICS
-        + [
-            MetricMetadata("output_sequence_length", "tokens"),
-            MetricMetadata("input_sequence_length", "tokens"),
-        ]
+        + LLM_REQUEST_OTHER_METRICS
     )
 
     LLM_SYSTEM_METRICS = [

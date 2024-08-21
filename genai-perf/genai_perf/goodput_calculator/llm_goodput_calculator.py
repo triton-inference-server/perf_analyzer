@@ -49,19 +49,26 @@ class LLMGoodputCalculator(GoodputCalculator):
         benchmark_duration: float,
     ) -> None:
         super().__init__(goodput_constraints, metric, benchmark_duration)
+
+        self._set_valid_metric_names()
+
+        self._has_time_target = False
+        self._has_throughput_target = False
+
+        self._add_slo_mapping()
+
+    def _set_valid_metric_names(self) -> None:
         self._valid_time_related_names = [
-            item.name for item in metric.request_time_metrics
+            item.name for item in self._metric.request_time_metrics
         ]
         self._valid_throughput_related_names = [
-            item.name for item in metric.request_throughput_metrics
+            item.name for item in self._metric.request_throughput_metrics
         ]
         self._valid_metric_names = (
             self._valid_time_related_names + self._valid_throughput_related_names
         )
-        self._has_time_target = False
-        self._has_throughput_target = False
 
-        # add slo name mapping
+    def _add_slo_mapping(self) -> None:
         self._slo_names["time_to_first_token"] = "time_to_first_tokens"
         self._slo_names["inter_token_latency"] = "inter_token_latencies"
         self._slo_names["output_token_throughput_per_request"] = (
@@ -69,10 +76,6 @@ class LLMGoodputCalculator(GoodputCalculator):
         )
 
     def _set_valid_slos(self) -> None:
-        """
-        Check users' inputs of goodput constraints.
-        Set the valid ones while logging the invalid ones.
-        """
         invalid_slos = []
         self._valid_time_related_slos = {}
         self._valid_throughput_related_slos = {}

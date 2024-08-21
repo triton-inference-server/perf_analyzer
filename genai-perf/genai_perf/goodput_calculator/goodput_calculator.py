@@ -59,7 +59,7 @@ class GoodputCalculator(ABC):
         """
         Compute the goodput result.
 
-        The GoodputCalculator class sets valid goodput constraints from users'
+        The compute method sets valid goodput constraints from users'
         input, aggregates request metric values, counts the number of good requests,
         and calculates the final goodput.
         """
@@ -70,10 +70,7 @@ class GoodputCalculator(ABC):
 
     @abstractmethod
     def _set_valid_slos(self) -> None:
-        """
-        Check users' inputs of goodput constraints.
-        Set the valid ones while logging the invalid ones.
-        """
+        """Set the valid goodput constraints while logging any invalid ones."""
         pass
 
     @abstractmethod
