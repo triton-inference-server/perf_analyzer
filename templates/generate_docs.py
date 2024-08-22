@@ -40,10 +40,17 @@ with open("template_vars.yaml") as file:
 # create the jinja2 environment
 env = Environment(loader=FileSystemLoader("."), autoescape=True)
 for file in data.keys():
+    if "template" not in data[file]:
+        continue
+
     template = env.get_template(data[file]["template"])
+    file_vars = data["General"].copy()
+
+    if file in data:
+        file_vars.update(data[file])
 
     # render the template with the data and print the output
-    output = template.render(data[file])
+    output = template.render(file_vars)
 
     # grab the path to the output directory
     output_dir = os.path.join(
@@ -53,3 +60,4 @@ for file in data.keys():
     # write the output to a file
     with open(output_dir, "w") as file:
         file.write(output)
+    file_vars.clear()

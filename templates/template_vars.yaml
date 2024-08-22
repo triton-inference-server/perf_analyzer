@@ -1,8 +1,10 @@
+General:
+  release: 24.08
+  triton_cli_version: 0.0.8
+
 README:
   filename: README.md
   template: genai-perf-templates/README_template
-  release: 24.08
-  triton_cli_version: 0.0.8
   output_dir: ../genai-perf/
 
 compare:
@@ -38,6 +40,4 @@ rankings:
 tutorial:
   filename: tutorial.md
   template: genai-perf-templates/tutorial_template
-  release: 24.08
-  triton_cli_version: 0.0.8
   output_dir: ../genai-perf/docs/
