@@ -23,11 +23,11 @@ import requests
 from genai_perf import utils
 from genai_perf.constants import CNN_DAILY_MAIL, DEFAULT_INPUT_DATA_JSON, OPEN_ORCA
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.llm_inputs.synthetic_image_generator import (
+from genai_perf.inputs.synthetic_image_generator import (
     ImageFormat,
     SyntheticImageGenerator,
 )
-from genai_perf.llm_inputs.synthetic_prompt_generator import SyntheticPromptGenerator
+from genai_perf.inputs.synthetic_prompt_generator import SyntheticPromptGenerator
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, Tokenizer, get_tokenizer
 from genai_perf.utils import load_json_str
 from PIL import Image
@@ -96,7 +96,7 @@ class LlmInputs:
     dataset_url_map = {OPEN_ORCA: OPEN_ORCA_URL, CNN_DAILY_MAIL: CNN_DAILYMAIL_URL}
 
     @classmethod
-    def create_llm_inputs(
+    def create_inputs(
         cls,
         input_type: PromptSource,
         output_format: OutputFormat,

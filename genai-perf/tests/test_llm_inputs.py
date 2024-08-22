@@ -25,13 +25,13 @@ import responses
 from genai_perf import tokenizer
 from genai_perf.constants import CNN_DAILY_MAIL, DEFAULT_INPUT_DATA_JSON, OPEN_ORCA
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.llm_inputs.llm_inputs import (
+from genai_perf.inputs.inputs import (
     LlmInputs,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.llm_inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 from PIL import Image
 
@@ -163,12 +163,12 @@ class TestLlmInputs:
                 "https://bad-url.zzz",
             )
 
-    def test_llm_inputs_error_in_server_response(self):
+    def test_inputs_error_in_server_response(self):
         """
         Test for exception when length is out of range
         """
         with pytest.raises(GenAIPerfException):
-            _ = LlmInputs.create_llm_inputs(
+            _ = LlmInputs.create_inputs(
                 input_type=PromptSource.DATASET,
                 dataset_name=OPEN_ORCA,
                 output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
@@ -177,7 +177,7 @@ class TestLlmInputs:
             )
 
     @responses.activate
-    def test_llm_inputs_with_defaults(self, default_configured_url):
+    def test_inputs_with_defaults(self, default_configured_url):
         """
         Test that default options work
         """
@@ -199,7 +199,7 @@ class TestLlmInputs:
         assert len(dataset_json["rows"]) == TEST_LENGTH
 
     # TODO (TPA-114) Refactor LLM inputs and testing
-    # def test_llm_inputs_with_non_default_length(self):
+    # def test_inputs_with_non_default_length(self):
     #     """
     #     Test that non-default length works
     #     """
@@ -243,11 +243,11 @@ class TestLlmInputs:
     #     assert pa_json is not None
     #     assert len(pa_json["data"]) == LlmInputs.DEFAULT_LENGTH
 
-    # def test_create_openai_llm_inputs_cnn_dailymail(self):
+    # def test_create_openai_inputs_cnn_dailymail(self):
     #     """
     #     Test CNN_DAILYMAIL can be accessed
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.DATASET,
     #         dataset_name=CNN_DAILY_MAIL,
     #         output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
@@ -263,7 +263,7 @@ class TestLlmInputs:
     #     """
     #     Test that write to file is working correctly
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.DATASET,
     #         dataset_name=OPEN_ORCA,
     #         output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
@@ -283,7 +283,7 @@ class TestLlmInputs:
     #     """
     #     Test conversion of openai to vllm
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.DATASET,
     #         output_format=OutputFormat.VLLM,
     #         dataset_name=OPEN_ORCA,
@@ -301,7 +301,7 @@ class TestLlmInputs:
     #     """
     #     Test conversion of openai to completions
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.DATASET,
     #         output_format=OutputFormat.OPENAI_COMPLETIONS,
     #         dataset_name=OPEN_ORCA,
@@ -323,7 +323,7 @@ class TestLlmInputs:
     #     """
     #     Test conversion of openai to trtllm
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.DATASET,
     #         output_format=OutputFormat.TENSORRTLLM,
     #         dataset_name=OPEN_ORCA,
@@ -386,11 +386,11 @@ class TestLlmInputs:
 
     # def test_random_seed(self, default_tokenizer):
     #     """
-    #     Test that when given the same seed, create_llm_inputs will return the same result,
+    #     Test that when given the same seed, create_inputs will return the same result,
     #     and that when given a different seed, it will produce a different result
     #     """
 
-    #     inputs_seed5_a = LlmInputs.create_llm_inputs(
+    #     inputs_seed5_a = LlmInputs.create_inputs(
     #         tokenizer=default_tokenizer,
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.TENSORRTLLM,
@@ -401,7 +401,7 @@ class TestLlmInputs:
     #         model_name=["test_model_A"],
     #     )
 
-    #     inputs_seed5_b = LlmInputs.create_llm_inputs(
+    #     inputs_seed5_b = LlmInputs.create_inputs(
     #         tokenizer=default_tokenizer,
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.TENSORRTLLM,
@@ -412,7 +412,7 @@ class TestLlmInputs:
     #         model_name=["test_model_A"],
     #     )
 
-    #     inputs_seed10 = LlmInputs.create_llm_inputs(
+    #     inputs_seed10 = LlmInputs.create_inputs(
     #         tokenizer=default_tokenizer,
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.TENSORRTLLM,
@@ -430,7 +430,7 @@ class TestLlmInputs:
     #     """
     #     Test generating synthetic prompts and converting to vllm
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.VLLM,
     #         num_of_output_prompts=5,
@@ -449,7 +449,7 @@ class TestLlmInputs:
     #     """
     #     Test generating synthetic prompts and converting to trtllm
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.TENSORRTLLM,
     #         num_of_output_prompts=5,
@@ -468,7 +468,7 @@ class TestLlmInputs:
     #     """
     #     Test generating synthetic prompts and converting to OpenAI chat completions
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
     #         num_of_output_prompts=5,
@@ -487,7 +487,7 @@ class TestLlmInputs:
     #     """
     #     Test generating synthetic prompts and converting to OpenAI completions
     #     """
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.OPENAI_COMPLETIONS,
     #         num_of_output_prompts=5,
@@ -513,7 +513,7 @@ class TestLlmInputs:
     #     input_value = 5
     #     request_inputs = {input_name: input_value}
 
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=output_format,
     #         num_of_output_prompts=5,
@@ -722,11 +722,11 @@ class TestLlmInputs:
         }
 
     @patch(
-        "genai_perf.llm_inputs.llm_inputs.LlmInputs._create_synthetic_prompt",
+        "genai_perf.inputs.inputs.LlmInputs._create_synthetic_prompt",
         return_value="This is test prompt",
     )
     @patch(
-        "genai_perf.llm_inputs.llm_inputs.LlmInputs._create_synthetic_image",
+        "genai_perf.inputs.inputs.LlmInputs._create_synthetic_image",
         return_value="test_image_base64",
     )
     @pytest.mark.parametrize(
@@ -781,7 +781,7 @@ class TestLlmInputs:
     #     input_name = "max_tokens"
     #     input_value = 256
 
-    #     pa_json = LlmInputs.create_llm_inputs(
+    #     pa_json = LlmInputs.create_inputs(
     #         input_type=PromptSource.SYNTHETIC,
     #         output_format=OutputFormat.TENSORRTLLM,
     #         num_of_output_prompts=5,
@@ -814,7 +814,7 @@ class TestLlmInputs:
     #     output_tokens_mean = 100
     #     output_tokens_stddev = 0
     #     for deterministic in [True, False]:
-    #         _ = LlmInputs.create_llm_inputs(
+    #         _ = LlmInputs.create_inputs(
     #             input_type=PromptSource.SYNTHETIC,
     #             output_format=output_format,
     #             num_of_output_prompts=5,
@@ -829,16 +829,16 @@ class TestLlmInputs:
 
     #         assert os.path.exists(
     #             DEFAULT_INPUT_DATA_JSON
-    #         ), "llm_inputs.json file is not created"
+    #         ), "inputs.json file is not created"
 
     #         with open(DEFAULT_INPUT_DATA_JSON, "r") as f:
-    #             llm_inputs_data = json.load(f)
+    #             inputs_data = json.load(f)
 
-    #         for entry in llm_inputs_data["data"]:
+    #         for entry in inputs_data["data"]:
     #             if output_format == OutputFormat.VLLM:
     #                 assert (
     #                     "sampling_parameters" in entry
-    #                 ), "sampling_parameters is missing in llm_inputs.json"
+    #                 ), "sampling_parameters is missing in inputs.json"
     #                 sampling_parameters = json.loads(entry["sampling_parameters"][0])
     #                 assert (
     #                     "max_tokens" in sampling_parameters
@@ -860,21 +860,21 @@ class TestLlmInputs:
     #             elif output_format == OutputFormat.TENSORRTLLM:
     #                 assert (
     #                     "max_tokens" in entry
-    #                 ), "max_tokens parameter is missing in llm_inputs.json"
+    #                 ), "max_tokens parameter is missing in inputs.json"
     #                 assert (
     #                     entry["max_tokens"][0] == output_tokens_mean
     #                 ), "max_tokens parameter is not properly set"
     #                 if deterministic:
     #                     assert (
     #                         "min_length" in entry
-    #                     ), "min_length parameter is missing in llm_inputs.json"
+    #                     ), "min_length parameter is missing in inputs.json"
     #                     assert (
     #                         entry["min_length"][0] == output_tokens_mean
     #                     ), "min_length parameter is not properly set"
     #                 else:
     #                     assert (
     #                         "min_length" not in entry
-    #                     ), "min_length parameter is present in llm_inputs.json"
+    #                     ), "min_length parameter is present in inputs.json"
     #             else:
     #                 assert False, f"Unsupported output format: {output_format}"
 
