@@ -33,6 +33,13 @@ from pathlib import Path
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
+# Global constants
+PA_ABSLT_PATH = os.environ.get("PA_ABSLT_PATH", os.getcwd())
+PA_TEMPLATES_ABSLT_PATH = os.path.join(PA_ABSLT_PATH, "templates")
+
+# Change working directory to perf_analyzer/templates.
+os.chdir(PA_TEMPLATES_ABSLT_PATH)
+
 # read the yaml file
 with open("template_vars.yaml") as file:
     data = yaml.load(file, Loader=yaml.FullLoader)
@@ -61,3 +68,6 @@ for file in data.keys():
     with open(output_dir, "w") as file:
         file.write(output)
     file_vars.clear()
+
+# Change working directory to perf_analyzer.
+os.chdir(PA_ABSLT_PATH)
