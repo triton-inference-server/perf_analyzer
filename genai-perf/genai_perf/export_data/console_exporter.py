@@ -43,14 +43,16 @@ class ConsoleExporter:
         self._args = config.args
 
     def _get_title(self):
+        title = "NVIDIA GenAI-Perf | "
         if self._args.endpoint_type == "embeddings":
-            return "Embeddings Metrics"
+            title += "Embeddings Metrics"
         elif self._args.endpoint_type == "rankings":
-            return "Rankings Metrics"
+            title += "Rankings Metrics"
         elif self._args.endpoint_type == "image_retrieval":
-            return "Image Retrieval Metrics"
+            title += "Image Retrieval Metrics"
         else:
-            return "LLM Metrics"
+            title += "LLM Metrics"
+        return title
 
     def export(self) -> None:
         table = Table(title=self._get_title())
@@ -65,16 +67,6 @@ class ConsoleExporter:
         console = Console()
         console.print(table)
 
-        # System metrics are printed after the table
-        for metric in self._metrics.system_metrics:
-            line = metric.name.replace("_", " ").capitalize()
-            if metric.name == "request_goodput":
-                if not self._args.goodput:
-                    continue
-            value = self._stats[metric.name]["avg"]
-            line += f" ({metric.unit}): {value:.2f}"
-            print(line)
-
     def _construct_table(self, table: Table) -> None:
         for metric in self._metrics.request_metrics:
             if self._should_skip(metric.name):
@@ -87,6 +79,22 @@ class ConsoleExporter:
                 value = self._stats[metric.name][stat]
                 row_values.append(f"{value:,.2f}")
 
+            table.add_row(*row_values)
+
+        for metric in self._metrics.system_metrics:
+            metric_str = metric.name.replace("_", " ").capitalize()
+            # metric_str = metric_str.replace("throughput", "tput")
+            if metric.name == "request_goodput":
+                if not self._args.goodput:
+                    continue
+            metric_str += f" ({metric.unit})" if metric.unit != "tokens" else ""
+            row_values = [metric_str]
+            for stat in self.STAT_COLUMN_KEYS:
+                if stat == "avg":
+                    value = self._stats[metric.name]["avg"]
+                    row_values.append(f"{value:,.2f}")
+                else:
+                    row_values.append("N/A")
             table.add_row(*row_values)
 
     # (TMA-1976) Refactor this method as the csv exporter shares identical method.
