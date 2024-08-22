@@ -24,31 +24,40 @@ OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-# Context
+# Benchmark Goodput with GenAI-Perf
 
-Goodput, defined as the number of completed requests per second that meet the
-constraints, provides an enhanced measure of AI serving performance by
-accounting for both cost efficiency and user satisfaction.
+## Context
 
-# Tutorials
+Goodput is defined as the number of completed requests per second
+that meet specified metric constraints, also called service level
+objectives.
 
-This is a tutorial on how to benchmark models using goodput.
+For example, perhaps you want to measure the user experience of your service
+by considering throughput only including requests where the time to first token
+is under 50ms and inter-token latency is under 10ms.
 
-## Examples
+GenAI-Perf provides this value as goodput.
+
+## Tutorials
+
+Below you can find tutorials on how to benchmark different models
+using goodput.
+
+### Examples
 
 - [LLM Examples](#LLM)
 
 - [Embedding Model Examples](#embeddings)
 
-## Profile LLM Goodput<a id="LLM"></a>
+### Profile LLM Goodput<a id="LLM"></a>
 
-### Run GPT2 on OpenAI Chat Completions API-compatible server
+#### Run GPT2 on an OpenAI Chat Completions API-compatible server
 
 ```bash
 docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model gpt2 --dtype float16 --max-model-len 1024
 ```
 
-### Run GenAI-Perf with Goodput Constraints
+#### Run GenAI-Perf with Goodput Constraints
 
 ```bash
 genai-perf profile \
@@ -78,9 +87,9 @@ Request throughput (per sec): 44.62
 Request goodput (per sec): 30.95
 ```
 
-## Profile Embeddings Models Goodput<a id="embeddings"></a>
+### Profile Embeddings Models Goodput<a id="embeddings"></a>
 
-### Create a Sample Embeddings Input File
+#### Create a Sample Embeddings Input File
 
 To create a sample embeddings input file, use the following command:
 
@@ -99,14 +108,14 @@ This will generate a file named embeddings.jsonl with the following content:
 {"text": "In what state did they film Shrek 2?"}
 ```
 
-### Start an OpenAI Embeddings-Compatible Server
+#### Start an OpenAI Embeddings-Compatible Server
 
 To start an OpenAI embeddings-compatible server, run the following command:
 ```bash
 docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model intfloat/e5-mistral-7b-instruct --dtype float16 --max-model-len 1024
 ```
 
-### Run GenAI-Perf with goodput constraints
+#### Run GenAI-Perf with goodput constraints
 
 ```bash
 genai-perf profile \
