@@ -55,9 +55,9 @@ class TestLLMGoodputCalculator:
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
 
-        assert gc.goodput is None  # before computing
+        assert gc.goodput is None
         gc.compute()
-        assert gc.goodput == [0.1]  # after computing
+        assert gc.goodput == [0.1]
 
     def test_get_slo_name(self) -> None:
         gc = LLMGoodputCalculator(
@@ -125,9 +125,9 @@ class TestLLMGoodputCalculator:
             metric=test_llm_metrics_1,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
-        assert gc_1.goodput is None  # before computing
+        assert gc_1.goodput is None
         gc_1.compute()
-        assert gc_1.goodput == [0.1]  # after computing
+        assert gc_1.goodput == [0.1]
 
         # experiment 2
         test_llm_metrics_2 = LLMMetrics(
@@ -141,6 +141,6 @@ class TestLLMGoodputCalculator:
             metric=test_llm_metrics_2,
             benchmark_duration=self.TEST_BENCHMARK_DURATION,
         )
-        assert gc_2.goodput is None  # before computing
+        assert gc_2.goodput is None
         gc_2.compute()
-        assert gc_2.goodput == [0.0]  # after computing
+        assert gc_2.goodput == [0.0]

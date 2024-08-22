@@ -100,10 +100,6 @@ class LLMGoodputCalculator(GoodputCalculator):
             self._goodput = self.INVALID_GOODPUT
 
     def _combine_requests_metric_values(self) -> None:
-        """
-        Combine values from the metrics that match with the valid
-        goodput constraints at a per request level.
-        """
         if self.goodput == self.INVALID_GOODPUT:
             return
 
@@ -132,7 +128,6 @@ class LLMGoodputCalculator(GoodputCalculator):
             )
 
     def _count_good_reqs(self) -> Optional[int]:
-        """Count the number of good requests according to goodput constraints."""
         if self.goodput == self.INVALID_GOODPUT:
             return None
         target_time_metric_values = []
@@ -178,7 +173,6 @@ class LLMGoodputCalculator(GoodputCalculator):
         return good_req_count
 
     def _compute_goodput(self, good_count) -> None:
-        """Compute the goodput."""
         if self.goodput == self.INVALID_GOODPUT:
             return
         else:

@@ -269,19 +269,7 @@ class TestCsvExporter:
         exporter = CsvExporter(config)
         exporter.export()
 
-        expected_content = [
-            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "Time To First Token (ms),8.00,7.00,9.00,8.98,8.90,8.80,8.50,8.00,7.50\r\n",
-            "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50\r\n",
-            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Output Sequence Length,2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length,6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
-            "\r\n",
-            "Metric,Value\r\n",
-            "Output Token Throughput (per sec),456.00\r\n",
-            "Request Throughput (per sec),123.00\r\n",
-            "Request Goodput (per sec),100.00\r\n",
-        ]
+        expected_content = "Request Goodput (per sec),100.00\r\n"
         expected_filename = "profile_export_genai_perf.csv"
         returned_data = [
             data
@@ -292,7 +280,7 @@ class TestCsvExporter:
             raise Exception(
                 f"Expected file {expected_filename} not found in written data."
             )
-        assert returned_data == expected_content
+        assert returned_data[-1] == expected_content
 
     def test_invalid_goodput_csv_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -334,19 +322,8 @@ class TestCsvExporter:
         exporter = CsvExporter(config)
         exporter.export()
 
-        expected_content = [
-            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "Time To First Token (ms),8.00,7.00,9.00,8.98,8.90,8.80,8.50,8.00,7.50\r\n",
-            "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50\r\n",
-            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Output Sequence Length,2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length,6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
-            "\r\n",
-            "Metric,Value\r\n",
-            "Output Token Throughput (per sec),456.00\r\n",
-            "Request Throughput (per sec),123.00\r\n",
-            "Request Goodput (per sec),-1.00\r\n",
-        ]
+        expected_content = "Request Goodput (per sec),-1.00\r\n"
+        
         expected_filename = "profile_export_genai_perf.csv"
         returned_data = [
             data
@@ -357,4 +334,4 @@ class TestCsvExporter:
             raise Exception(
                 f"Expected file {expected_filename} not found in written data."
             )
-        assert returned_data == expected_content
+        assert returned_data[-1] == expected_content

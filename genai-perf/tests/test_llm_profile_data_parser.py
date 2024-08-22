@@ -233,8 +233,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [3, 6]
         assert metrics.input_sequence_lengths == [3, 4]
-        gp = [1 / ns_to_sec(10)]
-        assert metrics.request_goodputs == pytest.approx(gp)
+        goodput = [1 / ns_to_sec(10)]
+        assert metrics.request_goodputs == pytest.approx(goodput)
 
         # Disable Pylance warnings for dynamically set attributes due to Statistics
         # not having strict attributes listed.
@@ -293,8 +293,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [4, 6]
         assert metrics.input_sequence_lengths == [3, 4]
-        gp = [0 / ns_to_sec(15)]
-        assert metrics.request_goodputs == pytest.approx(gp)
+        goodput = [0 / ns_to_sec(15)]
+        assert metrics.request_goodputs == pytest.approx(goodput)
 
         assert stat["time_to_first_token"]["avg"] == pytest.approx(2.5)  # type: ignore
         assert stat["inter_token_latency"]["avg"] == pytest.approx(2.5)  # type: ignore
@@ -388,8 +388,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [3, 6]
         assert metrics.input_sequence_lengths == [3, 4]
-        gp = [1 / ns_to_sec(14)]
-        assert metrics.request_goodputs == pytest.approx(gp)
+        goodput = [1 / ns_to_sec(14)]
+        assert metrics.request_goodputs == pytest.approx(goodput)
 
         assert stat["time_to_first_token"]["avg"] == pytest.approx(4.5)  # type: ignore
         assert stat["inter_token_latency"]["avg"] == pytest.approx(3)  # type: ignore
@@ -483,8 +483,8 @@ class TestLLMProfileDataParser:
         assert metrics.output_token_throughputs == pytest.approx(ott)
         assert metrics.output_sequence_lengths == [3, 6]
         assert metrics.input_sequence_lengths == [3, 4]
-        gp = [1 / ns_to_sec(14)]
-        assert metrics.request_goodputs == pytest.approx(gp)
+        goodput = [1 / ns_to_sec(14)]
+        assert metrics.request_goodputs == pytest.approx(goodput)
 
         assert stat["time_to_first_token"]["avg"] == pytest.approx(4.5)  # type: ignore
         assert stat["inter_token_latency"]["avg"] == pytest.approx(3)  # type: ignore
