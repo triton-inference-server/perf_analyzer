@@ -1,0 +1,43 @@
+README:
+  filename: README.md
+  template: genai-perf-templates/README_template
+  release: 24.08
+  triton_cli_version: 0.0.8
+  output_dir: ../genai-perf/
+
+compare:
+  filename: compare.md
+  template: genai-perf-templates/compare_template
+  output_dir: ../genai-perf/docs/
+
+embeddings:
+  filename: embeddings.md
+  template: genai-perf-templates/embeddings_template
+  output_dir: ../genai-perf/docs/
+
+files:
+  filename: files.md
+  template: genai-perf-templates/files_template
+  output_dir: ../genai-perf/docs/
+
+lora:
+  filename: lora.md
+  template: genai-perf-templates/lora_template
+  output_dir: ../genai-perf/docs/
+
+multi_modal:
+  filename: multi_modal.md
+  template: genai-perf-templates/multi_modal_template
+  output_dir: ../genai-perf/docs/
+
+rankings:
+  filename: rankings.md
+  template: genai-perf-templates/rankings_template
+  output_dir: ../genai-perf/docs/
+
+tutorial:
+  filename: tutorial.md
+  template: genai-perf-templates/tutorial_template
+  release: 24.08
+  triton_cli_version: 0.0.8
+  output_dir: ../genai-perf/docs/
