@@ -72,19 +72,19 @@ genai-perf profile \
 Example output:
 
 ```
-                                   LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
-┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
-│ Time to first token (ms) │   4.44 │   3.63 │  23.85 │  13.30 │   5.15 │   4.20 │
-│ Inter token latency (ms) │   1.03 │   0.76 │   1.92 │   1.63 │   1.18 │   1.08 │
-│     Request latency (ms) │  22.31 │   7.67 │  45.83 │  41.11 │  25.18 │  21.97 │
-│   Output sequence length │  18.54 │   5.00 │  24.00 │  22.41 │  21.00 │  20.00 │
-│    Input sequence length │ 550.06 │ 550.00 │ 553.00 │ 551.82 │ 550.00 │ 550.00 │
-└──────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
-Output token throughput (per sec): 827.09
-Request throughput (per sec): 44.62
-Request goodput (per sec): 30.95
+                              NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃                         Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│          Time to first token (ms) │   7.46 │   4.15 │  18.40 │  17.89 │  13.26 │   5.56 │
+│          Inter token latency (ms) │   1.05 │   0.98 │   1.16 │   1.16 │   1.12 │   1.06 │
+│              Request latency (ms) │ 632.78 │ 620.90 │ 648.19 │ 647.81 │ 644.38 │ 638.67 │
+│            Output sequence length │ 595.60 │ 539.00 │ 638.00 │ 636.80 │ 626.00 │ 608.00 │
+│             Input sequence length │ 550.00 │ 550.00 │ 550.00 │ 550.00 │ 550.00 │ 550.00 │
+│ Output token throughput (per sec) │ 940.96 │    N/A │    N/A │    N/A │    N/A │    N/A │
+│      Request throughput (per sec) │   1.58 │    N/A │    N/A │    N/A │    N/A │    N/A │
+│         Request goodput (per sec) │   0.32 │    N/A │    N/A │    N/A │    N/A │    N/A │
+└───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 
 ### Profile Embeddings Models Goodput<a id="embeddings"></a>
