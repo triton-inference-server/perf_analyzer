@@ -468,7 +468,6 @@ class TestJsonExporter:
             }
         """
 
-        
         cli_cmd = [
             "genai-perf",
             "profile",

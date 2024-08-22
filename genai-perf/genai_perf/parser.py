@@ -714,6 +714,7 @@ def _add_other_args(parser):
         help="An option to enable verbose mode.",
     )
 
+
 def get_extra_inputs_as_dict(args: argparse.Namespace) -> dict:
     request_inputs = {}
     if args.extra_inputs:

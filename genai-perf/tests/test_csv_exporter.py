@@ -323,7 +323,7 @@ class TestCsvExporter:
         exporter.export()
 
         expected_content = "Request Goodput (per sec),-1.00\r\n"
-        
+
         expected_filename = "profile_export_genai_perf.csv"
         returned_data = [
             data
