@@ -47,11 +47,11 @@ class TelemetryDataCollector(ABC):
         self._thread: Optional[Thread] = None
 
     def is_url_reachable(self) -> bool:
-        TIMEOUT_SECONDS = 5
+        timeout_seconds = 5
         if self._server_metrics_url:
             try:
                 response = requests.get(
-                    self._server_metrics_url, timeout=TIMEOUT_SECONDS
+                    self._server_metrics_url, timeout=timeout_seconds
                 )
                 return response.status_code == requests.codes.ok
             except requests.RequestException:
@@ -59,20 +59,17 @@ class TelemetryDataCollector(ABC):
         return True
 
     def start(self) -> None:
-        """Start the telemetry data collection thread."""
         if self._thread is None or not self._thread.is_alive():
             self._stop_event.clear()
             self._thread = Thread(target=self._collect_metrics)
             self._thread.start()
 
     def stop(self) -> None:
-        """Stop the telemetry data collection thread."""
         if self._thread is not None and self._thread.is_alive():
             self._stop_event.set()
             self._thread.join()
 
     def _fetch_metrics(self) -> str:
-        """Fetch metrics from the metrics endpoint"""
         response = requests.get(self._server_metrics_url)
         response.raise_for_status()
         return response.text
@@ -83,7 +80,7 @@ class TelemetryDataCollector(ABC):
         pass
 
     def _collect_metrics(self) -> None:
-        """Continuously collect telemetry metrics at for every second"""
+        """Continuously collect telemetry metrics for every second"""
         while not self._stop_event.is_set():
             metrics_data = self._fetch_metrics()
             self._process_and_update_metrics(metrics_data)
@@ -91,10 +88,8 @@ class TelemetryDataCollector(ABC):
 
     @property
     def metrics(self) -> TelemetryMetrics:
-        """Return the collected metrics."""
         return self._metrics
 
     @property
     def metrics_url(self) -> str:
-        """Return server metrics url"""
         return self._server_metrics_url

@@ -130,11 +130,9 @@ class TestTelemetryDataCollector:
         with patch.object(
             collector, "_process_and_update_metrics", new_callable=MagicMock
         ) as mock_process_and_update_metrics:
-            # Mock _stop_event.is_set
+
             collector._stop_event = MagicMock()
-            collector._stop_event.is_set = MagicMock(
-                side_effect=[False, True]
-            )  # Ensure loop exits immediately
+            collector._stop_event.is_set = MagicMock(side_effect=[False, True])
 
             collector._collect_metrics()
 
@@ -157,30 +155,23 @@ class TestTelemetryDataCollector:
     def test_url_reachability_check_failure(
         self, mock_get: MagicMock, collector: MockTelemetryDataCollector
     ) -> None:
-        # Simulate a 404 Not Found error
         mock_get.return_value.status_code = requests.codes.not_found
         assert collector.is_url_reachable() is False
 
-        # Simulate a 500 Internal Server Error
         mock_get.return_value.status_code = requests.codes.server_error
         assert collector.is_url_reachable() is False
 
-        # Simulate a 403 Forbidden error
         mock_get.return_value.status_code = requests.codes.forbidden
         assert collector.is_url_reachable() is False
 
-        # Simulate a timeout exception
         mock_get.side_effect = requests.exceptions.Timeout
         assert collector.is_url_reachable() is False
 
-        # Simulate a connection error
         mock_get.side_effect = requests.exceptions.ConnectionError
         assert collector.is_url_reachable() is False
 
-        # Simulate too many redirects
         mock_get.side_effect = requests.exceptions.TooManyRedirects
         assert collector.is_url_reachable() is False
 
-        # Simulate a generic request exception
         mock_get.side_effect = requests.exceptions.RequestException
         assert collector.is_url_reachable() is False
