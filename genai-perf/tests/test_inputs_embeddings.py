@@ -28,10 +28,10 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.inputs.inputs import LlmInputs, ModelSelectionStrategy
+from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
 
 
-class TestLlmInputsEmbeddings:
+class TestInputsEmbeddings:
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
         "builtins.open",
@@ -48,7 +48,7 @@ class TestLlmInputsEmbeddings:
     def test_get_input_dataset_from_embeddings_file(self, mock_file, mock_exists):
         input_filename = Path("embeddings.jsonl")
         batch_size = 3
-        dataset = LlmInputs._get_input_dataset_from_embeddings_file(
+        dataset = Inputs._get_input_dataset_from_embeddings_file(
             input_filename, batch_size, num_prompts=100
         )
 
@@ -67,7 +67,7 @@ class TestLlmInputsEmbeddings:
             ValueError,
             match="Batch size cannot be larger than the number of available texts",
         ):
-            LlmInputs._get_input_dataset_from_embeddings_file(
+            Inputs._get_input_dataset_from_embeddings_file(
                 input_filename, 5, num_prompts=10
             )
 
@@ -100,7 +100,7 @@ class TestLlmInputsEmbeddings:
             ]
         }
 
-        result = LlmInputs._convert_generic_json_to_openai_embeddings_format(
+        result = Inputs._convert_generic_json_to_openai_embeddings_format(
             generic_dataset,
             extra_inputs={},
             model_name=["test_model"],
@@ -156,7 +156,7 @@ class TestLlmInputsEmbeddings:
             ]
         }
 
-        result = LlmInputs._convert_generic_json_to_openai_embeddings_format(
+        result = Inputs._convert_generic_json_to_openai_embeddings_format(
             generic_dataset,
             extra_inputs=extra_inputs,
             model_name=["test_model"],

@@ -35,7 +35,7 @@ import genai_perf.logging as logging
 from genai_perf import parser
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
-from genai_perf.inputs.inputs import LlmInputs
+from genai_perf.inputs.inputs import Inputs
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.profile_data_parser import (
@@ -66,14 +66,14 @@ def generate_inputs(args: Namespace, tokenizer: Tokenizer) -> None:
     except ValueError as e:
         raise GenAIPerfException(e)
 
-    LlmInputs.create_inputs(
+    Inputs.create_inputs(
         input_type=args.prompt_source,
         output_format=args.output_format,
         dataset_name=args.input_dataset,
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
         input_filename=input_filename,
-        starting_index=LlmInputs.DEFAULT_STARTING_INDEX,
+        starting_index=Inputs.DEFAULT_STARTING_INDEX,
         length=args.num_prompts,
         prompt_tokens_mean=args.synthetic_input_tokens_mean,
         prompt_tokens_stddev=args.synthetic_input_tokens_stddev,

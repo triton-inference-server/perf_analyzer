@@ -60,7 +60,7 @@ class OutputFormat(Enum):
         return self.name.lower()
 
 
-class LlmInputs:
+class Inputs:
     """
     A library of methods that control the generation of LLM Inputs
     """
@@ -629,7 +629,7 @@ class LlmInputs:
         dataset_json["features"] = [{"name": "text_input"}]
         dataset_json["rows"] = []
 
-        if batch_size == LlmInputs.DEFAULT_BATCH_SIZE:
+        if batch_size == Inputs.DEFAULT_BATCH_SIZE:
             for prompt, image in zip(prompts, images):
                 content = {}
                 if prompt is not None:
