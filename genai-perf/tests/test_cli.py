@@ -115,6 +115,10 @@ class TestCLIArguments:
                 {"endpoint": "v1/ranking"},
             ),
             (
+                ["--endpoint-type", "image_retrieval", "--service-kind", "openai"],
+                {"endpoint": "v1/infer"},
+            ),
+            (
                 [
                     "--endpoint-type",
                     "chat",
@@ -342,6 +346,10 @@ class TestCLIArguments:
                 "artifacts/test_model-openai-rankings-concurrency1",
             ),
             (
+                ["--service-kind", "openai", "--endpoint-type", "image_retrieval"],
+                "artifacts/test_model-openai-image_retrieval-concurrency1",
+            ),
+            (
                 ["--service-kind", "triton", "--backend", "tensorrtllm"],
                 "artifacts/test_model-triton-tensorrtllm-concurrency1",
             ),
@@ -558,7 +566,7 @@ class TestCLIArguments:
                     "--batch-size",
                     "10",
                 ],
-                "The --batch-size option is currently only supported with the embeddings and rankings endpoint types",
+                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types",
             ),
             (
                 [
@@ -597,6 +605,20 @@ class TestCLIArguments:
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
+                    "image_retrieval",
+                    "--streaming",
+                ],
+                "The --streaming option is not supported with the image_retrieval endpoint type",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
                     "embeddings",
                     "--generate-plots",
                 ],
@@ -615,6 +637,20 @@ class TestCLIArguments:
                     "--generate-plots",
                 ],
                 "The --generate-plots option is not currently supported with the rankings endpoint type",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
+                    "image_retrieval",
+                    "--generate-plots",
+                ],
+                "The --generate-plots option is not currently supported with the image_retrieval endpoint type",
             ),
         ],
     )
@@ -653,6 +689,10 @@ class TestCLIArguments:
             (
                 ["--service-kind", "openai", "--endpoint-type", "rankings"],
                 OutputFormat.RANKINGS,
+            ),
+            (
+                ["--service-kind", "openai", "--endpoint-type", "image_retrieval"],
+                OutputFormat.IMAGE_RETRIEVAL,
             ),
             (
                 ["--service-kind", "triton", "--backend", "tensorrtllm"],

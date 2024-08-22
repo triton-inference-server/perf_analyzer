@@ -131,6 +131,8 @@ class Statistics:
             self._stats_dict[key]["unit"] = "ms"
         elif key == "request_throughput" or "request_goodput":
             self._stats_dict[key]["unit"] = "requests/sec"
+        elif key == "image_throughput":
+            self._stats_dict[key]["unit"] = "pages/sec"
         elif key.startswith("output_token_throughput"):
             self._stats_dict[key]["unit"] = "tokens/sec"
         elif "sequence_length" in key:
@@ -168,6 +170,7 @@ class Statistics:
             "inter_token_latency",
             "time_to_first_token",
             "request_latency",
+            "image_latency",
         ]
         return field in time_metrics
 

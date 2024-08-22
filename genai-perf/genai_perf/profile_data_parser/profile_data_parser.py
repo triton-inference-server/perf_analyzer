@@ -42,6 +42,7 @@ class ResponseFormat(Enum):
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
+    IMAGE_RETRIEVAL = auto()
     TRITON = auto()
 
 
@@ -81,6 +82,8 @@ class ProfileDataParser:
                 self._response_format = ResponseFormat.OPENAI_EMBEDDINGS
             elif data["endpoint"] == "v1/ranking":
                 self._response_format = ResponseFormat.RANKINGS
+            elif data["endpoint"] == "v1/infer":
+                self._response_format = ResponseFormat.IMAGE_RETRIEVAL
             else:
                 # (TPA-66) add PA metadata to handle this case
                 # When endpoint field is either empty or custom endpoint, fall
@@ -99,6 +102,8 @@ class ProfileDataParser:
                     self._response_format = ResponseFormat.OPENAI_EMBEDDINGS
                 elif "ranking" in response:
                     self._response_format = ResponseFormat.RANKINGS
+                elif "image_retrieval" in response:
+                    self._response_format = ResponseFormat.IMAGE_RETRIEVAL
                 else:
                     raise RuntimeError("Unknown OpenAI response format.")
 

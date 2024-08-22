@@ -38,7 +38,11 @@ from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.llm_inputs.llm_inputs import LlmInputs
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
-from genai_perf.profile_data_parser import LLMProfileDataParser, ProfileDataParser
+from genai_perf.profile_data_parser import (
+    ImageRetrievalProfileDataParser,
+    LLMProfileDataParser,
+    ProfileDataParser,
+)
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
 
 
@@ -98,6 +102,8 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
             args.profile_export_file,
             goodput_constraints=args.goodput,
         )
+    elif args.endpoint_type == "image_retrieval":
+        return ImageRetrievalProfileDataParser(args.profile_export_file)
     else:
         return LLMProfileDataParser(
             filename=args.profile_export_file,

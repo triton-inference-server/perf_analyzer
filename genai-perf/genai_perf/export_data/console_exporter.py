@@ -47,6 +47,8 @@ class ConsoleExporter:
             return "Embeddings Metrics"
         elif self._args.endpoint_type == "rankings":
             return "Rankings Metrics"
+        elif self._args.endpoint_type == "image_retrieval":
+            return "Image Retrieval Metrics"
         else:
             return "LLM Metrics"
 
