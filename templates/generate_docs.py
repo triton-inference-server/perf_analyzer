@@ -38,7 +38,7 @@ with open("template_vars.yaml") as file:
     data = yaml.load(file, Loader=yaml.FullLoader)
 
 # create the jinja2 environment
-env = Environment(loader=FileSystemLoader("."))
+env = Environment(loader=FileSystemLoader("."), autoescape=True)
 for file in data.keys():
     template = env.get_template(data[file]["template"])
 
