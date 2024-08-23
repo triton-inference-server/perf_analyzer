@@ -30,7 +30,7 @@ DEFAULT_TRITON_METRICS_URL = "localhost:8002/metrics"
 
 OPEN_ORCA = "openorca"
 CNN_DAILY_MAIL = "cnn_dailymail"
-DEFAULT_INPUT_DATA_JSON = "llm_inputs.json"
+DEFAULT_INPUT_DATA_JSON = "inputs.json"
 
 
 DEFAULT_ARTIFACT_DIR = "artifacts"

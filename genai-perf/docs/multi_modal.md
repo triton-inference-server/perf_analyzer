@@ -68,7 +68,7 @@ genai-perf profile \
 
 > [!Note]
 > Under the hood, GenAI-Perf generates synthetic images using a few source images
-> under the `llm_inputs/source_images` directory.
+> under the `inputs/source_images` directory.
 > If you would like to add/remove/edit the source images,
 > you can do so by directly editing the source images under the directory.
 > GenAI-Perf will pickup the images under the directory automatically when
