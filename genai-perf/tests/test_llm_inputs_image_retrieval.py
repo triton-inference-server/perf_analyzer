@@ -20,7 +20,7 @@ from genai_perf.inputs.inputs import Inputs, OutputFormat, PromptSource
 
 class TestInputsImageRetrieval:
 
-    @patch("genai_perf.llm_inputs.llm_inputs.LlmInputs._write_json_to_file")
+    @patch("genai_perf.inputs.inputs.Inputs._write_json_to_file")
     @patch(
         "genai_perf.inputs.inputs.Inputs._encode_image",
         return_value="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/",
