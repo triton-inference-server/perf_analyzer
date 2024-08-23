@@ -48,9 +48,7 @@ class GoodputCalculator(ABC):
         self._goodput_constraints = goodput_constraints
         self._benchmark_duration = benchmark_duration
         self._metric = metric
-        # goodput is defined as the number of completed requests per second
-        # that meet the Service Level Objectives
-        self._goodput: Optional[List[float]] = None
+        self._goodput_val: Optional[List[float]] = None
         self._slo_names = {
             "request_latency": "request_latencies",
         }
@@ -59,8 +57,8 @@ class GoodputCalculator(ABC):
         """
         Compute the goodput result.
 
-        The compute method sets valid goodput constraints from users'
-        input, aggregates request metric values, counts the number of good requests,
+        The compute method sets the valid goodput constraints from user's
+        inputs, aggregates request metric values, counts the number of good requests,
         and calculates the final goodput.
         """
         self._set_valid_slos()
@@ -93,7 +91,7 @@ class GoodputCalculator(ABC):
 
     @property
     def goodput(self) -> Optional[List[float]]:
-        return self._goodput
+        return self._goodput_val
 
     def get_slo_name(self, metric_name: str) -> str:
         """Returns the plural name of a given metric."""

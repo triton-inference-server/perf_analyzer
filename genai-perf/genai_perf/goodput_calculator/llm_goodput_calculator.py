@@ -97,7 +97,7 @@ class LLMGoodputCalculator(GoodputCalculator):
                 f"Invalid Service Level Objectives found: {', '.join(invalid_slos)}. "
                 f"Valid Service Level Objectives are: {valid_slos_list}."
             )
-            self._goodput = self.INVALID_GOODPUT
+            self._goodput_val = self.INVALID_GOODPUT
 
     def _combine_requests_metric_values(self) -> None:
         if self.goodput == self.INVALID_GOODPUT:
@@ -176,4 +176,4 @@ class LLMGoodputCalculator(GoodputCalculator):
         if self.goodput == self.INVALID_GOODPUT:
             return
         else:
-            self._goodput = [good_count / self._benchmark_duration]
+            self._goodput_val = [good_count / self._benchmark_duration]
