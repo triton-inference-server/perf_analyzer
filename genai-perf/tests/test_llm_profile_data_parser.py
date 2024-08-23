@@ -28,7 +28,6 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
