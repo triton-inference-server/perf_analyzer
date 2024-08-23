@@ -216,6 +216,10 @@ class TestLLMProfileDataParser:
         check_llm_metrics(metrics, expected_metrics)
         check_statistics(statistics, expected_statistics)
 
+        # check non-existing profile data
+        with pytest.raises(KeyError):
+            pd.get_statistics(infer_mode="concurrency", load_level="30")
+
     ###############################
     # OPENAI CHAT COMPLETIONS
     ###############################
