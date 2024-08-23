@@ -246,6 +246,19 @@ class TestCLIArguments:
             (["--verbose"], {"verbose": True}),
             (["-u", "test_url"], {"u": "test_url"}),
             (["--url", "test_url"], {"u": "test_url"}),
+            (
+                [
+                    "--goodput",
+                    "time_to_first_token:5",
+                    "output_token_throughput_per_request:6",
+                ],
+                {
+                    "goodput": {
+                        "time_to_first_token": 5,
+                        "output_token_throughput_per_request": 6,
+                    }
+                },
+            ),
         ],
     )
     def test_non_file_flags_parsed(self, monkeypatch, arg, expected_attributes, capsys):
@@ -730,6 +743,24 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as exc_info:
             _ = parser.get_extra_inputs_as_dict(parsed_args)
+
+        assert str(exc_info.value) == expected_error
+
+    @pytest.mark.parametrize(
+        "args, expected_error",
+        [
+            (
+                ["--goodput", "time_to_first_token:-1"],
+                "Invalid value found, time_to_first_token: -1.0. The goodput constraint value should be non-negative. ",
+            ),
+        ],
+    )
+    def test_goodput_args_warning(self, monkeypatch, args, expected_error):
+        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        monkeypatch.setattr("sys.argv", combined_args)
+
+        with pytest.raises(ValueError) as exc_info:
+            parsed_args, _ = parser.parse_args()
 
         assert str(exc_info.value) == expected_error
 

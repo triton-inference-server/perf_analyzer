@@ -254,6 +254,21 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     return args
 
 
+def _check_goodput_args(args):
+    """
+    Parse and check goodput args
+    """
+    if args.goodput:
+        args.goodput = parse_goodput(args.goodput)
+        for target_metric, target_val in args.goodput.items():
+            if target_val < 0:
+                raise ValueError(
+                    f"Invalid value found, {target_metric}: {target_val}. "
+                    f"The goodput constraint value should be non-negative. "
+                )
+    return args
+
+
 def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
     """
     Set paths for all the artifacts.
@@ -295,6 +310,23 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
 
     args.profile_export_file = args.artifact_dir / args.profile_export_file
     return args
+
+
+def parse_goodput(values):
+    constraints = {}
+    try:
+        for item in values:
+            target_metric, target_val = item.split(":")
+            constraints[target_metric] = float(target_val)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"Invalid format found for goodput constraints. "
+            f"The expected format is 'key:value' pairs. The key should be a "
+            f"service level objective name (e.g. request_latency). The value "
+            f"should be a number representing either milliseconds "
+            f"or a throughput value per second."
+        )
+    return constraints
 
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
@@ -445,6 +477,19 @@ def _add_input_args(parser):
         default=Inputs.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
+    )
+
+    input_group.add_argument(
+        "--goodput",
+        "-g",
+        nargs="+",
+        required=False,
+        help="An option to provide constraints in order to compute goodput. "
+        "Specify goodput constraints as 'key:value' pairs, where the key is a "
+        "valid metric name, and the value is a number representing "
+        "either milliseconds or a throughput value per second. For example, "
+        "'request_latency:300' or 'output_token_throughput_per_request:600'. "
+        "Multiple key:value pairs can be provided, separated by spaces. ",
     )
 
 
@@ -844,6 +889,7 @@ def refine_args(
         args = _check_image_input_args(parser, args)
         args = _check_load_manager_args(args)
         args = _set_artifact_paths(args)
+        args = _check_goodput_args(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
         args = _check_compare_args(parser, args)
     else:

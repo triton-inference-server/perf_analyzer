@@ -98,13 +98,17 @@ def generate_inputs(args: Namespace, tokenizer: Tokenizer) -> None:
 
 def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParser:
     if args.endpoint_type in ["embeddings", "rankings"]:
-        return ProfileDataParser(args.profile_export_file)
+        return ProfileDataParser(
+            args.profile_export_file,
+            goodput_constraints=args.goodput,
+        )
     elif args.endpoint_type == "image_retrieval":
         return ImageRetrievalProfileDataParser(args.profile_export_file)
     else:
         return LLMProfileDataParser(
             filename=args.profile_export_file,
             tokenizer=tokenizer,
+            goodput_constraints=args.goodput,
         )
 
 

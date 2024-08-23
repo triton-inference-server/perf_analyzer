@@ -31,6 +31,7 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -69,9 +70,10 @@ class LLMProfileDataParser(ProfileDataParser):
         self,
         filename: Path,
         tokenizer: Tokenizer,
+        goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._tokenizer = tokenizer
-        super().__init__(filename)
+        super().__init__(filename, goodput_constraints)
 
     def _parse_requests(self, requests: dict) -> Metrics:
         """Parse each requests in profile export data to extract key metrics."""
@@ -145,11 +147,11 @@ class LLMProfileDataParser(ProfileDataParser):
             chunked_inter_token_latencies.append(chunked_inter_token_latency)
 
         # request & output token throughput
-        benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # nanosec
+        benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        return LLMMetrics(
+        self._llm_metric = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -160,6 +162,23 @@ class LLMProfileDataParser(ProfileDataParser):
             input_sequence_lengths,
             chunked_inter_token_latencies,
         )
+
+        self._calculate_goodput(benchmark_duration)
+
+        return self._llm_metric
+
+    def _calculate_goodput(self, benchmark_duration) -> None:
+        if self._goodput_constraints:
+            llm_goodput_calculator = LLMGoodputCalculator(
+                self._goodput_constraints,
+                self._llm_metric,
+                benchmark_duration,
+            )
+
+            llm_goodput_calculator.compute()
+            self._llm_metric.request_goodputs = llm_goodput_calculator.goodput
+        else:
+            return
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""

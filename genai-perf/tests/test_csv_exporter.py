@@ -228,3 +228,110 @@ class TestCsvExporter:
         ]
         returned_data = [data for _, data in mock_read_write]
         assert returned_data == expected_content
+
+    def test_valid_goodput_csv_output(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+    ) -> None:
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+            "--streaming",
+            "--goodput",
+            "request_latency:100",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        metrics = LLMMetrics(
+            request_throughputs=[123],
+            request_latencies=[4, 5, 6],
+            time_to_first_tokens=[7, 8, 9],
+            inter_token_latencies=[10, 11, 12],
+            output_token_throughputs=[456],
+            output_sequence_lengths=[1, 2, 3],
+            input_sequence_lengths=[5, 6, 7],
+            request_goodputs=[100],
+        )
+        stats = Statistics(metrics=metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.metrics = stats.metrics
+        config.artifact_dir = Path(".")
+        config.args = args
+
+        exporter = CsvExporter(config)
+        exporter.export()
+
+        expected_content = "Request Goodput (per sec),100.00\r\n"
+        expected_filename = "profile_export_genai_perf.csv"
+        returned_data = [
+            data
+            for filename, data in mock_read_write
+            if os.path.basename(filename) == expected_filename
+        ]
+        if returned_data == []:
+            raise Exception(
+                f"Expected file {expected_filename} not found in written data."
+            )
+        assert returned_data[-1] == expected_content
+
+    def test_invalid_goodput_csv_output(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+    ) -> None:
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+            "--streaming",
+            "--goodput",
+            "request_latenC:100",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        metrics = LLMMetrics(
+            request_throughputs=[123],
+            request_latencies=[4, 5, 6],
+            time_to_first_tokens=[7, 8, 9],
+            inter_token_latencies=[10, 11, 12],
+            output_token_throughputs=[456],
+            output_sequence_lengths=[1, 2, 3],
+            input_sequence_lengths=[5, 6, 7],
+            request_goodputs=[-1],
+        )
+        stats = Statistics(metrics=metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.metrics = stats.metrics
+        config.artifact_dir = Path(".")
+        config.args = args
+
+        exporter = CsvExporter(config)
+        exporter.export()
+
+        expected_content = "Request Goodput (per sec),-1.00\r\n"
+
+        expected_filename = "profile_export_genai_perf.csv"
+        returned_data = [
+            data
+            for filename, data in mock_read_write
+            if os.path.basename(filename) == expected_filename
+        ]
+        if returned_data == []:
+            raise Exception(
+                f"Expected file {expected_filename} not found in written data."
+            )
+        assert returned_data[-1] == expected_content
