@@ -28,10 +28,10 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.llm_inputs.llm_inputs import LlmInputs, ModelSelectionStrategy
+from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
 
 
-class TestLlmInputsRankings:
+class TestInputsRankings:
 
     def open_side_effects(filepath, *args, **kwargs):
         queries_content = "\n".join(
@@ -66,7 +66,7 @@ class TestLlmInputsRankings:
         queries_filename = Path("queries.jsonl")
         passages_filename = Path("passages.jsonl")
         batch_size = 2
-        dataset = LlmInputs._get_input_dataset_from_rankings_files(
+        dataset = Inputs._get_input_dataset_from_rankings_files(
             queries_filename, passages_filename, batch_size, num_prompts=100
         )
 
@@ -86,7 +86,7 @@ class TestLlmInputsRankings:
             ValueError,
             match="Batch size cannot be larger than the number of available passages",
         ):
-            LlmInputs._get_input_dataset_from_rankings_files(
+            Inputs._get_input_dataset_from_rankings_files(
                 queries_filename, passages_filename, 5, num_prompts=10
             )
 
@@ -116,7 +116,7 @@ class TestLlmInputsRankings:
             ]
         }
 
-        result = LlmInputs._convert_generic_json_to_rankings_format(
+        result = Inputs._convert_generic_json_to_rankings_format(
             generic_dataset,
             extra_inputs={},
             model_name=["test_model"],
@@ -166,7 +166,7 @@ class TestLlmInputsRankings:
             ]
         }
 
-        result = LlmInputs._convert_generic_json_to_rankings_format(
+        result = Inputs._convert_generic_json_to_rankings_format(
             generic_dataset,
             extra_inputs=extra_inputs,
             model_name=["test_model"],

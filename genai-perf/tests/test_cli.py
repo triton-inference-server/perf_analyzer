@@ -30,13 +30,13 @@ from pathlib import Path
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
-from genai_perf.llm_inputs.llm_inputs import (
+from genai_perf.inputs.inputs import (
     ImageFormat,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.llm_inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.parser import PathType
 
 

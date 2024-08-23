@@ -15,25 +15,26 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from genai_perf.llm_inputs.llm_inputs import LlmInputs, OutputFormat, PromptSource
+from genai_perf.inputs.inputs import Inputs, OutputFormat, PromptSource
 
 
-class TestLlmInputsImageRetrieval:
+class TestInputsImageRetrieval:
 
+    @patch("genai_perf.inputs.inputs.Inputs._write_json_to_file")
     @patch(
-        "genai_perf.llm_inputs.llm_inputs.LlmInputs._encode_image",
+        "genai_perf.inputs.inputs.Inputs._encode_image",
         return_value="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/",
     )
-    @patch("genai_perf.llm_inputs.llm_inputs.LlmInputs._get_input_dataset_from_file")
-    def test_image_retrieval(self, mock_get_input, mock_encode_image):
+    @patch("genai_perf.inputs.inputs.Inputs._get_input_dataset_from_file")
+    def test_image_retrieval(self, mock_get_input, mock_encode_image, mock_write_json):
         mock_get_input.return_value = {
             "features": [{"name": "text_input"}],
             "rows": [
-                {"row": [{"image": "genai_perf/llm_inputs/source_images/image1.jpg"}]}
+                {"row": [{"image": "genai_perf/inputs/source_images/image1.jpg"}]}
             ],
         }
 
-        pa_json = LlmInputs.create_llm_inputs(
+        pa_json = Inputs.create_inputs(
             input_type=PromptSource.FILE,
             output_format=OutputFormat.IMAGE_RETRIEVAL,
             input_filename=Path("dummy.jsonl"),
@@ -68,16 +69,23 @@ class TestLlmInputsImageRetrieval:
 
         assert pa_json == expected_json
 
-    @patch("genai_perf.llm_inputs.llm_inputs.LlmInputs._get_input_dataset_from_file")
-    @patch("genai_perf.llm_inputs.llm_inputs.LlmInputs._encode_image")
-    def test_image_retrieval_batched(self, mock_encode_image, mock_get_input):
+        mock_write_json.assert_called_once()
+        args, _ = mock_write_json.call_args
+        assert args[0] == expected_json
+
+    @patch("genai_perf.inputs.inputs.Inputs._write_json_to_file")
+    @patch("genai_perf.inputs.inputs.Inputs._get_input_dataset_from_file")
+    @patch("genai_perf.inputs.inputs.Inputs._encode_image")
+    def test_image_retrieval_batched(
+        self, mock_encode_image, mock_get_input, mock_write_json
+    ):
         mock_get_input.return_value = {
             "features": [{"name": "text_input"}],
             "rows": [
                 {
                     "row": [
-                        {"image": "genai_perf/llm_inputs/source_images/image1.jpg"},
-                        {"image": "genai_perf/llm_inputs/source_images/image2.jpg"},
+                        {"image": "genai_perf/inputs/source_images/image1.jpg"},
+                        {"image": "genai_perf/inputs/source_images/image2.jpg"},
                     ]
                 }
             ],
@@ -87,7 +95,7 @@ class TestLlmInputsImageRetrieval:
             "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/",
         ]
 
-        pa_json = LlmInputs.create_llm_inputs(
+        pa_json = Inputs.create_inputs(
             input_type=PromptSource.FILE,
             output_format=OutputFormat.IMAGE_RETRIEVAL,
             input_filename=Path("dummy.jsonl"),
@@ -129,3 +137,7 @@ class TestLlmInputsImageRetrieval:
         }
 
         assert pa_json == expected_json
+
+        mock_write_json.assert_called_once()
+        args, _ = mock_write_json.call_args
+        assert args[0] == expected_json
