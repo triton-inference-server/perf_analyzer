@@ -41,13 +41,13 @@ from genai_perf.constants import (
     DEFAULT_TRITON_METRICS_URL,
     OPEN_ORCA,
 )
-from genai_perf.llm_inputs.llm_inputs import (
-    LlmInputs,
+from genai_perf.inputs.inputs import (
+    Inputs,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.llm_inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.tokenizer import DEFAULT_TOKENIZER
@@ -184,8 +184,8 @@ def _check_conditional_args(
         args.output_format = OutputFormat.TENSORRTLLM_ENGINE
 
     # Output token distribution checks
-    if args.output_tokens_mean == LlmInputs.DEFAULT_OUTPUT_TOKENS_MEAN:
-        if args.output_tokens_stddev != LlmInputs.DEFAULT_OUTPUT_TOKENS_STDDEV:
+    if args.output_tokens_mean == Inputs.DEFAULT_OUTPUT_TOKENS_MEAN:
+        if args.output_tokens_stddev != Inputs.DEFAULT_OUTPUT_TOKENS_STDDEV:
             parser.error(
                 "The --output-tokens-mean option is required when using --output-tokens-stddev."
             )
@@ -225,7 +225,7 @@ def _check_conditional_args_embeddings_rankings(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
     else:
-        if args.batch_size != LlmInputs.DEFAULT_BATCH_SIZE:
+        if args.batch_size != Inputs.DEFAULT_BATCH_SIZE:
             parser.error(
                 "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types."
             )
@@ -347,7 +347,7 @@ def _add_input_args(parser):
         "--batch-size",
         "-b",
         type=int,
-        default=LlmInputs.DEFAULT_BATCH_SIZE,
+        default=Inputs.DEFAULT_BATCH_SIZE,
         required=False,
         help=f"The batch size of the requests GenAI-Perf should send. "
         "This is currently only supported with the embeddings, rankings, and "
@@ -387,7 +387,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--num-prompts",
         type=int,
-        default=LlmInputs.DEFAULT_NUM_PROMPTS,
+        default=Inputs.DEFAULT_NUM_PROMPTS,
         required=False,
         help=f"The number of unique prompts to generate as stimulus.",
     )
@@ -395,7 +395,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-mean",
         type=int,
-        default=LlmInputs.DEFAULT_OUTPUT_TOKENS_MEAN,
+        default=Inputs.DEFAULT_OUTPUT_TOKENS_MEAN,
         required=False,
         help=f"The mean number of tokens in each output. "
         "Ensure the --tokenizer value is set correctly. ",
@@ -417,7 +417,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_OUTPUT_TOKENS_STDDEV,
+        default=Inputs.DEFAULT_OUTPUT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of the number of tokens in each output. "
         "This is only used when --output-tokens-mean is provided.",
@@ -426,7 +426,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--random-seed",
         type=int,
-        default=LlmInputs.DEFAULT_RANDOM_SEED,
+        default=Inputs.DEFAULT_RANDOM_SEED,
         required=False,
         help="The seed used to generate random values.",
     )
@@ -434,7 +434,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--synthetic-input-tokens-mean",
         type=int,
-        default=LlmInputs.DEFAULT_PROMPT_TOKENS_MEAN,
+        default=Inputs.DEFAULT_PROMPT_TOKENS_MEAN,
         required=False,
         help=f"The mean of number of tokens in the generated prompts when using synthetic data.",
     )
@@ -442,7 +442,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--synthetic-input-tokens-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_PROMPT_TOKENS_STDDEV,
+        default=Inputs.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
     )
@@ -454,7 +454,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-mean",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_WIDTH_MEAN,
+        default=Inputs.DEFAULT_IMAGE_WIDTH_MEAN,
         required=False,
         help=f"The mean width of images when generating synthetic image data.",
     )
@@ -462,7 +462,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_WIDTH_STDDEV,
+        default=Inputs.DEFAULT_IMAGE_WIDTH_STDDEV,
         required=False,
         help=f"The standard deviation of width of images when generating synthetic image data.",
     )
@@ -470,7 +470,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-mean",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_HEIGHT_MEAN,
+        default=Inputs.DEFAULT_IMAGE_HEIGHT_MEAN,
         required=False,
         help=f"The mean height of images when generating synthetic image data.",
     )
@@ -478,7 +478,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_HEIGHT_STDDEV,
+        default=Inputs.DEFAULT_IMAGE_HEIGHT_STDDEV,
         required=False,
         help=f"The standard deviation of height of images when generating synthetic image data.",
     )
