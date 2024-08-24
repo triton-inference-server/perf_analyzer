@@ -15,373 +15,138 @@
 import json
 import random
 from copy import deepcopy
-from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from genai_perf import utils
-from genai_perf.constants import CNN_DAILY_MAIL, DEFAULT_INPUT_DATA_JSON, OPEN_ORCA
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.config import InputsConfig
+from genai_perf.inputs.input_constants import (
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_INPUT_DATA_JSON,
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+    DEFAULT_TENSORRTLLM_MAX_TOKENS,
+    EMPTY_JSON_IN_OPENAI_PA_FORMAT,
+    EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT,
+    EMPTY_JSON_IN_VLLM_PA_FORMAT,
+    MINIMUM_LENGTH,
+    MINIMUM_STARTING_INDEX,
+    ModelSelectionStrategy,
+    OutputFormat,
+    PromptSource,
+    dataset_url_map,
+)
 from genai_perf.inputs.synthetic_image_generator import (
     ImageFormat,
     SyntheticImageGenerator,
 )
 from genai_perf.inputs.synthetic_prompt_generator import SyntheticPromptGenerator
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, Tokenizer, get_tokenizer
 from genai_perf.utils import load_json_str
 from PIL import Image
 from requests import Response
 
 
-class ModelSelectionStrategy(Enum):
-    ROUND_ROBIN = auto()
-    RANDOM = auto()
-
-
-class PromptSource(Enum):
-    SYNTHETIC = auto()
-    DATASET = auto()
-    FILE = auto()
-
-
-class OutputFormat(Enum):
-    OPENAI_CHAT_COMPLETIONS = auto()
-    OPENAI_COMPLETIONS = auto()
-    OPENAI_EMBEDDINGS = auto()
-    OPENAI_VISION = auto()
-    RANKINGS = auto()
-    IMAGE_RETRIEVAL = auto()
-    TENSORRTLLM = auto()
-    VLLM = auto()
-    TENSORRTLLM_ENGINE = auto()
-
-    def to_lowercase(self):
-        return self.name.lower()
-
-
 class Inputs:
     """
-    A library of methods that control the generation of LLM Inputs
+    A class that generates the request input payloads for the target endpoint.
     """
 
-    OPEN_ORCA_URL = "https://datasets-server.huggingface.co/rows?dataset=Open-Orca%2FOpenOrca&config=default&split=train"
-    CNN_DAILYMAIL_URL = "https://datasets-server.huggingface.co/rows?dataset=cnn_dailymail&config=1.0.0&split=train"
+    def __init__(self, config: InputsConfig):
+        self.config = config
+        if self.config.extra_inputs is None:
+            self.config.extra_inputs = {}
 
-    DEFAULT_STARTING_INDEX = 0
-    MINIMUM_STARTING_INDEX = 0
+        random.seed(self.config.random_seed)
 
-    DEFAULT_LENGTH = 100
-    MINIMUM_LENGTH = 1
-
-    DEFAULT_TENSORRTLLM_MAX_TOKENS = 256
-
-    DEFAULT_BATCH_SIZE = 1
-    DEFAULT_RANDOM_SEED = 0
-    DEFAULT_PROMPT_TOKENS_MEAN = 550
-    DEFAULT_PROMPT_TOKENS_STDDEV = 0
-    DEFAULT_OUTPUT_TOKENS_MEAN = -1
-    DEFAULT_OUTPUT_TOKENS_STDDEV = 0
-    DEFAULT_NUM_PROMPTS = 100
-
-    DEFAULT_IMAGE_WIDTH_MEAN = 100
-    DEFAULT_IMAGE_WIDTH_STDDEV = 0
-    DEFAULT_IMAGE_HEIGHT_MEAN = 100
-    DEFAULT_IMAGE_HEIGHT_STDDEV = 0
-
-    EMPTY_JSON_IN_VLLM_PA_FORMAT: Dict = {"data": []}
-    EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT: Dict = {"data": []}
-    EMPTY_JSON_IN_OPENAI_PA_FORMAT: Dict = {"data": []}
-
-    dataset_url_map = {OPEN_ORCA: OPEN_ORCA_URL, CNN_DAILY_MAIL: CNN_DAILYMAIL_URL}
-
-    @classmethod
-    def create_inputs(
-        cls,
-        input_type: PromptSource,
-        output_format: OutputFormat,
-        dataset_name: str = "",
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
-        input_filename: Optional[Path] = Path(""),
-        starting_index: int = DEFAULT_STARTING_INDEX,
-        length: int = DEFAULT_LENGTH,
-        output_tokens_mean: int = DEFAULT_OUTPUT_TOKENS_MEAN,
-        output_tokens_stddev: int = DEFAULT_OUTPUT_TOKENS_STDDEV,
-        output_tokens_deterministic: bool = False,
-        prompt_tokens_mean: int = DEFAULT_PROMPT_TOKENS_MEAN,
-        prompt_tokens_stddev: int = DEFAULT_PROMPT_TOKENS_STDDEV,
-        image_width_mean: int = DEFAULT_IMAGE_WIDTH_MEAN,
-        image_width_stddev: int = DEFAULT_IMAGE_WIDTH_STDDEV,
-        image_height_mean: int = DEFAULT_IMAGE_HEIGHT_MEAN,
-        image_height_stddev: int = DEFAULT_IMAGE_HEIGHT_STDDEV,
-        image_format: ImageFormat = ImageFormat.PNG,
-        random_seed: int = DEFAULT_RANDOM_SEED,
-        num_of_output_prompts: int = DEFAULT_NUM_PROMPTS,
-        add_model_name: bool = False,
-        add_stream: bool = False,
-        tokenizer: Tokenizer = get_tokenizer(DEFAULT_TOKENIZER),
-        extra_inputs: Optional[Dict] = None,
-        batch_size: int = 1,
-        output_dir: Path = Path(""),
-    ) -> Dict:
+    def create_inputs(self) -> Dict:
         """
         Given an input type, input format, and output type. Output a string of LLM Inputs
-        (in a JSON dictionary) to a file
-
-        Required Parameters
-        -------------------
-        input_type:
-            Specify how the input is received
-        output_format:
-            Specify the output format
-
-        Optional Parameters
-        -------------------
-        dataset_name:
-            The name of the dataset
-        model_name:
-            The model name
-        starting_index:
-            Offset from within the list to start gathering inputs
-        length:
-            Number of entries to gather
-        add_model_name:
-            If true, adds a model name field to each payload
-        add_stream:
-            If true, adds a steam field to each payload
-        extra_inputs:
-            If provided, append these inputs to every request
-        output_tokens_mean:
-            The mean length of the output to generate. If not using fixed output lengths, this should be set to -1.
-        output_tokens_stddev:
-            The standard deviation of the length of the output to generate. This is only used if output_tokens_mean is provided.
-        output_tokens_deterministic:
-            If true, the output tokens will set the minimum and maximum tokens to be equivalent.
-        image_width_mean:
-            The mean width of images when generating synthetic image data.
-        image_width_stddev:
-            The standard deviation of width of images when generating synthetic image data.
-        image_height_mean:
-            The mean height of images when generating synthetic image data.
-        image_height_stddev:
-            The standard deviation of height of images when generating synthetic image data.
-        image_format:
-            The compression format of the images.
-        batch_size:
-            The number of inputs per request (currently only used for the embeddings, image retrieval, and rankings endpoints)
-
-        Required Synthetic Prompt Generation Parameters
-        -----------------------------------------------
-        tokenizer:
-           The tokenizer to use when generating synthetic prompts
-
-        Optional Synthetic Prompt Generation Parameters
-        -----------------------------------------------
-        prompt_tokens_mean:
-            The mean length of the prompt to generate
-        prompt_tokens_stddev:
-            The standard deviation of the length of the prompt to generate
-        num_of_output_prompts:
-            The number of synthetic output prompts to generate
-        random_seed:
-            Seed used to generate random values
+        (in a JSON dictionary) to a file.
         """
-
-        cls._check_for_valid_args(
-            input_type, dataset_name, starting_index, length, tokenizer
-        )
-
-        random.seed(random_seed)
-
-        generic_dataset_json = cls.get_generic_dataset_json(
-            input_type,
-            output_format,
-            dataset_name,
-            starting_index,
-            length,
-            tokenizer,
-            prompt_tokens_mean,
-            prompt_tokens_stddev,
-            num_of_output_prompts,
-            image_width_mean,
-            image_width_stddev,
-            image_height_mean,
-            image_height_stddev,
-            image_format,
-            batch_size,
-            input_filename,
-        )
-
-        if extra_inputs is None:
-            extra_inputs = {}
-
-        json_in_pa_format = cls._convert_generic_json_to_output_format(
-            output_format,
-            tokenizer,
+        generic_dataset_json = self._get_generic_dataset_json()
+        json_in_pa_format = self._convert_generic_json_to_output_format(
             generic_dataset_json,
-            add_model_name,
-            add_stream,
-            extra_inputs,
-            output_tokens_mean,
-            output_tokens_stddev,
-            output_tokens_deterministic,
-            model_name,
-            model_selection_strategy,
         )
-        cls._write_json_to_file(json_in_pa_format, output_dir)
-
+        self._write_json_to_file(json_in_pa_format)
         return json_in_pa_format
 
-    @classmethod
-    def get_generic_dataset_json(
-        cls,
-        input_type: PromptSource,
-        output_format: OutputFormat,
-        dataset_name: str,
-        starting_index: int,
-        length: int,
-        tokenizer: Tokenizer,
-        prompt_tokens_mean: int,
-        prompt_tokens_stddev: int,
-        num_of_output_prompts: int,
-        image_width_mean: int,
-        image_width_stddev: int,
-        image_height_mean: int,
-        image_height_stddev: int,
-        image_format: ImageFormat,
-        batch_size: int,
-        input_filename: Optional[Path],
-    ) -> Dict:
+    def _get_generic_dataset_json(self) -> Dict:
         """
         Retrieve and convert the dataset based on the input type.
 
-        Parameters
-        ----------
-        input_type:
-            Specify how the input is received
-        output_format:
-            Specify the output format
-        dataset_name:
-            The name of the dataset
-        starting_index:
-            Offset from within the list to start gathering inputs
-        length:
-            Number of entries to gather
-        tokenizer:
-            The tokenizer to use when generating synthetic prompts
-        prompt_tokens_mean:
-            The mean length of the prompt to generate
-        prompt_tokens_stddev:
-            The standard deviation of the length of the prompt to generate
-        num_of_output_prompts:
-            The number of synthetic output prompts to generate
-        image_width_mean:
-            The mean width of images when generating synthetic image data.
-        image_width_stddev:
-            The standard deviation of width of images when generating synthetic image data.
-        image_height_mean:
-            The mean height of images when generating synthetic image data.
-        image_height_stddev:
-            The standard deviation of height of images when generating synthetic image data.
-        image_format:
-            The compression format of the images.
-        batch_size:
-            The number of inputs per request (currently only used for the embeddings, image retrieval, and rankings endpoints)
-        input_filename:
-            The path to the input file containing the prompts in JSONL format.
         Returns
         -------
         Dict:
             The generic dataset JSON
         """
 
-        if output_format == OutputFormat.OPENAI_EMBEDDINGS:
-            if input_type != PromptSource.FILE:
+        if self.config.output_format == OutputFormat.OPENAI_EMBEDDINGS:
+            if self.config.input_type != PromptSource.FILE:
                 raise GenAIPerfException(
                     f"{OutputFormat.OPENAI_EMBEDDINGS.to_lowercase()} only supports a file as input."
                 )
-            input_filename = cast(Path, input_filename)
-            input_file_dataset = cls._get_input_dataset_from_embeddings_file(
-                input_filename,
-                batch_size,
-                num_of_output_prompts,
-            )
+            input_file_dataset = self._get_input_dataset_from_embeddings_file()
             generic_dataset_json = (
-                cls._convert_input_synthetic_or_file_dataset_to_generic_json(
+                self._convert_input_synthetic_or_file_dataset_to_generic_json(
                     input_file_dataset
                 )
             )
-        elif output_format == OutputFormat.RANKINGS:
-            if input_type != PromptSource.FILE:
+        elif self.config.output_format == OutputFormat.RANKINGS:
+            if self.config.input_type != PromptSource.FILE:
                 raise GenAIPerfException(
                     f"{OutputFormat.RANKINGS.to_lowercase()} only supports a directory as input."
                 )
-            queries_filename = cast(Path, input_filename) / "queries.jsonl"
-            passages_filename = cast(Path, input_filename) / "passages.jsonl"
-            input_file_dataset = cls._get_input_dataset_from_rankings_files(
-                queries_filename, passages_filename, batch_size, num_of_output_prompts
+            queries_filename = self.config.input_filename / "queries.jsonl"
+            passages_filename = self.config.input_filename / "passages.jsonl"
+            input_file_dataset = self._get_input_dataset_from_rankings_files(
+                queries_filename, passages_filename
             )
             generic_dataset_json = (
-                cls._convert_input_synthetic_or_file_dataset_to_generic_json(
+                self._convert_input_synthetic_or_file_dataset_to_generic_json(
                     input_file_dataset
                 )
             )
-        elif output_format == OutputFormat.IMAGE_RETRIEVAL:
-            if input_type != PromptSource.FILE:
+        elif self.config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            if self.config.input_type != PromptSource.FILE:
                 raise GenAIPerfException(
                     f"{OutputFormat.IMAGE_RETRIEVAL.to_lowercase()} only supports a file as input."
                 )
-            input_filename = cast(Path, input_filename)
-            input_file_dataset = cls._get_input_dataset_from_file(
-                input_filename, batch_size, num_of_output_prompts
+            input_file_dataset = self._get_input_dataset_from_file()
+            input_file_dataset = self._encode_images_in_input_dataset(
+                input_file_dataset
             )
-            input_file_dataset = cls._encode_images_in_input_dataset(input_file_dataset)
             generic_dataset_json = (
-                cls._convert_input_synthetic_or_file_dataset_to_generic_json(
+                self._convert_input_synthetic_or_file_dataset_to_generic_json(
                     input_file_dataset
                 )
             )
         else:
-            if input_type == PromptSource.DATASET:
+            if self.config.input_type == PromptSource.DATASET:
                 # (TMA-1990) support VLM input from public dataset
-                if output_format == OutputFormat.OPENAI_VISION:
+                if self.config.output_format == OutputFormat.OPENAI_VISION:
                     raise GenAIPerfException(
                         f"{OutputFormat.OPENAI_VISION.to_lowercase()} currently "
                         "does not support dataset as input."
                     )
-                dataset = cls._get_input_dataset_from_url(
-                    dataset_name, starting_index, length
-                )
-                generic_dataset_json = cls._convert_input_url_dataset_to_generic_json(
+                dataset = self._get_input_dataset_from_url()
+                generic_dataset_json = self._convert_input_url_dataset_to_generic_json(
                     dataset
                 )
-            elif input_type == PromptSource.SYNTHETIC:
-                synthetic_dataset = cls._get_input_dataset_from_synthetic(
-                    tokenizer,
-                    prompt_tokens_mean,
-                    prompt_tokens_stddev,
-                    num_of_output_prompts,
-                    image_width_mean,
-                    image_width_stddev,
-                    image_height_mean,
-                    image_height_stddev,
-                    image_format,
-                    output_format,
-                )
+            elif self.config.input_type == PromptSource.SYNTHETIC:
+                synthetic_dataset = self._get_input_dataset_from_synthetic()
                 generic_dataset_json = (
-                    cls._convert_input_synthetic_or_file_dataset_to_generic_json(
+                    self._convert_input_synthetic_or_file_dataset_to_generic_json(
                         synthetic_dataset
                     )
                 )
-            elif input_type == PromptSource.FILE:
-                input_filename = cast(Path, input_filename)
-                input_file_dataset = cls._get_input_dataset_from_file(input_filename)
-                input_file_dataset = cls._encode_images_in_input_dataset(
+            elif self.config.input_type == PromptSource.FILE:
+                input_file_dataset = self._get_input_dataset_from_file()
+                input_file_dataset = self._encode_images_in_input_dataset(
                     input_file_dataset
                 )
                 generic_dataset_json = (
-                    cls._convert_input_synthetic_or_file_dataset_to_generic_json(
+                    self._convert_input_synthetic_or_file_dataset_to_generic_json(
                         input_file_dataset
                     )
                 )
@@ -390,16 +155,13 @@ class Inputs:
 
         return generic_dataset_json
 
-    @classmethod
-    def _get_input_dataset_from_embeddings_file(
-        cls, input_filename: Path, batch_size: int, num_prompts: int
-    ) -> Dict[str, Any]:
-        with open(input_filename, "r") as file:
+    def _get_input_dataset_from_embeddings_file(self) -> Dict[str, Any]:
+        with open(self.config.input_filename, "r") as file:
             file_content = [load_json_str(line) for line in file]
 
         texts = [item["text"] for item in file_content]
 
-        if batch_size > len(texts):
+        if self.config.batch_size > len(texts):
             raise ValueError(
                 "Batch size cannot be larger than the number of available texts"
             )
@@ -408,19 +170,16 @@ class Inputs:
         dataset_json["features"] = [{"name": "input"}]
         dataset_json["rows"] = []
 
-        for _ in range(num_prompts):
-            sampled_texts = random.sample(texts, batch_size)
+        for _ in range(self.config.num_prompts):
+            sampled_texts = random.sample(texts, self.config.batch_size)
             dataset_json["rows"].append({"row": {"payload": {"input": sampled_texts}}})
 
         return dataset_json
 
-    @classmethod
     def _get_input_dataset_from_rankings_files(
-        cls,
+        self,
         queries_filename: Path,
         passages_filename: Path,
-        batch_size: int,
-        num_prompts: int,
     ) -> Dict[str, Any]:
 
         with open(queries_filename, "r") as file:
@@ -431,7 +190,7 @@ class Inputs:
             passages_content = [load_json_str(line) for line in file]
         passages_texts = [item for item in passages_content]
 
-        if batch_size > len(passages_texts):
+        if self.config.batch_size > len(passages_texts):
             raise ValueError(
                 "Batch size cannot be larger than the number of available passages"
             )
@@ -440,8 +199,8 @@ class Inputs:
         dataset_json["features"] = [{"name": "input"}]
         dataset_json["rows"] = []
 
-        for _ in range(num_prompts):
-            sampled_texts = random.sample(passages_texts, batch_size)
+        for _ in range(self.config.num_prompts):
+            sampled_texts = random.sample(passages_texts, self.config.batch_size)
             query_sample = random.choice(queries_texts)
             entry_dict: Dict = {}
             entry_dict["query"] = query_sample
@@ -449,131 +208,90 @@ class Inputs:
             dataset_json["rows"].append({"row": {"payload": entry_dict}})
         return dataset_json
 
-    @classmethod
-    def _check_for_valid_args(
-        cls,
-        input_type: PromptSource,
-        dataset_name: str,
-        starting_index: int,
-        length: int,
-        tokenizer: Tokenizer,
-    ) -> None:
+    def _check_for_valid_args(self) -> None:
         try:
-            cls._check_for_dataset_name_if_input_type_is_url(input_type, dataset_name)
-            cls._check_for_tokenzier_if_input_type_is_synthetic(input_type, tokenizer)
-            cls._check_for_valid_starting_index(starting_index)
-            cls._check_for_valid_length(length)
+            self._check_for_dataset_name_if_input_type_is_url()
+            self._check_for_tokenzier_if_input_type_is_synthetic()
+            self._check_for_valid_starting_index()
+            self._check_for_valid_length()
 
         except Exception as e:
             raise GenAIPerfException(e)
 
-    @classmethod
-    def _get_input_dataset_from_url(
-        cls, dataset_name: str, starting_index: int, length: int
-    ) -> Response:
-        url = cls._resolve_url(dataset_name)
-        configured_url = cls._create_configured_url(url, starting_index, length)
-        dataset = cls._download_dataset(configured_url)
+    def _get_input_dataset_from_url(self) -> Response:
+        url = self._resolve_url()
+        configured_url = self._create_configured_url(url)
+        dataset = self._download_dataset(configured_url)
 
         return dataset
 
-    @classmethod
-    def _get_input_dataset_from_synthetic(
-        cls,
-        tokenizer: Tokenizer,
-        prompt_tokens_mean: int,
-        prompt_tokens_stddev: int,
-        num_of_output_prompts: int,
-        image_width_mean: int,
-        image_width_stddev: int,
-        image_height_mean: int,
-        image_height_stddev: int,
-        image_format: ImageFormat,
-        output_format: OutputFormat,
-    ) -> Dict[str, Any]:
+    def _get_input_dataset_from_synthetic(self) -> Dict[str, Any]:
         dataset_json: Dict[str, Any] = {}
         dataset_json["features"] = [{"name": "text_input"}]
         dataset_json["rows"] = []
-        for _ in range(num_of_output_prompts):
+        for _ in range(self.config.num_prompts):
             row: Dict["str", Any] = {"row": {}}
-            synthetic_prompt = cls._create_synthetic_prompt(
-                tokenizer,
-                prompt_tokens_mean,
-                prompt_tokens_stddev,
-            )
+            synthetic_prompt = self._create_synthetic_prompt()
             row["row"]["text_input"] = synthetic_prompt
 
-            if output_format == OutputFormat.OPENAI_VISION:
-                synthetic_image = cls._create_synthetic_image(
-                    image_width_mean=image_width_mean,
-                    image_width_stddev=image_width_stddev,
-                    image_height_mean=image_height_mean,
-                    image_height_stddev=image_height_stddev,
-                    image_format=image_format,
-                )
+            if self.config.output_format == OutputFormat.OPENAI_VISION:
+                synthetic_image = self._create_synthetic_image()
                 row["row"]["image"] = synthetic_image
 
             dataset_json["rows"].append(row)
 
         return dataset_json
 
-    @classmethod
-    def _resolve_url(cls, dataset_name: str) -> str:
-        if dataset_name in cls.dataset_url_map:
-            return cls.dataset_url_map[dataset_name]
+    def _resolve_url(self) -> str:
+        if self.config.dataset_name in dataset_url_map:
+            return dataset_url_map[self.config.dataset_name]
         else:
             raise GenAIPerfException(
-                f"{dataset_name} does not have a corresponding URL in the dataset_url_map."
+                f"{self.config.dataset_name} does not have a corresponding URL in the dataset_url_map."
             )
 
-    @classmethod
-    def _create_configured_url(cls, url: str, starting_index: int, length: int) -> str:
-        starting_index_str = str(starting_index)
-        length_str = str(length)
+    def _create_configured_url(self, url: str) -> str:
+        starting_index_str = str(self.config.starting_index)
+        length_str = str(self.config.length)
         configured_url = url + f"&offset={starting_index_str}&length={length_str}"
 
         return configured_url
 
-    @classmethod
-    def _download_dataset(cls, configured_url: str) -> Response:
-        dataset = cls._query_server(configured_url)
+    def _download_dataset(self, configured_url: str) -> Response:
+        dataset = self._query_server(configured_url)
 
         return dataset
 
-    @classmethod
-    def _convert_input_url_dataset_to_generic_json(cls, dataset: Response) -> Dict:
+    def _convert_input_url_dataset_to_generic_json(self, dataset: Response) -> Dict:
         dataset_json = dataset.json()
         try:
-            cls._check_for_error_in_json_of_dataset(dataset_json)
+            self._check_for_error_in_json_of_dataset(dataset_json)
         except Exception as e:
             raise GenAIPerfException(e)
 
-        generic_dataset_json = cls._convert_dataset_to_generic_input_json(dataset_json)
+        generic_dataset_json = self._convert_dataset_to_generic_input_json(dataset_json)
 
         return generic_dataset_json
 
-    @classmethod
     def _convert_input_synthetic_or_file_dataset_to_generic_json(
-        cls, dataset: Dict
+        self, dataset: Dict
     ) -> Dict[str, List[Dict]]:
-        generic_dataset_json = cls._convert_dataset_to_generic_input_json(dataset)
+        generic_dataset_json = self._convert_dataset_to_generic_input_json(dataset)
 
         return generic_dataset_json
 
-    @classmethod
     def _convert_dataset_to_generic_input_json(
-        cls, dataset_json: Dict
+        self, dataset_json: Dict
     ) -> Dict[str, List[Dict]]:
-        generic_input_json = cls._add_features_to_generic_json({}, dataset_json)
-        generic_input_json = cls._add_rows_to_generic_json(
+        generic_input_json = self._add_features_to_generic_json({}, dataset_json)
+        generic_input_json = self._add_rows_to_generic_json(
             generic_input_json, dataset_json
         )
 
         return generic_input_json
 
-    @classmethod
     def _add_features_to_generic_json(
-        cls, generic_input_json: Dict, dataset_json: Dict
+        self, generic_input_json: Dict, dataset_json: Dict
     ) -> Dict:
         if "features" in dataset_json.keys():
             generic_input_json["features"] = []
@@ -582,9 +300,8 @@ class Inputs:
 
         return generic_input_json
 
-    @classmethod
     def _add_rows_to_generic_json(
-        cls, generic_input_json: Dict, dataset_json: Dict
+        self, generic_input_json: Dict, dataset_json: Dict
     ) -> Dict[str, List[Dict]]:
         generic_input_json["rows"] = []
         for row in dataset_json["rows"]:
@@ -592,36 +309,17 @@ class Inputs:
 
         return generic_input_json
 
-    @classmethod
-    def _get_input_dataset_from_file(
-        cls,
-        input_filename: Path,
-        batch_size: int = DEFAULT_BATCH_SIZE,
-        num_prompts: int = -1,
-    ) -> Dict:
+    def _get_input_dataset_from_file(self) -> Dict:
         """
-        Reads the input prompts and images from a JSONL file and converts them
-        into the required dataset format.
-
-        Parameters
-        ----------
-        input_filename : Path
-            The path to the input file containing the prompts and/or images in
-            JSONL format.
-        batch_size : int
-            The number of inputs per request (currently only used for the embeddings, image retrieval, and rankings endpoints)
-        num_prompts : int
-            The number of prompts to generate. Used when batch_size is provided.
-
         Returns
         -------
         Dict
             The dataset in the required format with the prompts and/or images
             read from the file.
         """
-        cls.verify_file(input_filename)
-        prompts, images = cls._get_prompts_from_input_file(input_filename)
-        if batch_size > len(prompts):
+        self._verify_file()
+        prompts, images = self._get_prompts_from_input_file()
+        if self.config.batch_size > len(prompts):
             raise ValueError(
                 "Batch size cannot be larger than the number of available texts"
             )
@@ -629,7 +327,7 @@ class Inputs:
         dataset_json["features"] = [{"name": "text_input"}]
         dataset_json["rows"] = []
 
-        if batch_size == Inputs.DEFAULT_BATCH_SIZE:
+        if self.config.batch_size == DEFAULT_BATCH_SIZE:
             for prompt, image in zip(prompts, images):
                 content = {}
                 if prompt is not None:
@@ -638,9 +336,11 @@ class Inputs:
                     content["image"] = image
                 dataset_json["rows"].append({"row": content})
         else:
-            for _ in range(num_prompts):
+            for _ in range(self.config.num_prompts):
                 content_array = []
-                sampled_indices = random.sample(range(len(prompts)), batch_size)
+                sampled_indices = random.sample(
+                    range(len(prompts)), self.config.batch_size
+                )
                 sampled_texts_images = [
                     (prompts[i], images[i]) for i in sampled_indices
                 ]
@@ -656,17 +356,9 @@ class Inputs:
 
         return dataset_json
 
-    @classmethod
-    def _get_prompts_from_input_file(
-        cls, input_filename: Path
-    ) -> Tuple[List[str], List[str]]:
+    def _get_prompts_from_input_file(self) -> Tuple[List[str], List[str]]:
         """
         Reads the input prompts from a JSONL file and returns a list of prompts.
-
-        Parameters
-        ----------
-        input_filename : Path
-            The path to the input file containing the prompts in JSONL format.
 
         Returns
         -------
@@ -675,7 +367,7 @@ class Inputs:
         """
         prompts = []
         images = []
-        with open(input_filename, mode="r", newline=None) as file:
+        with open(self.config.input_filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
                     # None if not provided
@@ -685,30 +377,29 @@ class Inputs:
                     images.append(image.strip() if image else image)
         return prompts, images
 
-    @classmethod
-    def verify_file(cls, input_filename: Path) -> None:
-        if not input_filename.exists():
-            raise FileNotFoundError(f"The file '{input_filename}' does not exist.")
+    def _verify_file(self) -> None:
+        if not self.config.input_filename.exists():
+            raise FileNotFoundError(
+                f"The file '{self.config.input_filename}' does not exist."
+            )
 
-    @classmethod
-    def _encode_images_in_input_dataset(cls, input_file_dataset: Dict) -> Dict:
+    def _encode_images_in_input_dataset(self, input_file_dataset: Dict) -> Dict:
         for row in input_file_dataset["rows"]:
             if isinstance(row["row"], list):
                 for content in row["row"]:
                     filename = content.get("image")
                     if filename:
-                        payload = cls._encode_image(filename)
+                        payload = self._encode_image(filename)
                         content["image"] = payload
             else:
                 filename = row["row"].get("image")
                 if filename:
-                    payload = cls._encode_image(filename)
+                    payload = self._encode_image(filename)
                     row["row"]["image"] = payload
 
         return input_file_dataset
 
-    @classmethod
-    def _encode_image(cls, filename: str) -> str:
+    def _encode_image(self, filename: str) -> str:
         img = Image.open(filename)
         if img is None:
             raise GenAIPerfException(f"Failed to open image '{filename}'.")
@@ -727,182 +418,84 @@ class Inputs:
         payload = f"data:image/{img.format.lower()};base64,{img_base64}"
         return payload
 
-    @classmethod
-    def _convert_generic_json_to_output_format(
-        cls,
-        output_format: OutputFormat,
-        tokenizer: Tokenizer,
-        generic_dataset: Dict,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
-    ) -> Dict:
+    def _convert_generic_json_to_output_format(self, generic_dataset) -> Dict:
         if (
-            output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
-            or output_format == OutputFormat.OPENAI_VISION
-            or output_format == OutputFormat.IMAGE_RETRIEVAL
+            self.config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
+            or self.config.output_format == OutputFormat.OPENAI_VISION
+            or self.config.output_format == OutputFormat.IMAGE_RETRIEVAL
         ):
-            output_json = cls._convert_generic_json_to_openai_chat_completions_format(
+            output_json = self._convert_generic_json_to_openai_chat_completions_format(
                 generic_dataset,
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                model_name,
-                model_selection_strategy,
             )
-        elif output_format == OutputFormat.OPENAI_COMPLETIONS:
-            output_json = cls._convert_generic_json_to_openai_completions_format(
+        elif self.config.output_format == OutputFormat.OPENAI_COMPLETIONS:
+            output_json = self._convert_generic_json_to_openai_completions_format(
                 generic_dataset,
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                model_name,
-                model_selection_strategy,
             )
-        elif output_format == OutputFormat.OPENAI_EMBEDDINGS:
-            output_json = cls._convert_generic_json_to_openai_embeddings_format(
-                generic_dataset,
-                extra_inputs,
-                model_name,
-                model_selection_strategy,
+        elif self.config.output_format == OutputFormat.OPENAI_EMBEDDINGS:
+            output_json = self._convert_generic_json_to_openai_embeddings_format(
+                generic_dataset
             )
-        elif output_format == OutputFormat.RANKINGS:
-            output_json = cls._convert_generic_json_to_rankings_format(
-                generic_dataset,
-                extra_inputs,
-                model_name,
-                model_selection_strategy,
-            )
-        elif output_format == OutputFormat.VLLM:
-            output_json = cls._convert_generic_json_to_vllm_format(
-                generic_dataset,
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                output_tokens_deterministic,
-                model_name,
-                model_selection_strategy,
-            )
-        elif output_format == OutputFormat.TENSORRTLLM:
-            output_json = cls._convert_generic_json_to_trtllm_format(
-                generic_dataset,
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                output_tokens_deterministic,
-                model_name,
-                model_selection_strategy,
-            )
-        elif output_format == OutputFormat.TENSORRTLLM_ENGINE:
-            output_json = cls._convert_generic_json_to_trtllm_engine_format(
-                generic_dataset,
-                tokenizer,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                output_tokens_deterministic,
+        elif self.config.output_format == OutputFormat.RANKINGS:
+            output_json = self._convert_generic_json_to_rankings_format(generic_dataset)
+        elif self.config.output_format == OutputFormat.VLLM:
+            output_json = self._convert_generic_json_to_vllm_format(generic_dataset)
+        elif self.config.output_format == OutputFormat.TENSORRTLLM:
+            output_json = self._convert_generic_json_to_trtllm_format(generic_dataset)
+        elif self.config.output_format == OutputFormat.TENSORRTLLM_ENGINE:
+            output_json = self._convert_generic_json_to_trtllm_engine_format(
+                generic_dataset
             )
         else:
             raise GenAIPerfException(
-                f"Output format {output_format} is not currently supported"
+                f"Output format {self.config.output_format} is not currently supported"
             )
 
         return output_json
 
-    @classmethod
     def _convert_generic_json_to_openai_chat_completions_format(
-        cls,
+        self,
         dataset_json: Dict,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
         # TODO (TMA-1757): Implement a way to select a role for `text_input`
         (
             system_role_headers,
             user_role_headers,
             _,
-        ) = cls._determine_json_feature_roles(dataset_json)
-        pa_json = cls._populate_openai_chat_completions_output_json(
+        ) = self._determine_json_feature_roles(dataset_json)
+        pa_json = self._populate_openai_chat_completions_output_json(
             dataset_json,
             system_role_headers,
             user_role_headers,
-            add_model_name,
-            add_stream,
-            extra_inputs,
-            output_tokens_mean,
-            output_tokens_stddev,
-            model_name,
-            model_selection_strategy,
         )
 
         return pa_json
 
-    @classmethod
     def _convert_generic_json_to_openai_completions_format(
-        cls,
+        self,
         dataset_json: Dict,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
         (
             system_role_headers,
             user_role_headers,
             text_input_headers,
-        ) = cls._determine_json_feature_roles(dataset_json)
-        pa_json = cls._populate_openai_completions_output_json(
+        ) = self._determine_json_feature_roles(dataset_json)
+        pa_json = self._populate_openai_completions_output_json(
             dataset_json,
             system_role_headers,
             user_role_headers,
             text_input_headers,
-            add_model_name,
-            add_stream,
-            extra_inputs,
-            output_tokens_mean,
-            output_tokens_stddev,
-            model_name,
-            model_selection_strategy,
         )
 
         return pa_json
 
-    @classmethod
     def _convert_generic_json_to_openai_embeddings_format(
-        cls,
+        self,
         generic_dataset: Dict,
-        extra_inputs: Dict,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict[str, Any]:
         pa_json: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
-            iter_model_name = cls._select_model_name(
-                model_name, index, model_selection_strategy
-            )
+            iter_model_name = self._select_model_name(index)
             payload = entry.get("payload", {})
             input_values = payload.get("input")
 
@@ -918,38 +511,35 @@ class Inputs:
                 "model": iter_model_name,
             }
 
-            for key, value in extra_inputs.items():
+            for key, value in self.config.extra_inputs.items():
                 payload[key] = value
 
             pa_json["data"].append({"payload": [payload]})
 
         return pa_json
 
-    @classmethod
-    def contains_rankings_tei(cls, extra_inputs: Optional[Dict]) -> bool:
+    def _contains_rankings_tei(self) -> bool:
         """
         Check if user specified that they are using the Hugging Face
         Text Embeddings Interface for ranking models
         """
-        if extra_inputs and extra_inputs.get("rankings") == "tei":
+        if (
+            self.config.extra_inputs
+            and self.config.extra_inputs.get("rankings") == "tei"
+        ):
             return True
         return False
 
-    @classmethod
     def _convert_generic_json_to_rankings_format(
-        cls,
+        self,
         generic_dataset: Dict,
-        extra_inputs: Dict,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict[str, Any]:
         pa_json: Dict[str, Any] = {"data": []}
-        use_tei_format = cls.contains_rankings_tei(extra_inputs)
+        use_tei_format = self._contains_rankings_tei()
 
         for index, entry in enumerate(generic_dataset["rows"]):
-            iter_model_name = cls._select_model_name(
-                model_name, index, model_selection_strategy
-            )
+            iter_model_name = self._select_model_name(index)
+
             payload = entry.get("payload", {})
             query_values = payload.get("query")
 
@@ -979,7 +569,7 @@ class Inputs:
                     "model": iter_model_name,
                 }
 
-            for key, value in extra_inputs.items():
+            for key, value in self.config.extra_inputs.items():
                 if not (key == "rankings" and value == "tei"):
                     payload[key] = value
 
@@ -987,109 +577,60 @@ class Inputs:
 
         return pa_json
 
-    @classmethod
     def _convert_generic_json_to_vllm_format(
-        cls,
+        self,
         dataset_json: Dict,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
         (
             system_role_headers,
             user_role_headers,
             text_input_headers,
-        ) = cls._determine_json_feature_roles(dataset_json)
+        ) = self._determine_json_feature_roles(dataset_json)
 
-        pa_json = cls._populate_vllm_output_json(
+        pa_json = self._populate_vllm_output_json(
             dataset_json,
             system_role_headers,
             user_role_headers,
             text_input_headers,
-            add_model_name,
-            add_stream,
-            extra_inputs,
-            output_tokens_mean,
-            output_tokens_stddev,
-            output_tokens_deterministic,
-            model_name,
-            model_selection_strategy,
         )
 
         return pa_json
 
-    @classmethod
     def _convert_generic_json_to_trtllm_format(
-        cls,
+        self,
         dataset_json: Dict,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
         (
             system_role_headers,
             user_role_headers,
             text_input_headers,
-        ) = cls._determine_json_feature_roles(dataset_json)
+        ) = self._determine_json_feature_roles(dataset_json)
 
-        pa_json = cls._populate_trtllm_output_json(
+        pa_json = self._populate_trtllm_output_json(
             dataset_json,
             system_role_headers,
             user_role_headers,
             text_input_headers,
-            add_model_name,
-            add_stream,
-            extra_inputs,
-            output_tokens_mean,
-            output_tokens_stddev,
-            output_tokens_deterministic,
-            model_name,
-            model_selection_strategy,
         )
 
         return pa_json
 
-    @classmethod
     def _convert_generic_json_to_trtllm_engine_format(
-        cls,
+        self,
         dataset_json: Dict,
-        tokenizer: Tokenizer,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
     ) -> Dict:
-        pa_json = cls._populate_trtllm_engine_output_json(
+        pa_json = self._populate_trtllm_engine_output_json(
             dataset_json,
-            tokenizer,
-            add_stream,
-            extra_inputs,
-            output_tokens_mean,
-            output_tokens_stddev,
-            output_tokens_deterministic,
         )
         return pa_json
 
-    @classmethod
-    def _write_json_to_file(cls, json_in_pa_format: Dict, output_dir: Path) -> None:
-        filename = output_dir / DEFAULT_INPUT_DATA_JSON
+    def _write_json_to_file(self, json_in_pa_format: Dict) -> None:
+        filename = self.config.output_dir / DEFAULT_INPUT_DATA_JSON
         with open(str(filename), "w") as f:
             f.write(json.dumps(json_in_pa_format, indent=2))
 
-    @classmethod
     def _determine_json_feature_roles(
-        cls, dataset_json: Dict
+        self, dataset_json: Dict
     ) -> Tuple[List[str], List[str], List[str]]:
         SYSTEM_ROLE_LIST = ["system_prompt"]
         USER_ROLE_LIST = ["question", "article"]
@@ -1116,75 +657,58 @@ class Inputs:
 
         return system_role_headers, user_role_headers, text_input_headers
 
-    @classmethod
-    def _select_model_name(cls, model_name, index, model_selection_strategy):
-        if model_selection_strategy == ModelSelectionStrategy.ROUND_ROBIN:
-            return model_name[index % len(model_name)]
-        elif model_selection_strategy == ModelSelectionStrategy.RANDOM:
-            return random.choice(model_name)
+    def _select_model_name(self, index):
+        if self.config.model_selection_strategy == ModelSelectionStrategy.ROUND_ROBIN:
+            return self.config.model_name[index % len(self.config.model_name)]
+        elif self.config.model_selection_strategy == ModelSelectionStrategy.RANDOM:
+            return random.choice(self.config.model_name)
         else:
             raise GenAIPerfException(
-                f"Model selection strategy '{model_selection_strategy}' is unsupported"
+                f"Model selection strategy '{self.config.model_selection_strategy}' is unsupported"
             )
 
-    @classmethod
     def _populate_openai_chat_completions_output_json(
-        cls,
+        self,
         dataset_json: Dict,
         system_role_headers: List[str],
         user_role_headers: List[str],
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
-        pa_json = cls._create_empty_openai_pa_json()
+        pa_json = self._create_empty_openai_pa_json()
 
         for index, entry in enumerate(dataset_json["rows"]):
-            iter_model_name = cls._select_model_name(
-                model_name, index, model_selection_strategy
-            )
+            iter_model_name = self._select_model_name(index)
             openai_json: Dict = {"payload": [{"messages": []}]}
 
             # Check if the entry is a list (batched entries) or a single entry
             if isinstance(entry, list):
                 for item in entry:
-                    cls._process_row_content(
+                    self._process_row_content(
                         item, system_role_headers, user_role_headers, openai_json
                     )
             elif isinstance(entry, dict):
-                cls._process_row_content(
+                self._process_row_content(
                     entry, system_role_headers, user_role_headers, openai_json
                 )
             else:
                 raise GenAIPerfException(f"Unexpected data type in rows: {type(entry)}")
 
-            cls._add_optional_tags_to_openai_json(
+            self._add_optional_tags_to_openai_json(
                 openai_json,
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
                 iter_model_name,
             )
             pa_json["data"].append(openai_json)
 
         return pa_json
 
-    @classmethod
     def _process_row_content(
-        cls,
+        self,
         entry: Dict,
         system_role_headers: List[str],
         user_role_headers: List[str],
         openai_json: Dict,
     ) -> None:
         if "image" in entry:
-            contents = cls._extract_chat_contents(entry)
+            contents = self._extract_chat_contents(entry)
             if openai_json["payload"][0]["messages"]:
                 openai_json["payload"][0]["messages"][0]["content"].extend(contents)
             else:
@@ -1193,25 +717,23 @@ class Inputs:
                 )
         else:
             for header, content in entry.items():
-                message = cls._create_new_openai_chat_completions_message(
+                message = self._create_new_openai_chat_completions_message(
                     header, system_role_headers, user_role_headers, content
                 )
-                cls._add_message_to_json(openai_json, message)
+                self._add_message_to_json(openai_json, message)
 
-    @classmethod
-    def _extract_chat_contents(cls, entry: Dict) -> List[Dict]:
+    def _extract_chat_contents(self, entry: Dict) -> List[Dict]:
         contents: List = []
         if isinstance(entry, list):
             for item in entry:
                 for content_type, content in item.items():
-                    cls._add_content(contents, content_type, content)
+                    self._add_content(contents, content_type, content)
         else:
             for content_type, content in entry.items():
-                cls._add_content(contents, content_type, content)
+                self._add_content(contents, content_type, content)
         return contents
 
-    @classmethod
-    def _add_content(cls, contents: List[Dict], content_type: str, content: str):
+    def _add_content(self, contents: List[Dict], content_type: str, content: str):
         if content_type == "text_input":
             contents.append({"type": "text", "text": content})
         elif content_type == "image":
@@ -1222,32 +744,22 @@ class Inputs:
                 f"contents. Unknown content type: '{content_type}'."
             )
 
-    @classmethod
     def _populate_openai_completions_output_json(
-        cls,
+        self,
         dataset_json: Dict,
         system_role_headers: List[str],
         user_role_headers: List[str],
         text_input_headers: List[str],
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
-        pa_json = cls._create_empty_openai_pa_json()
+        pa_json = self._create_empty_openai_pa_json()
 
         for index, entry in enumerate(dataset_json["rows"]):
-            iter_model_name = cls._select_model_name(
-                model_name, index, model_selection_strategy
-            )
+            iter_model_name = self._select_model_name(index)
             pa_json["data"].append({"payload": []})
             pa_json["data"][index]["payload"].append({"prompt": ""})
 
             for header, content in entry.items():
-                new_prompt = cls._create_new_prompt(
+                new_prompt = self._create_new_prompt(
                     header,
                     system_role_headers,
                     user_role_headers,
@@ -1255,46 +767,30 @@ class Inputs:
                     content,
                 )
 
-                pa_json = cls._add_new_prompt_to_json(pa_json, index, new_prompt)
+                pa_json = self._add_new_prompt_to_json(pa_json, index, new_prompt)
 
-            cls._add_optional_tags_to_openai_json(
+            self._add_optional_tags_to_openai_json(
                 pa_json["data"][index],
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
                 iter_model_name,
             )
 
         return pa_json
 
-    @classmethod
     def _populate_vllm_output_json(
-        cls,
+        self,
         dataset_json: Dict,
         system_role_headers: List[str],
         user_role_headers: List[str],
         text_input_headers: List[str],
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
-        pa_json = cls._create_empty_vllm_pa_json()
+        pa_json = self._create_empty_vllm_pa_json()
 
         for index, entry in enumerate(dataset_json["rows"]):
-            iter_model_name = cls._select_model_name(
-                model_name, index, model_selection_strategy
-            )
+            iter_model_name = self._select_model_name(index)
             pa_json["data"].append({"text_input": [""]})
 
             for header, content in entry.items():
-                new_text_input = cls._create_new_text_input(
+                new_text_input = self._create_new_text_input(
                     header,
                     system_role_headers,
                     user_role_headers,
@@ -1302,54 +798,37 @@ class Inputs:
                     content,
                 )
 
-                pa_json = cls._add_new_text_input_to_json(
+                pa_json = self._add_new_text_input_to_json(
                     pa_json, index, new_text_input
                 )
 
-            pa_json = cls._add_optional_tags_to_vllm_json(
+            pa_json = self._add_optional_tags_to_vllm_json(
                 pa_json,
                 index,
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                output_tokens_deterministic,
                 iter_model_name,
             )
 
         return pa_json
 
-    @classmethod
     def _populate_trtllm_output_json(
-        cls,
+        self,
         dataset_json: Dict,
         system_role_headers: List[str],
         user_role_headers: List[str],
         text_input_headers: List[str],
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
-        model_name: list = [],
-        model_selection_strategy: ModelSelectionStrategy = ModelSelectionStrategy.ROUND_ROBIN,
     ) -> Dict:
-        pa_json = cls._create_empty_trtllm_pa_json()
+        pa_json = self._create_empty_trtllm_pa_json()
         default_max_tokens = (
-            "max_tokens" not in extra_inputs
-            or output_tokens_mean != cls.DEFAULT_OUTPUT_TOKENS_MEAN
+            "max_tokens" not in self.config.extra_inputs
+            or self.config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN
         )
 
         for index, entry in enumerate(dataset_json["rows"]):
-            iter_model_name = cls._select_model_name(
-                model_name, index, model_selection_strategy
-            )
+            iter_model_name = self._select_model_name(index)
             pa_json["data"].append({"text_input": [""]})
 
             for header, content in entry.items():
-                new_text_input = cls._create_new_text_input(
+                new_text_input = self._create_new_text_input(
                     header,
                     system_role_headers,
                     user_role_headers,
@@ -1357,42 +836,29 @@ class Inputs:
                     content,
                 )
 
-                pa_json = cls._add_new_text_input_to_json(
+                pa_json = self._add_new_text_input_to_json(
                     pa_json, index, new_text_input
                 )
 
-            pa_json = cls._add_required_tags_to_trtllm_json(
+            pa_json = self._add_required_tags_to_trtllm_json(
                 pa_json, index, default_max_tokens
             )
-            pa_json = cls._add_optional_tags_to_trtllm_json(
+            pa_json = self._add_optional_tags_to_trtllm_json(
                 pa_json,
                 index,
-                add_model_name,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                output_tokens_deterministic,
                 iter_model_name,
             )
 
         return pa_json
 
-    @classmethod
     def _populate_trtllm_engine_output_json(
-        cls,
+        self,
         dataset_json: Dict,
-        tokenizer: Tokenizer,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
     ) -> Dict:
-        pa_json = cls._create_empty_trtllm_pa_json()
+        pa_json = self._create_empty_trtllm_pa_json()
 
         for index, entry in enumerate(dataset_json["rows"]):
-            token_ids = tokenizer.encode(entry["text_input"])
+            token_ids = self.config.tokenizer.encode(entry["text_input"])
             pa_json["data"].append(
                 {
                     "input_ids": {
@@ -1400,42 +866,33 @@ class Inputs:
                         "shape": [len(token_ids)],
                     },
                     "input_lengths": [len(token_ids)],
-                    "request_output_len": [cls.DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                    "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 }
             )
 
-            pa_json = cls._add_optional_tags_to_trtllm_engine_json(
+            pa_json = self._add_optional_tags_to_trtllm_engine_json(
                 pa_json,
                 index,
-                add_stream,
-                extra_inputs,
-                output_tokens_mean,
-                output_tokens_stddev,
-                output_tokens_deterministic,
             )
         return pa_json
 
-    @classmethod
-    def _create_empty_openai_pa_json(cls) -> Dict:
-        empty_pa_json = deepcopy(cls.EMPTY_JSON_IN_OPENAI_PA_FORMAT)
+    def _create_empty_openai_pa_json(self) -> Dict:
+        empty_pa_json = deepcopy(EMPTY_JSON_IN_OPENAI_PA_FORMAT)
 
         return empty_pa_json
 
-    @classmethod
-    def _create_empty_vllm_pa_json(cls) -> Dict:
-        empty_pa_json = deepcopy(cls.EMPTY_JSON_IN_VLLM_PA_FORMAT)
+    def _create_empty_vllm_pa_json(self) -> Dict:
+        empty_pa_json = deepcopy(EMPTY_JSON_IN_VLLM_PA_FORMAT)
 
         return empty_pa_json
 
-    @classmethod
-    def _create_empty_trtllm_pa_json(cls) -> Dict:
-        empty_pa_json = deepcopy(cls.EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT)
+    def _create_empty_trtllm_pa_json(self) -> Dict:
+        empty_pa_json = deepcopy(EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT)
 
         return empty_pa_json
 
-    @classmethod
     def _create_new_openai_chat_completions_message(
-        cls,
+        self,
         header: str,
         system_role_headers: List[str],
         user_role_headers: List[str],
@@ -1460,9 +917,8 @@ class Inputs:
 
         return message
 
-    @classmethod
     def _create_new_prompt(
-        cls,
+        self,
         header: str,
         system_role_headers: List[str],
         user_role_headers: List[str],
@@ -1480,9 +936,8 @@ class Inputs:
 
         return new_prompt
 
-    @classmethod
     def _create_new_text_input(
-        cls,
+        self,
         header: str,
         system_role_headers: List[str],
         user_role_headers: List[str],
@@ -1500,16 +955,14 @@ class Inputs:
 
         return new_text_input
 
-    @classmethod
-    def _add_message_to_json(cls, openai_json: Dict, message: Optional[Dict]) -> Dict:
+    def _add_message_to_json(self, openai_json: Dict, message: Optional[Dict]) -> Dict:
         if message:
             openai_json["payload"][0]["messages"].append(message)
 
         return openai_json
 
-    @classmethod
     def _add_new_text_input_to_json(
-        cls, pa_json: Dict, index: int, new_text_input: str
+        self, pa_json: Dict, index: int, new_text_input: str
     ) -> Dict:
         if new_text_input:
             if pa_json["data"][index]["text_input"][0]:
@@ -1521,9 +974,8 @@ class Inputs:
 
         return pa_json
 
-    @classmethod
     def _add_new_prompt_to_json(
-        cls,
+        self,
         pa_json: Dict,
         index: int,
         new_prompt: str,
@@ -1536,187 +988,167 @@ class Inputs:
 
         return pa_json
 
-    @classmethod
     def _add_optional_tags_to_openai_json(
-        cls,
+        self,
         openai_json: Dict,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
         model_name: str = "",
     ) -> None:
         payload = openai_json["payload"][0]
-        if add_model_name:
-            payload["model"] = model_name
-        if add_stream:
+        payload["model"] = model_name
+        if self.config.add_stream:
             payload["stream"] = True
-        if output_tokens_mean != cls.DEFAULT_OUTPUT_TOKENS_MEAN:
+        if self.config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             payload["max_tokens"] = int(
-                random.gauss(output_tokens_mean, output_tokens_stddev)
+                random.gauss(
+                    self.config.output_tokens_mean, self.config.output_tokens_stddev
+                )
             )
-        for key, value in extra_inputs.items():
+        for key, value in self.config.extra_inputs.items():
             payload[key] = value
 
-    @classmethod
     def _add_optional_tags_to_vllm_json(
-        cls,
+        self,
         pa_json: Dict,
         index: int,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
         model_name: str = "",
     ) -> Dict:
         row = pa_json["data"][index]
-        if add_model_name:
-            row["model"] = model_name
-        if add_stream:
+        row["model"] = model_name
+        if self.config.add_stream:
             row["stream"] = [True]
-        if output_tokens_mean != cls.DEFAULT_OUTPUT_TOKENS_MEAN:
+        if self.config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             number_of_tokens = str(
-                int(max(0, random.gauss(output_tokens_mean, output_tokens_stddev)))
+                int(
+                    max(
+                        0,
+                        random.gauss(
+                            self.config.output_tokens_mean,
+                            self.config.output_tokens_stddev,
+                        ),
+                    )
+                )
             )
             sampling_parameters = {
                 "max_tokens": number_of_tokens,
             }
-            if output_tokens_deterministic:
+            if self.config.output_tokens_deterministic:
                 sampling_parameters["min_tokens"] = number_of_tokens
             sampling_parameters_str = json.dumps(sampling_parameters)
             row["sampling_parameters"] = [sampling_parameters_str]
-        for key, value in extra_inputs.items():
+        for key, value in self.config.extra_inputs.items():
             row[key] = [value]
         if "exclude_input_in_output" not in row:
             row["exclude_input_in_output"] = [True]
 
         return pa_json
 
-    @classmethod
     def _add_optional_tags_to_trtllm_json(
-        cls,
+        self,
         pa_json: Dict,
         index: int,
-        add_model_name: bool,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
         model_name: str = "",
     ) -> Dict:
         row = pa_json["data"][index]
-        if add_model_name:
-            row["model"] = model_name
-        if add_stream:
+        row["model"] = model_name
+        if self.config.add_stream:
             row["stream"] = [True]
-        if output_tokens_mean != cls.DEFAULT_OUTPUT_TOKENS_MEAN:
+        if self.config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             number_of_tokens = int(
-                random.gauss(output_tokens_mean, output_tokens_stddev)
+                random.gauss(
+                    self.config.output_tokens_mean, self.config.output_tokens_stddev
+                )
             )
-            if output_tokens_deterministic:
+            if self.config.output_tokens_deterministic:
                 row["min_length"] = [number_of_tokens]
             row["max_tokens"] = [number_of_tokens]
-        for key, value in extra_inputs.items():
+        for key, value in self.config.extra_inputs.items():
             row[key] = [value]
 
         return pa_json
 
-    @classmethod
     def _add_optional_tags_to_trtllm_engine_json(
-        cls,
-        pa_json: Dict,
-        index: int,
-        add_stream: bool,
-        extra_inputs: Dict,
-        output_tokens_mean: int,
-        output_tokens_stddev: int,
-        output_tokens_deterministic: bool,
+        self, pa_json: Dict, index: int
     ) -> Dict:
         row = pa_json["data"][index]
-        if add_stream:
+        if self.config.add_stream:
             row["streaming"] = [True]
-        if output_tokens_mean != cls.DEFAULT_OUTPUT_TOKENS_MEAN:
-            num_tokens = int(random.gauss(output_tokens_mean, output_tokens_stddev))
+        if self.config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+            num_tokens = int(
+                random.gauss(
+                    self.config.output_tokens_mean, self.config.output_tokens_stddev
+                )
+            )
             row["request_output_len"] = [num_tokens]
-            if output_tokens_deterministic:
+            if self.config.output_tokens_deterministic:
                 row["min_length"] = [num_tokens]
 
-        for key, value in extra_inputs.items():
+        for key, value in self.config.extra_inputs.items():
             row[key] = [value]
 
         return pa_json
 
-    @classmethod
     def _add_required_tags_to_trtllm_json(
-        cls,
+        self,
         pa_json: Dict,
         index: int,
         default_max_tokens: bool,
     ) -> Dict:
         row = pa_json["data"][index]
         if default_max_tokens:
-            row["max_tokens"] = [cls.DEFAULT_TENSORRTLLM_MAX_TOKENS]
+            row["max_tokens"] = [DEFAULT_TENSORRTLLM_MAX_TOKENS]
 
         return pa_json
 
-    @classmethod
-    def _check_for_dataset_name_if_input_type_is_url(
-        cls, input_type: PromptSource, dataset_name: str
-    ) -> None:
-        if input_type == PromptSource.DATASET and not dataset_name:
+    def _check_for_dataset_name_if_input_type_is_url(self) -> None:
+        if (
+            self.config.input_type == PromptSource.DATASET
+            and not self.config.dataset_name
+        ):
             raise GenAIPerfException(
                 "Input type is dataset, but dataset_name is not specified."
             )
 
-    @classmethod
-    def _check_for_tokenzier_if_input_type_is_synthetic(
-        cls,
-        input_type: PromptSource,
-        tokenizer: Tokenizer,
-    ) -> None:
-        if input_type == PromptSource.SYNTHETIC and not tokenizer:
+    def _check_for_tokenzier_if_input_type_is_synthetic(self) -> None:
+        if (
+            self.config.input_type == PromptSource.SYNTHETIC
+            and not self.config.tokenizer
+        ):
             raise GenAIPerfException(
                 "Input type is SYNTHETIC, but a tokenizer was not specified."
             )
 
-    @classmethod
-    def _check_for_valid_starting_index(cls, starting_index: int) -> None:
-        if not isinstance(starting_index, int):
+    def _check_for_valid_starting_index(self) -> None:
+        if not isinstance(self.config.starting_index, int):
             raise GenAIPerfException(
-                f"starting_index: {starting_index} must be an integer."
+                f"starting_index: {self.config.starting_index} must be an integer."
             )
 
-        if starting_index < cls.MINIMUM_STARTING_INDEX:
+        if self.config.starting_index < MINIMUM_STARTING_INDEX:
             raise GenAIPerfException(
-                f"starting_index: {starting_index} must be larger than {cls.MINIMUM_STARTING_INDEX}."
+                f"starting_index: {self.config.starting_index} must be larger than {MINIMUM_STARTING_INDEX}."
             )
 
-    @classmethod
-    def _check_for_valid_length(cls, length: int) -> None:
-        if not isinstance(length, int):
-            raise GenAIPerfException(f"length: {length} must be an integer.")
-
-        if length < cls.MINIMUM_LENGTH:
+    def _check_for_valid_length(self) -> None:
+        if not isinstance(self.config.length, int):
             raise GenAIPerfException(
-                f"starting_index: {length} must be larger than {cls.MINIMUM_LENGTH}."
+                f"length: {self.config.length} must be an integer."
             )
 
-    @classmethod
-    def _query_server(cls, configured_url: str) -> Response:
+        if self.config.length < MINIMUM_LENGTH:
+            raise GenAIPerfException(
+                f"starting_index: {self.config.length} must be larger than {MINIMUM_LENGTH}."
+            )
+
+    def _query_server(self, configured_url: str) -> Response:
         try:
             response = requests.get(configured_url)
         except Exception as e:
-            error_message = cls._create_error_message(e)
+            error_message = self._create_error_message(e)
             raise GenAIPerfException(error_message)
 
         return response
 
-    @classmethod
-    def _create_error_message(cls, exception: Exception) -> str:
+    def _create_error_message(self, exception: Exception) -> str:
         url_str = exception.args[0].args[0]
         url_start = url_str.find("'")
         url_end = url_str.find("'", url_start + 1) + 1
@@ -1724,35 +1156,22 @@ class Inputs:
 
         return error_message
 
-    @classmethod
-    def _check_for_error_in_json_of_dataset(cls, dataset_json: Dict) -> None:
+    def _check_for_error_in_json_of_dataset(self, dataset_json: Dict) -> None:
         if "error" in dataset_json:
             raise GenAIPerfException(dataset_json["error"])
 
-    @classmethod
-    def _create_synthetic_prompt(
-        cls,
-        tokenizer: Tokenizer,
-        prompt_tokens_mean: int,
-        prompt_tokens_stddev: int,
-    ) -> str:
+    def _create_synthetic_prompt(self) -> str:
         return SyntheticPromptGenerator.create_synthetic_prompt(
-            tokenizer, prompt_tokens_mean, prompt_tokens_stddev
+            self.config.tokenizer,
+            self.config.prompt_tokens_mean,
+            self.config.prompt_tokens_stddev,
         )
 
-    @classmethod
-    def _create_synthetic_image(
-        cls,
-        image_width_mean: int,
-        image_width_stddev: int,
-        image_height_mean: int,
-        image_height_stddev: int,
-        image_format: ImageFormat,
-    ) -> str:
+    def _create_synthetic_image(self) -> str:
         return SyntheticImageGenerator.create_synthetic_image(
-            image_width_mean=image_width_mean,
-            image_width_stddev=image_width_stddev,
-            image_height_mean=image_height_mean,
-            image_height_stddev=image_height_stddev,
-            image_format=image_format,
+            image_width_mean=self.config.image_width_mean,
+            image_width_stddev=self.config.image_width_stddev,
+            image_height_mean=self.config.image_height_mean,
+            image_height_stddev=self.config.image_height_stddev,
+            image_format=self.config.image_format,
         )

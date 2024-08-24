@@ -15,6 +15,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
+from genai_perf.inputs.config import InputsConfig
 from genai_perf.inputs.inputs import Inputs, OutputFormat, PromptSource
 
 
@@ -34,13 +35,15 @@ class TestInputsImageRetrieval:
             ],
         }
 
-        pa_json = Inputs.create_inputs(
-            input_type=PromptSource.FILE,
-            output_format=OutputFormat.IMAGE_RETRIEVAL,
-            input_filename=Path("dummy.jsonl"),
-            model_name=["test_model"],
-            add_model_name=True,
+        inputs = Inputs(
+            InputsConfig(
+                input_type=PromptSource.FILE,
+                output_format=OutputFormat.IMAGE_RETRIEVAL,
+                input_filename=Path("dummy.jsonl"),
+                model_name=["test_model"],
+            )
         )
+        pa_json = inputs.create_inputs()
 
         expected_json = {
             "data": [
@@ -95,15 +98,18 @@ class TestInputsImageRetrieval:
             "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/",
         ]
 
-        pa_json = Inputs.create_inputs(
-            input_type=PromptSource.FILE,
-            output_format=OutputFormat.IMAGE_RETRIEVAL,
-            input_filename=Path("dummy.jsonl"),
-            batch_size=2,
-            num_of_output_prompts=1,
-            model_name=["test_model"],
-            add_model_name=True,
+        inputs = Inputs(
+            InputsConfig(
+                input_type=PromptSource.FILE,
+                output_format=OutputFormat.IMAGE_RETRIEVAL,
+                input_filename=Path("dummy.jsonl"),
+                batch_size=2,
+                num_prompts=1,
+                model_name=["test_model"],
+            )
         )
+
+        pa_json = inputs.create_inputs()
 
         expected_json = {
             "data": [

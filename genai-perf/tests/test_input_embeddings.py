@@ -27,7 +27,9 @@
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
+import genai_perf.inputs.input_constants as ic
 import pytest
+from genai_perf.inputs.config import InputsConfig
 from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
 
 
@@ -46,11 +48,15 @@ class TestInputsEmbeddings:
         ),
     )
     def test_get_input_dataset_from_embeddings_file(self, mock_file, mock_exists):
-        input_filename = Path("embeddings.jsonl")
         batch_size = 3
-        dataset = Inputs._get_input_dataset_from_embeddings_file(
-            input_filename, batch_size, num_prompts=100
+        config = InputsConfig(
+            input_filename=Path("embeddings.jsonl"),
+            batch_size=batch_size,
+            num_prompts=100,
         )
+        inputs = Inputs(config)
+
+        dataset = inputs._get_input_dataset_from_embeddings_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == 100
@@ -67,9 +73,8 @@ class TestInputsEmbeddings:
             ValueError,
             match="Batch size cannot be larger than the number of available texts",
         ):
-            Inputs._get_input_dataset_from_embeddings_file(
-                input_filename, 5, num_prompts=10
-            )
+            config.batch_size = 5
+            inputs._get_input_dataset_from_embeddings_file()
 
     def test_convert_generic_json_to_openai_embeddings_format(self):
         generic_dataset = {
@@ -100,11 +105,17 @@ class TestInputsEmbeddings:
             ]
         }
 
-        result = Inputs._convert_generic_json_to_openai_embeddings_format(
+        inputs = Inputs(
+            InputsConfig(
+                input_type=ic.PromptSource.SYNTHETIC,
+                extra_inputs={},
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            )
+        )
+
+        result = inputs._convert_generic_json_to_openai_embeddings_format(
             generic_dataset,
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None
@@ -121,12 +132,6 @@ class TestInputsEmbeddings:
                 {"payload": {"input": ["text 1", "text 2"]}},
                 {"payload": {"input": ["text 3", "text 4"]}},
             ]
-        }
-
-        extra_inputs = {
-            "encoding_format": "base64",
-            "truncate": "END",
-            "additional_key": "additional_value",
         }
 
         expected_result = {
@@ -156,11 +161,22 @@ class TestInputsEmbeddings:
             ]
         }
 
-        result = Inputs._convert_generic_json_to_openai_embeddings_format(
+        extra_inputs = {
+            "encoding_format": "base64",
+            "truncate": "END",
+            "additional_key": "additional_value",
+        }
+
+        inputs = Inputs(
+            InputsConfig(
+                input_type=ic.PromptSource.SYNTHETIC,
+                extra_inputs=extra_inputs,
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            )
+        )
+        result = inputs._convert_generic_json_to_openai_embeddings_format(
             generic_dataset,
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None

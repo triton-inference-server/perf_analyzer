@@ -35,18 +35,11 @@ from typing import Tuple
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.constants import (
-    CNN_DAILY_MAIL,
     DEFAULT_ARTIFACT_DIR,
     DEFAULT_COMPARE_DIR,
     DEFAULT_TRITON_METRICS_URL,
-    OPEN_ORCA,
 )
-from genai_perf.inputs.inputs import (
-    Inputs,
-    ModelSelectionStrategy,
-    OutputFormat,
-    PromptSource,
-)
+from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
@@ -91,7 +84,7 @@ def _check_model_args(
     """
     logger.info(f"Profiling these models: {', '.join(args.model)}")
     args = _convert_str_to_enum_entry(
-        args, "model_selection_strategy", ModelSelectionStrategy
+        args, "model_selection_strategy", ic.ModelSelectionStrategy
     )
     _generate_formatted_model_name(args)
     return args
@@ -152,20 +145,20 @@ def _check_conditional_args(
             )
         else:
             if args.endpoint_type == "chat":
-                args.output_format = OutputFormat.OPENAI_CHAT_COMPLETIONS
+                args.output_format = ic.OutputFormat.OPENAI_CHAT_COMPLETIONS
             elif args.endpoint_type == "completions":
-                args.output_format = OutputFormat.OPENAI_COMPLETIONS
+                args.output_format = ic.OutputFormat.OPENAI_COMPLETIONS
             elif args.endpoint_type == "embeddings":
-                args.output_format = OutputFormat.OPENAI_EMBEDDINGS
+                args.output_format = ic.OutputFormat.OPENAI_EMBEDDINGS
             elif args.endpoint_type == "rankings":
-                args.output_format = OutputFormat.RANKINGS
+                args.output_format = ic.OutputFormat.RANKINGS
             elif args.endpoint_type == "image_retrieval":
-                args.output_format = OutputFormat.IMAGE_RETRIEVAL
+                args.output_format = ic.OutputFormat.IMAGE_RETRIEVAL
 
             # (TMA-1986) deduce vision format from chat completions + image CLI
             # because there's no openai vision endpoint.
             elif args.endpoint_type == "vision":
-                args.output_format = OutputFormat.OPENAI_VISION
+                args.output_format = ic.OutputFormat.OPENAI_VISION
 
             if args.endpoint is not None:
                 args.endpoint = args.endpoint.lstrip(" /")
@@ -177,15 +170,15 @@ def _check_conditional_args(
         )
 
     if args.service_kind == "triton":
-        args = _convert_str_to_enum_entry(args, "backend", OutputFormat)
+        args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
         args.output_format = args.backend
 
     if args.service_kind == "tensorrtllm_engine":
-        args.output_format = OutputFormat.TENSORRTLLM_ENGINE
+        args.output_format = ic.OutputFormat.TENSORRTLLM_ENGINE
 
     # Output token distribution checks
-    if args.output_tokens_mean == Inputs.DEFAULT_OUTPUT_TOKENS_MEAN:
-        if args.output_tokens_stddev != Inputs.DEFAULT_OUTPUT_TOKENS_STDDEV:
+    if args.output_tokens_mean == ic.DEFAULT_OUTPUT_TOKENS_MEAN:
+        if args.output_tokens_stddev != ic.DEFAULT_OUTPUT_TOKENS_STDDEV:
             parser.error(
                 "The --output-tokens-mean option is required when using --output-tokens-stddev."
             )
@@ -211,9 +204,9 @@ def _check_conditional_args_embeddings_rankings(
 ):
 
     if args.output_format in [
-        OutputFormat.OPENAI_EMBEDDINGS,
-        OutputFormat.RANKINGS,
-        OutputFormat.IMAGE_RETRIEVAL,
+        ic.OutputFormat.OPENAI_EMBEDDINGS,
+        ic.OutputFormat.RANKINGS,
+        ic.OutputFormat.IMAGE_RETRIEVAL,
     ]:
         if args.streaming:
             parser.error(
@@ -225,14 +218,14 @@ def _check_conditional_args_embeddings_rankings(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
     else:
-        if args.batch_size != Inputs.DEFAULT_BATCH_SIZE:
+        if args.batch_size != ic.DEFAULT_BATCH_SIZE:
             parser.error(
                 "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types."
             )
 
     if args.input_file:
         _, path_type = args.input_file
-        if args.output_format != OutputFormat.RANKINGS:
+        if args.output_format != ic.OutputFormat.RANKINGS:
             if path_type == "directory":
                 parser.error(
                     "A directory is only currently supported for the rankings endpoint type."
@@ -331,10 +324,10 @@ def parse_goodput(values):
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
     if args.input_dataset:
-        args.prompt_source = PromptSource.DATASET
+        args.prompt_source = ic.PromptSource.DATASET
         logger.debug(f"Input source is the following dataset: {args.input_dataset}")
     elif args.input_file:
-        args.prompt_source = PromptSource.FILE
+        args.prompt_source = ic.PromptSource.FILE
         if args.endpoint_type == "rankings":
             logger.debug(
                 f"Input source is the following directory: {args.input_file[0]}"
@@ -342,7 +335,7 @@ def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
         else:
             logger.debug(f"Input source is the following file: {args.input_file[0]}")
     else:
-        args.prompt_source = PromptSource.SYNTHETIC
+        args.prompt_source = ic.PromptSource.SYNTHETIC
         logger.debug("Input source is synthetic data")
     return args
 
@@ -379,7 +372,7 @@ def _add_input_args(parser):
         "--batch-size",
         "-b",
         type=int,
-        default=Inputs.DEFAULT_BATCH_SIZE,
+        default=ic.DEFAULT_BATCH_SIZE,
         required=False,
         help=f"The batch size of the requests GenAI-Perf should send. "
         "This is currently only supported with the embeddings, rankings, and "
@@ -399,7 +392,7 @@ def _add_input_args(parser):
         "--input-dataset",
         type=str.lower,
         default=None,
-        choices=[OPEN_ORCA, CNN_DAILY_MAIL],
+        choices=[ic.OPEN_ORCA, ic.CNN_DAILY_MAIL],
         required=False,
         help="The HuggingFace dataset to use for prompts.",
     )
@@ -419,7 +412,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--num-prompts",
         type=int,
-        default=Inputs.DEFAULT_NUM_PROMPTS,
+        default=ic.DEFAULT_NUM_PROMPTS,
         required=False,
         help=f"The number of unique prompts to generate as stimulus.",
     )
@@ -427,7 +420,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-mean",
         type=int,
-        default=Inputs.DEFAULT_OUTPUT_TOKENS_MEAN,
+        default=ic.DEFAULT_OUTPUT_TOKENS_MEAN,
         required=False,
         help=f"The mean number of tokens in each output. "
         "Ensure the --tokenizer value is set correctly. ",
@@ -449,7 +442,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-stddev",
         type=int,
-        default=Inputs.DEFAULT_OUTPUT_TOKENS_STDDEV,
+        default=ic.DEFAULT_OUTPUT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of the number of tokens in each output. "
         "This is only used when --output-tokens-mean is provided.",
@@ -458,7 +451,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--random-seed",
         type=int,
-        default=Inputs.DEFAULT_RANDOM_SEED,
+        default=ic.DEFAULT_RANDOM_SEED,
         required=False,
         help="The seed used to generate random values.",
     )
@@ -466,7 +459,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--synthetic-input-tokens-mean",
         type=int,
-        default=Inputs.DEFAULT_PROMPT_TOKENS_MEAN,
+        default=ic.DEFAULT_PROMPT_TOKENS_MEAN,
         required=False,
         help=f"The mean of number of tokens in the generated prompts when using synthetic data.",
     )
@@ -474,7 +467,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--synthetic-input-tokens-stddev",
         type=int,
-        default=Inputs.DEFAULT_PROMPT_TOKENS_STDDEV,
+        default=ic.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
     )
@@ -499,7 +492,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-mean",
         type=int,
-        default=Inputs.DEFAULT_IMAGE_WIDTH_MEAN,
+        default=ic.DEFAULT_IMAGE_WIDTH_MEAN,
         required=False,
         help=f"The mean width of images when generating synthetic image data.",
     )
@@ -507,7 +500,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-stddev",
         type=int,
-        default=Inputs.DEFAULT_IMAGE_WIDTH_STDDEV,
+        default=ic.DEFAULT_IMAGE_WIDTH_STDDEV,
         required=False,
         help=f"The standard deviation of width of images when generating synthetic image data.",
     )
@@ -515,7 +508,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-mean",
         type=int,
-        default=Inputs.DEFAULT_IMAGE_HEIGHT_MEAN,
+        default=ic.DEFAULT_IMAGE_HEIGHT_MEAN,
         required=False,
         help=f"The mean height of images when generating synthetic image data.",
     )
@@ -523,7 +516,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-stddev",
         type=int,
-        default=Inputs.DEFAULT_IMAGE_HEIGHT_STDDEV,
+        default=ic.DEFAULT_IMAGE_HEIGHT_STDDEV,
         required=False,
         help=f"The standard deviation of height of images when generating synthetic image data.",
     )
@@ -594,7 +587,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--model-selection-strategy",
         type=str,
-        choices=utils.get_enum_names(ModelSelectionStrategy),
+        choices=utils.get_enum_names(ic.ModelSelectionStrategy),
         default="round_robin",
         required=False,
         help=f"When multiple model are specified, this is how a specific model "
@@ -606,7 +599,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--backend",
         type=str,
-        choices=utils.get_enum_names(OutputFormat)[2:],
+        choices=utils.get_enum_names(ic.OutputFormat)[2:],
         default="tensorrtllm",
         required=False,
         help=f'When using the "triton" service-kind, '
