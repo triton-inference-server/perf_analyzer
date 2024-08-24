@@ -74,6 +74,7 @@ target_link_libraries(
     PUBLIC grpcclient_static
     PUBLIC gRPC::grpc++
     PUBLIC gRPC::grpc
+    PUBLIC grpc-service-library
 )
 
 target_link_libraries(

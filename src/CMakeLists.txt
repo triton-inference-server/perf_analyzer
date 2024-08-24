@@ -31,19 +31,19 @@ project(perf-analyzer LANGUAGES C CXX)
 #
 # Perf Analyzer Options
 #
-option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" ON)
 
 #
 # Client Options
 #
 option(TRITON_ENABLE_CC_HTTP "Build C++ HTTP client libraries" ON)
 option(TRITON_ENABLE_CC_GRPC "Build C++ GRPC client libraries" ON)
-option(TRITON_ENABLE_PYTHON_HTTP "Build Python HTTP client libraries" OFF)
-option(TRITON_ENABLE_PYTHON_GRPC "Build Python GRPC client libraries" OFF)
-option(TRITON_ENABLE_GPU "Enable GPU support in libraries" OFF)
+option(TRITON_ENABLE_PYTHON_HTTP "Build Python HTTP client libraries" ON)
+option(TRITON_ENABLE_PYTHON_GRPC "Build Python GRPC client libraries" ON)
+option(TRITON_ENABLE_GPU "Enable GPU support in libraries" ON)
 option(TRITON_ENABLE_ZLIB "Include ZLIB library in build" ON)
 
 #
@@ -58,7 +58,18 @@ set(TRITON_THIRD_PARTY_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/third-party-i
 
 # Add third party installation to the search path
 set(CMAKE_PREFIX_PATH ${TRITON_THIRD_PARTY_INSTALL_PREFIX} ${CMAKE_PREFIX_PATH})
-
+include(CPack)
+include(FetchContent)
+set(FETCHCONTENT_QUIET OFF)
+FetchContent_Declare(
+  cc-client
+  GIT_REPOSITORY ${TRITON_REPO_ORGANIZATION}/client.git
+  GIT_TAG        ${TRITON_CLIENT_REPO_TAG}
+  SOURCE_SUBDIR  "src/c++"
+  EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(cc-client)
+include_directories(${cc-client_SOURCE_DIR}/src/c++/library)
 #
 # Dependencies
 #
@@ -67,12 +78,14 @@ if(${TRITON_ENABLE_GPU})
   message(STATUS "Using CUDA ${CUDA_VERSION}")
 endif() # TRITON_ENABLE_GPU
 
+find_package(Protobuf CONFIG REQUIRED)
+set(Protobuf_PROTOC_EXECUTABLE $<TARGET_FILE:protobuf::protoc>)
 find_package(gRPC CONFIG REQUIRED)
 include_directories($<TARGET_PROPERTY:gRPC::grpc,INTERFACE_INCLUDE_DIRECTORIES>)
 
 set(protobuf_MODULE_COMPATIBLE TRUE CACHE BOOL "protobuf_MODULE_COMPATIBLE" FORCE)
-find_package(Protobuf CONFIG REQUIRED)
 message(STATUS "Using protobuf ${Protobuf_VERSION}")
+message(STATUS "Using Protobuf_PROTOC_EXECUTABLE: ${Protobuf_PROTOC_EXECUTABLE}")
 include_directories(${Protobuf_INCLUDE_DIRS})
 
 add_subdirectory(client_backend)
@@ -93,6 +106,14 @@ execute_process(WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 if(NOT RETURN_CODE EQUAL "0")
   set(GIT_SHA "unknown")
 endif()
+
+# include(ExternalProject)
+# ExternalProject_Add(
+#   cc-client-library
+#   SOURCE_DIR ${cc-client_SOURCE_DIR}/src/c++/library
+#   BINARY_DIR ${cc-client_BINARY_DIR}
+#   CONFI
+# )
 
 set(
   PERF_ANALYZER_SRCS
