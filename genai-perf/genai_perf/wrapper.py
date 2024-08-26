@@ -157,7 +157,7 @@ class Profiler:
                     telemetry_data_collector.start()
                 else:
                     logger.warning(
-                        f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable."
+                        f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
                         "GenAI-Perf cannot collect telemetry data."
                     )
             cmd = Profiler.build_cmd(args, extra_args)
