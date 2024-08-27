@@ -28,8 +28,12 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.inputs.input_constants import PromptSource
-from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
+from genai_perf.inputs.input_constants import (
+    ModelSelectionStrategy,
+    OutputFormat,
+    PromptSource,
+)
+from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
@@ -130,10 +134,11 @@ class TestInputsRankings:
                 extra_inputs={},
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=OutputFormat.RANKINGS,
             )
         )
 
-        result = inputs._convert_generic_json_to_rankings_format(
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
         )
 
@@ -185,9 +190,10 @@ class TestInputsRankings:
                 extra_inputs=extra_inputs,
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=OutputFormat.RANKINGS,
             )
         )
-        result = inputs._convert_generic_json_to_rankings_format(
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
         )
 
