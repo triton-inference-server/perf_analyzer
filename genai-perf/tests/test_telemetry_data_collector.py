@@ -42,7 +42,7 @@ class TestTelemetryDataCollector:
 
     TEST_SERVER_URL = "http://testserver:8080/metrics"
 
-    triton_metrics_response = """\
+    TRITON_METRICS_RESPONSE = """\
             nv_gpu_power_usage{gpu="0",uuid="GPU-1234"} 123.45
             nv_gpu_power_usage{gpu="1",uuid="GPU-5678"} 234.56
             nv_gpu_utilization{gpu="0",uuid="GPU-1234"} 76.3
@@ -98,14 +98,14 @@ class TestTelemetryDataCollector:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.text = self.triton_metrics_response
+        mock_response.text = self.TRITON_METRICS_RESPONSE
         mock_requests_get.return_value = mock_response
 
         result = collector._fetch_metrics()
 
         mock_requests_get.assert_called_once_with(self.TEST_SERVER_URL)
 
-        assert result == self.triton_metrics_response
+        assert result == self.TRITON_METRICS_RESPONSE
 
     @patch("requests.get")
     def test_fetch_metrics_failure(
@@ -125,21 +125,53 @@ class TestTelemetryDataCollector:
         collector: MockTelemetryDataCollector,
     ) -> None:
 
-        mock_fetch_metrics.return_value = self.triton_metrics_response
+        mock_fetch_metrics.return_value = self.TRITON_METRICS_RESPONSE
 
         with patch.object(
             collector, "_process_and_update_metrics", new_callable=MagicMock
         ) as mock_process_and_update_metrics:
-            # Mock _stop_event.is_set
+
             collector._stop_event = MagicMock()
-            collector._stop_event.is_set = MagicMock(
-                side_effect=[False, True]
-            )  # Ensure loop exits immediately
+            collector._stop_event.is_set = MagicMock(side_effect=[False, True])
 
             collector._collect_metrics()
 
             mock_fetch_metrics.assert_called_once()
             mock_process_and_update_metrics.assert_called_once_with(
-                self.triton_metrics_response
+                self.TRITON_METRICS_RESPONSE
             )
             mock_sleep.assert_called_once()
+
+    @patch("requests.get")
+    def test_url_reachability_check_success(
+        self,
+        mock_get: MagicMock,
+        collector: MockTelemetryDataCollector,
+    ) -> None:
+        mock_get.return_value.status_code = requests.codes.ok
+        assert collector.is_url_reachable() is True
+
+    @patch("requests.get")
+    def test_url_reachability_check_failure(
+        self, mock_get: MagicMock, collector: MockTelemetryDataCollector
+    ) -> None:
+        mock_get.return_value.status_code = requests.codes.not_found
+        assert collector.is_url_reachable() is False
+
+        mock_get.return_value.status_code = requests.codes.server_error
+        assert collector.is_url_reachable() is False
+
+        mock_get.return_value.status_code = requests.codes.forbidden
+        assert collector.is_url_reachable() is False
+
+        mock_get.side_effect = requests.exceptions.Timeout
+        assert collector.is_url_reachable() is False
+
+        mock_get.side_effect = requests.exceptions.ConnectionError
+        assert collector.is_url_reachable() is False
+
+        mock_get.side_effect = requests.exceptions.TooManyRedirects
+        assert collector.is_url_reachable() is False
+
+        mock_get.side_effect = requests.exceptions.RequestException
+        assert collector.is_url_reachable() is False
