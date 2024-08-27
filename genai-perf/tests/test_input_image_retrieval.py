@@ -15,8 +15,8 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from genai_perf.inputs.config import InputsConfig
 from genai_perf.inputs.inputs import Inputs, OutputFormat, PromptSource
+from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TestInputsImageRetrieval:

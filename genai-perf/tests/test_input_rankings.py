@@ -28,9 +28,9 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.inputs.config import InputsConfig
 from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
+from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TestInputsRankings:

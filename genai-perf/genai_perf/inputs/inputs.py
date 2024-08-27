@@ -21,7 +21,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.config import InputsConfig
 from genai_perf.inputs.input_constants import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_INPUT_DATA_JSON,
@@ -37,6 +36,7 @@ from genai_perf.inputs.input_constants import (
     PromptSource,
     dataset_url_map,
 )
+from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.synthetic_image_generator import (
     ImageFormat,
     SyntheticImageGenerator,

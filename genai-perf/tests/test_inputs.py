@@ -25,13 +25,13 @@ import responses
 from genai_perf import tokenizer
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.config import InputsConfig
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
 from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 from PIL import Image

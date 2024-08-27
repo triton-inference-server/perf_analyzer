@@ -29,8 +29,8 @@ from unittest.mock import mock_open, patch
 
 import genai_perf.inputs.input_constants as ic
 import pytest
-from genai_perf.inputs.config import InputsConfig
 from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
+from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TestInputsEmbeddings:
