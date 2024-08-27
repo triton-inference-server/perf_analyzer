@@ -949,7 +949,7 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_server_metrics_url_valid_args(self, args_list, expected_url, monkeypatch):
+    def test_server_metrics_url_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
         args, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
@@ -976,7 +976,7 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_server_metrics_url_invalid_args(
+    def test_server_metrics_url_invalid(
         self, args_list, expected_error, monkeypatch, capsys
     ):
         monkeypatch.setattr("sys.argv", args_list)
