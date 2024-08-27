@@ -934,6 +934,8 @@ class TestCLIArguments:
         actual_dict = parser.get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
 
+    test_triton_metrics_url = "http://tritonmetrics.com:8002/metrics"
+
     @pytest.mark.parametrize(
         "args_list, expected_url",
         [
@@ -947,9 +949,9 @@ class TestCLIArguments:
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
-                    "http://test-metrics-url:8002/metrics",
+                    test_triton_metrics_url,
                 ],
-                "http://test-metrics-url:8002/metrics",
+                test_triton_metrics_url,
             ),
             # server-metrics-url is not specified
             (
