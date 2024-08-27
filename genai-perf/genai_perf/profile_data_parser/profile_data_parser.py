@@ -28,7 +28,7 @@
 
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import Metrics, Statistics
@@ -164,7 +164,7 @@ class ProfileDataParser:
         self,
         benchmark_duration,
         metric: Metrics,
-    ) -> List[float]:
+    ) -> Optional[List[float]]:
         llm_goodput_calculator = LLMGoodputCalculator(
             self._goodput_constraints,
             metric,
