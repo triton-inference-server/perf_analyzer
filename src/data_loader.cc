@@ -31,7 +31,7 @@
 #include <b64/decode.h>
 #undef BUFFERSIZE
 #else
-#include <b64/decodes.h>
+#include <b64/decode.h>
 #endif
 
 #include <rapidjson/filereadstream.h>
