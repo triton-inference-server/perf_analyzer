@@ -36,6 +36,12 @@ from genai_perf.telemetry_data.triton_telemetry_data_collector import (
 )
 
 
+class MockArgs:
+    def __init__(self, service_kind, server_metrics_url):
+        self.service_kind = service_kind
+        self.server_metrics_url = server_metrics_url
+
+
 class TestProfileHandler:
     test_triton_metrics_url = "http://tritonmetrics.com:8080/metrics"
 
@@ -50,11 +56,6 @@ class TestProfileHandler:
     def test_profile_handler_creates_telemetry_collector(
         self, mock_profiler_run, server_metrics_url, expected_url
     ):
-        class MockArgs:
-            def __init__(self, service_kind, server_metrics_url):
-                self.service_kind = service_kind
-                self.server_metrics_url = server_metrics_url
-
         mock_args = MockArgs(
             service_kind="triton", server_metrics_url=server_metrics_url
         )
