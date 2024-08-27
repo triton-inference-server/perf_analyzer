@@ -29,7 +29,6 @@
 from pathlib import Path
 from typing import Dict
 
-from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import ImageRetrievalMetrics
 from genai_perf.profile_data_parser.profile_data_parser import ProfileDataParser
 from genai_perf.utils import load_json_str
@@ -89,19 +88,8 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
             image_latencies,
         )
 
-        self._calculate_goodput(benchmark_duration)
+        if self._goodput_constraints:
+            goodput_val = self._calculate_goodput(benchmark_duration, self._image_metric)
+            self._image_metric.request_goodputs = goodput_val
 
         return self._image_metric
-
-    def _calculate_goodput(self, benchmark_duration) -> None:
-        if self._goodput_constraints:
-            llm_goodput_calculator = LLMGoodputCalculator(
-                self._goodput_constraints,
-                self._image_metric,
-                benchmark_duration,
-            )
-
-            llm_goodput_calculator.compute()
-            self._image_metric.request_goodputs = llm_goodput_calculator.goodput
-        else:
-            return

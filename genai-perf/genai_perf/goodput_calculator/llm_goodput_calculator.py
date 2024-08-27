@@ -30,8 +30,6 @@ from typing import Dict, List, Optional, Union
 
 import genai_perf.logging as logging
 from genai_perf.goodput_calculator.goodput_calculator import GoodputCalculator
-from genai_perf.metrics.image_retrieval_metrics import ImageRetrievalMetrics
-from genai_perf.metrics.llm_metrics import LLMMetrics
 from genai_perf.metrics.metrics import Metrics
 
 logger = logging.getLogger(__name__)
@@ -46,7 +44,7 @@ class LLMGoodputCalculator(GoodputCalculator):
     def __init__(
         self,
         goodput_constraints: Dict[str, float],
-        metric: Union[LLMMetrics, ImageRetrievalMetrics, Metrics],
+        metric: Metrics,
         benchmark_duration: float,
     ) -> None:
         super().__init__(goodput_constraints, metric, benchmark_duration)

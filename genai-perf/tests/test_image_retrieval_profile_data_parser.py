@@ -43,7 +43,7 @@ def check_image_retrieval_metrics(
     assert m1.request_throughputs == pytest.approx(m2.request_throughputs)
     assert m1.image_latencies == m2.image_latencies
     assert m1.image_throughputs == pytest.approx(m2.image_throughputs)
-    assert m1.request_goodputs is None or m1.request_goodputs == m2.request_goodputs
+    assert m1.request_goodputs == m2.request_goodputs
 
 
 class TestImageRetrievalProfileDataParser:
@@ -186,6 +186,10 @@ class TestImageRetrievalProfileDataParser:
         * image latencies
             - [(3 - 1) / 2, (7 - 3) / 3] = [1, 4/3]
         * request goodput
+            - number of good requests
+                image latency: [1 < 1.25, 4/3 > 1.25]
+                request latency: [2 < 2.5, 4 > 2.5]
+                1 request is good under such constraints
             - [1 / (7 - 1)] = [1 / ns_to_sec(6)]
 
         """
