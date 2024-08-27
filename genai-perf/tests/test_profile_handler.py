@@ -42,7 +42,7 @@ TRITON_TEST_METRICS_URL = "http://tritonmetrics.com:8080/metrics"
 @pytest.fixture(
     params=[
         {"service_kind": "triton", "server_metrics_url": TRITON_TEST_METRICS_URL},
-        {"service_kind": "triton", "server_metrics_url": None},  # Default URL case
+        {"service_kind": "triton", "server_metrics_url": None}, # server_metrics_url is not specified
     ]
 )
 def mock_args(request):
