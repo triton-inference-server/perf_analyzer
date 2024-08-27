@@ -274,44 +274,6 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
         return message
 
-    def _create_new_prompt(
-        self,
-        header: str,
-        system_role_headers: List[str],
-        user_role_headers: List[str],
-        text_input_headers: List[str],
-        content: str,
-    ) -> str:
-        new_prompt = ""
-
-        if (
-            header in system_role_headers
-            or header in user_role_headers
-            or header in text_input_headers
-        ):
-            new_prompt = content
-
-        return new_prompt
-
-    def _create_new_text_input(
-        self,
-        header: str,
-        system_role_headers: List[str],
-        user_role_headers: List[str],
-        text_input_headers: List[str],
-        content: str,
-    ) -> str:
-        new_text_input = ""
-
-        if (
-            header in system_role_headers
-            or header in user_role_headers
-            or header in text_input_headers
-        ):
-            new_text_input = content
-
-        return new_text_input
-
     def _add_message_to_json(self, openai_json: Dict, message: Optional[Dict]) -> Dict:
         if message:
             openai_json["payload"][0]["messages"].append(message)
@@ -374,7 +336,7 @@ class OpenAICompletionsConverter(BaseConverter):
             pa_json["data"][index]["payload"].append({"prompt": ""})
 
             for header, content in entry.items():
-                new_prompt = self._create_new_prompt(
+                new_prompt = self._create_new_text_input(
                     header,
                     system_role_headers,
                     user_role_headers,
@@ -391,25 +353,6 @@ class OpenAICompletionsConverter(BaseConverter):
             )
 
         return pa_json
-
-    def _create_new_prompt(
-        self,
-        header: str,
-        system_role_headers: List[str],
-        user_role_headers: List[str],
-        text_input_headers: List[str],
-        content: str,
-    ) -> str:
-        new_prompt = ""
-
-        if (
-            header in system_role_headers
-            or header in user_role_headers
-            or header in text_input_headers
-        ):
-            new_prompt = content
-
-        return new_prompt
 
     def _add_new_prompt_to_json(
         self,
