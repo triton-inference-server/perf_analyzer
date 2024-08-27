@@ -89,7 +89,9 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
         )
 
         if self._goodput_constraints:
-            goodput_val = self._calculate_goodput(benchmark_duration, self._image_metric)
+            goodput_val = self._calculate_goodput(
+                benchmark_duration, self._image_metric
+            )
             self._image_metric.request_goodputs = goodput_val
 
         return self._image_metric
