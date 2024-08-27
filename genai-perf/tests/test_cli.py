@@ -652,6 +652,22 @@ class TestCLIArguments:
                 ],
                 "The --generate-plots option is not currently supported with the image_retrieval endpoint type",
             ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "invalid_url",
+                ],
+                "The URL passed for --server-metrics-url is invalid. "
+                "It must use 'http' or 'https', have a valid domain and port, "
+                "and contain '/metrics' in the path. The expected structure is: "
+                "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
+            ),
         ],
     )
     def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):
@@ -949,41 +965,7 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_server_metrics_url_valid(self, args_list, expected_url, monkeypatch):
+    def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
         args, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
-
-    @pytest.mark.parametrize(
-        "args_list, expected_error",
-        [
-            # Test with an invalid URL
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "--model",
-                    "test_model",
-                    "--service-kind",
-                    "triton",
-                    "--server-metrics-url",
-                    "invalid_url",
-                ],
-                "The URL passed for --server-metrics-url is invalid. "
-                "It must use 'http' or 'https', have a valid domain and port, "
-                "and contain '/metrics' in the path. The expected structure is: "
-                "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
-            ),
-        ],
-    )
-    def test_server_metrics_url_invalid(
-        self, args_list, expected_error, monkeypatch, capsys
-    ):
-        monkeypatch.setattr("sys.argv", args_list)
-
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
-
-        captured = capsys.readouterr()
-        assert expected_error in captured.err
-        assert excinfo.value.code != 0
