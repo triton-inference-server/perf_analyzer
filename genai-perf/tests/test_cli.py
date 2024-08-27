@@ -922,7 +922,7 @@ class TestCLIArguments:
     INVALID_URL = "invalid_url"
     INVALID_URL_ERROR_MESSAGE = (
         "The URL passed for --server-metrics-url is invalid. "
-        "It must use 'http' or 'https', have a valid domain, "
+        "It must use 'http' or 'https', have a valid domain and port, "
         "and contain '/metrics' in the path. The expected structure is: "
         "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
     )
