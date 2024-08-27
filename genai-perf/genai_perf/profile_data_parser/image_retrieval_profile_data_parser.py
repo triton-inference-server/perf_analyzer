@@ -27,7 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
+from typing import Dict
 
+from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import ImageRetrievalMetrics
 from genai_perf.profile_data_parser.profile_data_parser import ProfileDataParser
 from genai_perf.utils import load_json_str
@@ -38,8 +40,12 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
     across the Perf Analyzer profile results.
     """
 
-    def __init__(self, filename: Path) -> None:
-        super().__init__(filename)
+    def __init__(
+        self,
+        filename: Path,
+        goodput_constraints: Dict[str, float] = {},
+    ) -> None:
+        super().__init__(filename, goodput_constraints)
 
     def _parse_requests(self, requests: dict) -> ImageRetrievalMetrics:
         """Parse each request in profile data to extract core metrics."""
@@ -76,9 +82,26 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
 
-        return ImageRetrievalMetrics(
+        self._image_metric = ImageRetrievalMetrics(
             request_throughputs,
             request_latencies,
             image_throughputs,
             image_latencies,
         )
+
+        self._calculate_goodput(benchmark_duration)
+
+        return self._image_metric
+
+    def _calculate_goodput(self, benchmark_duration) -> None:
+        if self._goodput_constraints:
+            llm_goodput_calculator = LLMGoodputCalculator(
+                self._goodput_constraints,
+                self._image_metric,
+                benchmark_duration,
+            )
+
+            llm_goodput_calculator.compute()
+            self._image_metric.request_goodputs = llm_goodput_calculator.goodput
+        else:
+            return

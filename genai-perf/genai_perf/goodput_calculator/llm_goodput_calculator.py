@@ -30,6 +30,7 @@ from typing import Dict, List, Optional, Union
 
 import genai_perf.logging as logging
 from genai_perf.goodput_calculator.goodput_calculator import GoodputCalculator
+from genai_perf.metrics.image_retrieval_metrics import ImageRetrievalMetrics
 from genai_perf.metrics.llm_metrics import LLMMetrics
 from genai_perf.metrics.metrics import Metrics
 
@@ -45,7 +46,7 @@ class LLMGoodputCalculator(GoodputCalculator):
     def __init__(
         self,
         goodput_constraints: Dict[str, float],
-        metric: Union[LLMMetrics, Metrics],
+        metric: Union[LLMMetrics, ImageRetrievalMetrics, Metrics],
         benchmark_duration: float,
     ) -> None:
         super().__init__(goodput_constraints, metric, benchmark_duration)
@@ -74,6 +75,8 @@ class LLMGoodputCalculator(GoodputCalculator):
         self._slo_names["output_token_throughput_per_request"] = (
             "output_token_throughputs_per_request"
         )
+        self._slo_names["image_throughput"] = "image_throughputs"
+        self._slo_names["image_latency"] = "image_latencies"
 
     def _set_valid_slos(self) -> None:
         invalid_slos = []

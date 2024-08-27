@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List
+from typing import List, Union
 
 from genai_perf.metrics.metrics import MetricMetadata, Metrics
 
@@ -34,10 +34,18 @@ from genai_perf.metrics.metrics import MetricMetadata, Metrics
 class ImageRetrievalMetrics(Metrics):
     """A simple dataclass that holds core Image Retrieval performance metrics."""
 
-    IMAGE_RETRIEVAL_REQUEST_METRICS = [
-        MetricMetadata("image_throughput", "images/sec"),
+    IMAGE_RETRIEVAL_REQUEST_TIME_METRICS = [
         MetricMetadata("image_latency", "ms/image"),
     ]
+
+    IMAGE_RETRIEVAL_REQUEST_THOUGHPUT_METRICS = [
+        MetricMetadata("image_throughput", "images/sec"),
+    ]
+
+    IMAGE_RETRIEVAL_REQUEST_METRICS = (
+        IMAGE_RETRIEVAL_REQUEST_THOUGHPUT_METRICS
+        + IMAGE_RETRIEVAL_REQUEST_TIME_METRICS
+    )
 
     def __init__(
         self,
@@ -45,8 +53,9 @@ class ImageRetrievalMetrics(Metrics):
         request_latencies: List[int] = [],
         image_throughputs: List[int] = [],
         image_latencies: List[int] = [],
+        request_goodputs: Union[List[float], None] = [],
     ) -> None:
-        super().__init__(request_throughputs, request_latencies)
+        super().__init__(request_throughputs, request_latencies, request_goodputs)
         self.image_throughputs = image_throughputs
         self.image_latencies = image_latencies
 
@@ -58,3 +67,13 @@ class ImageRetrievalMetrics(Metrics):
     def request_metrics(self) -> List[MetricMetadata]:
         base_metrics = super().request_metrics  # base metrics
         return base_metrics + self.IMAGE_RETRIEVAL_REQUEST_METRICS
+
+    @property
+    def request_time_metrics(self) -> List[MetricMetadata]:
+        base_metrics = super().request_time_metrics
+        return self.IMAGE_RETRIEVAL_REQUEST_TIME_METRICS + base_metrics
+
+    @property
+    def request_throughput_metrics(self) -> List[MetricMetadata]:
+        base_metrics = super().request_throughput_metrics
+        return self.IMAGE_RETRIEVAL_REQUEST_THOUGHPUT_METRICS + base_metrics

@@ -108,7 +108,10 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
             goodput_constraints=args.goodput,
         )
     elif args.endpoint_type == "image_retrieval":
-        return ImageRetrievalProfileDataParser(args.profile_export_file)
+        return ImageRetrievalProfileDataParser(
+            args.profile_export_file,
+            goodput_constraints=args.goodput,
+        )
     else:
         return LLMProfileDataParser(
             filename=args.profile_export_file,
