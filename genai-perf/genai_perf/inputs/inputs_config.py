@@ -59,106 +59,83 @@ class InputsConfig:
     # General Parameters
     ####################
 
-    # add_stream:
-    #       If true, adds a steam field to each payload
+    # If true, adds a steam field to each payload
     add_stream: bool = False
 
-    # batch_size:
-    #       The number of inputs per request (currently only used for the embeddings, image retrieval, and rankings endpoints)
+    # The number of inputs per request (currently only used for the embeddings, image retrieval, and rankings endpoints)
     batch_size: int = 1
 
-    # dataset_name:
-    #           The name of the dataset
+    # The name of the dataset
     dataset_name: str = ""
-    # extra_inputs:
-    #       If provided, append these inputs to every request
+
+    # If provided, append these inputs to every request
     extra_inputs: Dict = field(default_factory=dict)
 
-    # input_filename:
-    #       The filename where the input data is available
+    # The filename where the input data is available
     input_filename: Path = Path("")
 
-    # image_format:
-    #       The compression format of the images.
+    # The compression format of the images.
     image_format: ImageFormat = ImageFormat.PNG
 
-    # image_height_mean:
-    #       The mean height of images when generating synthetic image data.
+    # The mean height of images when generating synthetic image data.
     image_height_mean: int = DEFAULT_IMAGE_HEIGHT_MEAN
 
-    # image_height_stddev:
-    #       The standard deviation of height of images when generating synthetic image data.
+    # The standard deviation of height of images when generating synthetic image data.
     image_height_stddev: int = DEFAULT_IMAGE_HEIGHT_STDDEV
 
-    # image_width_mean:
-    #       The mean width of images when generating synthetic image data.
+    # The mean width of images when generating synthetic image data.
     image_width_mean: int = DEFAULT_IMAGE_WIDTH_MEAN
 
-    # image_width_stddev:
-    #       The standard deviation of width of images when generating synthetic image data.
+    # The standard deviation of width of images when generating synthetic image data.
     image_width_stddev: int = DEFAULT_IMAGE_WIDTH_STDDEV
 
-    # input_type:
-    #       Specify how the input is received
+    # Specify how the input is received
     input_type: PromptSource = PromptSource.SYNTHETIC
 
-    # length:
-    #       Number of entries to gather
+    # Number of entries to gather
     length: int = DEFAULT_LENGTH
 
-    # model_name:
-    #       The model name
+    # The model name
     model_name: List[str] = field(default_factory=list)
 
-    # model_selection_strategy:
-    #       The strategy to use when selecting models when multiple models are provided
+    # The strategy to use when selecting models when multiple models are provided
     model_selection_strategy: ModelSelectionStrategy = (
         ModelSelectionStrategy.ROUND_ROBIN
     )
-    # output_format:
-    #       Specify the output format
+
+    # Specify the output format
     output_format: OutputFormat = OutputFormat.TENSORRTLLM
 
-    # output_tokens_deterministic:
-    #           If true, the output tokens will set the minimum and maximum tokens to be equivalent.
+    # If true, the output tokens will set the minimum and maximum tokens to be equivalent.
     output_tokens_deterministic: bool = False
 
-    # output_tokens_mean:
-    #       The mean length of the output to generate. If not using fixed output lengths, this should be set to -1.
+    # The mean length of the output to generate. If not using fixed output lengths, this should be set to -1.
     output_tokens_mean: int = DEFAULT_OUTPUT_TOKENS_MEAN
 
-    # output_tokens_stddev:
-    #       The standard deviation of the length of the output to generate. This is only used if output_tokens_mean is provided.
+    # The standard deviation of the length of the output to generate. This is only used if output_tokens_mean is provided.
     output_tokens_stddev: int = DEFAULT_OUTPUT_TOKENS_STDDEV
 
-    # starting_index:
-    #       Offset from within the list to start gathering inputs
+    # Offset from within the list to start gathering inputs
     starting_index: int = DEFAULT_STARTING_INDEX
 
-    # output_dir:
-    #       The directory where all arifacts are saved
+    # The directory where all arifacts are saved
     output_dir: Path = Path("")
 
     ########################################
     # Synthetic Prompt Generation Parameters
     ########################################
 
-    # num_prompts:
-    #       The number of synthetic output prompts to generate
+    # The number of synthetic output prompts to generate
     num_prompts: int = DEFAULT_NUM_PROMPTS
 
-    # prompt_tokens_mean:
-    #       The mean length of the prompt to generate
+    # The mean length of the prompt to generate
     prompt_tokens_mean: int = DEFAULT_PROMPT_TOKENS_MEAN
 
-    # prompt_tokens_stddev:
-    #       The standard deviation of the length of the prompt to generate
+    # The standard deviation of the length of the prompt to generate
     prompt_tokens_stddev: int = DEFAULT_PROMPT_TOKENS_STDDEV
 
-    # random_seed:
-    #       Seed used to generate random values
+    # Seed used to generate random values
     random_seed: int = DEFAULT_RANDOM_SEED
 
-    # tokenizer:
-    #      The tokenizer to use when generating synthetic prompts
+    # The tokenizer to use when generating synthetic prompts
     tokenizer: Tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
