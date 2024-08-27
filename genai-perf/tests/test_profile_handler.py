@@ -35,42 +35,36 @@ from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TritonTelemetryDataCollector,
 )
 
-TRITON_TEST_METRICS_URL = "http://tritonmetrics.com:8080/metrics"
 
+class TestProfileHandler:
+    test_triton_metrics_url = "http://tritonmetrics.com:8080/metrics"
 
-# Parameterized fixture
-@pytest.fixture(
-    params=[
-        {"service_kind": "triton", "server_metrics_url": TRITON_TEST_METRICS_URL},
-        {"service_kind": "triton", "server_metrics_url": None}, # server_metrics_url is not specified
-    ]
-)
-def mock_args(request):
-    params = request.param
-
-    class MockArgs:
-        def __init__(self, service_kind, server_metrics_url):
-            self.service_kind = service_kind
-            self.server_metrics_url = server_metrics_url
-
-    return MockArgs(params["service_kind"], params["server_metrics_url"])
-
-
-@patch("genai_perf.wrapper.Profiler.run")
-def test_profile_handler_creates_telemetry_collector_triton(
-    mock_profiler_run, mock_args
-):
-    profile_handler(mock_args, extra_args={})
-    mock_profiler_run.assert_called_once()
-
-    args, kwargs = mock_profiler_run.call_args
-    telemetry_collector = kwargs.get("telemetry_data_collector")
-
-    expected_url = (
-        TRITON_TEST_METRICS_URL
-        if mock_args.server_metrics_url == TRITON_TEST_METRICS_URL
-        else DEFAULT_TRITON_METRICS_URL
+    @pytest.mark.parametrize(
+        "server_metrics_url, expected_url",
+        [
+            (test_triton_metrics_url, test_triton_metrics_url),
+            (None, DEFAULT_TRITON_METRICS_URL),
+        ],
     )
+    @patch("genai_perf.wrapper.Profiler.run")
+    def test_profile_handler_creates_telemetry_collector(
+        self, mock_profiler_run, server_metrics_url, expected_url
+    ):
+        class MockArgs:
+            def __init__(self, service_kind, server_metrics_url):
+                self.service_kind = service_kind
+                self.server_metrics_url = server_metrics_url
 
-    assert isinstance(telemetry_collector, TritonTelemetryDataCollector)
-    assert telemetry_collector.metrics_url == expected_url
+        mock_args = MockArgs(
+            service_kind="triton", server_metrics_url=server_metrics_url
+        )
+        profile_handler(mock_args, extra_args={})
+        mock_profiler_run.assert_called_once()
+
+        args, kwargs = mock_profiler_run.call_args
+
+        assert "telemetry_data_collector" in kwargs
+
+        telemetry_data_collector = kwargs["telemetry_data_collector"]
+        assert isinstance(telemetry_data_collector, TritonTelemetryDataCollector)
+        assert telemetry_data_collector.metrics_url == expected_url
