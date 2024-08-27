@@ -74,6 +74,12 @@ class Profiler:
             "formatted_model_name",
             "func",
             "generate_plots",
+            "goodput",
+            "image_format",
+            "image_height_mean",
+            "image_height_stddev",
+            "image_width_mean",
+            "image_width_stddev",
             "input_dataset",
             "input_file",
             "input_format",
@@ -81,29 +87,22 @@ class Profiler:
             "model_selection_strategy",
             "num_prompts",
             "output_format",
-            "output_tokens_mean_deterministic",
             "output_tokens_mean",
+            "output_tokens_mean_deterministic",
             "output_tokens_stddev",
             "prompt_source",
             "random_seed",
             "request_rate",
+            "server_metrics_url",
             # The 'streaming' passed in to this script is to determine if the
             # LLM response should be streaming. That is different than the
             # 'streaming' that PA takes, which means something else (and is
             # required for decoupled models into triton).
             "streaming",
+            "subcommand",
             "synthetic_input_tokens_mean",
             "synthetic_input_tokens_stddev",
-            "subcommand",
             "tokenizer",
-            "image_width_mean",
-            "image_width_stddev",
-            "image_height_mean",
-            "image_height_stddev",
-            "image_format",
-            "server_metrics_url",
-            "goodput",
-            "server_metrics_url",
         ]
 
         utils.remove_file(args.profile_export_file)
