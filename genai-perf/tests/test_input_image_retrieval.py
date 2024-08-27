@@ -23,10 +23,12 @@ class TestInputsImageRetrieval:
 
     @patch("genai_perf.inputs.inputs.Inputs._write_json_to_file")
     @patch(
-        "genai_perf.inputs.inputs.Inputs._encode_image",
+        "genai_perf.inputs.input_retriever_factory.InputRetrieverFactory._encode_image",
         return_value="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/",
     )
-    @patch("genai_perf.inputs.inputs.Inputs._get_input_dataset_from_file")
+    @patch(
+        "genai_perf.inputs.input_retriever_factory.InputRetrieverFactory._get_input_dataset_from_file"
+    )
     def test_image_retrieval(self, mock_get_input, mock_encode_image, mock_write_json):
         mock_get_input.return_value = {
             "features": [{"name": "text_input"}],
@@ -77,8 +79,12 @@ class TestInputsImageRetrieval:
         assert args[0] == expected_json
 
     @patch("genai_perf.inputs.inputs.Inputs._write_json_to_file")
-    @patch("genai_perf.inputs.inputs.Inputs._get_input_dataset_from_file")
-    @patch("genai_perf.inputs.inputs.Inputs._encode_image")
+    @patch(
+        "genai_perf.inputs.input_retriever_factory.InputRetrieverFactory._get_input_dataset_from_file"
+    )
+    @patch(
+        "genai_perf.inputs.input_retriever_factory.InputRetrieverFactory._encode_image"
+    )
     def test_image_retrieval_batched(
         self, mock_encode_image, mock_get_input, mock_write_json
     ):

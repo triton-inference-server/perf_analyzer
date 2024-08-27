@@ -27,10 +27,14 @@
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
-import genai_perf.inputs.input_constants as ic
 import pytest
-from genai_perf.inputs.input_constants import ModelSelectionStrategy
+from genai_perf.inputs.input_constants import (
+    ModelSelectionStrategy,
+    PromptSource,
+    OutputFormat,
+)
 from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
@@ -55,9 +59,9 @@ class TestInputsEmbeddings:
             batch_size=batch_size,
             num_prompts=100,
         )
-        inputs = Inputs(config)
+        factory = InputRetrieverFactory(config)
 
-        dataset = inputs._get_input_dataset_from_embeddings_file()
+        dataset = factory._get_input_dataset_from_embeddings_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == 100
@@ -75,7 +79,7 @@ class TestInputsEmbeddings:
             match="Batch size cannot be larger than the number of available texts",
         ):
             config.batch_size = 5
-            inputs._get_input_dataset_from_embeddings_file()
+            factory._get_input_dataset_from_embeddings_file()
 
     def test_convert_generic_json_to_openai_embeddings_format(self):
         generic_dataset = {
@@ -108,11 +112,11 @@ class TestInputsEmbeddings:
 
         inputs = Inputs(
             InputsConfig(
-                input_type=ic.PromptSource.SYNTHETIC,
+                input_type=PromptSource.SYNTHETIC,
                 extra_inputs={},
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                output_format=ic.OutputFormat.OPENAI_EMBEDDINGS,
+                output_format=OutputFormat.OPENAI_EMBEDDINGS,
             )
         )
 
@@ -171,11 +175,11 @@ class TestInputsEmbeddings:
 
         inputs = Inputs(
             InputsConfig(
-                input_type=ic.PromptSource.SYNTHETIC,
+                input_type=PromptSource.SYNTHETIC,
                 extra_inputs=extra_inputs,
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                output_format=ic.OutputFormat.OPENAI_EMBEDDINGS,
+                output_format=OutputFormat.OPENAI_EMBEDDINGS,
             )
         )
         result = inputs._convert_generic_json_to_output_format(
