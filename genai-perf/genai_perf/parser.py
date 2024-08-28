@@ -31,6 +31,7 @@ import sys
 from enum import Enum, auto
 from pathlib import Path
 from typing import Tuple
+from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
@@ -259,6 +260,49 @@ def _check_goodput_args(args):
                     f"Invalid value found, {target_metric}: {target_val}. "
                     f"The goodput constraint value should be non-negative. "
                 )
+    return args
+
+
+def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
+    """
+    Validates a URL to ensure it meets the following criteria:
+    - The scheme must be 'http' or 'https'.
+    - The netloc (domain) must be present.
+    - The path must contain '/metrics'.
+
+    Raises:
+        `parser.error()` if the URL is invalid.
+
+    The URL structure is expected to follow:
+    <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+    """
+    parsed_url = urlparse(url)
+
+    if (
+        parsed_url.scheme not in ["http", "https"]
+        or not parsed_url.netloc
+        or "/metrics" not in parsed_url.path
+        or parsed_url.port is None
+    ):
+        parser.error(
+            "The URL passed for --server-metrics-url is invalid. "
+            "It must use 'http' or 'https', have a valid domain and port, "
+            "and contain '/metrics' in the path. The expected structure is: "
+            "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
+        )
+
+
+def _check_server_metrics_url(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> argparse.Namespace:
+    """
+    Checks if the server metrics URL passed is valid
+    """
+
+    # Check if the URL is valid and contains the expected path
+    if args.service_kind == "triton" and args.server_metrics_url:
+        _is_valid_url(parser, args.server_metrics_url)
+
     return args
 
 
@@ -644,6 +688,16 @@ def _add_endpoint_args(parser):
     )
 
     endpoint_group.add_argument(
+        "--server-metrics-url",
+        type=str,
+        default=None,
+        required=False,
+        help="The full URL to access the server metrics endpoint. "
+        "This argument is required if the metrics are available on "
+        "a different machine than localhost (where GenAI-Perf is running).",
+    )
+
+    endpoint_group.add_argument(
         "--streaming",
         action="store_true",
         required=False,
@@ -696,7 +750,8 @@ def _add_other_args(parser):
         type=str,
         default=DEFAULT_TOKENIZER,
         required=False,
-        help="The HuggingFace tokenizer to use to interpret token metrics from prompts and responses.",
+        help="The HuggingFace tokenizer to use to interpret token metrics from prompts and responses. "
+        " The value can be the name of a tokenizer or the filepath of the tokenizer.",
     )
 
     other_group.add_argument(
@@ -823,9 +878,9 @@ def profile_handler(args, extra_args):
 
     telemetry_data_collector = None
     if args.service_kind == "triton":
-        # TPA-275: pass server url as a CLI option in non-default case
+        server_metrics_url = args.server_metrics_url or DEFAULT_TRITON_METRICS_URL
         telemetry_data_collector = TritonTelemetryDataCollector(
-            server_metrics_url=DEFAULT_TRITON_METRICS_URL
+            server_metrics_url=server_metrics_url
         )
 
     Profiler.run(
@@ -881,6 +936,7 @@ def refine_args(
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
         args = _check_load_manager_args(args)
+        args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
