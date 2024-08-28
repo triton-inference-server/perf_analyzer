@@ -541,7 +541,8 @@ export file is `profile_export.json`, the genai-perf file will be exported to
 ##### `--tokenizer <str>`
 
 The HuggingFace tokenizer to use to interpret token metrics from prompts and
-responses. (default: `hf-internal-testing/llama-tokenizer`)
+responses. The value can be the name of a tokenizer or the filepath of the
+tokenizer. (default: `hf-internal-testing/llama-tokenizer`)
 
 ##### `-v`
 ##### `--verbose`

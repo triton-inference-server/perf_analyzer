@@ -696,7 +696,8 @@ def _add_other_args(parser):
         type=str,
         default=DEFAULT_TOKENIZER,
         required=False,
-        help="The HuggingFace tokenizer to use to interpret token metrics from prompts and responses.",
+        help="The HuggingFace tokenizer to use to interpret token metrics from prompts and responses. "
+        " The value can be the name of a tokenizer or the filepath of the tokenizer.",
     )
 
     other_group.add_argument(
