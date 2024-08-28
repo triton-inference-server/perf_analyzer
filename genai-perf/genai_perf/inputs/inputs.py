@@ -16,7 +16,7 @@ import json
 import random
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import requests
 from genai_perf import utils
