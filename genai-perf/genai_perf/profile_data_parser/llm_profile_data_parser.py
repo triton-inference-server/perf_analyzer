@@ -150,7 +150,7 @@ class LLMProfileDataParser(ProfileDataParser):
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        self._llm_metric = LLMMetrics(
+        llm_metric = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -163,10 +163,10 @@ class LLMProfileDataParser(ProfileDataParser):
         )
 
         if self._goodput_constraints:
-            goodput_val = self._calculate_goodput(benchmark_duration, self._llm_metric)
-            self._llm_metric.request_goodputs = goodput_val
+            goodput_val = self._calculate_goodput(benchmark_duration, llm_metric)
+            llm_metric.request_goodputs = goodput_val
 
-        return self._llm_metric
+        return llm_metric
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""

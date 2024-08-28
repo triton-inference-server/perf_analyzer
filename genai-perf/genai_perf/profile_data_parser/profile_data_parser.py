@@ -149,20 +149,20 @@ class ProfileDataParser:
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
 
-        self._metric = Metrics(
+        metric = Metrics(
             request_throughputs,
             request_latencies,
         )
 
         if self._goodput_constraints:
-            goodput_val = self._calculate_goodput(benchmark_duration, self._metric)
-            self._metric.request_goodputs = goodput_val
+            goodput_val = self._calculate_goodput(benchmark_duration, metric)
+            metric.request_goodputs = goodput_val
 
-        return self._metric
+        return metric
 
     def _calculate_goodput(
         self,
-        benchmark_duration,
+        benchmark_duration: float,
         metric: Metrics,
     ) -> Optional[List[float]]:
         llm_goodput_calculator = LLMGoodputCalculator(

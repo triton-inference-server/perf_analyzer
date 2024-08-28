@@ -81,7 +81,7 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
 
-        self._image_metric = ImageRetrievalMetrics(
+        image_metric = ImageRetrievalMetrics(
             request_throughputs,
             request_latencies,
             image_throughputs,
@@ -89,9 +89,7 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
         )
 
         if self._goodput_constraints:
-            goodput_val = self._calculate_goodput(
-                benchmark_duration, self._image_metric
-            )
-            self._image_metric.request_goodputs = goodput_val
+            goodput_val = self._calculate_goodput(benchmark_duration, image_metric)
+            image_metric.request_goodputs = goodput_val
 
-        return self._image_metric
+        return image_metric
