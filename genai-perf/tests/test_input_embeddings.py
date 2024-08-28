@@ -59,9 +59,9 @@ class TestInputsEmbeddings:
             batch_size=batch_size,
             num_prompts=100,
         )
-        factory = InputRetrieverFactory(config)
+        input_retriever_factory = InputRetrieverFactory(config)
 
-        dataset = factory._get_input_dataset_from_embeddings_file()
+        dataset = input_retriever_factory._get_input_dataset_from_embeddings_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == 100
@@ -79,7 +79,7 @@ class TestInputsEmbeddings:
             match="Batch size cannot be larger than the number of available texts",
         ):
             config.batch_size = 5
-            factory._get_input_dataset_from_embeddings_file()
+            input_retriever_factory._get_input_dataset_from_embeddings_file()
 
     def test_convert_generic_json_to_openai_embeddings_format(self):
         generic_dataset = {

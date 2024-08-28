@@ -77,8 +77,8 @@ class TestInputsRankings:
             batch_size=batch_size,
             num_prompts=100,
         )
-        irf = InputRetrieverFactory(config)
-        dataset = irf._get_input_dataset_from_rankings_files(
+        input_retriever_factory = InputRetrieverFactory(config)
+        dataset = input_retriever_factory._get_input_dataset_from_rankings_files(
             queries_filename=queries_filename, passages_filename=passages_filename
         )
 
@@ -99,7 +99,7 @@ class TestInputsRankings:
             match="Batch size cannot be larger than the number of available passages",
         ):
             config.batch_size = 5
-            irf._get_input_dataset_from_rankings_files(
+            input_retriever_factory._get_input_dataset_from_rankings_files(
                 queries_filename, passages_filename
             )
 

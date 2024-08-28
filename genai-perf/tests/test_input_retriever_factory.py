@@ -70,13 +70,13 @@ class TestInputRetrieverFactory:
 
     @pytest.fixture
     def default_configured_url(self):
-        irf = InputRetrieverFactory(
+        input_retriever_factory = InputRetrieverFactory(
             InputsConfig(
                 starting_index=ic.DEFAULT_STARTING_INDEX,
                 length=ic.DEFAULT_LENGTH,
             )
         )
-        default_configured_url = irf._create_configured_url(
+        default_configured_url = input_retriever_factory._create_configured_url(
             ic.OPEN_ORCA_URL,
         )
 
@@ -86,7 +86,7 @@ class TestInputRetrieverFactory:
         """
         Test that we are appending and configuring the URL correctly
         """
-        irf = InputRetrieverFactory(
+        input_retriever_factory = InputRetrieverFactory(
             InputsConfig(
                 starting_index=ic.DEFAULT_STARTING_INDEX,
                 length=ic.DEFAULT_LENGTH,
@@ -98,7 +98,9 @@ class TestInputRetrieverFactory:
             + f"&offset={ic.DEFAULT_STARTING_INDEX}"
             + f"&length={ic.DEFAULT_LENGTH}"
         )
-        configured_url = irf._create_configured_url("http://test-url.com")
+        configured_url = input_retriever_factory._create_configured_url(
+            "http://test-url.com"
+        )
 
         assert configured_url == expected_configured_url
 
@@ -106,9 +108,9 @@ class TestInputRetrieverFactory:
         """
         Test for exception when URL is bad
         """
-        irf = InputRetrieverFactory(InputsConfig())
+        input_retriever_factory = InputRetrieverFactory(InputsConfig())
         with pytest.raises(GenAIPerfException):
-            _ = irf._download_dataset(
+            _ = input_retriever_factory._download_dataset(
                 "https://bad-url.zzz",
             )
 
@@ -140,7 +142,7 @@ class TestInputRetrieverFactory:
         _placeholder = 123  # dummy value
         num_prompts = 3
 
-        irf = InputRetrieverFactory(
+        input_retriever_factory = InputRetrieverFactory(
             InputsConfig(
                 tokenizer=get_tokenizer(DEFAULT_TOKENIZER),
                 prompt_tokens_mean=_placeholder,
@@ -154,7 +156,7 @@ class TestInputRetrieverFactory:
                 output_format=output_format,
             )
         )
-        dataset_json = irf._get_input_dataset_from_synthetic()
+        dataset_json = input_retriever_factory._get_input_dataset_from_synthetic()
 
         assert len(dataset_json["rows"]) == num_prompts
 
@@ -182,19 +184,25 @@ class TestInputRetrieverFactory:
             json=mocked_openorca_data,
             status=200,
         )
-        irf = InputRetrieverFactory(InputsConfig())
-        dataset = irf._download_dataset(
+        input_retriever_factory = InputRetrieverFactory(InputsConfig())
+        dataset = input_retriever_factory._download_dataset(
             default_configured_url,
         )
-        dataset_json = irf._convert_input_url_dataset_to_generic_json(dataset=dataset)
+        dataset_json = (
+            input_retriever_factory._convert_input_url_dataset_to_generic_json(
+                dataset=dataset
+            )
+        )
 
         assert dataset_json is not None
         assert len(dataset_json["rows"]) == TEST_LENGTH
 
     def test_get_input_file_without_file_existing(self):
-        irf = InputRetrieverFactory(InputsConfig(input_filename=Path("prompt.txt")))
+        input_retriever_factory = InputRetrieverFactory(
+            InputsConfig(input_filename=Path("prompt.txt"))
+        )
         with pytest.raises(FileNotFoundError):
-            irf._get_input_dataset_from_file()
+            input_retriever_factory._get_input_dataset_from_file()
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
@@ -204,14 +212,14 @@ class TestInputRetrieverFactory:
     )
     def test_get_input_file_with_single_prompt(self, mock_file, mock_exists):
         expected_prompts = ["single prompt"]
-        irf = InputRetrieverFactory(
+        input_retriever_factory = InputRetrieverFactory(
             InputsConfig(
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("prompt.txt"),
             )
         )
-        dataset = irf._get_input_dataset_from_file()
+        dataset = input_retriever_factory._get_input_dataset_from_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_prompts)
@@ -226,14 +234,14 @@ class TestInputRetrieverFactory:
     )
     def test_get_input_file_with_multiple_prompts(self, mock_file, mock_exists):
         expected_prompts = ["prompt1", "prompt2", "prompt3"]
-        irf = InputRetrieverFactory(
+        input_retriever_factory = InputRetrieverFactory(
             InputsConfig(
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("prompt.txt"),
             )
         )
-        dataset = irf._get_input_dataset_from_file()
+        dataset = input_retriever_factory._get_input_dataset_from_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_prompts)
@@ -254,7 +262,7 @@ class TestInputRetrieverFactory:
     def test_get_input_file_with_multi_modal_data(
         self, mock_exists, mock_image, mock_file
     ):
-        irf = InputRetrieverFactory(
+        input_retriever_factory = InputRetrieverFactory(
             InputsConfig(
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
@@ -267,7 +275,7 @@ class TestInputRetrieverFactory:
             Data(text_input="prompt2", image="image2.png"),
             Data(text_input="prompt3", image="image3.png"),
         ]
-        dataset = irf._get_input_dataset_from_file()
+        dataset = input_retriever_factory._get_input_dataset_from_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_data)
