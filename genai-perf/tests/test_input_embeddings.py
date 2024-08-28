@@ -29,7 +29,8 @@ from unittest.mock import mock_open, patch
 
 import genai_perf.inputs.input_constants as ic
 import pytest
-from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
+from genai_perf.inputs.input_constants import ModelSelectionStrategy
+from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
@@ -111,10 +112,11 @@ class TestInputsEmbeddings:
                 extra_inputs={},
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=ic.OutputFormat.OPENAI_EMBEDDINGS,
             )
         )
 
-        result = inputs._convert_generic_json_to_openai_embeddings_format(
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
         )
 
@@ -173,9 +175,10 @@ class TestInputsEmbeddings:
                 extra_inputs=extra_inputs,
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=ic.OutputFormat.OPENAI_EMBEDDINGS,
             )
         )
-        result = inputs._convert_generic_json_to_openai_embeddings_format(
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
         )
 

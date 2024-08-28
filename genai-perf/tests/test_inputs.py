@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-import os
 import random
-import statistics
 from collections import namedtuple
 from pathlib import Path
 from unittest.mock import mock_open, patch
@@ -729,12 +726,13 @@ class TestInputs:
                 output_tokens_stddev=0,
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
             )
         )
 
         generic_json = {"rows": [row]}
-        pa_json = inputs._convert_generic_json_to_openai_chat_completions_format(
-            dataset_json=generic_json,
+        pa_json = inputs._convert_generic_json_to_output_format(
+            generic_json,
         )
 
         assert pa_json == {
@@ -1002,86 +1000,3 @@ class TestInputs:
         for i, data in enumerate(expected_data):
             assert dataset["rows"][i]["row"]["text_input"] == data.text_input
             assert dataset["rows"][i]["row"]["image"] == data.image
-
-    @pytest.mark.parametrize(
-        "seed, model_name_list, index,model_selection_strategy,expected_model",
-        [
-            (
-                1,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                0,
-                ModelSelectionStrategy.ROUND_ROBIN,
-                "test_model_A",
-            ),
-            (
-                1,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                1,
-                ModelSelectionStrategy.ROUND_ROBIN,
-                "test_model_B",
-            ),
-            (
-                1,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                2,
-                ModelSelectionStrategy.ROUND_ROBIN,
-                "test_model_C",
-            ),
-            (
-                1,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                3,
-                ModelSelectionStrategy.ROUND_ROBIN,
-                "test_model_A",
-            ),
-            (
-                100,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                0,
-                ModelSelectionStrategy.RANDOM,
-                "test_model_A",
-            ),
-            (
-                100,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                1,
-                ModelSelectionStrategy.RANDOM,
-                "test_model_A",
-            ),
-            (
-                1652,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                0,
-                ModelSelectionStrategy.RANDOM,
-                "test_model_B",
-            ),
-            (
-                95,
-                ["test_model_A", "test_model_B", "test_model_C"],
-                0,
-                ModelSelectionStrategy.RANDOM,
-                "test_model_C",
-            ),
-        ],
-    )
-    def test_select_model_name(
-        self,
-        seed,
-        model_name_list,
-        index,
-        model_selection_strategy,
-        expected_model,
-    ):
-        """
-        Test that model selection strategy controls the model selected
-        """
-        random.seed(seed)
-        inputs = Inputs(
-            InputsConfig(
-                model_name=model_name_list,
-                model_selection_strategy=model_selection_strategy,
-                random_seed=seed,
-            )
-        )
-        actual_model = inputs._select_model_name(index)
-        assert actual_model == expected_model
