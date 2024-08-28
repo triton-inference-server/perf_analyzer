@@ -651,6 +651,22 @@ class TestCLIArguments:
                 ],
                 "The --generate-plots option is not currently supported with the image_retrieval endpoint type",
             ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "invalid_url",
+                ],
+                "The URL passed for --server-metrics-url is invalid. "
+                "It must use 'http' or 'https', have a valid domain and port, "
+                "and contain '/metrics' in the path. The expected structure is: "
+                "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
+            ),
         ],
     )
     def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):
@@ -916,3 +932,41 @@ class TestCLIArguments:
         namespace.extra_inputs = extra_inputs_list
         actual_dict = parser.get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
+
+    test_triton_metrics_url = "http://tritonmetrics.com:8002/metrics"
+
+    @pytest.mark.parametrize(
+        "args_list, expected_url",
+        [
+            # server-metrics-url is specified
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    test_triton_metrics_url,
+                ],
+                test_triton_metrics_url,
+            ),
+            # server-metrics-url is not specified
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                ],
+                None,
+            ),
+        ],
+    )
+    def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
+        monkeypatch.setattr("sys.argv", args_list)
+        args, _ = parser.parse_args()
+        assert args.server_metrics_url == expected_url
