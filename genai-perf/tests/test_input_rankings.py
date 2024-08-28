@@ -28,28 +28,53 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
+from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
+from genai_perf.inputs.inputs_config import InputsConfig
 
 
-class TestInputsEmbeddings:
-    @patch("pathlib.Path.exists", return_value=True)
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data="\n".join(
+class TestInputsRankings:
+
+    def open_side_effects(self, filepath, *args, **kwargs):
+        queries_content = "\n".join(
             [
                 '{"text": "What production company co-owned by Kevin Loader and Rodger Michell produced My Cousin Rachel?"}',
                 '{"text": "Who served as the 1st Vice President of Colombia under El Libertador?"}',
                 '{"text": "Are the Barton Mine and Hermiston-McCauley Mine located in The United States of America?"}',
-                '{"text": "what state did they film daddy\'s home 2"}',
             ]
-        ),
-    )
-    def test_get_input_dataset_from_embeddings_file(self, mock_file, mock_exists):
-        input_filename = Path("embeddings.jsonl")
-        batch_size = 3
-        dataset = Inputs._get_input_dataset_from_embeddings_file(
-            input_filename, batch_size, num_prompts=100
+        )
+        passages_content = "\n".join(
+            [
+                '{"text": "Eric Anderson (sociologist) Eric Anderson (born January 18, 1968) is an American sociologist"}',
+                '{"text": "Kevin Loader is a British film and television producer. "}',
+                '{"text": "Barton Mine, also known as Net Lake Mine, is an abandoned surface and underground mine in Northeastern Ontario"}',
+            ]
+        )
+
+        file_contents = {
+            "queries.jsonl": queries_content,
+            "passages.jsonl": passages_content,
+        }
+        return mock_open(
+            read_data=file_contents.get(filepath, file_contents["queries.jsonl"])
+        )()
+
+    mock_open_obj = mock_open()
+    mock_open_obj.side_effect = open_side_effects
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("builtins.open", mock_open_obj)
+    def test_get_input_dataset_from_rankings_file(self, mock_file):
+        queries_filename = Path("queries.jsonl")
+        passages_filename = Path("passages.jsonl")
+        batch_size = 2
+        config = InputsConfig(
+            batch_size=batch_size,
+            num_prompts=100,
+        )
+        inputs = Inputs(config)
+        dataset = inputs._get_input_dataset_from_rankings_files(
+            queries_filename=queries_filename, passages_filename=passages_filename
         )
 
         assert dataset is not None
@@ -58,24 +83,30 @@ class TestInputsEmbeddings:
             assert "row" in row
             assert "payload" in row["row"]
             payload = row["row"]["payload"]
-            assert "input" in payload
-            assert isinstance(payload["input"], list)
-            assert len(payload["input"]) == batch_size
+            assert "query" in payload
+            assert "passages" in payload
+            assert isinstance(payload["passages"], list)
+            assert len(payload["passages"]) == batch_size
 
         # Try error case where batch size is larger than the number of available texts
         with pytest.raises(
             ValueError,
-            match="Batch size cannot be larger than the number of available texts",
+            match="Batch size cannot be larger than the number of available passages",
         ):
-            Inputs._get_input_dataset_from_embeddings_file(
-                input_filename, 5, num_prompts=10
+            config.batch_size = 5
+            inputs._get_input_dataset_from_rankings_files(
+                queries_filename, passages_filename
             )
 
-    def test_convert_generic_json_to_openai_embeddings_format(self):
+    def test_convert_generic_json_to_openai_rankings_format(self):
         generic_dataset = {
             "rows": [
-                {"payload": {"input": ["text 1", "text 2"]}},
-                {"payload": {"input": ["text 3", "text 4"]}},
+                {
+                    "payload": {
+                        "query": {"text": "1"},
+                        "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
+                    }
+                }
             ]
         }
 
@@ -84,27 +115,26 @@ class TestInputsEmbeddings:
                 {
                     "payload": [
                         {
-                            "input": ["text 1", "text 2"],
+                            "query": {"text": "1"},
+                            "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
                             "model": "test_model",
                         }
                     ]
-                },
-                {
-                    "payload": [
-                        {
-                            "input": ["text 3", "text 4"],
-                            "model": "test_model",
-                        }
-                    ]
-                },
+                }
             ]
         }
 
-        result = Inputs._convert_generic_json_to_openai_embeddings_format(
+        inputs = Inputs(
+            InputsConfig(
+                input_type=PromptSource.SYNTHETIC,
+                extra_inputs={},
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            )
+        )
+
+        result = inputs._convert_generic_json_to_rankings_format(
             generic_dataset,
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None
@@ -115,11 +145,15 @@ class TestInputsEmbeddings:
             assert "payload" in result["data"][i]
             assert result["data"][i]["payload"] == item["payload"]
 
-    def test_convert_generic_json_to_openai_embeddings_format_with_extra_inputs(self):
+    def test_convert_generic_json_to_openai_rankings_format_with_extra_inputs(self):
         generic_dataset = {
             "rows": [
-                {"payload": {"input": ["text 1", "text 2"]}},
-                {"payload": {"input": ["text 3", "text 4"]}},
+                {
+                    "payload": {
+                        "query": {"text": "1"},
+                        "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
+                    }
+                }
             ]
         }
 
@@ -134,33 +168,27 @@ class TestInputsEmbeddings:
                 {
                     "payload": [
                         {
-                            "input": ["text 1", "text 2"],
+                            "query": {"text": "1"},
+                            "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
                             "model": "test_model",
                             "encoding_format": "base64",
                             "truncate": "END",
                             "additional_key": "additional_value",
                         }
                     ]
-                },
-                {
-                    "payload": [
-                        {
-                            "input": ["text 3", "text 4"],
-                            "model": "test_model",
-                            "encoding_format": "base64",
-                            "truncate": "END",
-                            "additional_key": "additional_value",
-                        }
-                    ]
-                },
+                }
             ]
         }
 
-        result = Inputs._convert_generic_json_to_openai_embeddings_format(
+        inputs = Inputs(
+            InputsConfig(
+                extra_inputs=extra_inputs,
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            )
+        )
+        result = inputs._convert_generic_json_to_rankings_format(
             generic_dataset,
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None

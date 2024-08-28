@@ -30,7 +30,8 @@ from typing import List, Optional
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.constants import DEFAULT_GRPC_URL, DEFAULT_INPUT_DATA_JSON
+from genai_perf.constants import DEFAULT_GRPC_URL
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
 from genai_perf.inputs.inputs import OutputFormat
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
