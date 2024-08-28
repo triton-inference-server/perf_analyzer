@@ -33,8 +33,8 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
+from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 
 

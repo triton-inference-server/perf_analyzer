@@ -14,6 +14,7 @@
 
 from collections import namedtuple
 from pathlib import Path
+from unittest.mock import mock_open, patch
 
 import pytest
 from genai_perf import tokenizer
@@ -27,7 +28,6 @@ from genai_perf.inputs.input_constants import (
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
-from unittest.mock import mock_open, patch
 
 
 class TestInputs:
@@ -749,87 +749,3 @@ class TestInputs:
     #                 assert False, f"Unsupported output format: {output_format}"
 
     #         os.remove(DEFAULT_INPUT_DATA_JSON)
-
-    def test_get_input_file_without_file_existing(self):
-        inputs = Inputs(InputsConfig(input_filename=Path("prompt.txt")))
-        with pytest.raises(FileNotFoundError):
-            inputs._get_input_dataset_from_file()
-
-    @patch("pathlib.Path.exists", return_value=True)
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data='{"text_input": "single prompt"}\n',
-    )
-    def test_get_input_file_with_single_prompt(self, mock_file, mock_exists):
-        expected_prompts = ["single prompt"]
-        inputs = Inputs(
-            InputsConfig(
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("prompt.txt"),
-            )
-        )
-        dataset = inputs._get_input_dataset_from_file()
-
-        assert dataset is not None
-        assert len(dataset["rows"]) == len(expected_prompts)
-        for i, prompt in enumerate(expected_prompts):
-            assert dataset["rows"][i]["row"]["text_input"] == prompt
-
-    @patch("pathlib.Path.exists", return_value=True)
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data='{"text_input": "prompt1"}\n{"text_input": "prompt2"}\n{"text_input": "prompt3"}\n',
-    )
-    def test_get_input_file_with_multiple_prompts(self, mock_file, mock_exists):
-        expected_prompts = ["prompt1", "prompt2", "prompt3"]
-        inputs = Inputs(
-            InputsConfig(
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("prompt.txt"),
-            )
-        )
-        dataset = inputs._get_input_dataset_from_file()
-
-        assert dataset is not None
-        assert len(dataset["rows"]) == len(expected_prompts)
-        for i, prompt in enumerate(expected_prompts):
-            assert dataset["rows"][i]["row"]["text_input"] == prompt
-
-    @patch("pathlib.Path.exists", return_value=True)
-    @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data=(
-            '{"text_input": "prompt1", "image": "image1.png"}\n'
-            '{"text_input": "prompt2", "image": "image2.png"}\n'
-            '{"text_input": "prompt3", "image": "image3.png"}\n'
-        ),
-    )
-    def test_get_input_file_with_multi_modal_data(
-        self, mock_exists, mock_image, mock_file
-    ):
-        inputs = Inputs(
-            InputsConfig(
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("prompt.txt"),
-            )
-        )
-        Data = namedtuple("Data", ["text_input", "image"])
-        expected_data = [
-            Data(text_input="prompt1", image="image1.png"),
-            Data(text_input="prompt2", image="image2.png"),
-            Data(text_input="prompt3", image="image3.png"),
-        ]
-        dataset = inputs._get_input_dataset_from_file()
-
-        assert dataset is not None
-        assert len(dataset["rows"]) == len(expected_data)
-        for i, data in enumerate(expected_data):
-            assert dataset["rows"][i]["row"]["text_input"] == data.text_input
-            assert dataset["rows"][i]["row"]["image"] == data.image

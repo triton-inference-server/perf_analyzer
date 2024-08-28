@@ -30,11 +30,11 @@ from unittest.mock import mock_open, patch
 import pytest
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
-    PromptSource,
     OutputFormat,
+    PromptSource,
 )
-from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
+from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
