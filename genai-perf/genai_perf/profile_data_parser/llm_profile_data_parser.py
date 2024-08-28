@@ -31,7 +31,6 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -151,7 +150,7 @@ class LLMProfileDataParser(ProfileDataParser):
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        self._llm_metric = LLMMetrics(
+        llm_metric = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -163,22 +162,11 @@ class LLMProfileDataParser(ProfileDataParser):
             chunked_inter_token_latencies,
         )
 
-        self._calculate_goodput(benchmark_duration)
-
-        return self._llm_metric
-
-    def _calculate_goodput(self, benchmark_duration) -> None:
         if self._goodput_constraints:
-            llm_goodput_calculator = LLMGoodputCalculator(
-                self._goodput_constraints,
-                self._llm_metric,
-                benchmark_duration,
-            )
+            goodput_val = self._calculate_goodput(benchmark_duration, llm_metric)
+            llm_metric.request_goodputs = goodput_val
 
-            llm_goodput_calculator.compute()
-            self._llm_metric.request_goodputs = llm_goodput_calculator.goodput
-        else:
-            return
+        return llm_metric
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""
