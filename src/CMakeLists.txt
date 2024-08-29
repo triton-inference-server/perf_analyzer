@@ -107,14 +107,6 @@ if(NOT RETURN_CODE EQUAL "0")
   set(GIT_SHA "unknown")
 endif()
 
-# include(ExternalProject)
-# ExternalProject_Add(
-#   cc-client-library
-#   SOURCE_DIR ${cc-client_SOURCE_DIR}/src/c++/library
-#   BINARY_DIR ${cc-client_BINARY_DIR}
-#   CONFI
-# )
-
 set(
   PERF_ANALYZER_SRCS
   command_line_parser.cc

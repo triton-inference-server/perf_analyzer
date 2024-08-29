@@ -47,11 +47,6 @@ FetchContent_Declare(
 
 
 FetchContent_MakeAvailable(repo-common)
-#  install(
-#     TARGETS grpc-service-library grpc-health-library 
-#     # EXPORT ${PROJECT_NAME}Targets
-#     # More arguments as necessary...
-#   )
 include_directories(${repo-common_BINARY_DIR}/protobuf)
 
 add_subdirectory(triton)
