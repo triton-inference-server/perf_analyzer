@@ -33,6 +33,7 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PromptSource,
 )
+from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 
@@ -76,8 +77,8 @@ class TestInputsRankings:
             batch_size=batch_size,
             num_prompts=100,
         )
-        inputs = Inputs(config)
-        dataset = inputs._get_input_dataset_from_rankings_files(
+        input_retriever_factory = InputRetrieverFactory(config)
+        dataset = input_retriever_factory._get_input_dataset_from_rankings_files(
             queries_filename=queries_filename, passages_filename=passages_filename
         )
 
@@ -98,7 +99,7 @@ class TestInputsRankings:
             match="Batch size cannot be larger than the number of available passages",
         ):
             config.batch_size = 5
-            inputs._get_input_dataset_from_rankings_files(
+            input_retriever_factory._get_input_dataset_from_rankings_files(
                 queries_filename, passages_filename
             )
 
