@@ -78,5 +78,6 @@ class JsonExporter:
     def _merge_stats_and_args(self) -> None:
         self._stats_and_args = dict()
         self._stats_and_args.update({"llm_metrics": self._stats})
-        self._stats_and_args.update({"telemetry_metrics": self._telemetry_stats})
+        if self._telemetry_stats is not None:
+            self._stats_and_args.update({"telemetry_metrics": self._telemetry_stats})
         self._stats_and_args.update({"input_config": self._args})

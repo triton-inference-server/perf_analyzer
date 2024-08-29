@@ -96,10 +96,11 @@ class CsvExporter:
             self._write_request_metrics(writer)
             writer.writerow([])
             self._write_system_metrics(writer)
-            writer.writerow([])
-            self._write_telemetry_aggregated_metrics(writer)
-            writer.writerow([])
-            self._write_telemetry_constant_metrics(writer)
+            if self._telemetry_stats is not None:
+                writer.writerow([])
+                self._write_telemetry_aggregated_metrics(writer)
+                writer.writerow([])
+                self._write_telemetry_constant_metrics(writer)
 
     def _write_request_metrics(self, csv_writer) -> None:
         csv_writer.writerow(self.REQUEST_METRICS_HEADER)
@@ -164,9 +165,6 @@ class CsvExporter:
                 csv_writer.writerow([metric_str, gpu, f"{value:.2f}"])
 
     def _capitalize_abbreviation(self, text: str) -> str:
-        """
-        Capitalizes abbreviations (e.g., GPU) while normalizing other text.
-        """
         words = text.split()
         capitalized_words = [
             word.upper() if word.lower() in ["gpu"] else word.capitalize()

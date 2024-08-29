@@ -267,7 +267,7 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
     """
     Validates a URL to ensure it meets the following criteria:
     - The scheme must be 'http' or 'https'.
-    - The netloc (domain) must be present.
+    - The netloc (domain and port) must be present.
     - The path must contain '/metrics'.
 
     Raises:
@@ -882,12 +882,20 @@ def profile_handler(args, extra_args) -> Optional[TelemetryDataCollector]:
         telemetry_data_collector = TritonTelemetryDataCollector(
             server_metrics_url=server_metrics_url
         )
+    if telemetry_data_collector and not telemetry_data_collector.is_url_reachable():
+        logger.warning(
+            f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
+            "GenAI-Perf cannot collect telemetry data."
+        )
+        telemetry_data_collector = None
 
     Profiler.run(
         args=args,
         extra_args=extra_args,
         telemetry_data_collector=telemetry_data_collector,
     )
+
+    print(telemetry_data_collector)
 
     return telemetry_data_collector
 

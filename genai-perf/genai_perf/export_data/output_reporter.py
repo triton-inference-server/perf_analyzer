@@ -60,7 +60,8 @@ class OutputReporter:
     def _create_exporter_config(self) -> ExporterConfig:
         config = ExporterConfig()
         config.stats = self.stats.stats_dict
-        config.telemetry_stats = self.telemetry_stats.stats_dict
+        if self.telemetry_stats is not None:
+            config.telemetry_stats = self.telemetry_stats.stats_dict
         config.metrics = self.stats.metrics
         config.args = self.args
         config.artifact_dir = self.args.artifact_dir

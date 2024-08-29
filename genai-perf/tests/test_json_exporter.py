@@ -78,6 +78,7 @@ class TestJsonExporter:
         args, _ = parser.parse_args()
         config = ExporterConfig()
         config.stats = self.stats
+        config.telemetry_stats = None
         config.args = args
         config.extra_inputs = parser.get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
@@ -229,137 +230,139 @@ class TestJsonExporter:
     }
 
     expected_json_output = """
-      {
-        "request_throughput": {
-          "unit": "requests/sec",
-          "avg": "7"
-          },
-          "request_latency": {
-              "unit": "ms",
-              "avg": 1,
-              "p99": 2,
-              "p95": 3,
-              "p90": 4,
-              "p75": 5,
-              "p50": 6,
-              "p25": 7,
-              "max": 8,
-              "min": 9,
-              "std": 0
-          },
-          "time_to_first_token": {
-              "unit": "ms",
-              "avg": 11,
-              "p99": 12,
-              "p95": 13,
-              "p90": 14,
-              "p75": 15,
-              "p50": 16,
-              "p25": 17,
-              "max": 18,
-              "min": 19,
-              "std": 10
-          },
-          "inter_token_latency": {
-              "unit": "ms",
-              "avg": 21,
-              "p99": 22,
-              "p95": 23,
-              "p90": 24,
-              "p75": 25,
-              "p50": 26,
-              "p25": 27,
-              "max": 28,
-              "min": 29,
-              "std": 20
-          },
-          "output_token_throughput": {
-              "unit": "tokens/sec",
-              "avg": 31
-          },
-          "output_token_throughput_per_request": {
-              "unit": "tokens/sec",
-              "avg": 41,
-              "p99": 42,
-              "p95": 43,
-              "p90": 44,
-              "p75": 45,
-              "p50": 46,
-              "p25": 47,
-              "max": 48,
-              "min": 49,
-              "std": 40
-          },
-          "output_sequence_length": {
-              "unit": "tokens",
-              "avg": 51,
-              "p99": 52,
-              "p95": 53,
-              "p90": 54,
-              "p75": 55,
-              "p50": 56,
-              "p25": 57,
-              "max": 58,
-              "min": 59,
-              "std": 50
-          },
-          "input_sequence_length": {
-              "unit": "tokens",
-              "avg": 61,
-              "p99": 62,
-              "p95": 63,
-              "p90": 64,
-              "p75": 65,
-              "p50": 66,
-              "p25": 67,
-              "max": 68,
-              "min": 69,
-              "std": 60
-          },
-        "input_config": {
-          "model": ["gpt2_vllm"],
-          "formatted_model_name": "gpt2_vllm",
-          "model_selection_strategy": "round_robin",
-          "backend": "vllm",
-          "batch_size": 1,
-          "endpoint": null,
-          "endpoint_type": null,
-          "service_kind": "triton",
-          "server_metrics_url": null,
-          "streaming": true,
-          "u": null,
-          "input_dataset": null,
-          "num_prompts": 100,
-          "output_tokens_mean": -1,
-          "output_tokens_mean_deterministic": false,
-          "output_tokens_stddev": 0,
-          "random_seed": 0,
-          "synthetic_input_tokens_mean": 550,
-          "synthetic_input_tokens_stddev": 0,
-          "image_width_mean": 100,
-          "image_width_stddev": 0,
-          "image_height_mean": 100,
-          "image_height_stddev": 0,
-          "image_format": null,
-          "concurrency": 1,
-          "measurement_interval": 10000,
-          "request_rate": null,
-          "stability_percentage": 999,
-          "generate_plots": false,
-          "profile_export_file": "artifacts/gpt2_vllm-triton-vllm-concurrency1/profile_export.json",
-          "artifact_dir": "artifacts/gpt2_vllm-triton-vllm-concurrency1",
-          "tokenizer": "hf-internal-testing/llama-tokenizer",
-          "verbose": false,
-          "goodput": null,
-          "subcommand": "profile",
-          "prompt_source": "synthetic",
-          "extra_inputs": {
-            "max_tokens": 256,
-            "ignore_eos": true
-          }
+        {
+            "llm_metrics": {
+                "request_throughput": {
+                "unit": "requests/sec",
+                "avg": "7"
+                },
+                "request_latency": {
+                "unit": "ms",
+                "avg": 1,
+                "p99": 2,
+                "p95": 3,
+                "p90": 4,
+                "p75": 5,
+                "p50": 6,
+                "p25": 7,
+                "max": 8,
+                "min": 9,
+                "std": 0
+                },
+                "time_to_first_token": {
+                "unit": "ms",
+                "avg": 11,
+                "p99": 12,
+                "p95": 13,
+                "p90": 14,
+                "p75": 15,
+                "p50": 16,
+                "p25": 17,
+                "max": 18,
+                "min": 19,
+                "std": 10
+                },
+                "inter_token_latency": {
+                "unit": "ms",
+                "avg": 21,
+                "p99": 22,
+                "p95": 23,
+                "p90": 24,
+                "p75": 25,
+                "p50": 26,
+                "p25": 27,
+                "max": 28,
+                "min": 29,
+                "std": 20
+                },
+                "output_token_throughput": {
+                "unit": "tokens/sec",
+                "avg": 31
+                },
+                "output_token_throughput_per_request": {
+                "unit": "tokens/sec",
+                "avg": 41,
+                "p99": 42,
+                "p95": 43,
+                "p90": 44,
+                "p75": 45,
+                "p50": 46,
+                "p25": 47,
+                "max": 48,
+                "min": 49,
+                "std": 40
+                },
+                "output_sequence_length": {
+                "unit": "tokens",
+                "avg": 51,
+                "p99": 52,
+                "p95": 53,
+                "p90": 54,
+                "p75": 55,
+                "p50": 56,
+                "p25": 57,
+                "max": 58,
+                "min": 59,
+                "std": 50
+                },
+                "input_sequence_length": {
+                "unit": "tokens",
+                "avg": 61,
+                "p99": 62,
+                "p95": 63,
+                "p90": 64,
+                "p75": 65,
+                "p50": 66,
+                "p25": 67,
+                "max": 68,
+                "min": 69,
+                "std": 60
+                }
+            },
+            "input_config": {
+                "model": ["gpt2_vllm"],
+                "formatted_model_name": "gpt2_vllm",
+                "model_selection_strategy": "round_robin",
+                "backend": "vllm",
+                "batch_size": 1,
+                "endpoint": null,
+                "endpoint_type": null,
+                "service_kind": "triton",
+                "server_metrics_url": null,
+                "streaming": true,
+                "u": null,
+                "input_dataset": null,
+                "num_prompts": 100,
+                "output_tokens_mean": -1,
+                "output_tokens_mean_deterministic": false,
+                "output_tokens_stddev": 0,
+                "random_seed": 0,
+                "synthetic_input_tokens_mean": 550,
+                "synthetic_input_tokens_stddev": 0,
+                "image_width_mean": 100,
+                "image_width_stddev": 0,
+                "image_height_mean": 100,
+                "image_height_stddev": 0,
+                "image_format": null,
+                "concurrency": 1,
+                "measurement_interval": 10000,
+                "request_rate": null,
+                "stability_percentage": 999,
+                "generate_plots": false,
+                "profile_export_file": "artifacts/gpt2_vllm-triton-vllm-concurrency1/profile_export.json",
+                "artifact_dir": "artifacts/gpt2_vllm-triton-vllm-concurrency1",
+                "tokenizer": "hf-internal-testing/llama-tokenizer",
+                "verbose": false,
+                "goodput": null,
+                "subcommand": "profile",
+                "prompt_source": "synthetic",
+                "extra_inputs": {
+                "max_tokens": 256,
+                "ignore_eos": true
+                }
+            }
         }
-      }
-    """
+   """
 
     def test_valid_goodput_json_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -490,13 +493,14 @@ class TestJsonExporter:
         args, _ = parser.parse_args()
         config = ExporterConfig()
         config.stats = valid_goodput_stats
+        config.telemetry_stats = None
         config.args = args
         config.extra_inputs = parser.get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["request_goodput"] == json.loads(
-            expected_valid_goodput_json_output
-        )
+        assert json_exporter._stats_and_args["llm_metrics"][
+            "request_goodput"
+        ] == json.loads(expected_valid_goodput_json_output)
         assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
             expected_valid_goodput_json_config
         )
@@ -515,7 +519,7 @@ class TestJsonExporter:
         assert len(written_data) == 1
         output_data_dict = json.loads(written_data[0])
 
-        assert output_data_dict["request_goodput"] == json.loads(
+        assert output_data_dict["llm_metrics"]["request_goodput"] == json.loads(
             expected_valid_goodput_json_output
         )
 
@@ -626,7 +630,7 @@ class TestJsonExporter:
             {
                 "time_to_first_tokens": 8.0,
                 "inter_token_latencies": 2.0,
-                "output_token_throughputs_per_requesdt": 650.0
+                "output_token_throughputs_per_request": 650.0
             }
         """
         cli_cmd = [
@@ -644,7 +648,7 @@ class TestJsonExporter:
             "--goodput",
             "time_to_first_tokens:8.0",
             "inter_token_latencies:2.0",
-            "output_token_throughputs_per_requesdt:650.0",
+            "output_token_throughputs_per_request:650.0",
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
         args, _ = parser.parse_args()
@@ -654,9 +658,9 @@ class TestJsonExporter:
         config.extra_inputs = parser.get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["request_goodput"] == json.loads(
-            expected_invalid_goodput_json_output
-        )
+        assert json_exporter._stats_and_args["llm_metrics"][
+            "request_goodput"
+        ] == json.loads(expected_invalid_goodput_json_output)
         print(json_exporter._stats_and_args["input_config"]["goodput"])
         assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
             expected_invalid_goodput_json_config
@@ -675,10 +679,277 @@ class TestJsonExporter:
         assert len(written_data) == 1
         output_data_dict = json.loads(written_data[0])
 
-        assert output_data_dict["request_goodput"] == json.loads(
+        assert output_data_dict["llm_metrics"]["request_goodput"] == json.loads(
             expected_invalid_goodput_json_output
         )
 
         assert output_data_dict["input_config"]["goodput"] == json.loads(
             expected_invalid_goodput_json_config
+        )
+
+    def test_triton_telemetry_output(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+    ) -> None:
+        stats = {
+            "request_throughput": {"unit": "requests/sec", "avg": "7"},
+            "request_latency": {
+                "unit": "ms",
+                "avg": 1,
+                "p99": 2,
+                "p95": 3,
+                "p90": 4,
+                "p75": 5,
+                "p50": 6,
+                "p25": 7,
+                "max": 8,
+                "min": 9,
+                "std": 0,
+            },
+            "time_to_first_token": {
+                "unit": "ms",
+                "avg": 11,
+                "p99": 12,
+                "p95": 13,
+                "p90": 14,
+                "p75": 15,
+                "p50": 16,
+                "p25": 17,
+                "max": 18,
+                "min": 19,
+                "std": 10,
+            },
+            "inter_token_latency": {
+                "unit": "ms",
+                "avg": 21,
+                "p99": 22,
+                "p95": 23,
+                "p90": 24,
+                "p75": 25,
+                "p50": 26,
+                "p25": 27,
+                "max": 28,
+                "min": 29,
+                "std": 20,
+            },
+            "output_token_throughput": {
+                "unit": "tokens/sec",
+                "avg": 31,
+            },
+            "output_token_throughput_per_request": {
+                "unit": "tokens/sec",
+                "avg": 41,
+                "p99": 42,
+                "p95": 43,
+                "p90": 44,
+                "p75": 45,
+                "p50": 46,
+                "p25": 47,
+                "max": 48,
+                "min": 49,
+                "std": 40,
+            },
+            "output_sequence_length": {
+                "unit": "tokens",
+                "avg": 51,
+                "p99": 52,
+                "p95": 53,
+                "p90": 54,
+                "p75": 55,
+                "p50": 56,
+                "p25": 57,
+                "max": 58,
+                "min": 59,
+                "std": 50,
+            },
+            "input_sequence_length": {
+                "unit": "tokens",
+                "avg": 61,
+                "p99": 62,
+                "p95": 63,
+                "p90": 64,
+                "p75": 65,
+                "p50": 66,
+                "p25": 67,
+                "max": 68,
+                "min": 69,
+                "std": 60,
+            },
+        }
+
+        telemetry_stats = {
+            "gpu_power_usage": {
+                "unit": "W",
+                "gpu0": {
+                    "avg": 80.30575675675676,
+                    "p25": 82.569,
+                    "p50": 83.597,
+                    "p75": 84.485,
+                    "p90": 84.589,
+                    "p95": 84.7184,
+                    "p99": 84.772,
+                    "min": 23.858,
+                    "max": 84.772,
+                },
+            },
+            "gpu_power_limit": {"unit": "W", "gpu0": {"avg": 300.0}},
+            "energy_consumption": {
+                "unit": "MJ",
+                "gpu0": {
+                    "avg": 2.154032905081084,
+                    "p25": 2.1533188160000027,
+                    "p50": 2.154057423000003,
+                    "p75": 2.154666464000003,
+                    "p90": 2.155118764000003,
+                    "p95": 2.155270593000003,
+                    "p99": 2.1553677661200026,
+                    "min": 2.1527738520000033,
+                    "max": 2.1554224260000026,
+                },
+            },
+            "gpu_utilization": {
+                "unit": "%",
+                "gpu0": {
+                    "avg": 8.72972972972973,
+                    "p25": 9.0,
+                    "p50": 9.0,
+                    "p75": 9.0,
+                    "p90": 10.0,
+                    "p95": 10.0,
+                    "p99": 10.0,
+                    "min": 0.0,
+                    "max": 10.0,
+                },
+            },
+            "total_gpu_memory": {"unit": "GB", "gpu0": {"avg": 51.52702464}},
+            "gpu_memory_used": {
+                "unit": "GB",
+                "gpu0": {
+                    "avg": 26.052919296000006,
+                    "p25": 26.052919296000002,
+                    "p50": 26.052919296000002,
+                    "p75": 26.052919296000002,
+                    "p90": 26.052919296000002,
+                    "p95": 26.052919296000002,
+                    "p99": 26.052919296000002,
+                    "min": 26.052919296000002,
+                    "max": 26.052919296000002,
+                },
+            },
+        }
+
+        expected_telemetry_json_output = """
+            {
+                "gpu_power_usage": {
+                "unit": "W",
+                "gpu0": {
+                    "avg": 80.30575675675676,
+                    "p25": 82.569,
+                    "p50": 83.597,
+                    "p75": 84.485,
+                    "p90": 84.589,
+                    "p95": 84.7184,
+                    "p99": 84.772,
+                    "min": 23.858,
+                    "max": 84.772
+                }
+                },
+                "gpu_power_limit": {
+                "unit": "W",
+                "gpu0": {
+                    "avg": 300.0
+                }
+                },
+                "energy_consumption": {
+                "unit": "MJ",
+                "gpu0": {
+                    "avg": 2.154032905081084,
+                    "p25": 2.1533188160000027,
+                    "p50": 2.154057423000003,
+                    "p75": 2.154666464000003,
+                    "p90": 2.155118764000003,
+                    "p95": 2.155270593000003,
+                    "p99": 2.1553677661200026,
+                    "min": 2.1527738520000033,
+                    "max": 2.1554224260000026
+                }
+                },
+                "gpu_utilization": {
+                "unit": "%",
+                "gpu0": {
+                    "avg": 8.72972972972973,
+                    "p25": 9.0,
+                    "p50": 9.0,
+                    "p75": 9.0,
+                    "p90": 10.0,
+                    "p95": 10.0,
+                    "p99": 10.0,
+                    "min": 0.0,
+                    "max": 10.0
+                }
+                },
+                "total_gpu_memory": {
+                "unit": "GB",
+                "gpu0": {
+                    "avg": 51.52702464
+                }
+                },
+                "gpu_memory_used": {
+                "unit": "GB",
+                "gpu0": {
+                    "avg": 26.052919296000006,
+                    "p25": 26.052919296000002,
+                    "p50": 26.052919296000002,
+                    "p75": 26.052919296000002,
+                    "p90": 26.052919296000002,
+                    "p95": 26.052919296000002,
+                    "p99": 26.052919296000002,
+                    "min": 26.052919296000002,
+                    "max": 26.052919296000002
+                }
+                }
+            }
+        """
+
+        cli_cmd = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "gpt2_vllm",
+            "--backend",
+            "vllm",
+            "--streaming",
+            "--extra-inputs",
+            "max_tokens:256",
+            "--extra-inputs",
+            "ignore_eos:true",
+        ]
+        monkeypatch.setattr("sys.argv", cli_cmd)
+        args, _ = parser.parse_args()
+        config = ExporterConfig()
+        config.stats = stats
+        config.telemetry_stats = telemetry_stats
+        config.args = args
+        config.extra_inputs = parser.get_extra_inputs_as_dict(args)
+        config.artifact_dir = args.artifact_dir
+        json_exporter = JsonExporter(config)
+        assert json_exporter._stats_and_args["telemetry_metrics"] == json.loads(
+            expected_telemetry_json_output
+        )
+
+        json_exporter.export()
+        expected_filename = "profile_export_genai_perf.json"
+        written_data = [
+            data
+            for filename, data in mock_read_write
+            if os.path.basename(filename) == expected_filename
+        ]
+        if written_data == []:
+            raise Exception(
+                f"Expected file {expected_filename} not found in written data."
+            )
+        assert len(written_data) == 1
+        output_data_dict = json.loads(written_data[0])
+
+        assert output_data_dict["telemetry_metrics"] == json.loads(
+            expected_telemetry_json_output
         )

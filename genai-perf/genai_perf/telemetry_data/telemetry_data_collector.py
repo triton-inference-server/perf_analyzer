@@ -71,7 +71,6 @@ class TelemetryDataCollector(ABC):
             self._thread.join()
 
     def get_statistics(self) -> TelemetryMetricsStatistics:
-        """Return Telemtry Metrics Statistics if they exist"""
         telemetry_metrics_statistics = TelemetryMetricsStatistics(self._metrics)
         return telemetry_metrics_statistics
 

@@ -32,11 +32,6 @@ from genai_perf.metrics import TelemetryMetrics
 
 
 class TelemetryMetricsStatistics:
-    SCALING_FACTORS = {
-        "energy_consumption": 1e-3,  # joules to kilojoules (kJ)
-        "gpu_memory_used": 1e-9,  # bytes to gigabytes (GB)
-        "total_gpu_memory": 1e-9,  # bytes to gigabytes (GB)
-    }
 
     def __init__(self, telemetry_metrics: TelemetryMetrics):
         self._metrics = telemetry_metrics
@@ -47,12 +42,11 @@ class TelemetryMetricsStatistics:
         self._aggregate_metrics()
 
     def _initialize_stats(self):
-        if len(self._metrics.data) > 0:
-            num_gpus = len(self._metrics.data[next(iter(self._metrics.data))][0])
-            for attr in self._metrics.data:
-                self._stats_dict[attr] = {"unit": self._get_metric_unit(attr)}
-                for i in range(num_gpus):
-                    self._stats_dict[attr][f"gpu{i}"] = {}
+        num_gpus = len(self._metrics.data[next(iter(self._metrics.data))][0])
+        for attr in self._metrics.data:
+            self._stats_dict[attr] = {"unit": self._get_metric_unit(attr)}
+            for i in range(num_gpus):
+                self._stats_dict[attr][f"gpu{i}"] = {}
 
     def _aggregate_metrics(self):
         for attr, data in self._metrics.data.items():

@@ -30,7 +30,6 @@ from typing import Dict
 from genai_perf.export_data.exporter_config import ExporterConfig
 from rich.console import Console
 from rich.table import Table
-from rich.text import Text
 
 
 class ConsoleExporter:
@@ -67,7 +66,7 @@ class ConsoleExporter:
         console = Console()
         title = self._get_title()
 
-        if self._args.verbose:
+        if self._args.verbose and self._telemetry_stats is not None:
             self._export_telemetry_metrics(console)
         self._export_llm_metrics(console, title)
 
@@ -80,7 +79,7 @@ class ConsoleExporter:
         self._construct_llm_table(table)
         console.print(table)
 
-    def _construct_table(self, table: Table) -> None:
+    def _construct_llm_table(self, table: Table) -> None:
         for metric in self._metrics.request_metrics:
             if self._should_skip(metric.name):
                 continue
@@ -110,36 +109,31 @@ class ConsoleExporter:
                     row_values.append("N/A")
             table.add_row(*row_values)
 
-    def _export_telemetry_metrics(self, console: Console, title: str) -> None:
+    def _export_telemetry_metrics(self, console: Console) -> None:
+        for group_name, metrics in self.TELEMETRY_GROUPS.items():
+            table = Table(title=f"NVIDIA GenAI-Perf | {group_name} Metrics")
 
-        # Iterate over all telemetry metrics and print them in separate tables
-        for metric_name, metric_data in self._stats.items():
-            unit = metric_data.get("unit", "N/A")
-            table_title = f"{metric_name.replace('_', ' ').title()} ({unit})"
-            table = Table(title=table_title)
+            for metric_name in metrics:
+                metric_data = self._telemetry_stats.get(metric_name, {})
 
-            if metric_name in self.CONSTANT_TELEMETRY_METRICS:
-                table.add_column("GPU Index", justify="left")
-                table.add_column("Value", justify="right", style="green")
+                unit = metric_data.get("unit", "N/A")
+                metric_name_display = self._capitalize_abbreviation(
+                    metric_name.replace("_", " ")
+                )
+                table_title = f"{metric_name_display}{f' ({unit})' if unit else ''}"
+                sub_table = Table(title=table_title)
 
-                for gpu_index in metric_data.keys():
-                    if gpu_index != "unit":
-                        value = metric_data.get(gpu_index, "N/A")
-                        table.add_row(
-                            gpu_index, f"{value:.2f}" if value != "N/A" else "N/A"
-                        )
-            else:
-                table.add_column("GPU Index", justify="left")
+                sub_table.add_column("GPU Index", justify="left")
                 for stat in self.STAT_COLUMN_KEYS:
                     sub_table.add_column(stat, justify="right", style="green")
 
-                self._construct_telemetry_table(sub_table, metric_data)
+                self._construct_telemetry_table(sub_table, metric_data, metric_name)
                 table.add_row(sub_table)
 
             console.print(table)
 
     def _construct_telemetry_table(
-        self, table: Table, metric_data: Dict[str, Dict[str, float]]
+        self, table: Table, metric_data: Dict[str, Dict[str, float]], metric_name: str
     ) -> None:
         gpu_indices = [key for key in metric_data.keys() if key != "unit"]
 
@@ -147,7 +141,12 @@ class ConsoleExporter:
             row = [f"{gpu_index}"]
             for stat in self.STAT_COLUMN_KEYS:
                 value = metric_data.get(gpu_index, {}).get(stat, "N/A")
-                row.append(f"{value:.2f}" if isinstance(value, (int, float)) else "N/A")
+                if isinstance(value, (float)):
+                    if metric_name == "gpu_utilization":
+                        value = str(int(round(value)))
+                    else:
+                        value = f"{value:,.2f}"
+                row.append(value)
             table.add_row(*row)
 
     def _capitalize_abbreviation(self, text: str) -> str:
