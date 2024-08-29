@@ -28,7 +28,9 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.output_format_converter import OutputFormatConverterFactory
+from genai_perf.inputs.output_format_converter_factory import (
+    OutputFormatConverterFactory,
+)
 
 
 class Inputs:
