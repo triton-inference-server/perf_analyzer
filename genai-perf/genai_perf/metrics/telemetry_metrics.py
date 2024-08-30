@@ -26,7 +26,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List
+from collections import defaultdict
+from typing import Dict, List
 
 from genai_perf.metrics.metrics import MetricMetadata
 
@@ -34,8 +35,16 @@ from genai_perf.metrics.metrics import MetricMetadata
 class TelemetryMetrics:
     """
     A class that contains common telemetry metrics.
-    Metrics are stored as lists where each inner list corresponds to multiple measurements per GPU.
-    Each measurement is recorded every second.
+    Metrics are stored as
+        'gpu_power_usage': {
+            'gpu0': [27.01]
+        },
+        'gpu_utilization': {
+            'gpu0': [75.5]
+        },
+        'energy_consumption': {
+            'gpu0': [123.56]
+        }
     """
 
     TELEMETRY_METRICS = [
@@ -49,12 +58,12 @@ class TelemetryMetrics:
 
     def __init__(
         self,
-        gpu_power_usage: List[List[float]] = [],  # Multiple measurements per GPU
-        gpu_power_limit: List[List[float]] = [],
-        energy_consumption: List[List[float]] = [],
-        gpu_utilization: List[List[float]] = [],
-        total_gpu_memory: List[List[float]] = [],
-        gpu_memory_used: List[List[float]] = [],
+        gpu_power_usage: Dict[str, List[float]] = defaultdict(list),
+        gpu_power_limit: Dict[str, List[float]] = defaultdict(list),
+        energy_consumption: Dict[str, List[float]] = defaultdict(list),
+        gpu_utilization: Dict[str, List[float]] = defaultdict(list),
+        total_gpu_memory: Dict[str, List[float]] = defaultdict(list),
+        gpu_memory_used: Dict[str, List[float]] = defaultdict(list),
     ) -> None:
         self.gpu_power_usage = gpu_power_usage
         self.gpu_power_limit = gpu_power_limit
@@ -64,11 +73,12 @@ class TelemetryMetrics:
         self.gpu_memory_used = gpu_memory_used
 
     def update_metrics(self, measurement_data: dict) -> None:
-        """Update the metrics with new measurement data"""
         for metric in self.TELEMETRY_METRICS:
             metric_key = metric.name
             if metric_key in measurement_data:
-                getattr(self, metric_key).append(measurement_data[metric_key])
+                metric_data = measurement_data[metric_key]
+                for gpu_name, values in metric_data.items():
+                    getattr(self, metric_key)[gpu_name].extend(values)
 
     def __repr__(self):
         attr_strs = []
