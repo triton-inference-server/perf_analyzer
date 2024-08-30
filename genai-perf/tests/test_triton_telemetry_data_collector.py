@@ -47,12 +47,12 @@ class TestTritonTelemetryDataCollector:
     def mock_telemetry_metrics(self) -> MagicMock:
         mock_telemetry_metrics = MagicMock(spec=TelemetryMetrics)
         mock_telemetry_metrics.TELEMETRY_METRICS = [
-            MetricMetadata("gpu_power_usage", "watts"),
-            MetricMetadata("gpu_power_limit", "watts"),
-            MetricMetadata("energy_consumption", "joules"),
-            MetricMetadata("gpu_utilization", "percentage"),
-            MetricMetadata("total_gpu_memory", "bytes"),
-            MetricMetadata("gpu_memory_used", "bytes"),
+            MetricMetadata("gpu_power_usage", "W"),
+            MetricMetadata("gpu_power_limit", "W"),
+            MetricMetadata("energy_consumption", "MJ"),
+            MetricMetadata("gpu_utilization", "%"),
+            MetricMetadata("total_gpu_memory", "GB"),
+            MetricMetadata("gpu_memory_used", "GB"),
         ]
         return mock_telemetry_metrics
 
@@ -66,22 +66,24 @@ class TestTritonTelemetryDataCollector:
 
         mock_metrics.return_value = mock_telemetry_metrics
 
-        triton_metrics_data = """nv_gpu_power_usage{gpu_uuid="GPU-1234"} 35.0
+        triton_metrics_data = """
+        nv_gpu_power_usage{gpu_uuid="GPU-1234"} 35.0
         nv_gpu_power_limit{gpu_uuid="GPU-1234"} 250.0
         nv_gpu_utilization{gpu_uuid="GPU-1234"} 85.0
-        nv_energy_consumption{gpu_uuid="GPU-1234"} 1500.0
-        nv_gpu_memory_total_bytes{gpu_uuid="GPU-1234"} 8000000000.0
-        nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 4000000000.0"""
+        nv_energy_consumption{gpu_uuid="GPU-1234"} 150.0
+        nv_gpu_memory_total_bytes{gpu_uuid="GPU-1234"} 80.0
+        nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 40.0
+        """
 
         triton_collector._process_and_update_metrics(triton_metrics_data)
 
         expected_data = {
-            "gpu_power_usage": [35.0],
-            "gpu_power_limit": [250.0],
-            "gpu_utilization": [85.0],
-            "energy_consumption": [1500.0],
-            "total_gpu_memory": [8000000000.0],
-            "gpu_memory_used": [4000000000.0],
+            "gpu_power_usage": {"gpu0": [35.0]},
+            "gpu_power_limit": {"gpu0": [250.0]},
+            "gpu_utilization": {"gpu0": [85.0]},
+            "energy_consumption": {"gpu0": [150.0]},
+            "total_gpu_memory": {"gpu0": [80.0]},
+            "gpu_memory_used": {"gpu0": [40.0]},
         }
 
         mock_metrics.return_value.update_metrics.assert_called_once_with(expected_data)
@@ -102,22 +104,22 @@ class TestTritonTelemetryDataCollector:
         nv_gpu_power_limit{gpu_uuid="GPU-1234"} 300.0
         nv_gpu_utilization{gpu_uuid="GPU-1234"} 85.0
         nv_gpu_utilization{gpu_uuid="GPU-5678"} 90.0
-        nv_energy_consumption{gpu_uuid="GPU-1234"} 1500.0
-        nv_energy_consumption{gpu_uuid="GPU-1234"} 1600.0
-        nv_gpu_memory_total_bytes{gpu_uuid="GPU-1234"} 8000000000.0
-        nv_gpu_memory_total_bytes{gpu_uuid="GPU-1234"} 9000000000.0
-        nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 4000000000.0
-        nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 4500000000.0"""
+        nv_energy_consumption{gpu_uuid="GPU-1234"} 150.0
+        nv_energy_consumption{gpu_uuid="GPU-1234"} 160.0
+        nv_gpu_memory_total_bytes{gpu_uuid="GPU-1234"} 80.0
+        nv_gpu_memory_total_bytes{gpu_uuid="GPU-1234"} 90.0
+        nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 40.0
+        nv_gpu_memory_used_bytes{gpu_uuid="GPU-1234"} 45.0"""
 
         triton_collector._process_and_update_metrics(triton_metrics_data)
 
         expected_data = {
-            "gpu_power_usage": [35.0, 40.0],
-            "gpu_power_limit": [250.0, 300.0],
-            "gpu_utilization": [85.0, 90.0],
-            "energy_consumption": [1500.0, 1600.0],
-            "total_gpu_memory": [8000000000.0, 9000000000.0],
-            "gpu_memory_used": [4000000000.0, 4500000000.0],
+            "gpu_power_usage": {"gpu0": [35.0], "gpu1": [40.0]},
+            "gpu_power_limit": {"gpu0": [250.0, 300.0]},
+            "gpu_utilization": {"gpu0": [85.0], "gpu1": [90.0]},
+            "energy_consumption": {"gpu0": [150.0, 160.0]},
+            "total_gpu_memory": {"gpu0": [80.0, 90.0]},
+            "gpu_memory_used": {"gpu0": [40.0, 45.0]},
         }
 
         mock_metrics.return_value.update_metrics.assert_called_once_with(expected_data)

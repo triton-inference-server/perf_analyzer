@@ -65,23 +65,32 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
             nv_energy_consumption{gpu_uuid="GPU-xyz789"} 1234.56
             ```
 
-            The method will extract and process:
-            - `nv_gpu_power_usage` as `gpu_power_usage`
-            - `nv_gpu_utilization` as `gpu_utilization`
-            - `nv_energy_consumption` as `energy_consumption`
+            The metrics are stored as:
+            'gpu_power_usage': {
+                'gpu0': [27.01]
+            },
+            'gpu_utilization': {
+                'gpu0': [75.5]
+            },
+            'energy_consumption': {
+                'gpu0': [1234.56]
+            }
         """
 
         if not metrics_data.strip():
             logger.info("Response from Triton metrics endpoint is empty")
             return
 
+        gpu_mapping = {}
+        gpu_index = 0
+
         current_measurement_interval = {
-            metric.name: [] for metric in self.metrics.TELEMETRY_METRICS
-        }  # type: Dict[str, List[float]]
+            metric.name: {} for metric in self.metrics.TELEMETRY_METRICS
+        }  # type: Dict[str, Dict[str, List[float]]]
 
         for line in metrics_data.splitlines():
             line = line.strip()
-            if not line:
+            if not line or line.startswith("#"):
                 continue
 
             parts = line.split()
@@ -89,11 +98,24 @@ class TritonTelemetryDataCollector(TelemetryDataCollector):
                 continue
 
             triton_metric_key = parts[0].split("{")[0]
-            metric_value = parts[1]
+            metric_value = float(parts[1])
 
             metric_key = self.METRIC_NAME_MAPPING.get(triton_metric_key, None)
+            if not metric_key:
+                continue
 
-            if metric_key and metric_key in current_measurement_interval:
-                current_measurement_interval[metric_key].append(float(metric_value))
+            gpu_uuid = parts[0].split('gpu_uuid="')[1].split('"')[0]
+
+            if gpu_uuid not in gpu_mapping:
+                gpu_mapping[gpu_uuid] = f"gpu{gpu_index}"
+                gpu_index += 1
+
+            gpu_label = gpu_mapping[gpu_uuid]
+
+            # Store the metric under the corresponding gpu label
+            if gpu_label not in current_measurement_interval[metric_key]:
+                current_measurement_interval[metric_key][gpu_label] = []
+
+            current_measurement_interval[metric_key][gpu_label].append(metric_value)
 
         self.metrics.update_metrics(current_measurement_interval)

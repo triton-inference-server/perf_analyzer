@@ -35,22 +35,22 @@ class TestTelemetryMetrics:
 
     def test_update_metrics(self) -> None:
         telemetry = TelemetryMetrics()
-        measurement_data: Dict[str, List[float]] = {
-            "gpu_power_usage": [11.1, 11.2],
-            "gpu_power_limit": [101.2, 101.2],
-            "energy_consumption": [1004.0, 1005.0],
-            "gpu_utilization": [85.0, 90.0],
-            "total_gpu_memory": [9000.0, 9000.0],
-            "gpu_memory_used": [4500.0, 4500.0],
+        measurement_data: Dict[str, Dict[str, List[float]]] = {
+            "gpu_power_usage": {"gpu0": [11.1], "gpu1": [11.2]},
+            "gpu_power_limit": {"gpu0": [101.2], "gpu1": [101.2]},
+            "energy_consumption": {"gpu0": [1004.0], "gpu1": [1005.0]},
+            "gpu_utilization": {"gpu0": [85.0], "gpu1": [90.0]},
+            "total_gpu_memory": {"gpu0": [9000.0], "gpu1": [9000.0]},
+            "gpu_memory_used": {"gpu0": [4500.0], "gpu1": [4500.0]},
         }
         telemetry.update_metrics(measurement_data)
 
-        assert telemetry.gpu_power_usage == [[11.1, 11.2]]
-        assert telemetry.gpu_power_limit == [[101.2, 101.2]]
-        assert telemetry.energy_consumption == [[1004.0, 1005.0]]
-        assert telemetry.gpu_utilization == [[85.0, 90.0]]
-        assert telemetry.total_gpu_memory == [[9000.0, 9000.0]]
-        assert telemetry.gpu_memory_used == [[4500.0, 4500.0]]
+        assert telemetry.gpu_power_usage == {"gpu0": [11.1], "gpu1": [11.2]}
+        assert telemetry.gpu_power_limit == {"gpu0": [101.2], "gpu1": [101.2]}
+        assert telemetry.energy_consumption == {"gpu0": [1004.0], "gpu1": [1005.0]}
+        assert telemetry.gpu_utilization == {"gpu0": [85.0], "gpu1": [90.0]}
+        assert telemetry.total_gpu_memory == {"gpu0": [9000.0], "gpu1": [9000.0]}
+        assert telemetry.gpu_memory_used == {"gpu0": [4500.0], "gpu1": [4500.0]}
 
     def test_telemetry_metrics_property(self) -> None:
         telemetry = TelemetryMetrics()
