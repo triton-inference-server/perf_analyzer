@@ -45,6 +45,7 @@ from genai_perf.profile_data_parser import (
     LLMProfileDataParser,
     ProfileDataParser,
 )
+from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
 
 
@@ -120,7 +121,11 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
         )
 
 
-def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
+def report_output(
+    data_parser: ProfileDataParser,
+    telemetry_data_collector: TelemetryDataCollector,
+    args: Namespace,
+) -> None:
     if args.concurrency:
         infer_mode = "concurrency"
         load_level = f"{args.concurrency}"
@@ -130,8 +135,8 @@ def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
-    # TPA-274 - Integrate telemetry metrics with other metrics for export
     stats = data_parser.get_statistics(infer_mode, load_level)
+    telemetry_data_collector.get_statistics()
     reporter = OutputReporter(stats, args)
     reporter.report_output()
     if args.generate_plots:
@@ -165,9 +170,9 @@ def run():
             create_artifacts_dirs(args)
             tokenizer = get_tokenizer(args.tokenizer)
             generate_inputs(config_options)
-            args.func(args, extra_args)
+            telemetry_data_collector = args.func(args, extra_args)
             data_parser = calculate_metrics(args, tokenizer)
-            report_output(data_parser, args)
+            report_output(data_parser, telemetry_data_collector, args)
     except Exception as e:
         raise GenAIPerfException(e)
 

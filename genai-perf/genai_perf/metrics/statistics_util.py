@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,10 +26,30 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.metrics.image_retrieval_metrics import ImageRetrievalMetrics
-from genai_perf.metrics.llm_metrics import LLMMetrics
-from genai_perf.metrics.metrics import MetricMetadata, Metrics
-from genai_perf.metrics.statistics import Statistics
-from genai_perf.metrics.statistics_util import StatisticsUtil
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
-from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
+import numpy as np
+from typing import List, Union
+
+class StatisticsUtil:
+    
+    @staticmethod
+    def calculate_mean(values: List[Union[int, float]]) -> float:
+        return float(np.mean(values))
+
+    @staticmethod
+    def calculate_minmax(values: List[Union[int, float]]) -> tuple[float, float]:
+        return (float(np.min(values)), float(np.max(values)))
+
+    @staticmethod
+    def calculate_percentiles(values: List[Union[int, float]]) -> List[float]:
+        percentiles = [25,50,75,90,95,99]
+        return [float(np.percentile(values, p)) for p in percentiles]
+        
+    @staticmethod
+    def calculate_std(data: List[Union[int, float]]) -> float:
+        return float(np.std(data))
+    
+    @staticmethod
+    def scale(metric: float, factor: float) -> float:
+        return metric * factor
+
+

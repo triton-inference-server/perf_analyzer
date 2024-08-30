@@ -30,16 +30,16 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Union
 
-import numpy as np
 import pandas as pd
 from genai_perf.metrics.metrics import Metrics
+from genai_perf.metrics.statistics_util import StatisticsUtil
 
 
 class Statistics:
     """A class that aggregates various statistics from given metrics class.
 
     The Statistics class goes through each metric in the metrics class and
-    calculates several statistics such as:
+    calculates several statistics using StatisticsUtil such as:
       - average (arithmetic mean)
       - percentiles (p25, p50, p75, p90, p95, p99)
       - minimum & maximum
@@ -80,51 +80,50 @@ class Statistics:
         return False
 
     def _calculate_mean(self, data: List[Union[int, float]], attr: str) -> None:
-        avg = np.mean(data)
+        avg = StatisticsUtil.calculate_mean(data)
         setattr(self, "avg_" + attr, avg)
-        self._stats_dict[attr]["avg"] = float(avg)
+        self._stats_dict[attr]["avg"] = avg
 
     def _calculate_percentiles(self, data: List[Union[int, float]], attr: str) -> None:
-        p25, p50, p75 = np.percentile(data, [25, 50, 75])
-        p90, p95, p99 = np.percentile(data, [90, 95, 99])
+        percentile_results = StatisticsUtil.calculate_percentiles(data)
+        p25 = percentile_results[0]
+        p50 = percentile_results[1]
+        p75 = percentile_results[2]
+        p90 = percentile_results[3]
+        p95 = percentile_results[4]
+        p99 = percentile_results[5]
         setattr(self, "p25_" + attr, p25)
         setattr(self, "p50_" + attr, p50)
         setattr(self, "p75_" + attr, p75)
         setattr(self, "p90_" + attr, p90)
         setattr(self, "p95_" + attr, p95)
         setattr(self, "p99_" + attr, p99)
-        self._stats_dict[attr]["p99"] = float(p99)
-        self._stats_dict[attr]["p95"] = float(p95)
-        self._stats_dict[attr]["p90"] = float(p90)
-        self._stats_dict[attr]["p75"] = float(p75)
-        self._stats_dict[attr]["p50"] = float(p50)
-        self._stats_dict[attr]["p25"] = float(p25)
+        self._stats_dict[attr]["p99"] = p99
+        self._stats_dict[attr]["p95"] = p95
+        self._stats_dict[attr]["p90"] = p90
+        self._stats_dict[attr]["p75"] = p75
+        self._stats_dict[attr]["p50"] = p50
+        self._stats_dict[attr]["p25"] = p25
 
     def _calculate_minmax(self, data: List[Union[int, float]], attr: str) -> None:
-        min, max = np.min(data), np.max(data)
+        min, max = StatisticsUtil.calculate_minmax(data)
         setattr(self, "min_" + attr, min)
         setattr(self, "max_" + attr, max)
-        self._stats_dict[attr]["max"] = float(max)
-        self._stats_dict[attr]["min"] = float(min)
+        self._stats_dict[attr]["max"] = max
+        self._stats_dict[attr]["min"] = min
 
     def _calculate_std(self, data: List[Union[int, float]], attr: str) -> None:
-        std = np.std(data)
+        std = StatisticsUtil.calculate_std(data)
         setattr(self, "std_" + attr, std)
-        self._stats_dict[attr]["std"] = float(std)
+        self._stats_dict[attr]["std"] = std
 
     def scale_data(self, factor: float = 1 / 1e6) -> None:
         for k1, v1 in self.stats_dict.items():
             if self._is_time_metric(k1):
                 for k2, v2 in v1.items():
                     if k2 != "unit":
-                        self.stats_dict[k1][k2] = self._scale(v2, factor)
-
-    def _scale(self, metric: float, factor: float = 1 / 1e6) -> float:
-        """
-        Scale metrics from nanoseconds by factor.
-        Default is nanoseconds to milliseconds.
-        """
-        return metric * factor
+                        scaled_value = StatisticsUtil.scale(v2, factor)
+                        self.stats_dict[k1][k2] = scaled_value
 
     def _add_units(self, key) -> None:
         if self._is_time_metric(key):

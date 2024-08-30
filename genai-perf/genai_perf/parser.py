@@ -30,7 +30,7 @@ import os
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
@@ -44,6 +44,10 @@ from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TelemetryDataCollector,
+    TritonTelemetryDataCollector,
+)
 from genai_perf.tokenizer import DEFAULT_TOKENIZER
 
 from . import __version__
@@ -870,10 +874,7 @@ def compare_handler(args: argparse.Namespace):
     plot_manager.generate_plots()
 
 
-def profile_handler(args, extra_args) -> None:
-    from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-        TritonTelemetryDataCollector,
-    )
+def profile_handler(args, extra_args) -> Optional[TelemetryDataCollector]:
     from genai_perf.wrapper import Profiler
 
     telemetry_data_collector = None
@@ -895,6 +896,8 @@ def profile_handler(args, extra_args) -> None:
         extra_args=extra_args,
         telemetry_data_collector=telemetry_data_collector,
     )
+
+    return telemetry_data_collector
 
 
 ### Parser Initialization ###
