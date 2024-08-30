@@ -146,6 +146,7 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
 
 def report_output(
     data_parser: ProfileDataParser,
+    telemetry_data_collector: Optional[TelemetryDataCollector],
     args: Namespace,
 ) -> None:
     if args.concurrency:
@@ -158,7 +159,10 @@ def report_output(
         raise GenAIPerfException("No valid infer mode specified")
 
     stats = data_parser.get_statistics(infer_mode, load_level)
-    reporter = OutputReporter(stats, args)
+    telemetry_stats = (
+        telemetry_data_collector.get_statistics() if telemetry_data_collector else None
+    )
+    reporter = OutputReporter(stats, telemetry_stats, args)
 
     reporter.report_output()
     if args.generate_plots:
@@ -195,7 +199,7 @@ def run():
             telemetry_data_collector = create_telemetry_data_collector(args)
             args.func(args, extra_args, telemetry_data_collector)
             data_parser = calculate_metrics(args, tokenizer)
-            report_output(data_parser, args)
+            report_output(data_parser, telemetry_data_collector, args)
     except Exception as e:
         raise GenAIPerfException(e)
 

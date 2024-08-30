@@ -33,7 +33,13 @@ import pytest
 from genai_perf import parser
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.metrics import LLMMetrics, Metrics, Statistics
+from genai_perf.metrics import (
+    LLMMetrics,
+    Metrics,
+    Statistics,
+    TelemetryMetrics,
+    TelemetryStatistics,
+)
 
 
 class TestCsvExporter:
@@ -59,8 +65,23 @@ class TestCsvExporter:
 
         return written_data
 
+    @pytest.fixture
+    def llm_metrics(self) -> LLMMetrics:
+        """
+        Provides an LLMMetrics object with predefined metrics.
+        """
+        return LLMMetrics(
+            request_throughputs=[123],
+            request_latencies=[4, 5, 6],
+            time_to_first_tokens=[7, 8, 9],
+            inter_token_latencies=[10, 11, 12],
+            output_token_throughputs=[456],
+            output_sequence_lengths=[1, 2, 3],
+            input_sequence_lengths=[5, 6, 7],
+        )
+
     def test_streaming_llm_csv_output(
-        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch, llm_metrics: LLMMetrics
     ) -> None:
         """
         Collect LLM metrics from profile export data and confirm correct values are
@@ -80,16 +101,7 @@ class TestCsvExporter:
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
 
-        metrics = LLMMetrics(
-            request_throughputs=[123],
-            request_latencies=[4, 5, 6],
-            time_to_first_tokens=[7, 8, 9],
-            inter_token_latencies=[10, 11, 12],
-            output_token_throughputs=[456],
-            output_sequence_lengths=[1, 2, 3],
-            input_sequence_lengths=[5, 6, 7],
-        )
-        stats = Statistics(metrics=metrics)
+        stats = Statistics(metrics=llm_metrics)
 
         config = ExporterConfig()
         config.stats = stats.stats_dict
@@ -118,14 +130,11 @@ class TestCsvExporter:
             for filename, data in mock_read_write
             if os.path.basename(filename) == expected_filename
         ]
-        if returned_data == []:
-            raise Exception(
-                f"Expected file {expected_filename} not found in written data."
-            )
+
         assert returned_data == expected_content
 
     def test_nonstreaming_llm_csv_output(
-        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch, llm_metrics: LLMMetrics
     ) -> None:
         """
         Collect LLM metrics from profile export data and confirm correct values are
@@ -149,16 +158,7 @@ class TestCsvExporter:
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
 
-        metrics = LLMMetrics(
-            request_throughputs=[123],
-            request_latencies=[4, 5, 6],
-            time_to_first_tokens=[4, 5, 6],  # same as request_latency
-            inter_token_latencies=[],  # no ITL
-            output_token_throughputs=[456],
-            output_sequence_lengths=[1, 2, 3],
-            input_sequence_lengths=[5, 6, 7],
-        )
-        stats = Statistics(metrics=metrics)
+        stats = Statistics(metrics=llm_metrics)
 
         config = ExporterConfig()
         config.stats = stats.stats_dict
@@ -182,10 +182,7 @@ class TestCsvExporter:
         returned_data = [
             data for filename, data in mock_read_write if filename == expected_filename
         ]
-        if returned_data == []:
-            raise Exception(
-                f"Expected file {expected_filename} not found in written data."
-            )
+
         assert returned_data == expected_content
 
     def test_embedding_csv_output(
@@ -276,10 +273,7 @@ class TestCsvExporter:
             for filename, data in mock_read_write
             if os.path.basename(filename) == expected_filename
         ]
-        if returned_data == []:
-            raise Exception(
-                f"Expected file {expected_filename} not found in written data."
-            )
+
         assert returned_data[-1] == expected_content
 
     def test_invalid_goodput_csv_output(
@@ -330,8 +324,76 @@ class TestCsvExporter:
             for filename, data in mock_read_write
             if os.path.basename(filename) == expected_filename
         ]
-        if returned_data == []:
-            raise Exception(
-                f"Expected file {expected_filename} not found in written data."
-            )
+
         assert returned_data[-1] == expected_content
+
+    def test_triton_telemetry_output(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch, llm_metrics: LLMMetrics
+    ) -> None:
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "triton",
+            "--streaming",
+            "--server-metrics-url",
+            "http://tritonserver:8002/metrics",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        telemetry_metrics = TelemetryMetrics(
+            gpu_power_usage={"gpu0": [45.2, 46.5]},
+            gpu_power_limit={"gpu0": [250.0, 250.0]},
+            energy_consumption={"gpu0": [0.5, 0.6]},
+            gpu_utilization={"gpu0": [75.0, 80.0]},
+            total_gpu_memory={"gpu0": [8.0, 8.0]},
+            gpu_memory_used={"gpu0": [4.0, 4.0]},
+        )
+
+        stats = Statistics(metrics=llm_metrics)
+        telemetry_stats = TelemetryStatistics(telemetry_metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.telemetry_stats = telemetry_stats.stats_dict
+        config.metrics = stats.metrics
+        config.artifact_dir = Path(".")
+        config.args = args
+
+        exporter = CsvExporter(config)
+        exporter.export()
+
+        expected_content = [
+            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
+            "Time To First Token (ms),8.00,7.00,9.00,8.98,8.90,8.80,8.50,8.00,7.50\r\n",
+            "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50\r\n",
+            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
+            "Output Sequence Length,2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
+            "Input Sequence Length,6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
+            "\r\n",
+            "Metric,Value\r\n",
+            "Output Token Throughput (per sec),456.00\r\n",
+            "Request Throughput (per sec),123.00\r\n",
+            "\r\n",
+            "Metric,GPU,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
+            "GPU Power Usage (W),gpu0,45.85,45.20,46.50,46.49,46.44,46.37,46.17,45.85,45.53\r\n",
+            "Energy Consumption (MJ),gpu0,0.55,0.50,0.60,0.60,0.59,0.59,0.57,0.55,0.53\r\n",
+            "GPU Utilization (%),gpu0,77.50,75.00,80.00,79.95,79.75,79.50,78.75,77.50,76.25\r\n",
+            "GPU Memory Used (GB),gpu0,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00\r\n",
+            "\r\n",
+            "Metric,GPU,Value\r\n",
+            "GPU Power Limit (W),gpu0,250.00\r\n",
+            "Total GPU Memory (GB),gpu0,8.00\r\n",
+        ]
+
+        expected_filename = "profile_export_genai_perf.csv"
+        returned_data = [
+            data
+            for filename, data in mock_read_write
+            if os.path.basename(filename) == expected_filename
+        ]
+
+        assert returned_data == expected_content
