@@ -870,7 +870,7 @@ def compare_handler(args: argparse.Namespace):
     plot_manager.generate_plots()
 
 
-def profile_handler(args, extra_args):
+def profile_handler(args, extra_args) -> None:
     from genai_perf.telemetry_data.triton_telemetry_data_collector import (
         TritonTelemetryDataCollector,
     )
@@ -882,6 +882,13 @@ def profile_handler(args, extra_args):
         telemetry_data_collector = TritonTelemetryDataCollector(
             server_metrics_url=server_metrics_url
         )
+
+    if telemetry_data_collector and not telemetry_data_collector.is_url_reachable():
+        logger.warning(
+            f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
+            "GenAI-Perf cannot collect telemetry data."
+        )
+        telemetry_data_collector = None
 
     Profiler.run(
         args=args,

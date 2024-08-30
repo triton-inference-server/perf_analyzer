@@ -155,13 +155,7 @@ class Profiler:
     ) -> None:
         try:
             if telemetry_data_collector is not None:
-                if telemetry_data_collector.is_url_reachable():
-                    telemetry_data_collector.start()
-                else:
-                    logger.warning(
-                        f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
-                        "GenAI-Perf cannot collect telemetry data."
-                    )
+                telemetry_data_collector.start()
             cmd = Profiler.build_cmd(args, extra_args)
             logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
             if args and args.verbose:
