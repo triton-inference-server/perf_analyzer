@@ -37,7 +37,6 @@ logger = logging.getLogger(__name__)
 class TritonTelemetryDataCollector(TelemetryDataCollector):
     """Class to collect telemetry metrics from Triton server"""
 
-    """Mapping from Triton metric names to GenAI-Perf telemetry metric names"""
     METRIC_NAME_MAPPING = {
         "nv_gpu_power_usage": "gpu_power_usage",
         "nv_gpu_power_limit": "gpu_power_limit",
