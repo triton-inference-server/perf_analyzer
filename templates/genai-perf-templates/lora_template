@@ -53,9 +53,9 @@ lora_adapter3 models in a round-robin manner for each prompt.
 For more details on additional options and configurations, refer to the
 [Command Line Options section](../README.md#command-line-options) in the README.
 
-## Profile Llama-2-7b-hf running on OpenAI Completions API-Compatible Server <a id="openai"></a>
+## Profile Llama running on OpenAI Completions API-Compatible Server <a id="openai"></a>
 
-### Run Llama-2-7b-hf on [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)-compatible server
+### Run Llama on [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)-compatible server
 
 <details>
 <summary>See instructions</summary>
