@@ -2,6 +2,9 @@ General:
   release: 24.08
   triton_cli_version: 0.0.8
 
+##################
+### GENAI-Perf
+##################
 README:
   filename: README.md
   template: genai-perf-templates/README_template
@@ -41,3 +44,13 @@ tutorial:
   filename: tutorial.md
   template: genai-perf-templates/tutorial_template
   output_dir: ../genai-perf/docs/
+
+
+##################
+### Perf Analyzer
+##################
+
+quick_start:
+  filename: quick_start.md
+  template: perf-analyzer-templates/quick_start_template
+  output_dir: ../docs/
