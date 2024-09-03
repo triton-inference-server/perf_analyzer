@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class StatisticsUtil:
         return float(np.mean(values))
 
     @staticmethod
-    def calculate_minmax(values: List[Union[int, float]]) -> tuple[float, float]:
+    def calculate_minmax(values: List[Union[int, float]]) -> Tuple[float, float]:
         return (float(np.min(values)), float(np.max(values)))
 
     @staticmethod
