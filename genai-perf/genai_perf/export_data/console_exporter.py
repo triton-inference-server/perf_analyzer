@@ -50,6 +50,8 @@ class ConsoleExporter:
             title += "Rankings Metrics"
         elif self._args.endpoint_type == "image_retrieval":
             title += "Image Retrieval Metrics"
+        elif self._args.endpoint_type == "vision":
+            title += "VLM Metrics"
         else:
             title += "LLM Metrics"
         return title
