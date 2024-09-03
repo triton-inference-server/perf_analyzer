@@ -26,11 +26,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import numpy as np
 from typing import List, Union
 
+import numpy as np
+
+
 class StatisticsUtil:
-    
+
     @staticmethod
     def calculate_mean(values: List[Union[int, float]]) -> float:
         return float(np.mean(values))
@@ -41,15 +43,13 @@ class StatisticsUtil:
 
     @staticmethod
     def calculate_percentiles(values: List[Union[int, float]]) -> List[float]:
-        percentiles = [25,50,75,90,95,99]
+        percentiles = [25, 50, 75, 90, 95, 99]
         return [float(np.percentile(values, p)) for p in percentiles]
-        
+
     @staticmethod
     def calculate_std(data: List[Union[int, float]]) -> float:
         return float(np.std(data))
-    
+
     @staticmethod
     def scale(metric: float, factor: float) -> float:
         return metric * factor
-
-
