@@ -68,9 +68,8 @@ class TelemetryStatistics:
         return False
 
     def _add_units(self) -> None:
-        if isinstance(self._metrics, TelemetryMetrics):
-            for metric in self._metrics.telemetry_metrics:
-                self._stats_dict[metric.name]["unit"] = metric.unit
+        for metric in self._metrics.telemetry_metrics:
+            self._stats_dict[metric.name]["unit"] = metric.unit
 
     def _is_constant_metric(self, attr: str) -> bool:
         return attr in ["gpu_power_limit", "total_gpu_memory"]

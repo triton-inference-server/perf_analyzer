@@ -146,7 +146,6 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
 
 def report_output(
     data_parser: ProfileDataParser,
-    telemetry_data_collector: TelemetryDataCollector,
     args: Namespace,
 ) -> None:
     if args.concurrency:
@@ -196,7 +195,7 @@ def run():
             telemetry_data_collector = create_telemetry_data_collector(args)
             args.func(args, extra_args, telemetry_data_collector)
             data_parser = calculate_metrics(args, tokenizer)
-            report_output(data_parser, telemetry_data_collector, args)
+            report_output(data_parser, args)
     except Exception as e:
         raise GenAIPerfException(e)
 
