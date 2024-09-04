@@ -44,6 +44,7 @@ class ResponseFormat(Enum):
     RANKINGS = auto()
     IMAGE_RETRIEVAL = auto()
     TRITON = auto()
+    TENSORRTLLM_BACKEND = auto()
 
 
 class ProfileDataParser:
@@ -109,6 +110,8 @@ class ProfileDataParser:
 
         elif self._service_kind == "triton":
             self._response_format = ResponseFormat.TRITON
+            if "input_ids" in data["experiments"][0]["requests"][0]["request_inputs"]:
+                self._response_format = ResponseFormat.TENSORRTLLM_BACKEND
         elif self._service_kind == "triton_c_api":
             pass  # ignore
         else:
