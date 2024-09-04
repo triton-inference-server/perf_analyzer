@@ -34,7 +34,6 @@ from genai_perf.metrics.telemetry_metrics import MetricMetadata, TelemetryMetric
 class TestTelemetryMetrics:
 
     def test_update_metrics(self) -> None:
-        """Test update_metrics method."""
         telemetry = TelemetryMetrics()
         measurement_data: Dict[str, List[float]] = {
             "gpu_power_usage": [11.1, 11.2],
@@ -54,20 +53,19 @@ class TestTelemetryMetrics:
         assert telemetry.gpu_memory_used == [[4500.0, 4500.0]]
 
     def test_telemetry_metrics_property(self) -> None:
-        """Test telemetry_metrics property."""
         telemetry = TelemetryMetrics()
         telemetry_metrics: List[MetricMetadata] = telemetry.telemetry_metrics
 
         assert len(telemetry_metrics) == 6
         assert telemetry_metrics[0].name == "gpu_power_usage"
-        assert telemetry_metrics[0].unit == "watts"
+        assert telemetry_metrics[0].unit == "W"
         assert telemetry_metrics[1].name == "gpu_power_limit"
-        assert telemetry_metrics[1].unit == "watts"
+        assert telemetry_metrics[1].unit == "W"
         assert telemetry_metrics[2].name == "energy_consumption"
-        assert telemetry_metrics[2].unit == "joules"
+        assert telemetry_metrics[2].unit == "MJ"
         assert telemetry_metrics[3].name == "gpu_utilization"
-        assert telemetry_metrics[3].unit == "percentage"
+        assert telemetry_metrics[3].unit == "%"
         assert telemetry_metrics[4].name == "total_gpu_memory"
-        assert telemetry_metrics[4].unit == "bytes"
+        assert telemetry_metrics[4].unit == "GB"
         assert telemetry_metrics[5].name == "gpu_memory_used"
-        assert telemetry_metrics[5].unit == "bytes"
+        assert telemetry_metrics[5].unit == "GB"

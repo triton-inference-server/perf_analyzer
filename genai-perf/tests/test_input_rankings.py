@@ -28,12 +28,19 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.inputs.inputs import Inputs, ModelSelectionStrategy
+from genai_perf.inputs.input_constants import (
+    ModelSelectionStrategy,
+    OutputFormat,
+    PromptSource,
+)
+from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
+from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TestInputsRankings:
 
-    def open_side_effects(filepath, *args, **kwargs):
+    def open_side_effects(self, filepath, *args, **kwargs):
         queries_content = "\n".join(
             [
                 '{"text": "What production company co-owned by Kevin Loader and Rodger Michell produced My Cousin Rachel?"}',
@@ -66,8 +73,13 @@ class TestInputsRankings:
         queries_filename = Path("queries.jsonl")
         passages_filename = Path("passages.jsonl")
         batch_size = 2
-        dataset = Inputs._get_input_dataset_from_rankings_files(
-            queries_filename, passages_filename, batch_size, num_prompts=100
+        config = InputsConfig(
+            batch_size=batch_size,
+            num_prompts=100,
+        )
+        input_retriever_factory = InputRetrieverFactory(config)
+        dataset = input_retriever_factory._get_input_dataset_from_rankings_files(
+            queries_filename=queries_filename, passages_filename=passages_filename
         )
 
         assert dataset is not None
@@ -86,8 +98,9 @@ class TestInputsRankings:
             ValueError,
             match="Batch size cannot be larger than the number of available passages",
         ):
-            Inputs._get_input_dataset_from_rankings_files(
-                queries_filename, passages_filename, 5, num_prompts=10
+            config.batch_size = 5
+            input_retriever_factory._get_input_dataset_from_rankings_files(
+                queries_filename, passages_filename
             )
 
     def test_convert_generic_json_to_openai_rankings_format(self):
@@ -116,11 +129,18 @@ class TestInputsRankings:
             ]
         }
 
-        result = Inputs._convert_generic_json_to_rankings_format(
+        inputs = Inputs(
+            InputsConfig(
+                input_type=PromptSource.SYNTHETIC,
+                extra_inputs={},
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=OutputFormat.RANKINGS,
+            )
+        )
+
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None
@@ -166,11 +186,16 @@ class TestInputsRankings:
             ]
         }
 
-        result = Inputs._convert_generic_json_to_rankings_format(
+        inputs = Inputs(
+            InputsConfig(
+                extra_inputs=extra_inputs,
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=OutputFormat.RANKINGS,
+            )
+        )
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None

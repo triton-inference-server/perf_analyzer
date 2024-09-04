@@ -28,10 +28,6 @@ DEFAULT_HTTP_URL = "localhost:8000"
 DEFAULT_GRPC_URL = "localhost:8001"
 DEFAULT_TRITON_METRICS_URL = "localhost:8002/metrics"
 
-OPEN_ORCA = "openorca"
-CNN_DAILY_MAIL = "cnn_dailymail"
-DEFAULT_INPUT_DATA_JSON = "inputs.json"
-
 
 DEFAULT_ARTIFACT_DIR = "artifacts"
 DEFAULT_COMPARE_DIR = "compare"

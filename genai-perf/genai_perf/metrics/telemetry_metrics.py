@@ -39,12 +39,12 @@ class TelemetryMetrics:
     """
 
     TELEMETRY_METRICS = [
-        MetricMetadata("gpu_power_usage", "watts"),
-        MetricMetadata("gpu_power_limit", "watts"),
-        MetricMetadata("energy_consumption", "joules"),
-        MetricMetadata("gpu_utilization", "percentage"),
-        MetricMetadata("total_gpu_memory", "bytes"),
-        MetricMetadata("gpu_memory_used", "bytes"),
+        MetricMetadata("gpu_power_usage", "W"),
+        MetricMetadata("gpu_power_limit", "W"),
+        MetricMetadata("energy_consumption", "MJ"),
+        MetricMetadata("gpu_utilization", "%"),
+        MetricMetadata("total_gpu_memory", "GB"),
+        MetricMetadata("gpu_memory_used", "GB"),
     ]
 
     def __init__(
@@ -80,3 +80,8 @@ class TelemetryMetrics:
     @property
     def telemetry_metrics(self) -> List[MetricMetadata]:
         return self.TELEMETRY_METRICS
+
+    @property
+    def data(self) -> dict:
+        """Returns all the metrics."""
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}

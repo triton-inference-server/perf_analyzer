@@ -24,4 +24,30 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-__version__ = "0.0.6dev"
+from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.converters import *
+from genai_perf.inputs.input_constants import OutputFormat
+
+
+class OutputFormatConverterFactory:
+    """
+    This class converts the generic JSON to the specific format
+    used by a given endpoint.
+    """
+
+    @staticmethod
+    def create(output_format: OutputFormat):
+        converters = {
+            OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,
+            OutputFormat.OPENAI_COMPLETIONS: OpenAICompletionsConverter,
+            OutputFormat.OPENAI_EMBEDDINGS: OpenAIEmbeddingsConverter,
+            OutputFormat.IMAGE_RETRIEVAL: OpenAIChatCompletionsConverter,
+            OutputFormat.OPENAI_VISION: OpenAIChatCompletionsConverter,
+            OutputFormat.RANKINGS: RankingsConverter,
+            OutputFormat.VLLM: VLLMConverter,
+            OutputFormat.TENSORRTLLM: TensorRTLLMConverter,
+            OutputFormat.TENSORRTLLM_ENGINE: TensorRTLLMEngineConverter,
+        }
+        if output_format not in converters:
+            raise GenAIPerfException(f"Output format {output_format} is not supported")
+        return converters[output_format]()

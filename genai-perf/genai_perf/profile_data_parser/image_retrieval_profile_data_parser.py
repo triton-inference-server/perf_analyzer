@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
+from typing import Dict
 
 from genai_perf.metrics import ImageRetrievalMetrics
 from genai_perf.profile_data_parser.profile_data_parser import ProfileDataParser
@@ -38,8 +39,12 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
     across the Perf Analyzer profile results.
     """
 
-    def __init__(self, filename: Path) -> None:
-        super().__init__(filename)
+    def __init__(
+        self,
+        filename: Path,
+        goodput_constraints: Dict[str, float] = {},
+    ) -> None:
+        super().__init__(filename, goodput_constraints)
 
     def _parse_requests(self, requests: dict) -> ImageRetrievalMetrics:
         """Parse each request in profile data to extract core metrics."""
@@ -76,9 +81,15 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
 
-        return ImageRetrievalMetrics(
+        image_metric = ImageRetrievalMetrics(
             request_throughputs,
             request_latencies,
             image_throughputs,
             image_latencies,
         )
+
+        if self._goodput_constraints:
+            goodput_val = self._calculate_goodput(benchmark_duration, image_metric)
+            image_metric.request_goodputs = goodput_val
+
+        return image_metric

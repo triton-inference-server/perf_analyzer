@@ -24,4 +24,40 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-__version__ = "0.0.6dev"
+from typing import Any, Dict
+
+from genai_perf.inputs.converters.base_converter import BaseConverter
+from genai_perf.inputs.inputs_config import InputsConfig
+
+
+class OpenAIEmbeddingsConverter(BaseConverter):
+    def convert(
+        self,
+        generic_dataset: Dict,
+        config: InputsConfig,
+    ) -> Dict:
+        pa_json: Dict[str, Any] = {"data": []}
+
+        for index, entry in enumerate(generic_dataset["rows"]):
+            iter_model_name = self._select_model_name(config, index)
+            payload = entry.get("payload", {})
+            input_values = payload.get("input")
+
+            if input_values is None:
+                raise ValueError("Missing required fields 'input' in dataset entry")
+            if not isinstance(input_values, list):
+                raise ValueError(
+                    f"Required field 'input' must be a list (actual: {type(input_values)})"
+                )
+
+            payload = {
+                "input": input_values,
+                "model": iter_model_name,
+            }
+
+            for key, value in config.extra_inputs.items():
+                payload[key] = value
+
+            pa_json["data"].append({"payload": [payload]})
+
+        return pa_json

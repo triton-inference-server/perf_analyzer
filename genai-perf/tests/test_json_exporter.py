@@ -325,6 +325,7 @@ class TestJsonExporter:
           "endpoint": null,
           "endpoint_type": null,
           "service_kind": "triton",
+          "server_metrics_url": null,
           "streaming": true,
           "u": null,
           "input_dataset": null,

@@ -28,7 +28,7 @@
 
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import Metrics, Statistics
@@ -149,27 +149,30 @@ class ProfileDataParser:
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
 
-        self._metric = Metrics(
+        metric = Metrics(
             request_throughputs,
             request_latencies,
         )
 
-        self._calculate_goodput(benchmark_duration)
-
-        return self._metric
-
-    def _calculate_goodput(self, benchmark_duration) -> None:
         if self._goodput_constraints:
-            llm_goodput_calculator = LLMGoodputCalculator(
-                self._goodput_constraints,
-                self._metric,
-                benchmark_duration,
-            )
+            goodput_val = self._calculate_goodput(benchmark_duration, metric)
+            metric.request_goodputs = goodput_val
 
-            llm_goodput_calculator.compute()
-            self._metric.request_goodputs = llm_goodput_calculator.goodput
-        else:
-            return
+        return metric
+
+    def _calculate_goodput(
+        self,
+        benchmark_duration: float,
+        metric: Metrics,
+    ) -> Optional[List[float]]:
+        llm_goodput_calculator = LLMGoodputCalculator(
+            self._goodput_constraints,
+            metric,
+            benchmark_duration,
+        )
+
+        llm_goodput_calculator.compute()
+        return llm_goodput_calculator.goodput
 
     def get_statistics(self, infer_mode: str, load_level: str) -> Statistics:
         """Return profile statistics if it exists."""
