@@ -25,3 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TritonTelemetryDataCollector,
+)

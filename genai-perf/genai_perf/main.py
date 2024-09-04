@@ -30,9 +30,11 @@ import sys
 import traceback
 from argparse import Namespace
 from pathlib import Path
+from typing import Optional
 
 import genai_perf.logging as logging
 from genai_perf import parser
+from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
@@ -44,6 +46,10 @@ from genai_perf.profile_data_parser import (
     ImageRetrievalProfileDataParser,
     LLMProfileDataParser,
     ProfileDataParser,
+)
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TelemetryDataCollector,
+    TritonTelemetryDataCollector,
 )
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
 
@@ -96,6 +102,24 @@ def create_config_options(args: Namespace) -> InputsConfig:
     )
 
 
+def create_telemetry_data_collector(
+    args: Namespace,
+) -> Optional[TelemetryDataCollector]:
+    logger = logging.getLogger(__name__)
+    telemetry_data_collector = None
+    if args.service_kind == "triton":
+        server_metrics_url = args.server_metrics_url or DEFAULT_TRITON_METRICS_URL
+        telemetry_data_collector = TritonTelemetryDataCollector(server_metrics_url)
+
+    if telemetry_data_collector and not telemetry_data_collector.is_url_reachable():
+        logger.warning(
+            f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
+            "GenAI-Perf cannot collect telemetry data."
+        )
+        telemetry_data_collector = None
+    return telemetry_data_collector
+
+
 def generate_inputs(config_options: InputsConfig) -> None:
     inputs = Inputs(config_options)
     inputs.create_inputs()
@@ -120,7 +144,10 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
         )
 
 
-def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
+def report_output(
+    data_parser: ProfileDataParser,
+    args: Namespace,
+) -> None:
     if args.concurrency:
         infer_mode = "concurrency"
         load_level = f"{args.concurrency}"
@@ -130,9 +157,9 @@ def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
-    # TPA-274 - Integrate telemetry metrics with other metrics for export
     stats = data_parser.get_statistics(infer_mode, load_level)
     reporter = OutputReporter(stats, args)
+
     reporter.report_output()
     if args.generate_plots:
         create_plots(args)
@@ -165,7 +192,8 @@ def run():
             create_artifacts_dirs(args)
             tokenizer = get_tokenizer(args.tokenizer)
             generate_inputs(config_options)
-            args.func(args, extra_args)
+            telemetry_data_collector = create_telemetry_data_collector(args)
+            args.func(args, extra_args, telemetry_data_collector)
             data_parser = calculate_metrics(args, tokenizer)
             report_output(data_parser, args)
     except Exception as e:

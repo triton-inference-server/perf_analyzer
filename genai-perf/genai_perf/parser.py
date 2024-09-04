@@ -30,20 +30,17 @@ import os
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.constants import (
-    DEFAULT_ARTIFACT_DIR,
-    DEFAULT_COMPARE_DIR,
-    DEFAULT_TRITON_METRICS_URL,
-)
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_COMPARE_DIR
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
+from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER
 
 from . import __version__
@@ -870,25 +867,10 @@ def compare_handler(args: argparse.Namespace):
     plot_manager.generate_plots()
 
 
-def profile_handler(args, extra_args) -> None:
-    from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-        TritonTelemetryDataCollector,
-    )
+def profile_handler(
+    args, extra_args, telemetry_data_collector: Optional[TelemetryDataCollector]
+) -> None:
     from genai_perf.wrapper import Profiler
-
-    telemetry_data_collector = None
-    if args.service_kind == "triton":
-        server_metrics_url = args.server_metrics_url or DEFAULT_TRITON_METRICS_URL
-        telemetry_data_collector = TritonTelemetryDataCollector(
-            server_metrics_url=server_metrics_url
-        )
-
-    if telemetry_data_collector and not telemetry_data_collector.is_url_reachable():
-        logger.warning(
-            f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
-            "GenAI-Perf cannot collect telemetry data."
-        )
-        telemetry_data_collector = None
 
     Profiler.run(
         args=args,
