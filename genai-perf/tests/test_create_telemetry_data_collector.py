@@ -29,12 +29,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
-from genai_perf.parser import profile_handler
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TritonTelemetryDataCollector,
-)
+from genai_perf.main import create_telemetry_data_collector
+from genai_perf.telemetry_data import TritonTelemetryDataCollector
+from requests import codes as http_codes
 
 
 class MockArgs:
@@ -43,7 +41,7 @@ class MockArgs:
         self.server_metrics_url = server_metrics_url
 
 
-class TestProfileHandler:
+class TestCreateTelemetryDataCollector:
     test_triton_metrics_url = "http://tritonmetrics.com:8080/metrics"
 
     @pytest.mark.parametrize(
@@ -53,23 +51,17 @@ class TestProfileHandler:
             (None, DEFAULT_TRITON_METRICS_URL),
         ],
     )
-    @patch("genai_perf.wrapper.Profiler.run")
     @patch("requests.get")
-    def test_profile_handler_creates_telemetry_collector(
-        self, mock_requests_get, mock_profiler_run, server_metrics_url, expected_url
+    def test_creates_telemetry_data_collector_success(
+        self, mock_requests_get, server_metrics_url, expected_url
     ):
-        mock_requests_get.return_value = MagicMock(status_code=requests.codes.ok)
+        mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
+
         mock_args = MockArgs(
             service_kind="triton", server_metrics_url=server_metrics_url
         )
-        profile_handler(mock_args, extra_args={})
-        mock_profiler_run.assert_called_once()
+        telemetry_data_collector = create_telemetry_data_collector(mock_args)
 
-        _, kwargs = mock_profiler_run.call_args
-
-        assert "telemetry_data_collector" in kwargs
-
-        telemetry_data_collector = kwargs["telemetry_data_collector"]
         assert isinstance(telemetry_data_collector, TritonTelemetryDataCollector)
         assert telemetry_data_collector.metrics_url == expected_url
 
@@ -80,19 +72,32 @@ class TestProfileHandler:
             None,
         ],
     )
-    @patch("genai_perf.wrapper.Profiler.run")
     @patch("requests.get")
-    def test_profile_handler_does_not_create_telemetry_collector(
-        self, mock_requests_get, mock_profiler_run, server_metrics_url
+    def test_create_telemetry_data_collector_unreachable_url(
+        self, mock_requests_get, server_metrics_url
     ):
-        mock_requests_get.return_value = MagicMock(status_code=requests.codes.not_found)
+        mock_requests_get.return_value = MagicMock(status_code=http_codes.not_found)
 
         mock_args = MockArgs(
             service_kind="triton", server_metrics_url=server_metrics_url
         )
-        profile_handler(mock_args, extra_args={})
-        mock_profiler_run.assert_called_once()
+        telemetry_data_collector = create_telemetry_data_collector(mock_args)
 
-        _, kwargs = mock_profiler_run.call_args
-        telemetry_data_collector = kwargs["telemetry_data_collector"]
+        assert telemetry_data_collector is None
+
+    @patch("genai_perf.main.TritonTelemetryDataCollector")
+    @patch("requests.get")
+    def test_create_telemetry_data_collector_service_kind_not_triton(
+        self,
+        mock_requests_get,
+        mock_telemetry_collector,
+    ):
+        mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
+        mock_telemetry_collector.return_value = MagicMock()
+
+        mock_args = MockArgs(
+            service_kind="openai", server_metrics_url=self.test_triton_metrics_url
+        )
+        telemetry_data_collector = create_telemetry_data_collector(mock_args)
+
         assert telemetry_data_collector is None
