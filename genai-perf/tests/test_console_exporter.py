@@ -24,10 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from unittest.mock import patch
+
+import pytest
 from genai_perf import parser
 from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.metrics import LLMMetrics, Metrics, Statistics
+from genai_perf.metrics import ImageRetrievalMetrics, LLMMetrics, Metrics, Statistics
 
 
 class TestConsoleExporter:
@@ -284,3 +287,50 @@ class TestConsoleExporter:
         )
         returned_data = capsys.readouterr().out
         assert returned_data == expected_content
+
+    @patch(
+        "genai_perf.export_data.console_exporter.ConsoleExporter._construct_table",
+        return_value=None,
+    )
+    @pytest.mark.parametrize(
+        "endpoint_type, metrics, expected_title",
+        [
+            ("chat", LLMMetrics(), "NVIDIA GenAI-Perf | LLM Metrics"),
+            ("embeddings", Metrics(), "NVIDIA GenAI-Perf | Embeddings Metrics"),
+            ("rankings", Metrics(), "NVIDIA GenAI-Perf | Rankings Metrics"),
+            ("vision", LLMMetrics(), "NVIDIA GenAI-Perf | VLM Metrics"),
+            (
+                "image_retrieval",
+                ImageRetrievalMetrics(),
+                "NVIDIA GenAI-Perf | Image Retrieval Metrics",
+            ),
+        ],
+    )
+    def test_console_title(
+        self, mock_table, endpoint_type, metrics, expected_title, monkeypatch, capsys
+    ) -> None:
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            endpoint_type,
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        stats = Statistics(metrics=metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.metrics = stats.metrics
+        config.args = args
+
+        exporter = ConsoleExporter(config)
+        exporter.export()
+
+        returned_data = capsys.readouterr().out
+        assert expected_title in returned_data
