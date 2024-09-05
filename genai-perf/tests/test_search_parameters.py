@@ -227,7 +227,7 @@ class TestSearchParameters(unittest.TestCase):
 
         search_parameters = SearchParameters(config)
 
-        concurrency = self.search_parameters.get_parameter("concurrency")
+        concurrency = search_parameters.get_parameter("concurrency")
         self.assertEqual(ParameterUsage.RUNTIME, concurrency.usage)
         self.assertEqual(ParameterCategory.EXPONENTIAL, concurrency.category)
         self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
