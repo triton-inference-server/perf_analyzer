@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from math import log2
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
 from genai_perf.config.generate.search_parameter import (
     ParameterCategory,
