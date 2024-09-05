@@ -23,7 +23,7 @@ def default_field(obj):
 
 # TODO: OPTIMIZE
 # These will be moved to RunConfig once it's created
-@dataclass
+@dataclass(frozen=True)
 class RunConfigDefaults:
     # Model Defaults
     MIN_MODEL_BATCH_SIZE = 1
@@ -54,18 +54,18 @@ class Range:
     max: int
 
 
-ConfigField: TypeAlias = Optional[Union[Range, List[int]]]
+ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
 
 
 @dataclass
 class ConfigModelConfig:
-    batch_size: ConfigField = default_field(
+    batch_size: ConfigRangeOrList = default_field(
         Range(
             min=RunConfigDefaults.MIN_MODEL_BATCH_SIZE,
             max=RunConfigDefaults.MAX_MODEL_BATCH_SIZE,
         )
     )
-    instance_count: ConfigField = default_field(
+    instance_count: ConfigRangeOrList = default_field(
         Range(
             min=RunConfigDefaults.MIN_INSTANCE_COUNT,
             max=RunConfigDefaults.MAX_INSTANCE_COUNT,
@@ -81,13 +81,13 @@ class ConfigModelConfig:
 @dataclass
 class ConfigPerfAnalyzer:
     stimulus_type: str = default_field(RunConfigDefaults.STIMULUS_TYPE)
-    batch_size: ConfigField = default_field(RunConfigDefaults.PA_BATCH_SIZE)
-    concurrency: ConfigField = default_field(
+    batch_size: ConfigRangeOrList = default_field(RunConfigDefaults.PA_BATCH_SIZE)
+    concurrency: ConfigRangeOrList = default_field(
         Range(
             min=RunConfigDefaults.MIN_CONCURRENCY, max=RunConfigDefaults.MAX_CONCURRENCY
         )
     )
-    request_rate: ConfigField = default_field(
+    request_rate: ConfigRangeOrList = default_field(
         Range(
             min=RunConfigDefaults.MIN_REQUEST_RATE,
             max=RunConfigDefaults.MAX_REQUEST_RATE,

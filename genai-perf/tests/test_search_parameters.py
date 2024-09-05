@@ -22,7 +22,11 @@ from genai_perf.config.generate.search_parameters import (
     ParameterUsage,
     SearchParameters,
 )
-from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
+from genai_perf.config.input.config_command import (
+    ConfigCommand,
+    Range,
+    RunConfigDefaults,
+)
 from genai_perf.exceptions import GenAIPerfException
 
 
@@ -55,7 +59,6 @@ class TestSearchParameters(unittest.TestCase):
         Test exponential parameter, accessing dataclass directly
         """
 
-        # concurrency
         parameter = self.search_parameters.get_parameter("concurrency")
 
         self.assertEqual(ParameterUsage.RUNTIME, parameter.usage)
@@ -77,9 +80,9 @@ class TestSearchParameters(unittest.TestCase):
             self.search_parameters.get_category("instance_count"),
         )
         self.assertEqual(
-            (
-                RunConfigDefaults.MIN_INSTANCE_COUNT,
-                RunConfigDefaults.MAX_INSTANCE_COUNT,
+            Range(
+                min=RunConfigDefaults.MIN_INSTANCE_COUNT,
+                max=RunConfigDefaults.MAX_INSTANCE_COUNT,
             ),
             self.search_parameters.get_range("instance_count"),
         )
@@ -168,6 +171,7 @@ class TestSearchParameters(unittest.TestCase):
         #######################################################################
 
         # Batch Size
+        # =====================================================================
         model_batch_size = search_parameters.get_parameter("model_batch_size")
         self.assertEqual(ParameterUsage.MODEL, model_batch_size.usage)
         self.assertEqual(ParameterCategory.EXPONENTIAL, model_batch_size.category)
@@ -181,6 +185,7 @@ class TestSearchParameters(unittest.TestCase):
         )
 
         # Instance Count
+        # =====================================================================
         instance_count = search_parameters.get_parameter("instance_count")
         self.assertEqual(ParameterUsage.MODEL, instance_count.usage)
         self.assertEqual(ParameterCategory.INTEGER, instance_count.category)
@@ -196,6 +201,7 @@ class TestSearchParameters(unittest.TestCase):
         #######################################################################
 
         # Batch size
+        # =====================================================================
         runtime_batch_size = search_parameters.get_parameter("runtime_batch_size")
         self.assertEqual(ParameterUsage.RUNTIME, runtime_batch_size.usage)
         self.assertEqual(ParameterCategory.INT_LIST, runtime_batch_size.category)
@@ -204,17 +210,13 @@ class TestSearchParameters(unittest.TestCase):
         )
 
         # Concurrency - this is not set because use_concurrency_formula is True
+        # =====================================================================
         concurrency = search_parameters.get_parameter("concurrency")
+
         self.assertIsNone(concurrency)
 
-        # # Concurrency
-        # concurrency = self.search_parameters.get_parameter("concurrency")
-        # self.assertEqual(ParameterUsage.RUNTIME, concurrency.usage)
-        # self.assertEqual(ParameterCategory.EXPONENTIAL, concurrency.category)
-        # self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
-        # self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
-
         # Request Rate
+        # =====================================================================
         request_rate = search_parameters.get_parameter("request_rate")
         self.assertIsNone(request_rate)
 
@@ -293,6 +295,8 @@ class TestSearchParameters(unittest.TestCase):
         self.assertEqual(8 * 5 * 11 * 3, total_num_of_possible_configurations)
 
     # TODO: OPTIMIZE:
+    # This will be enabled once BLS support is added
+    #
     # def test_search_parameter_creation_bls_default(self):
     #     """
     #     Test that search parameters are correctly created in default BLS optuna case

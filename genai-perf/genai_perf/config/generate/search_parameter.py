@@ -14,7 +14,9 @@
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, List, Optional
+from typing import Any, List, Optional, TypeAlias, Union
+
+ParameterList: TypeAlias = List[Union[int, str]]
 
 
 class ParameterUsage(Enum):

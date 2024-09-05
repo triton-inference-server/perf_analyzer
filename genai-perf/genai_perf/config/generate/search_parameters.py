@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from genai_perf.config.generate.search_parameter import (
     ParameterCategory,
+    ParameterList,
     ParameterUsage,
     SearchParameter,
 )
@@ -69,9 +70,6 @@ class SearchParameters:
     ###########################################################################
     # Accessor Methods
     ###########################################################################
-    def get_search_parameters(self) -> Dict[str, SearchParameter]:
-        return self._search_parameters
-
     def get_parameter(self, name: str) -> Optional[SearchParameter]:
         return self._search_parameters.get(name)
 
@@ -81,10 +79,10 @@ class SearchParameters:
     def get_category(self, name: str) -> ParameterCategory:
         return self._search_parameters[name].category
 
-    def get_range(self, name: str) -> Tuple[Optional[int], Optional[int]]:
-        return (
-            self._search_parameters[name].min_range,
-            self._search_parameters[name].max_range,
+    def get_range(self, name: str) -> Range:
+        return Range(
+            min=self._search_parameters[name].min_range,  # type: ignore
+            max=self._search_parameters[name].max_range,  # type: ignore
         )
 
     def get_list(self, name: str) -> Optional[List[Any]]:
@@ -219,7 +217,7 @@ class SearchParameters:
     def _populate_list_parameter(
         self,
         parameter_name: str,
-        parameter_list: List[Union[int, str]],
+        parameter_list: ParameterList,
         parameter_category: ParameterCategory,
     ) -> None:
         usage = self._determine_parameter_usage(parameter_name)
