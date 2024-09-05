@@ -30,7 +30,7 @@ class SearchParameters:
     Contains information about all configuration parameters the user wants to search
     """
 
-    # These map to the run-config-search fields
+    # These map to the various fields that can be set for PA and model configs
     # See github.com/triton-inference-server/model_analyzer/blob/main/docs/config.md
     exponential_range_parameters = [
         "model_batch_size",
