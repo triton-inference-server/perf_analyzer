@@ -98,6 +98,14 @@ class RequestRateManager : public LoadManager {
       const std::unordered_map<std::string, cb::RequestParameter>&
           request_parameters);
 
+  /// Performs warmup for benchmarking by sending a fixed number of requests
+  /// according to the specified request rate
+  /// \param target_request_rate The rate at which requests must be issued to
+  /// the server.
+  /// \param warmup_request_count The number of warmup requests to send.
+  cb::Error PerformWarmup(
+      double target_request_rate, size_t warmup_request_count);
+
   /// Adjusts the rate of issuing requests to be the same as 'request_rate'
   /// \param target_request_rate The rate at which requests must be issued to
   /// the server.
@@ -151,8 +159,6 @@ class RequestRateManager : public LoadManager {
       std::shared_ptr<ThreadStat>, std::shared_ptr<ThreadConfig>);
 
   size_t DetermineNumThreads();
-
-  std::vector<std::shared_ptr<ThreadConfig>> threads_config_;
 
   std::shared_ptr<std::chrono::nanoseconds> gen_duration_;
   Distribution request_distribution_;

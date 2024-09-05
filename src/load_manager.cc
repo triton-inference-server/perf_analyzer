@@ -213,8 +213,6 @@ LoadManager::InitManagerInputs(
     const size_t string_length, const std::string& string_data,
     const bool zero_input, std::vector<std::string>& user_data)
 {
-  RETURN_IF_ERROR(factory_->CreateClientBackend(&backend_));
-
   // Read provided data
   if (!user_data.empty()) {
     if (IsDirectory(user_data[0])) {
@@ -270,6 +268,20 @@ LoadManager::StopWorkerThreads()
     cnt++;
   }
   threads_.clear();
+}
+
+void
+LoadManager::WaitForWarmupAndCleanup()
+{
+  for (std::thread& thread : threads_) {
+    if (thread.joinable()) {
+      thread.join();
+    }
+  }
+  threads_.clear();
+  threads_config_.clear();
+  threads_stat_.clear();
+  workers_.clear();
 }
 
 std::shared_ptr<SequenceManager>
