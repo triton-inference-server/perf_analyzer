@@ -18,6 +18,7 @@ from typing import Dict, List, Optional
 # TODO: OPTIMIZE
 # from genai_perf.result.model_constraints import ModelConstraints
 
+
 @dataclass
 class ModelSpec:
     """
@@ -31,16 +32,14 @@ class ModelSpec:
     objectives: Optional[List] = None
     # TODO: OPTIMIZE
     # constraints: Optional[ModelConstraints]
-    model_config_parameters:Optional[Dict] = None
-    
+    model_config_parameters: Optional[Dict] = None
+
     # PA/GAP flags/parameters
     perf_analyzer_parameters: Optional[Dict] = None
     perf_analyzer_flags: Optional[Dict] = None
     genai_perf_flags: Optional[Dict] = None
-    
+
     # Triton flags/args
     triton_server_flags: Optional[Dict] = None
     triton_server_args: Optional[Dict] = None
-    triton_docker_args: Optional[Dict] = None 
-
-    
+    triton_docker_args: Optional[Dict] = None

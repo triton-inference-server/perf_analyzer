@@ -15,10 +15,13 @@
 from math import log2
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from genai_perf.config.generate.search_parameter import (
+    ParameterCategory,
+    ParameterUsage,
+    SearchParameter,
+)
 from genai_perf.config.input.config_command import ConfigCommand, Range
 from genai_perf.exceptions import GenAIPerfException
-
-from genai_perf.config.generate.search_parameter import ParameterCategory, ParameterUsage, SearchParameter
 
 
 class SearchParameters:
@@ -51,11 +54,11 @@ class SearchParameters:
         is_composing_model: bool = False,
     ):
         self._config = config.optimize
-        
+
         # TODO: OPTIMIZE
         # self._supports_model_batch_size = model.supports_batching()
         self._supports_model_batch_size = True
-        
+
         self._search_parameters: Dict[str, SearchParameter] = {}
         self._is_ensemble_model = is_ensemble_model
         self._is_bls_model = is_bls_model
@@ -107,29 +110,29 @@ class SearchParameters:
                 self._populate_concurrency()
 
     def _populate_perf_analyzer_batch_size(self) -> None:
-        if isinstance(self._config.perf_analzyer.batch_size, list):
+        if isinstance(self._config.perf_analyzer.batch_size, list):
             self._populate_list_parameter(
                 parameter_name="runtime_batch_size",
-                parameter_list=self._config.perf_analzyer.batch_size,
+                parameter_list=list(self._config.perf_analyzer.batch_size),
                 parameter_category=ParameterCategory.INT_LIST,
             )
-        elif isinstance(self._config.perf_analzyer.batch_size, Range):
-           self._populate_range_parameter(
+        elif isinstance(self._config.perf_analyzer.batch_size, Range):
+            self._populate_range_parameter(
                 parameter_name="runtime_batch_size",
                 parameter_min_value=self._config.perf_analyzer.batch_size.min,
                 parameter_max_value=self._config.perf_analyzer.batch_size.max,
-            ) 
+            )
 
     def _populate_concurrency(self) -> None:
-        if isinstance(self._config.perf_analzyer.concurrency, list):
+        if self._config.perf_analyzer.use_concurrency_formula:
+            return
+        elif isinstance(self._config.perf_analyzer.concurrency, list):
             self._populate_list_parameter(
                 parameter_name="concurrency",
-                parameter_list=self._config.perf_analzyer.concurrency,
+                parameter_list=list(self._config.perf_analyzer.concurrency),
                 parameter_category=ParameterCategory.INT_LIST,
             )
-        elif self._config.perf_analzyer.use_concurrency_formula:
-            return
-        elif isinstance(self._config.perf_analzyer.concurrency, Range):
+        elif isinstance(self._config.perf_analyzer.concurrency, Range):
             self._populate_range_parameter(
                 parameter_name="concurrency",
                 parameter_min_value=self._config.perf_analyzer.concurrency.min,
@@ -137,17 +140,17 @@ class SearchParameters:
             )
 
     def _populate_request_rate(self) -> None:
-        if isinstance(self._config.perf_analzyer.request_rate, list):
+        if isinstance(self._config.perf_analyzer.request_rate, list):
             self._populate_list_parameter(
                 parameter_name="request_rate",
-                parameter_list=self._config.perf_analzyer.request_rate,
+                parameter_list=list(self._config.perf_analyzer.request_rate),
                 parameter_category=ParameterCategory.INT_LIST,
             )
-        elif isinstance(self._config.perf_analzyer.request_rate, Range):
+        elif isinstance(self._config.perf_analyzer.request_rate, Range):
             self._populate_range_parameter(
                 parameter_name="request_rate",
-                parameter_min_value=self._config.request_rate.min,
-                parameter_max_value=self._config.request_rate.max,
+                parameter_min_value=self._config.perf_analyzer.request_rate.min,
+                parameter_max_value=self._config.perf_analyzer.request_rate.max,
             )
 
     ###########################################################################
@@ -162,10 +165,14 @@ class SearchParameters:
         if isinstance(self._config.model_config.batch_size, list):
             self._populate_list_parameter(
                 parameter_name="model_batch_size",
-                parameter_list=self._config.model_config.batch_size,
+                parameter_list=list(self._config.model_config.batch_size),
                 parameter_category=ParameterCategory.INT_LIST,
             )
-        elif self._supports_model_batch_size and not self._is_bls_model and isinstance(self._config.model_config.batch_size, Range):
+        elif (
+            self._supports_model_batch_size
+            and not self._is_bls_model
+            and isinstance(self._config.model_config.batch_size, Range)
+        ):
             # Need to populate max_batch_size based on range values
             # when no model config parameters are present
             self._populate_range_parameter(
@@ -178,10 +185,12 @@ class SearchParameters:
         if isinstance(self._config.model_config.instance_count, list):
             self._populate_list_parameter(
                 parameter_name="instance_count",
-                parameter_list=self._config.model_config.instance_count,
+                parameter_list=list(self._config.model_config.instance_count),
                 parameter_category=ParameterCategory.INT_LIST,
             )
-        elif not self._is_ensemble_model and isinstance(self._config.model_config.instance_count, Range):
+        elif not self._is_ensemble_model and isinstance(
+            self._config.model_config.instance_count, Range
+        ):
             # Need to populate instance_count based on range values
             # when no model config parameters are present
             self._populate_range_parameter(
@@ -189,12 +198,12 @@ class SearchParameters:
                 parameter_min_value=self._config.model_config.instance_count.min,
                 parameter_max_value=self._config.model_config.instance_count.max,
             )
-    
+
     def _populate_max_queue_delay(self) -> None:
         if isinstance(self._config.model_config.max_queue_delay, list):
             self._populate_list_parameter(
                 parameter_name="max_queue_delay",
-                parameter_list=self._config.model_config.max_queue_delay,
+                parameter_list=list(self._config.model_config.max_queue_delay),
                 parameter_category=ParameterCategory.INT_LIST,
             )
         elif isinstance(self._config.model_config.max_queue_delay, Range):
@@ -202,7 +211,7 @@ class SearchParameters:
                 parameter_name="max_queue_delay",
                 parameter_min_value=self._config.model_config.max_queue_delay.min,
                 parameter_max_value=self._config.model_config.max_queue_delay.max,
-            ) 
+            )
 
     ###########################################################################
     # Populate Methods

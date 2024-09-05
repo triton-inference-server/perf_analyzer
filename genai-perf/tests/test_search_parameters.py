@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-# Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,24 +13,22 @@
 # limitations under the License.
 
 import unittest
+from copy import deepcopy
 from math import log2
-from unittest.mock import MagicMock, patch
-
-#import model_analyzer.config.input.config_defaults as default
-
-from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
+from unittest.mock import patch
 
 from genai_perf.config.generate.search_parameters import (
     ParameterCategory,
     ParameterUsage,
     SearchParameters,
 )
-
+from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
 from genai_perf.exceptions import GenAIPerfException
+
 
 class TestSearchParameters(unittest.TestCase):
     def setUp(self):
-        self.config = ConfigCommand()
+        self.config = deepcopy(ConfigCommand())
 
         self.search_parameters = SearchParameters(config=self.config)
 
@@ -40,16 +36,8 @@ class TestSearchParameters(unittest.TestCase):
             name="concurrency",
             usage=ParameterUsage.RUNTIME,
             category=ParameterCategory.EXPONENTIAL,
-            min_range=0,
-            max_range=10,
-        )
-
-        self.search_parameters._add_search_parameter(
-            name="instance_group",
-            usage=ParameterUsage.MODEL,
-            category=ParameterCategory.INTEGER,
-            min_range=1,
-            max_range=8,
+            min_range=log2(RunConfigDefaults.MIN_CONCURRENCY),
+            max_range=log2(RunConfigDefaults.MAX_CONCURRENCY),
         )
 
         self.search_parameters._add_search_parameter(
@@ -72,8 +60,8 @@ class TestSearchParameters(unittest.TestCase):
 
         self.assertEqual(ParameterUsage.RUNTIME, parameter.usage)
         self.assertEqual(ParameterCategory.EXPONENTIAL, parameter.category)
-        self.assertEqual(0, parameter.min_range)
-        self.assertEqual(10, parameter.max_range)
+        self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), parameter.min_range)
+        self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), parameter.max_range)
 
     def test_integer_parameter(self):
         """
@@ -82,13 +70,19 @@ class TestSearchParameters(unittest.TestCase):
 
         self.assertEqual(
             ParameterUsage.MODEL,
-            self.search_parameters.get_type("instance_group"),
+            self.search_parameters.get_type("instance_count"),
         )
         self.assertEqual(
             ParameterCategory.INTEGER,
-            self.search_parameters.get_category("instance_group"),
+            self.search_parameters.get_category("instance_count"),
         )
-        self.assertEqual((1, 8), self.search_parameters.get_range("instance_group"))
+        self.assertEqual(
+            (
+                RunConfigDefaults.MIN_INSTANCE_COUNT,
+                RunConfigDefaults.MAX_INSTANCE_COUNT,
+            ),
+            self.search_parameters.get_range("instance_count"),
+        )
 
     def test_list_parameter(self):
         """
@@ -166,14 +160,15 @@ class TestSearchParameters(unittest.TestCase):
         Test that search parameters are correctly created in default optimize case
         """
 
+        config = deepcopy(ConfigCommand())
+        search_parameters = SearchParameters(config)
+
         #######################################################################
         # Model Config
         #######################################################################
-        
+
         # Batch Size
-        model_batch_size = self.search_parameters.get_parameter(
-            "model_batch_size"
-        )
+        model_batch_size = search_parameters.get_parameter("model_batch_size")
         self.assertEqual(ParameterUsage.MODEL, model_batch_size.usage)
         self.assertEqual(ParameterCategory.EXPONENTIAL, model_batch_size.category)
         self.assertEqual(
@@ -186,164 +181,118 @@ class TestSearchParameters(unittest.TestCase):
         )
 
         # Instance Count
-        instance_count = self.search_parameters.get_parameter(
-            "instance_count"
-        )
+        instance_count = search_parameters.get_parameter("instance_count")
         self.assertEqual(ParameterUsage.MODEL, instance_count.usage)
         self.assertEqual(ParameterCategory.INTEGER, instance_count.category)
-        self.assertEqual(
-            RunConfigDefaults.MIN_INSTANCE_COUNT, instance_count.min_range
-        )
-        self.assertEqual(
-            RunConfigDefaults.MAX_INSTANCE_COUNT, instance_count.max_range
-        )
-        
+        self.assertEqual(RunConfigDefaults.MIN_INSTANCE_COUNT, instance_count.min_range)
+        self.assertEqual(RunConfigDefaults.MAX_INSTANCE_COUNT, instance_count.max_range)
+
         # Max Queue Delay
-        max_queue_delay = self.search_parameters.get_parameter("max_queue_delay")
+        max_queue_delay = search_parameters.get_parameter("max_queue_delay")
         self.assertIsNone(max_queue_delay)
-        
+
         #######################################################################
         # PA Config
         #######################################################################
-        
+
         # Batch size
-        runtime_batch_size = self.search_parameters.get_parameter("runtime_batch_size")
+        runtime_batch_size = search_parameters.get_parameter("runtime_batch_size")
         self.assertEqual(ParameterUsage.RUNTIME, runtime_batch_size.usage)
         self.assertEqual(ParameterCategory.INT_LIST, runtime_batch_size.category)
-        self.assertEqual(RunConfigDefaults.PA_BATCH_SIZE, runtime_batch_size.enumerated_list)
-        
-        # Concurrency
-        concurrency = self.search_parameters.get_parameter(
-            "concurrency"
-        ) 
+        self.assertEqual(
+            RunConfigDefaults.PA_BATCH_SIZE, runtime_batch_size.enumerated_list
+        )
+
+        # Concurrency - this is not set because use_concurrency_formula is True
+        concurrency = search_parameters.get_parameter("concurrency")
+        self.assertIsNone(concurrency)
+
+        # # Concurrency
+        # concurrency = self.search_parameters.get_parameter("concurrency")
+        # self.assertEqual(ParameterUsage.RUNTIME, concurrency.usage)
+        # self.assertEqual(ParameterCategory.EXPONENTIAL, concurrency.category)
+        # self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
+        # self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
+
+        # Request Rate
+        request_rate = search_parameters.get_parameter("request_rate")
+        self.assertIsNone(request_rate)
+
+    def test_search_parameter_no_concurrency_formula(self):
+        """
+        Test that search parameters are correctly created when concurrency formula is disabled
+        """
+        config = deepcopy(ConfigCommand())
+        config.optimize.perf_analyzer.use_concurrency_formula = False
+
+        search_parameters = SearchParameters(config)
+
+        concurrency = self.search_parameters.get_parameter("concurrency")
         self.assertEqual(ParameterUsage.RUNTIME, concurrency.usage)
         self.assertEqual(ParameterCategory.EXPONENTIAL, concurrency.category)
+        self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
+        self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
+
+    def test_search_parameter_request_rate(self):
+        """
+        Test that request rate is used when specified in config
+        """
+        config = deepcopy(ConfigCommand())
+        config.optimize.perf_analyzer.stimulus_type = "request_rate"
+
+        search_parameters = SearchParameters(config)
+
+        request_rate = search_parameters.get_parameter("request_rate")
+        self.assertEqual(ParameterUsage.RUNTIME, request_rate.usage)
+        self.assertEqual(ParameterCategory.EXPONENTIAL, request_rate.category)
         self.assertEqual(
-            log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range
+            log2(RunConfigDefaults.MIN_REQUEST_RATE), request_rate.min_range
         )
         self.assertEqual(
-            log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range
+            log2(RunConfigDefaults.MAX_REQUEST_RATE), request_rate.max_range
         )
-        
-        # Request Rate
-        request_rate = self.search_parameters.get_parameter("request_rate")
-        self.assertIsNone(request_rate)
-  
 
-    # def test_search_parameter_concurrency_formula(self):
-    #     """
-    #     Test that when concurrency formula is specified it is
-    #     not added as a search parameter
-    #     """
+    def test_number_of_configs_range(self):
+        """
+        Test number of configs for a range (INTEGER/EXPONENTIAL)
+        """
 
-    #     args = [
-    #         "model-analyzer",
-    #         "profile",
-    #         "--model-repository",
-    #         "cli-repository",
-    #         "-f",
-    #         "path-to-config-file",
-    #         "--run-config-search-mode",
-    #         "optuna",
-    #         "--use-concurrency-formula",
-    #     ]
+        # INTEGER
+        # =====================================================================
+        num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
+            self.search_parameters.get_parameter("instance_count")
+        )
+        self.assertEqual(5, num_of_configs)
 
-    #     yaml_content = """
-    #     profile_models: add_sub
-    #     """
-    #     config = TestConfig()._evaluate_config(args=args, yaml_content=yaml_content)
+        # EXPONENTIAL
+        # =====================================================================
+        num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
+            self.search_parameters.get_parameter("concurrency")
+        )
+        self.assertEqual(11, num_of_configs)
 
-    #     analyzer = Analyzer(config, MagicMock(), MagicMock(), MagicMock())
-    #     analyzer._populate_search_parameters(MagicMock(), MagicMock())
+    def test_number_of_configs_list(self):
+        """
+        Test number of configs for a list
+        """
 
-    #     concurrency = analyzer._search_parameters["add_sub"].get_parameter(
-    #         "concurrency"
-    #     )
+        num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
+            self.search_parameters.get_parameter("size")
+        )
+        self.assertEqual(3, num_of_configs)
 
-    #     self.assertEqual(concurrency, None)
+    def test_total_possible_configurations(self):
+        """
+        Test number of total possible configurations
+        """
+        total_num_of_possible_configurations = (
+            self.search_parameters.number_of_total_possible_configurations()
+        )
 
-    # def test_search_parameter_request_rate(self):
-    #     """
-    #     Test that request rate is correctly set in
-    #     a non-default optuna case
-    #     """
+        # model_batch_size (8) * instance count (5) * concurrency (11) * size (3)
+        self.assertEqual(8 * 5 * 11 * 3, total_num_of_possible_configurations)
 
-    #     args = [
-    #         "model-analyzer",
-    #         "profile",
-    #         "--model-repository",
-    #         "cli-repository",
-    #         "-f",
-    #         "path-to-config-file",
-    #         "--run-config-search-mode",
-    #         "optuna",
-    #     ]
-
-    #     yaml_content = """
-    #     run_config_search_mode: optuna
-    #     profile_models:
-    #         mult_div:
-    #             parameters:
-    #                 request_rate: [1, 8, 64, 256]
-
-    #     """
-    #     config = TestConfig()._evaluate_config(args, yaml_content)
-    #     analyzer = Analyzer(config, MagicMock(), MagicMock(), MagicMock())
-    #     mock_model_config = MockModelConfig()
-    #     mock_model_config.start()
-    #     analyzer._populate_search_parameters(MagicMock(), MagicMock())
-    #     mock_model_config.stop()
-
-    #     # request_rate
-    #     # ===================================================================
-
-    #     request_rate = analyzer._search_parameters["mult_div"].get_parameter(
-    #         "request_rate"
-    #     )
-    #     self.assertEqual(ParameterUsage.RUNTIME, request_rate.usage)
-    #     self.assertEqual(ParameterCategory.INT_LIST, request_rate.category)
-    #     self.assertEqual([1, 8, 64, 256], request_rate.enumerated_list)
-
-    # def test_number_of_configs_range(self):
-    #     """
-    #     Test number of configs for a range (INTEGER/EXPONENTIAL)
-    #     """
-
-    #     # INTEGER
-    #     # =====================================================================
-    #     num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
-    #         self.search_parameters.get_parameter("instance_group")
-    #     )
-    #     self.assertEqual(8, num_of_configs)
-
-    #     # EXPONENTIAL
-    #     # =====================================================================
-    #     num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
-    #         self.search_parameters.get_parameter("concurrency")
-    #     )
-    #     self.assertEqual(11, num_of_configs)
-
-    # def test_number_of_configs_list(self):
-    #     """
-    #     Test number of configs for a list
-    #     """
-
-    #     num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
-    #         self.search_parameters.get_parameter("size")
-    #     )
-    #     self.assertEqual(3, num_of_configs)
-
-    # def test_total_possible_configurations(self):
-    #     """
-    #     Test number of total possible configurations
-    #     """
-    #     total_num_of_possible_configurations = (
-    #         self.search_parameters.number_of_total_possible_configurations()
-    #     )
-
-    #     # max_batch_size (8) * instance group (8) * concurrency (11) * size (3)
-    #     self.assertEqual(8 * 8 * 11 * 3, total_num_of_possible_configurations)
-
+    # TODO: OPTIMIZE:
     # def test_search_parameter_creation_bls_default(self):
     #     """
     #     Test that search parameters are correctly created in default BLS optuna case

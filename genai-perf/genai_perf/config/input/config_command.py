@@ -20,9 +20,10 @@ from typing import List, Optional
 def default_field(obj):
     return field(default_factory=lambda: copy(obj))
 
+
 # TODO: OPTIMIZE
 # These will be moved to RunConfig once it's created
-@dataclass 
+@dataclass
 class RunConfigDefaults:
     # Model Defaults
     MIN_MODEL_BATCH_SIZE = 1
@@ -32,7 +33,7 @@ class RunConfigDefaults:
     MAX_QUEUE_DELAY = None
     DYNAMIC_BATCHING = True
     CPU_ONLY = False
-    
+
     # PA Defaults
     STIMULUS_TYPE = "concurrency"
     PA_BATCH_SIZE = [1]
@@ -40,46 +41,76 @@ class RunConfigDefaults:
     MAX_CONCURRENCY = 1024
     MIN_REQUEST_RATE = 16
     MAX_REQUEST_RATE = 8192
-    USE_CONCURRENCY_FORMULA = True   
+    USE_CONCURRENCY_FORMULA = True
+
 
 # TODO: OPTIMIZE
 # These are placeholder dataclasses until the real Command Parser is written
+
 
 @dataclass
 class Range:
     min: int
     max: int
-    
+
+
 @dataclass
 class ConfigModelConfig:
-    batch_size: Optional[Range | List[int]] = default_field(Range(min=RunConfigDefaults.MIN_MODEL_BATCH_SIZE, max=RunConfigDefaults.MAX_MODEL_BATCH_SIZE))
-    instance_count: Optional[Range | List[int]] = default_field(Range(min=RunConfigDefaults.MIN_INSTANCE_COUNT, max=RunConfigDefaults.MAX_INSTANCE_COUNT))
-    max_queue_delay: Optional[List[int]] = default_field(RunConfigDefaults.MAX_QUEUE_DELAY)
+    batch_size: Optional[Range | List[int]] = default_field(
+        Range(
+            min=RunConfigDefaults.MIN_MODEL_BATCH_SIZE,
+            max=RunConfigDefaults.MAX_MODEL_BATCH_SIZE,
+        )
+    )
+    instance_count: Optional[Range | List[int]] = default_field(
+        Range(
+            min=RunConfigDefaults.MIN_INSTANCE_COUNT,
+            max=RunConfigDefaults.MAX_INSTANCE_COUNT,
+        )
+    )
+    max_queue_delay: Optional[List[int]] = default_field(
+        RunConfigDefaults.MAX_QUEUE_DELAY
+    )
     dynamic_batching: bool = default_field(RunConfigDefaults.DYNAMIC_BATCHING)
     cpu_only: bool = default_field(RunConfigDefaults.CPU_ONLY)
-    
+
+
 @dataclass
-class ConfigPerfAnalzyer:
+class ConfigPerfAnalyzer:
     stimulus_type: str = default_field(RunConfigDefaults.STIMULUS_TYPE)
-    batch_size: Optional[Range | List[int]] = default_field(RunConfigDefaults.PA_BATCH_SIZE)
-    concurrency: Optional[Range | List[int]] = default_field(Range(min=RunConfigDefaults.MIN_CONCURRENCY, max=RunConfigDefaults.MAX_CONCURRENCY))
-    request_rate: Optional[Range | List[int]] = default_field(Range(min=RunConfigDefaults.MIN_REQUEST_RATE, max=RunConfigDefaults.MAX_REQUEST_RATE))
-    use_concurrency_formula: bool = default_field(RunConfigDefaults.USE_CONCURRENCY_FORMULA)
+    batch_size: Optional[Range | List[int]] = default_field(
+        RunConfigDefaults.PA_BATCH_SIZE
+    )
+    concurrency: Optional[Range | List[int]] = default_field(
+        Range(
+            min=RunConfigDefaults.MIN_CONCURRENCY, max=RunConfigDefaults.MAX_CONCURRENCY
+        )
+    )
+    request_rate: Optional[Range | List[int]] = default_field(
+        Range(
+            min=RunConfigDefaults.MIN_REQUEST_RATE,
+            max=RunConfigDefaults.MAX_REQUEST_RATE,
+        )
+    )
+    use_concurrency_formula: bool = default_field(
+        RunConfigDefaults.USE_CONCURRENCY_FORMULA
+    )
 
     def is_request_rate_specified(self) -> bool:
-        rr_specified = (self.request_rate or self.stimulus_type == "request_rate")
-        
+        rr_specified = self.stimulus_type == "request_rate"
+
         return rr_specified
+
 
 @dataclass
 class ConfigOptimize:
     model_config: ConfigModelConfig = ConfigModelConfig()
-    perf_analzyer: ConfigPerfAnalzyer = ConfigPerfAnalzyer()
-    
+    perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
+
     def is_request_rate_specified(self) -> bool:
-        self.perf_analzyer.is_request_rate_specified()
+        return self.perf_analyzer.is_request_rate_specified()
+
 
 @dataclass
 class ConfigCommand:
     optimize: ConfigOptimize = ConfigOptimize()
-    
