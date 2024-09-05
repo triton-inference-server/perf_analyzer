@@ -14,7 +14,7 @@
 
 from copy import copy
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 def default_field(obj):
@@ -56,13 +56,13 @@ class Range:
 
 @dataclass
 class ConfigModelConfig:
-    batch_size: Optional[Range | List[int]] = default_field(
+    batch_size: Optional[Union[Range, List[int]]] = default_field(
         Range(
             min=RunConfigDefaults.MIN_MODEL_BATCH_SIZE,
             max=RunConfigDefaults.MAX_MODEL_BATCH_SIZE,
         )
     )
-    instance_count: Optional[Range | List[int]] = default_field(
+    instance_count: Optional[Union[Range, List[int]]] = default_field(
         Range(
             min=RunConfigDefaults.MIN_INSTANCE_COUNT,
             max=RunConfigDefaults.MAX_INSTANCE_COUNT,
@@ -78,15 +78,15 @@ class ConfigModelConfig:
 @dataclass
 class ConfigPerfAnalyzer:
     stimulus_type: str = default_field(RunConfigDefaults.STIMULUS_TYPE)
-    batch_size: Optional[Range | List[int]] = default_field(
+    batch_size: Optional[Union[Range, List[int]]] = default_field(
         RunConfigDefaults.PA_BATCH_SIZE
     )
-    concurrency: Optional[Range | List[int]] = default_field(
+    concurrency: Optional[Union[Range, List[int]]] = default_field(
         Range(
             min=RunConfigDefaults.MIN_CONCURRENCY, max=RunConfigDefaults.MAX_CONCURRENCY
         )
     )
-    request_rate: Optional[Range | List[int]] = default_field(
+    request_rate: Optional[Union[Range, List[int]]] = default_field(
         Range(
             min=RunConfigDefaults.MIN_REQUEST_RATE,
             max=RunConfigDefaults.MAX_REQUEST_RATE,
