@@ -80,9 +80,12 @@ class SearchParameters:
         return self._search_parameters[name].category
 
     def get_range(self, name: str) -> Range:
+        min_range = int(self._search_parameters[name].min_range or 0)
+        max_range = int(self._search_parameters[name].max_range or 0)
+
         return Range(
-            min=self._search_parameters[name].min_range,  # type: ignore
-            max=self._search_parameters[name].max_range,  # type: ignore
+            min=min_range,
+            max=max_range,
         )
 
     def get_list(self, name: str) -> Optional[List[Any]]:
