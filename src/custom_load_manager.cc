@@ -78,7 +78,10 @@ CustomLoadManager::CustomLoadManager(
 cb::Error
 CustomLoadManager::PerformWarmup(size_t warmup_request_count)
 {
-  InitCustomIntervals(warmup_request_count);
+  if (warmup_request_count == 0) {
+    return cb::Error::Success;
+  }
+  RETURN_IF_ERROR(InitCustomIntervals(warmup_request_count));
   WaitForWarmupAndCleanup();
   return cb::Error::Success;
 }

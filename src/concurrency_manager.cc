@@ -86,6 +86,9 @@ cb::Error
 ConcurrencyManager::PerformWarmup(
     size_t concurrent_request_count, size_t warmup_request_count)
 {
+  if (warmup_request_count == 0) {
+    return cb::Error::Success;
+  }
   RETURN_IF_ERROR(
       ChangeConcurrencyLevel(concurrent_request_count, warmup_request_count));
   WaitForWarmupAndCleanup();
