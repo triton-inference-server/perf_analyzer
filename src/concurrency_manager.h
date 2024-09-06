@@ -86,6 +86,13 @@ class ConcurrencyManager : public LoadManager {
       const std::unordered_map<std::string, cb::RequestParameter>&
           request_parameters);
 
+  /// Performs warmup for benchmarking by sending a fixed number of requests
+  /// according to the specified concurrency
+  /// \param concurent_request_count The number of concurrent requests.
+  /// \param warmup_request_count The number of warmup requests to send.
+  cb::Error PerformWarmup(
+      size_t concurrent_request_count, size_t warmup_request_count);
+
   /// Adjusts the number of concurrent requests to be the same as
   /// 'concurrent_request_count' (by creating or pausing threads)
   /// \param concurent_request_count The number of concurrent requests.
@@ -115,8 +122,6 @@ class ConcurrencyManager : public LoadManager {
   bool execute_;
 
   size_t max_concurrency_;
-
-  std::vector<std::shared_ptr<ThreadConfig>> threads_config_;
 
  private:
   void InitManagerFinalize() override;
