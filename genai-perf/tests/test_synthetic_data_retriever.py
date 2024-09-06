@@ -17,13 +17,13 @@ from unittest.mock import patch
 import pytest
 from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.synthetic_retriever import SyntheticDataRetriever
+from genai_perf.inputs.synthetic_data_retriever import SyntheticDataRetriever
 
 
 class TestSyntheticDataRetriever:
 
     @patch(
-        "genai_perf.inputs.synthetic_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        "genai_perf.inputs.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
     @pytest.mark.parametrize(
@@ -51,11 +51,11 @@ class TestSyntheticDataRetriever:
         ]
 
     @patch(
-        "genai_perf.inputs.synthetic_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        "genai_perf.inputs.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
     @patch(
-        "genai_perf.inputs.synthetic_retriever.SyntheticImageGenerator.create_synthetic_image",
+        "genai_perf.inputs.synthetic_data_retriever.SyntheticImageGenerator.create_synthetic_image",
         return_value="data:image/jpeg;base64,test_base64_encoding",
     )
     def test_synthetic_text_and_image(self, mock_prompt, mock_image):
