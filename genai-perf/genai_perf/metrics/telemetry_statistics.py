@@ -62,6 +62,21 @@ class TelemetryStatistics:
                     self._statistics._calculate_std(gpu_data)
                 )
 
+    def scale_data(self) -> None:
+        SCALING_FACTORS = {
+            "energy_consumption": 1e-6,  # joules to megajoules (MJ)
+            "gpu_memory_used": 1e-9,  # bytes to gigabytes (GB)
+            "total_gpu_memory": 1e-9,  # bytes to gigabytes (GB)
+            "gpu_utilization": 100,  # ratio to percentage (%)
+        }
+        for metric, data in self._stats_dict.items():
+            if metric in SCALING_FACTORS:
+                factor = SCALING_FACTORS[metric]
+                for key, gpu_data in data.items():
+                    if key != "unit":
+                        for stat, value in gpu_data.items():
+                            self._stats_dict[metric][key][stat] = value * factor
+
     def _should_skip(self, data: Dict[str, List[float]]) -> bool:
         if len(data) == 0:
             return True

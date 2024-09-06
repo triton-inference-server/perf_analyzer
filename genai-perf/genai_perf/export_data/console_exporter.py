@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
 from rich.console import Console
 from rich.table import Table
@@ -39,6 +40,7 @@ class ConsoleExporter:
 
     def __init__(self, config: ExporterConfig):
         self._stats = config.stats
+        self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
         self._args = config.args
 
@@ -68,6 +70,10 @@ class ConsoleExporter:
 
         console = Console()
         console.print(table)
+        if self._args.verbose:
+            telem_utils.export_telemetry_stats_console(
+                self._telemetry_stats, self.STAT_COLUMN_KEYS, console
+            )
 
     def _construct_table(self, table: Table) -> None:
         for metric in self._metrics.request_metrics:

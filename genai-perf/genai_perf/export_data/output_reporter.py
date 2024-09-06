@@ -24,12 +24,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 from argparse import Namespace
+from typing import Optional
 
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.metrics import Statistics
+from genai_perf.metrics import Statistics, TelemetryStatistics
 from genai_perf.parser import get_extra_inputs_as_dict
 
 
@@ -38,10 +38,18 @@ class OutputReporter:
     A class to orchestrate output generation.
     """
 
-    def __init__(self, stats: Statistics, args: Namespace):
+    def __init__(
+        self,
+        stats: Statistics,
+        telemetry_stats: Optional[TelemetryStatistics],
+        args: Namespace,
+    ):
         self.args = args
         self.stats = stats
+        self.telemetry_stats = telemetry_stats
         self.stats.scale_data()
+        if self.telemetry_stats:
+            self.telemetry_stats.scale_data()
 
     def report_output(self) -> None:
         factory = DataExporterFactory()
@@ -54,6 +62,9 @@ class OutputReporter:
     def _create_exporter_config(self) -> ExporterConfig:
         config = ExporterConfig()
         config.stats = self.stats.stats_dict
+        config.telemetry_stats = (
+            self.telemetry_stats.stats_dict if self.telemetry_stats else None
+        )
         config.metrics = self.stats.metrics
         config.args = self.args
         config.artifact_dir = self.args.artifact_dir
