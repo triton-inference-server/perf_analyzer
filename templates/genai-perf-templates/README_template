@@ -89,7 +89,7 @@ genai-perf --help
 Since GenAI-Perf depends on Perf Analyzer,
 you'll need to install the Perf Analyzer binary:
 
-### Install Perf Analyzer (Ubuntu, Python 3.8+)
+### Install Perf Analyzer (Ubuntu, Python 3.10+)
 
 **NOTE**: you must already have CUDA 12 installed
 (checkout the [CUDA installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)).
