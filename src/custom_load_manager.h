@@ -86,6 +86,11 @@ class CustomLoadManager : public RequestRateManager {
       const std::unordered_map<std::string, cb::RequestParameter>&
           request_parameter);
 
+  /// Performs warmup for benchmarking by sending a fixed number of requests
+  /// according to the prespecified custom intervals
+  /// \param warmup_request_count The number of warmup requests to send.
+  cb::Error PerformWarmup(size_t warmup_request_count);
+
   /// Initializes the load manager with the provided file containing request
   /// intervals
   /// \param request_count The number of requests to generate. If 0, then
@@ -122,6 +127,9 @@ class CustomLoadManager : public RequestRateManager {
   /// \return cb::Error object indicating success or failure.
   virtual cb::Error ReadTimeIntervalsFile(
       const std::string& path, NanoIntervals* contents);
+
+  /// Waits for worker threads to complete then reset data members after warmup
+  void WaitForWarmupAndCleanup() override;
 
   std::string request_intervals_file_;
   NanoIntervals custom_intervals_;

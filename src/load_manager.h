@@ -134,6 +134,9 @@ class LoadManager {
   /// Stops all the worker threads generating the request load.
   void StopWorkerThreads();
 
+  /// Waits for worker threads to complete then reset data members after warmup
+  virtual void WaitForWarmupAndCleanup();
+
  protected:
   bool async_;
   bool streaming_;
@@ -147,7 +150,6 @@ class LoadManager {
   bool using_json_data_;
 
   std::shared_ptr<DataLoader> data_loader_;
-  std::unique_ptr<cb::ClientBackend> backend_;
   std::shared_ptr<IInferDataManager> infer_data_manager_;
 
   // Track the workers so they all go out of scope at the
@@ -158,6 +160,8 @@ class LoadManager {
   std::vector<std::thread> threads_;
   // Contains the statistics on the current working threads
   std::vector<std::shared_ptr<ThreadStat>> threads_stat_;
+  // Contains the configs for the current working threads
+  std::vector<std::shared_ptr<ThreadConfig>> threads_config_;
 
   // Use condition variable to pause/continue worker threads
   std::condition_variable wake_signal_;

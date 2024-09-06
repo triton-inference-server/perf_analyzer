@@ -76,6 +76,17 @@ CustomLoadManager::CustomLoadManager(
 }
 
 cb::Error
+CustomLoadManager::PerformWarmup(size_t warmup_request_count)
+{
+  if (warmup_request_count == 0) {
+    return cb::Error::Success;
+  }
+  RETURN_IF_ERROR(InitCustomIntervals(warmup_request_count));
+  WaitForWarmupAndCleanup();
+  return cb::Error::Success;
+}
+
+cb::Error
 CustomLoadManager::InitCustomIntervals(const size_t request_count)
 {
   PauseWorkers();
@@ -173,6 +184,13 @@ CustomLoadManager::ReadTimeIntervalsFile(
     return cb::Error("file '" + path + "' is empty", pa::GENERIC_ERROR);
   }
   return cb::Error::Success;
+}
+
+void
+CustomLoadManager::WaitForWarmupAndCleanup()
+{
+  RequestRateManager::WaitForWarmupAndCleanup();
+  custom_intervals_.clear();
 }
 
 }}  // namespace triton::perfanalyzer

@@ -279,6 +279,8 @@ class InferenceProfiler {
   /// \param step The step size to move along the search range in linear search
   /// or the precision in binary search.
   /// \param search_mode The search algorithm to be applied.
+  /// \param warmup_request_count The number of warmup requests to send before
+  /// benchmarking.
   /// \param request_count The number of requests to generate in each
   /// experiment. If 0, then there is no limit, and it will generate until
   /// stable.
@@ -287,12 +289,15 @@ class InferenceProfiler {
   template <typename T>
   cb::Error Profile(
       const T start, const T end, const T step, const SearchMode search_mode,
-      const size_t request_count, std::vector<PerfStatus>& perf_statuses)
+      size_t warmup_request_count, const size_t request_count,
+      std::vector<PerfStatus>& perf_statuses)
   {
     cb::Error err;
     bool meets_threshold, is_stable;
     if (search_mode == SearchMode::NONE) {
-      err = Profile(request_count, perf_statuses, meets_threshold, is_stable);
+      err = Profile(
+          warmup_request_count, request_count, perf_statuses, meets_threshold,
+          is_stable);
       if (!err.IsOk()) {
         return err;
       }
@@ -300,8 +305,8 @@ class InferenceProfiler {
       T current_value = start;
       do {
         err = Profile(
-            current_value, request_count, perf_statuses, meets_threshold,
-            is_stable);
+            current_value, warmup_request_count, request_count, perf_statuses,
+            meets_threshold, is_stable);
         if (!err.IsOk()) {
           return err;
         }
@@ -316,12 +321,14 @@ class InferenceProfiler {
       }
     } else {
       err = Profile(
-          start, request_count, perf_statuses, meets_threshold, is_stable);
+          start, warmup_request_count, request_count, perf_statuses,
+          meets_threshold, is_stable);
       if (!err.IsOk() || (!meets_threshold)) {
         return err;
       }
       err = Profile(
-          end, request_count, perf_statuses, meets_threshold, is_stable);
+          end, warmup_request_count, request_count, perf_statuses,
+          meets_threshold, is_stable);
       if (!err.IsOk() || (meets_threshold)) {
         return err;
       }
@@ -331,8 +338,8 @@ class InferenceProfiler {
       while ((this_end - this_start) > step) {
         T current_value = (this_end + this_start) / 2;
         err = Profile(
-            current_value, request_count, perf_statuses, meets_threshold,
-            is_stable);
+            current_value, warmup_request_count, request_count, perf_statuses,
+            meets_threshold, is_stable);
         if (!err.IsOk()) {
           return err;
         }
@@ -386,6 +393,8 @@ class InferenceProfiler {
   /// \param concurrent_request_count The concurrency level for the measurement.
   /// \param perf_statuses Appends the measurements summary at the end of this
   /// list.
+  /// \param warmup_request_count The number of warmup requests to send before
+  /// benchmarking.
   /// \param request_count The number of requests to generate when profiling. If
   /// 0, then there is no limit, and it will generate until stable.
   /// \param meets_threshold Returns whether the setting meets the
@@ -393,13 +402,15 @@ class InferenceProfiler {
   /// \param is_stable Returns whether the measurement is stable.
   /// \return cb::Error object indicating success or failure.
   cb::Error Profile(
-      const size_t concurrent_request_count, const size_t request_count,
-      std::vector<PerfStatus>& perf_statuses, bool& meets_threshold,
-      bool& is_stable);
+      const size_t concurrent_request_count, size_t warmup_request_count,
+      const size_t request_count, std::vector<PerfStatus>& perf_statuses,
+      bool& meets_threshold, bool& is_stable);
 
   /// Similar to above function, but instead of setting the concurrency, it
   /// sets the specified request rate for measurements.
   /// \param request_rate The request rate for inferences.
+  /// \param warmup_request_count The number of warmup requests to send before
+  /// benchmarking.
   /// \param request_count The number of requests to generate when profiling. If
   /// 0, then there is no limit, and it will generate until stable.
   /// \param perf_statuses Appends the measurements summary at the end of this
@@ -409,13 +420,15 @@ class InferenceProfiler {
   /// \param is_stable Returns whether the measurement is stable.
   /// \return cb::Error object indicating success or failure.
   cb::Error Profile(
-      const double request_rate, const size_t request_count,
-      std::vector<PerfStatus>& perf_statuses, bool& meets_threshold,
-      bool& is_stable);
+      const double request_rate, size_t warmup_request_count,
+      const size_t request_count, std::vector<PerfStatus>& perf_statuses,
+      bool& meets_threshold, bool& is_stable);
 
   /// Measures throughput and latencies for custom load without controlling
   /// request rate nor concurrency. Requires load manager to be loaded with
   /// a file specifying the time intervals.
+  /// \param warmup_request_count The number of warmup requests to send before
+  /// benchmarking.
   /// \param request_count The number of requests to generate when profiling. If
   /// 0, then there is no limit, and it will generate until stable.
   /// \param perf_statuses Appends the measurements summary at the end of this
@@ -426,8 +439,9 @@ class InferenceProfiler {
   /// \return cb::Error object indicating success
   /// or failure.
   cb::Error Profile(
-      const size_t request_count, std::vector<PerfStatus>& perf_statuses,
-      bool& meets_threshold, bool& is_stable);
+      size_t warmup_request_count, const size_t request_count,
+      std::vector<PerfStatus>& perf_statuses, bool& meets_threshold,
+      bool& is_stable);
 
   /// A helper function for profiling functions.
   /// \param status_summary Returns the summary of the measurement.
