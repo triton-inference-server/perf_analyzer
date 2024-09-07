@@ -31,6 +31,7 @@ from .rankings_converter import RankingsConverter
 from .tensorrtllm_converter import TensorRTLLMConverter
 from .tensorrtllm_engine_converter import TensorRTLLMEngineConverter
 from .vllm_converter import VLLMConverter
+from .triton_generate_converter import TritonGenerateConverter
 
 __all__ = [
     "OpenAIChatCompletionsConverter",
@@ -40,4 +41,5 @@ __all__ = [
     "TensorRTLLMConverter",
     "TensorRTLLMEngineConverter",
     "VLLMConverter",
+    "TritonGenerateConverter"
 ]

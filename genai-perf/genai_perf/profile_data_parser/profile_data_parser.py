@@ -44,6 +44,7 @@ class ResponseFormat(Enum):
     RANKINGS = auto()
     IMAGE_RETRIEVAL = auto()
     TRITON = auto()
+    TRITON_GENERATE= auto()
 
 
 class ProfileDataParser:
@@ -63,6 +64,7 @@ class ProfileDataParser:
 
     def _get_profile_metadata(self, data: dict) -> None:
         self._service_kind = data["service_kind"]
+        self._endpoint = data["endpoint"]
         if self._service_kind == "openai":
             if data["endpoint"] == "rerank":
                 self._response_format = ResponseFormat.HUGGINGFACE_RANKINGS
@@ -84,6 +86,8 @@ class ProfileDataParser:
                 self._response_format = ResponseFormat.RANKINGS
             elif data["endpoint"] == "v1/infer":
                 self._response_format = ResponseFormat.IMAGE_RETRIEVAL
+            elif "generate" in data["endpoint"]:
+                self._response_format = ResponseFormat.TRITON_GENERATE
             else:
                 # (TPA-66) add PA metadata to handle this case
                 # When endpoint field is either empty or custom endpoint, fall
