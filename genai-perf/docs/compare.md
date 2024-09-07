@@ -248,4 +248,3 @@ Here are the list of sample plots that gets created by default from running the
 
 ### Token-to-Token Latency vs. Output Token Position
 <img src="assets/token-to-token_latency_vs_output_token_position.jpeg" width="800" height="300" />
-

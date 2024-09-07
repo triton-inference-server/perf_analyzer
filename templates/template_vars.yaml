@@ -41,3 +41,9 @@ tutorial:
   filename: tutorial.md
   template: genai-perf-templates/tutorial_template
   output_dir: ../genai-perf/docs/
+
+version:
+  filename: __init__.py
+  template: genai-perf-templates/version_template
+  output_dir: ../genai-perf/genai_perf/
+  version: 0.0.6dev

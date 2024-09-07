@@ -26,7 +26,7 @@ OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-# Tutorials
+# Profile Large Language Models with GenAI-Perf
 
 - [Profile GPT2 running on Triton + TensorRT-LLM](#tensorrt-llm)
 - [Profile GPT2 running on Triton + vLLM](#triton-vllm)
