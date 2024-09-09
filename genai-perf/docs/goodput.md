@@ -54,7 +54,7 @@ using goodput.
 #### Profile Goodput on an OpenAI Chat Completions API-compatible server
 
 ```bash
-docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model gpt2 --dtype float16 --max-model-len 1024
+docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model HuggingFaceH4/zephyr-7b-beta --dtype float16
 ```
 
 #### Run GenAI-Perf with Goodput Constraints

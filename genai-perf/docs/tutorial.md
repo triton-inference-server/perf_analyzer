@@ -190,7 +190,7 @@ Request throughput (per sec): 2.57
 Run the vLLM inference server:
 
 ```bash
-docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model HuggingFaceH4/zephyr-7b-beta --dtype float16 --max-model-len 1024
+docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model HuggingFaceH4/zephyr-7b-beta --dtype float16
 ```
 
 </details>
