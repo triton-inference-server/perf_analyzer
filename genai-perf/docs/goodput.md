@@ -51,7 +51,7 @@ using goodput.
 
 ### Profile LLM Goodput<a id="LLM"></a>
 
-#### Run GPT2 on an OpenAI Chat Completions API-compatible server
+#### Profile Goodput on an OpenAI Chat Completions API-compatible server
 
 ```bash
 docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model gpt2 --dtype float16 --max-model-len 1024
@@ -61,33 +61,33 @@ docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model gpt2 -
 
 ```bash
 genai-perf profile \
-    -m gpt2 \
+    -m HuggingFaceH4/zephyr-7b-beta \
+    --tokenizer HuggingFaceH4/zephyr-7b-beta \
     --service-kind openai \
     --endpoint-type chat \
-    --measurement-interval 1000 \
     --streaming \
-    --goodput time_to_first_token:4.35 inter_token_latency:1.1
+    --goodput time_to_first_token:75 inter_token_latency:19.75
 ```
 
 Example output:
 
 ```
-                              NVIDIA GenAI-Perf | LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
-┃                         Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
-│          Time to first token (ms) │   7.46 │   4.15 │  18.40 │  17.89 │  13.26 │   5.56 │
-│          Inter token latency (ms) │   1.05 │   0.98 │   1.16 │   1.16 │   1.12 │   1.06 │
-│              Request latency (ms) │ 632.78 │ 620.90 │ 648.19 │ 647.81 │ 644.38 │ 638.67 │
-│            Output sequence length │ 595.60 │ 539.00 │ 638.00 │ 636.80 │ 626.00 │ 608.00 │
-│             Input sequence length │ 550.00 │ 550.00 │ 550.00 │ 550.00 │ 550.00 │ 550.00 │
-│ Output token throughput (per sec) │ 940.96 │    N/A │    N/A │    N/A │    N/A │    N/A │
-│      Request throughput (per sec) │   1.58 │    N/A │    N/A │    N/A │    N/A │    N/A │
-│         Request goodput (per sec) │   0.32 │    N/A │    N/A │    N/A │    N/A │    N/A │
-└───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+                                    NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃                         Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│          Time to first token (ms) │    78.10 │    63.55 │   111.13 │   109.61 │    95.91 │    73.07 │
+│          Inter token latency (ms) │    19.32 │    19.30 │    19.36 │    19.36 │    19.35 │    19.33 │
+│              Request latency (ms) │ 6,740.76 │ 4,387.10 │ 8,930.90 │ 8,929.88 │ 8,920.69 │ 8,905.37 │
+│            Output sequence length │   345.80 │   225.00 │   458.00 │   458.00 │   458.00 │   458.00 │
+│             Input sequence length │   550.00 │   550.00 │   550.00 │   550.00 │   550.00 │   550.00 │
+│ Output token throughput (per sec) │    51.20 │      N/A │      N/A │      N/A │      N/A │      N/A │
+│      Request throughput (per sec) │     0.15 │      N/A │      N/A │      N/A │      N/A │      N/A │
+│         Request goodput (per sec) │     0.12 │      N/A │      N/A │      N/A │      N/A │      N/A │
+└───────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
 ```
 
-### Profile Embeddings Models Goodput<a id="embeddings"></a>
+### Profile Embeddings Model Goodput<a id="embeddings"></a>
 
 #### Create a Sample Embeddings Input File
 
