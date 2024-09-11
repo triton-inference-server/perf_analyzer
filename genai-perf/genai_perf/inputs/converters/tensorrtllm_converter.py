@@ -96,6 +96,7 @@ class TensorRTLLMConverter(BaseConverter):
             pa_json = self._add_optional_tags_to_trtllm_json(
                 pa_json,
                 index,
+                config,
                 iter_model_name,
             )
 
