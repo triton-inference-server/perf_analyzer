@@ -17,7 +17,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import total_ordering
 from statistics import mean
-from typing import Any, Dict, List, Optional, TypeAlias
+from typing import Any, Dict, Optional, TypeAlias
 
 from genai_perf.record.record import Record
 
@@ -121,7 +121,7 @@ class ModelConfigMeasurement:
     ) -> Records:
         perf_metrics: Records = {}
 
-        for [tag, record_dict] in perf_metrics_dict.items():
+        for [tag, record_dict] in perf_metrics_dict.values():
             record = Record.get(tag)
             record = record.read_from_checkpoint(record_dict)  # type: ignore
             perf_metrics[tag] = record  # type: ignore
@@ -149,13 +149,11 @@ class ModelConfigMeasurement:
             == ModelConfigMeasurementDefaults.SELF_IS_BETTER
         )
 
-    # TODO: OPTIMIZE
-    # Why is mypy complaining about this?
-    # def __eq__(self, other: "ModelConfigMeasurement") -> bool:
-    #     return (
-    #         self._compare_measurements(other)
-    #         == ModelConfigMeasurementDefaults.EQUALIVILENT
-    #     )
+    def __eq__(self, other: "ModelConfigMeasurement") -> bool:  # type: ignore
+        return (
+            self._compare_measurements(other)
+            == ModelConfigMeasurementDefaults.EQUALIVILENT
+        )
 
     def _compare_measurements(self, other: "ModelConfigMeasurement") -> int:
         """

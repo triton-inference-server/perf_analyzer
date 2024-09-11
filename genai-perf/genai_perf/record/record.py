@@ -159,7 +159,7 @@ class Record(metaclass=RecordType):
             the name tag of the record type.
         """
 
-    def to_dict(self):
+    def write_to_checkpoint(self):
         return (self.tag, self.__dict__)
 
     @classmethod
