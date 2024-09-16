@@ -127,3 +127,14 @@ def sample_bounded_normal(mean, stddev, lower=float("-inf"), upper=float("inf"))
     """
     n = random.gauss(mean, stddev)
     return min(max(lower, n), upper)
+
+
+# FIXME: OPTIMIZE
+# This will move to the checkpoint class when it's created
+def checkpoint_encoder(obj):
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8")
+    elif hasattr(obj, "write_to_checkpoint"):
+        return obj.write_to_checkpoint()
+    else:
+        return obj.__dict__
