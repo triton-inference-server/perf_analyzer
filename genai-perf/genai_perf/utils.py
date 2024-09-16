@@ -108,3 +108,14 @@ def get_enum_entry(name: str, enum: Type[Enum]) -> Optional[Enum]:
 
 def scale(value, factor):
     return value * factor
+
+
+# FIXME: OPTIMIZE
+# This will move to the checkpoint class when it's created
+def checkpoint_encoder(obj):
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8")
+    elif hasattr(obj, "write_to_checkpoint"):
+        return obj.write_to_checkpoint()
+    else:
+        return obj.__dict__
