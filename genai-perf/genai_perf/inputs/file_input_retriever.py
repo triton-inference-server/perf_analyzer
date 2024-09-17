@@ -28,12 +28,7 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
-    OutputFormat,
-    PromptSource,
-)
+from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.utils import load_json_str
 
@@ -50,29 +45,14 @@ class FileInputRetriever:
     # TODO: match return type to retriever interface
     def retrieve_data(self) -> Dict[str, Any]:
         if self.config.output_format == OutputFormat.OPENAI_EMBEDDINGS:
-            # TODO: move to validation section in inputs.py
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{OutputFormat.OPENAI_EMBEDDINGS.to_lowercase()} only supports a file as input."
-                )
             return self._get_input_dataset_from_embeddings_file()
         elif self.config.output_format == OutputFormat.RANKINGS:
-            # TODO: move to validation section in inputs.py
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{OutputFormat.RANKINGS.to_lowercase()} only supports a directory as input."
-                )
             queries_filename = self.config.input_filename / "queries.jsonl"
             passages_filename = self.config.input_filename / "passages.jsonl"
             return self._get_input_dataset_from_rankings_files(
                 queries_filename, passages_filename
             )
         elif self.config.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            # TODO: move to validation section in inputs.py
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{OutputFormat.IMAGE_RETRIEVAL.to_lowercase()} only supports a file as input."
-                )
             return self._get_input_dataset_from_file()
         else:
             return self._get_input_dataset_from_file()
