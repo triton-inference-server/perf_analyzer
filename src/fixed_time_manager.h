@@ -105,8 +105,7 @@ class FixedTimeManager : public LoadManager {
   /// 0, then there is no limit, and it will generate until told to stop.
   /// \return cb::Error object indicating success or failure.
   cb::Error ChangeFixedTime(
-      const double target_request_rate, const size_t request_count = 0,
-      std::vector<float>& schedule);
+      const double target_request_rate, const size_t request_count = 0);
 
  protected:
   FixedTimeManager(

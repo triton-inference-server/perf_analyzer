@@ -33,6 +33,7 @@
 #include "command_line_parser.h"
 #include "concurrency_manager.h"
 #include "custom_load_manager.h"
+#include "fixed_time_manager.h"
 #include "inference_profiler.h"
 #include "model_parser.h"
 #include "mpi_utils.h"
