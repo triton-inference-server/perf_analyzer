@@ -683,17 +683,15 @@ class TestCLIArguments:
         "args, expected_format",
         [
             (
-                ["--service-kind", "openai", "--endpoint-type", "chat"],
+                ["--endpoint-type", "chat"],
                 OutputFormat.OPENAI_CHAT_COMPLETIONS,
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "completions"],
+                ["--endpoint-type", "completions"],
                 OutputFormat.OPENAI_COMPLETIONS,
             ),
             (
                 [
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "completions",
                     "--endpoint",
@@ -702,19 +700,19 @@ class TestCLIArguments:
                 OutputFormat.OPENAI_COMPLETIONS,
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "rankings"],
+                ["--endpoint-type", "rankings"],
                 OutputFormat.RANKINGS,
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "image_retrieval"],
+                ["--endpoint-type", "image_retrieval"],
                 OutputFormat.IMAGE_RETRIEVAL,
             ),
             (
-                ["--service-kind", "triton", "--backend", "tensorrtllm"],
+                ["--backend", "tensorrtllm"],
                 OutputFormat.TENSORRTLLM,
             ),
-            (["--service-kind", "triton", "--backend", "vllm"], OutputFormat.VLLM),
-            (["--service-kind", "tensorrtllm_engine"], OutputFormat.TENSORRTLLM_ENGINE),
+            (["--backend", "vllm"], OutputFormat.VLLM),
+            (["--endpoint-type", "inproc-tensorrtllm"], OutputFormat.TENSORRTLLM_ENGINE),
         ],
     )
     def test_inferred_output_format(self, monkeypatch, args, expected_format):

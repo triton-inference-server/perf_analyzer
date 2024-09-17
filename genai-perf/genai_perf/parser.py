@@ -97,7 +97,7 @@ _endpoint_type_map = {
                              "triton",
                              None),
     "inproc-tensorrtllm":EndpointConfig("",
-                                        "tensortllm_engine",
+                                        "tensorrtllm_engine",
                                         ic.OutputFormat.TENSORRTLLM_ENGINE),
 }
 
