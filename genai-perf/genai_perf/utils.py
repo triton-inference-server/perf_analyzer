@@ -56,7 +56,7 @@ def encode_image(img: Image, format: str):
 
 
 def remove_sse_prefix(msg: str) -> str:
-    prefix = "data: "
+    prefix = "data:"
     if msg.startswith(prefix):
         return msg[len(prefix) :].strip()
     return msg.strip()
