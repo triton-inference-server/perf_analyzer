@@ -20,6 +20,7 @@ import pytest
 import responses
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs import input_constants as ic
+from genai_perf.inputs.file_input_retriever import FileInputRetriever
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
 from genai_perf.inputs.inputs_config import InputsConfig
@@ -198,11 +199,11 @@ class TestInputRetrieverFactory:
         assert len(dataset_json["rows"]) == TEST_LENGTH
 
     def test_get_input_file_without_file_existing(self):
-        input_retriever_factory = InputRetrieverFactory(
+        file_retriever = FileInputRetriever(
             InputsConfig(input_filename=Path("prompt.txt"))
         )
         with pytest.raises(FileNotFoundError):
-            input_retriever_factory._get_input_dataset_from_file()
+            file_retriever._get_input_dataset_from_file()
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
@@ -212,14 +213,14 @@ class TestInputRetrieverFactory:
     )
     def test_get_input_file_with_single_prompt(self, mock_file, mock_exists):
         expected_prompts = ["single prompt"]
-        input_retriever_factory = InputRetrieverFactory(
+        file_retriever = FileInputRetriever(
             InputsConfig(
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("prompt.txt"),
             )
         )
-        dataset = input_retriever_factory._get_input_dataset_from_file()
+        dataset = file_retriever._get_input_dataset_from_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_prompts)
@@ -234,14 +235,14 @@ class TestInputRetrieverFactory:
     )
     def test_get_input_file_with_multiple_prompts(self, mock_file, mock_exists):
         expected_prompts = ["prompt1", "prompt2", "prompt3"]
-        input_retriever_factory = InputRetrieverFactory(
+        file_retriever = FileInputRetriever(
             InputsConfig(
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("prompt.txt"),
             )
         )
-        dataset = input_retriever_factory._get_input_dataset_from_file()
+        dataset = file_retriever._get_input_dataset_from_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_prompts)
@@ -262,7 +263,7 @@ class TestInputRetrieverFactory:
     def test_get_input_file_with_multi_modal_data(
         self, mock_exists, mock_image, mock_file
     ):
-        input_retriever_factory = InputRetrieverFactory(
+        file_retriever = FileInputRetriever(
             InputsConfig(
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
@@ -275,7 +276,7 @@ class TestInputRetrieverFactory:
             Data(text_input="prompt2", image="image2.png"),
             Data(text_input="prompt3", image="image3.png"),
         ]
-        dataset = input_retriever_factory._get_input_dataset_from_file()
+        dataset = file_retriever._get_input_dataset_from_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_data)

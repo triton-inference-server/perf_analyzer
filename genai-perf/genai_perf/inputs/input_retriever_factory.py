@@ -24,15 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import random
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import requests
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.file_input_retriever import FileInputRetriever
 from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
     OutputFormat,
     PromptSource,
     dataset_url_map,
@@ -43,7 +41,6 @@ from genai_perf.inputs.synthetic_image_generator import (
     SyntheticImageGenerator,
 )
 from genai_perf.inputs.synthetic_prompt_generator import SyntheticPromptGenerator
-from genai_perf.utils import load_json_str
 from PIL import Image
 from requests import Response
 
@@ -62,44 +59,21 @@ class InputRetrieverFactory:
             The generic dataset JSON
         """
 
-        if self.config.output_format == OutputFormat.OPENAI_EMBEDDINGS:
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{OutputFormat.OPENAI_EMBEDDINGS.to_lowercase()} only supports a file as input."
-                )
-            input_file_dataset = self._get_input_dataset_from_embeddings_file()
+        if self.config.output_format in [
+            OutputFormat.OPENAI_EMBEDDINGS,
+            OutputFormat.RANKINGS,
+            OutputFormat.IMAGE_RETRIEVAL,
+        ]:
+            # TODO: remove once the factory fully integrates retrievers
+            file_retriever = FileInputRetriever(self.config)
+            input_data = file_retriever.retrieve_data()
+
+            if self.config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+                input_data = self._encode_images_in_input_dataset(input_data)
+
             generic_dataset_json = (
                 self._convert_input_synthetic_or_file_dataset_to_generic_json(
-                    input_file_dataset
-                )
-            )
-        elif self.config.output_format == OutputFormat.RANKINGS:
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{OutputFormat.RANKINGS.to_lowercase()} only supports a directory as input."
-                )
-            queries_filename = self.config.input_filename / "queries.jsonl"
-            passages_filename = self.config.input_filename / "passages.jsonl"
-            input_file_dataset = self._get_input_dataset_from_rankings_files(
-                queries_filename, passages_filename
-            )
-            generic_dataset_json = (
-                self._convert_input_synthetic_or_file_dataset_to_generic_json(
-                    input_file_dataset
-                )
-            )
-        elif self.config.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{OutputFormat.IMAGE_RETRIEVAL.to_lowercase()} only supports a file as input."
-                )
-            input_file_dataset = self._get_input_dataset_from_file()
-            input_file_dataset = self._encode_images_in_input_dataset(
-                input_file_dataset
-            )
-            generic_dataset_json = (
-                self._convert_input_synthetic_or_file_dataset_to_generic_json(
-                    input_file_dataset
+                    input_data
                 )
             )
         else:
@@ -122,10 +96,11 @@ class InputRetrieverFactory:
                     )
                 )
             elif self.config.input_type == PromptSource.FILE:
-                input_file_dataset = self._get_input_dataset_from_file()
-                input_file_dataset = self._encode_images_in_input_dataset(
-                    input_file_dataset
-                )
+                # TODO: remove once the factory fully integrates retrievers
+                file_retriever = FileInputRetriever(self.config)
+                input_data = file_retriever.retrieve_data()
+
+                input_file_dataset = self._encode_images_in_input_dataset(input_data)
                 generic_dataset_json = (
                     self._convert_input_synthetic_or_file_dataset_to_generic_json(
                         input_file_dataset
@@ -136,112 +111,12 @@ class InputRetrieverFactory:
 
         return generic_dataset_json
 
-    def _get_input_dataset_from_embeddings_file(self) -> Dict[str, Any]:
-        with open(self.config.input_filename, "r") as file:
-            file_content = [load_json_str(line) for line in file]
-
-        texts = [item["text"] for item in file_content]
-
-        if self.config.batch_size > len(texts):
-            raise ValueError(
-                "Batch size cannot be larger than the number of available texts"
-            )
-
-        dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "input"}]
-        dataset_json["rows"] = []
-
-        for _ in range(self.config.num_prompts):
-            sampled_texts = random.sample(texts, self.config.batch_size)
-            dataset_json["rows"].append({"row": {"payload": {"input": sampled_texts}}})
-
-        return dataset_json
-
     def _convert_input_synthetic_or_file_dataset_to_generic_json(
         self, dataset: Dict
     ) -> Dict[str, List[Dict]]:
         generic_dataset_json = self._convert_dataset_to_generic_input_json(dataset)
 
         return generic_dataset_json
-
-    def _get_input_dataset_from_rankings_files(
-        self,
-        queries_filename: Path,
-        passages_filename: Path,
-    ) -> Dict[str, Any]:
-
-        with open(queries_filename, "r") as file:
-            queries_content = [load_json_str(line) for line in file]
-        queries_texts = [item for item in queries_content]
-
-        with open(passages_filename, "r") as file:
-            passages_content = [load_json_str(line) for line in file]
-        passages_texts = [item for item in passages_content]
-
-        if self.config.batch_size > len(passages_texts):
-            raise ValueError(
-                "Batch size cannot be larger than the number of available passages"
-            )
-
-        dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "input"}]
-        dataset_json["rows"] = []
-
-        for _ in range(self.config.num_prompts):
-            sampled_texts = random.sample(passages_texts, self.config.batch_size)
-            query_sample = random.choice(queries_texts)
-            entry_dict: Dict = {}
-            entry_dict["query"] = query_sample
-            entry_dict["passages"] = sampled_texts
-            dataset_json["rows"].append({"row": {"payload": entry_dict}})
-        return dataset_json
-
-    def _get_input_dataset_from_file(self) -> Dict:
-        """
-        Returns
-        -------
-        Dict
-            The dataset in the required format with the prompts and/or images
-            read from the file.
-        """
-        self._verify_file()
-        prompts, images = self._get_prompts_from_input_file()
-        if self.config.batch_size > len(prompts):
-            raise ValueError(
-                "Batch size cannot be larger than the number of available texts"
-            )
-        dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "text_input"}]
-        dataset_json["rows"] = []
-
-        if self.config.batch_size == DEFAULT_BATCH_SIZE:
-            for prompt, image in zip(prompts, images):
-                content = {}
-                if prompt is not None:
-                    content["text_input"] = prompt
-                if image is not None:
-                    content["image"] = image
-                dataset_json["rows"].append({"row": content})
-        else:
-            for _ in range(self.config.num_prompts):
-                content_array = []
-                sampled_indices = random.sample(
-                    range(len(prompts)), self.config.batch_size
-                )
-                sampled_texts_images = [
-                    (prompts[i], images[i]) for i in sampled_indices
-                ]
-
-                for prompt, image in sampled_texts_images:
-                    content = {}
-                    if prompt is not None:
-                        content["text_input"] = prompt
-                    if image is not None:
-                        content["image"] = image
-                    content_array.append(content)
-                dataset_json["rows"].append({"row": content_array})
-
-        return dataset_json
 
     def _encode_images_in_input_dataset(self, input_file_dataset: Dict) -> Dict:
         for row in input_file_dataset["rows"]:
@@ -323,27 +198,6 @@ class InputRetrieverFactory:
 
         return generic_input_json
 
-    def _get_prompts_from_input_file(self) -> Tuple[List[str], List[str]]:
-        """
-        Reads the input prompts from a JSONL file and returns a list of prompts.
-
-        Returns
-        -------
-        Tuple[List[str], List[str]]
-            A list of prompts and images read from the file.
-        """
-        prompts = []
-        images = []
-        with open(self.config.input_filename, mode="r", newline=None) as file:
-            for line in file:
-                if line.strip():
-                    # None if not provided
-                    prompt = load_json_str(line).get("text_input")
-                    image = load_json_str(line).get("image")
-                    prompts.append(prompt.strip() if prompt else prompt)
-                    images.append(image.strip() if image else image)
-        return prompts, images
-
     def _encode_image(self, filename: str) -> str:
         img = Image.open(filename)
         if img is None:
@@ -402,12 +256,6 @@ class InputRetrieverFactory:
             image_height_stddev=self.config.image_height_stddev,
             image_format=self.config.image_format,
         )
-
-    def _verify_file(self) -> None:
-        if not self.config.input_filename.exists():
-            raise FileNotFoundError(
-                f"The file '{self.config.input_filename}' does not exist."
-            )
 
     def _query_server(self, configured_url: str) -> Response:
         try:
