@@ -156,6 +156,8 @@ struct PerfAnalyzerParameters {
   bool is_using_periodic_concurrency_mode{false};
   Range<uint64_t> periodic_concurrency_range{1, 1, 1};
   uint64_t request_period{10};
+
+  std::vector<float> schedule{};
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;

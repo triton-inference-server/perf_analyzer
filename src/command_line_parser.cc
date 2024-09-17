@@ -53,7 +53,7 @@ SplitString(const std::string& str, const std::string& delimiter = ":")
   std::vector<std::string> substrs;
   size_t pos = 0;
   while (pos != std::string::npos) {
-    size_t colon_pos = str.find(":", pos);
+    size_t colon_pos = str.find(delimiter, pos);
     substrs.push_back(str.substr(pos, colon_pos - pos));
     if (colon_pos == std::string::npos) {
       pos = colon_pos;
@@ -889,6 +889,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"request-parameter", required_argument, 0, 60},
       {"endpoint", required_argument, 0, 61},
       {"request-count", required_argument, 0, 62},
+      {"schedule", required_argument, 0, 63},
       {0, 0, 0, 0}};
 
   // Parse commandline...
@@ -1630,6 +1631,16 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           params_->request_count = std::stoi(optarg);
           break;
+        }
+        case 63: {
+          std::vector<float> schedule;
+          std::string arg = optarg;
+          std::vector<std::string> float_strings = SplitString(optarg, ',');
+          for (const std::string& str : float_strings) {
+            schedule.push_back(std::stof(str));
+          }
+          params_->schedule = schedule;
+          break
         }
         case 'v':
           params_->extra_verbose = params_->verbose;
