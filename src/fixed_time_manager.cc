@@ -90,13 +90,12 @@ FixedTimeManager::InitManagerFinalize()
 
 cb::Error
 FixedTimeManager::ChangeFixedTime(
-    const double request_rate, const size_t request_count,
-    std::vector<float>& schedule)
+    const double request_rate, const size_t request_count)
 {
   PauseWorkers();
   ConfigureThreads(request_count);
   // Can safely update the schedule
-  GenerateSchedule(request_rate, schedule);
+  GenerateSchedule(request_rate, schedule_);
   ResumeWorkers();
 
   return cb::Error::Success;
@@ -125,8 +124,9 @@ FixedTimeManager::CreateWorkerSchedules(std::vector<float>& schedule)
   // Generate schedule until we hit max_duration, but also make sure that all
   // worker schedules follow the thread id distribution
   //
-  for (const float& val : vec) {
-    next_timestamp = val;
+  for (const float& val : schedule) {
+    next_timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::duration<float>(val));
     worker_index = thread_ids[thread_id_index];
     thread_id_index = ++thread_id_index % thread_ids.size();
     worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);

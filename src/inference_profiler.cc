@@ -619,57 +619,8 @@ InferenceProfiler::Profile(
   is_stable = false;
   meets_threshold = true;
 
-  RETURN_IF_ERROR(dynamic_cast<RequestRateManager*>(manager_.get())
-                      ->ChangeRequestRate(request_rate, request_count));
-  std::cout << "Request Rate: " << request_rate
-            << " inference requests per seconds" << std::endl;
-
-  err = ProfileHelper(perf_status, request_count, &is_stable);
-  if (err.IsOk()) {
-    uint64_t stabilizing_latency_ms =
-        perf_status.stabilizing_latency_ns / NANOS_PER_MILLIS;
-    if ((stabilizing_latency_ms >= latency_threshold_ms_) &&
-        (latency_threshold_ms_ != NO_LIMIT)) {
-      std::cerr << "Measured latency went over the set limit of "
-                << latency_threshold_ms_ << " msec. " << std::endl;
-      meets_threshold = false;
-    } else if (!is_stable) {
-      std::cerr << "Failed to obtain stable measurement." << std::endl;
-      meets_threshold = false;
-    } else {
-      perf_statuses.push_back(perf_status);
-      err = Report(
-          perf_status, percentile_, protocol_, verbose_, include_lib_stats_,
-          include_server_stats_, parser_, should_collect_metrics_,
-          overhead_pct_threshold_);
-      if (!err.IsOk()) {
-        std::cerr << err;
-        meets_threshold = false;
-      }
-    }
-  } else {
-    return err;
-  }
-
-  return cb::Error::Success;
-}
-
-cb::Error
-InferenceProfiler::Profile(
-    const double request_rate, const size_t request_count,
-    std::vector<PerfStatus>& perf_statuses, bool& meets_threshold,
-    bool& is_stable)
-{
-  cb::Error err;
-  PerfStatus perf_status{};
-
-  perf_status.request_rate = request_rate;
-
-  is_stable = false;
-  meets_threshold = true;
-  std::vector<float> myVector = {1.1f, 2.2f, 3.3f};
   RETURN_IF_ERROR(dynamic_cast<FixedTimeManager*>(manager_.get())
-                      ->ChangeFixedTime(request_rate, request_count, myVector));
+                      ->ChangeFixedTime(request_rate, request_count));
   std::cout << "Request Rate: " << request_rate
             << " inference requests per seconds" << std::endl;
 
@@ -702,6 +653,54 @@ InferenceProfiler::Profile(
 
   return cb::Error::Success;
 }
+
+// cb::Error
+// InferenceProfiler::Profile(
+//     const double request_rate, const size_t request_count,
+//     std::vector<PerfStatus>& perf_statuses, bool& meets_threshold,
+//     bool& is_stable)
+// {
+//   cb::Error err;
+//   PerfStatus perf_status{};
+
+//   perf_status.request_rate = request_rate;
+
+//   is_stable = false;
+//   meets_threshold = true;
+//   RETURN_IF_ERROR(dynamic_cast<FixedTimeManager*>(manager_.get())
+//                       ->ChangeFixedTime(request_rate, request_count));
+//   std::cout << "Request Rate: " << request_rate
+//             << " inference requests per seconds" << std::endl;
+
+//   err = ProfileHelper(perf_status, request_count, &is_stable);
+//   if (err.IsOk()) {
+//     uint64_t stabilizing_latency_ms =
+//         perf_status.stabilizing_latency_ns / NANOS_PER_MILLIS;
+//     if ((stabilizing_latency_ms >= latency_threshold_ms_) &&
+//         (latency_threshold_ms_ != NO_LIMIT)) {
+//       std::cerr << "Measured latency went over the set limit of "
+//                 << latency_threshold_ms_ << " msec. " << std::endl;
+//       meets_threshold = false;
+//     } else if (!is_stable) {
+//       std::cerr << "Failed to obtain stable measurement." << std::endl;
+//       meets_threshold = false;
+//     } else {
+//       perf_statuses.push_back(perf_status);
+//       err = Report(
+//           perf_status, percentile_, protocol_, verbose_, include_lib_stats_,
+//           include_server_stats_, parser_, should_collect_metrics_,
+//           overhead_pct_threshold_);
+//       if (!err.IsOk()) {
+//         std::cerr << err;
+//         meets_threshold = false;
+//       }
+//     }
+//   } else {
+//     return err;
+//   }
+
+//   return cb::Error::Success;
+// }
 
 cb::Error
 InferenceProfiler::Profile(

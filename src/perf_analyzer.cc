@@ -229,7 +229,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
         params_->shared_memory_type, params_->output_shm_size, parser_, factory,
         params_->periodic_concurrency_range, params_->request_period,
         params_->request_parameters);
-  } else if ((params_->using_schedule).size() > 0) {
+  } else if ((params_->schedule).size() > 0) {
     // if ((params_->sequence_id_range != 0) &&
     //     (params_->sequence_id_range < params_->num_of_sequences)) {
     //   std::cerr

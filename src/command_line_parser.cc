@@ -1635,12 +1635,12 @@ CLParser::ParseCommandLine(int argc, char** argv)
         case 63: {
           std::vector<float> schedule;
           std::string arg = optarg;
-          std::vector<std::string> float_strings = SplitString(optarg, ',');
+          std::vector<std::string> float_strings = SplitString(optarg, ",");
           for (const std::string& str : float_strings) {
             schedule.push_back(std::stof(str));
           }
           params_->schedule = schedule;
-          break
+          break;
         }
         case 'v':
           params_->extra_verbose = params_->verbose;
@@ -1693,7 +1693,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
         case 'f':
           params_->filename = optarg;
           break;
-        case '?':
+        case '_':
           Usage();
           break;
       }
