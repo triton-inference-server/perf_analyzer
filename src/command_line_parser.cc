@@ -1648,7 +1648,9 @@ CLParser::ParseCommandLine(int argc, char** argv)
           if (std::stoi(optarg) < 0) {
             Usage("Failed to parse --request-count. The value must be > 0.");
           }
-          params_->request_count = std::stoi(optarg);
+          if (params_->request_count == 0) {
+            params_->request_count = std::stoi(optarg);
+          }
           break;
         }
         case long_option_idx_base + 63: {
@@ -1668,6 +1670,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
             schedule.push_back(std::stof(str));
           }
           params_->schedule = schedule;
+          params_->request_count = schedule.size();
           break;
         }
         case 'v':
