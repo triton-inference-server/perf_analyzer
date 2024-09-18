@@ -39,7 +39,7 @@ cb::Error
 RequestRateManager::Create(
     const bool async, const bool streaming,
     const uint64_t measurement_window_ms, const size_t max_trials,
-    Distribution request_distribution, std::vector<float>& schedule,
+    Distribution request_distribution, const std::vector<float>& schedule,
     const int32_t batch_size, const size_t max_threads,
     const uint32_t num_of_sequences, const SharedMemoryType shared_memory_type,
     const size_t output_shm_size, const bool serial_sequences,
@@ -62,7 +62,7 @@ RequestRateManager::Create(
 
 RequestRateManager::RequestRateManager(
     const bool async, const bool streaming, Distribution request_distribution,
-    std::vector<float>& schedule, int32_t batch_size,
+    const std::vector<float>& schedule, int32_t batch_size,
     const uint64_t measurement_window_ms, const size_t max_trials,
     const size_t max_threads, const uint32_t num_of_sequences,
     const SharedMemoryType shared_memory_type, const size_t output_shm_size,
@@ -118,7 +118,7 @@ RequestRateManager::ChangeRequestRate(
 
 void
 RequestRateManager::GenerateSchedule(
-    const double request_rate, std::vector<float>& schedule)
+    const double request_rate, const std::vector<float>& schedule)
 {
   std::chrono::nanoseconds max_duration;
   std::function<std::chrono::nanoseconds(std::mt19937&)> distribution;
@@ -147,7 +147,7 @@ std::vector<RateSchedulePtr_t>
 RequestRateManager::CreateWorkerSchedules(
     std::chrono::nanoseconds max_duration,
     std::function<std::chrono::nanoseconds(std::mt19937&)> distribution,
-    std::vector<float>& schedule)
+    const std::vector<float>& schedule)
 {
   std::mt19937 schedule_rng;
 
