@@ -244,16 +244,25 @@ TritonLoader::StartTriton()
   REPORT_TRITONSERVER_ERROR(
       api_version_fn_(&api_version_major, &api_version_minor),
       "unable to get api version");
-  if ((TRITONSERVER_API_VERSION_MAJOR != api_version_major) ||
-      (TRITONSERVER_API_VERSION_MINOR > api_version_minor)) {
+
+  if (TRITONSERVER_API_VERSION_MAJOR != api_version_major) {
     std::stringstream sstream;
-    sstream << "triton server API version mismatch. \n"
-            << "Expected version major:" << TRITONSERVER_API_VERSION_MAJOR
-            << ", minor:" << TRITONSERVER_API_VERSION_MINOR << "\n"
-            << "  Actual version major:" << api_version_major
-            << ", minor:" << api_version_minor;
+    sstream << "Triton server API major version mismatch. \n"
+            << "Expected major version: " << TRITONSERVER_API_VERSION_MAJOR
+            << "\n"
+            << "Actual major version: " << api_version_major;
     return Error(sstream.str());
   }
+
+  if (TRITONSERVER_API_VERSION_MINOR > 30) {
+    std::stringstream sstream;
+    sstream << "Warning: Triton server API minor version mismatch. \n"
+            << "Expected minor version: " << TRITONSERVER_API_VERSION_MINOR
+            << "\n"
+            << "Actual minor version: " << api_version_minor;
+    std::cerr << sstream.str() << std::endl;
+  }
+
   // Create the server...
   TRITONSERVER_ServerOptions* server_options = nullptr;
   RETURN_IF_TRITONSERVER_ERROR(
