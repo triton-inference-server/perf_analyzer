@@ -74,7 +74,7 @@ The easiest way to install GenAI-Perf is through
 Install the latest release using the following command:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="24.08"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -141,7 +141,7 @@ docker run -ti \
     -v /tmp:/tmp \
     -v ${HOME}/models:/root/models \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.05-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:24.08-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.8
@@ -159,7 +159,7 @@ triton start
 Now we can run GenAI-Perf from Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="24.08"
 
 docker run -it --net=host --rm --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -335,6 +335,13 @@ You can optionally set additional model inputs with the following option:
   model with a singular value, such as `stream:true` or `max_tokens:5`. This
   flag can be repeated to supply multiple extra inputs.
 
+For [Large Language Models](docs/tutorial.md), there is no batch size (i.e.
+batch size is always `1`). Each request includes the inputs for one individual
+inference. Other modes such as the [embeddings](docs/embeddings.md) and
+[rankings](docs/rankings.md) endpoints support client-side batching, where
+`--batch-size N` means that each request sent will include the inputs for `N`
+separate inferences, allowing them to be processed together.
+
 </br>
 
 <!--
@@ -425,9 +432,9 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 
 The batch size of the requests GenAI-Perf should send.
 This is currently only supported with the
-[embeddings endpoint type](docs/embeddings.md).
-(default: `1`) and
-[rankings endpoint type](docs/rankings.md).
+[embeddings](docs/embeddings.md), image_retrieval, and
+[rankings](docs/rankings.md) endpoint types.
+(default: `1`)
 
 ##### `--extra-inputs <str>`
 
@@ -534,7 +541,8 @@ export file is `profile_export.json`, the genai-perf file will be exported to
 ##### `--tokenizer <str>`
 
 The HuggingFace tokenizer to use to interpret token metrics from prompts and
-responses. (default: `hf-internal-testing/llama-tokenizer`)
+responses. The value can be the name of a tokenizer or the filepath of the
+tokenizer. (default: `hf-internal-testing/llama-tokenizer`)
 
 ##### `-v`
 ##### `--verbose`

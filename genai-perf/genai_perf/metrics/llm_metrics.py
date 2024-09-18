@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List
+from typing import List, Union
 
 from genai_perf.metrics.metrics import MetricMetadata, Metrics
 
@@ -34,13 +34,25 @@ from genai_perf.metrics.metrics import MetricMetadata, Metrics
 class LLMMetrics(Metrics):
     """A simple dataclass that holds core LLM performance metrics."""
 
-    LLM_REQUEST_METRICS = [
+    LLM_REQUEST_TIME_METRICS = [
         MetricMetadata("time_to_first_token", "ms"),
         MetricMetadata("inter_token_latency", "ms"),
+    ]
+
+    LLM_REQUEST_THROUGHPUT_METRICS = [
         MetricMetadata("output_token_throughput_per_request", "tokens/sec"),
+    ]
+
+    LLM_REQUEST_OTHER_METRICS = [
         MetricMetadata("output_sequence_length", "tokens"),
         MetricMetadata("input_sequence_length", "tokens"),
     ]
+
+    LLM_REQUEST_METRICS = (
+        LLM_REQUEST_TIME_METRICS
+        + LLM_REQUEST_THROUGHPUT_METRICS
+        + LLM_REQUEST_OTHER_METRICS
+    )
 
     LLM_SYSTEM_METRICS = [
         # (TMA-1977) Make the unit consistent with statistics dict (e.g. tokens/sec)
@@ -54,12 +66,13 @@ class LLMMetrics(Metrics):
         time_to_first_tokens: List[int] = [],
         inter_token_latencies: List[int] = [],
         output_token_throughputs: List[float] = [],
-        output_token_throughputs_per_request: List[int] = [],
+        output_token_throughputs_per_request: List[float] = [],
         output_sequence_lengths: List[int] = [],
         input_sequence_lengths: List[int] = [],
         chunked_inter_token_latencies: List[List[int]] = [[]],
+        request_goodputs: Union[List[float], None] = [],
     ) -> None:
-        super().__init__(request_throughputs, request_latencies)
+        super().__init__(request_throughputs, request_latencies, request_goodputs)
         self.time_to_first_tokens = time_to_first_tokens
         self.inter_token_latencies = inter_token_latencies
         self.output_token_throughputs = output_token_throughputs
@@ -106,3 +119,13 @@ class LLMMetrics(Metrics):
         # line to enable this order:
         # return base_metrics + self.LLM_SYSTEM_METRICS
         return self.LLM_SYSTEM_METRICS + base_metrics
+
+    @property
+    def request_time_metrics(self) -> List[MetricMetadata]:
+        base_metrics = super().request_time_metrics
+        return self.LLM_REQUEST_TIME_METRICS + base_metrics
+
+    @property
+    def request_throughput_metrics(self) -> List[MetricMetadata]:
+        base_metrics = super().request_throughput_metrics
+        return self.LLM_REQUEST_THROUGHPUT_METRICS + base_metrics

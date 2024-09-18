@@ -90,6 +90,11 @@ def init_logging() -> None:
                 "level": "DEBUG",
                 "propagate": False,
             },
+            "genai_perf.goodput_calculator.llm_goodput_calculator": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
         },
     }
     logging.config.dictConfig(LOGGING_CONFIG)

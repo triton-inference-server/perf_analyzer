@@ -70,17 +70,17 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
   RequestRecord::ResponseOutput response_output1{
       {"out_key1",
        {reinterpret_cast<const uint8_t*>(out_bufs[0].data()),
-        out_bufs[0].size()}},
+        out_bufs[0].size(), "BYTES"}},
       {"out_key2",
        {reinterpret_cast<const uint8_t*>(out_bufs[1].data()),
-        out_bufs[1].size()}}};
+        out_bufs[1].size(), "BYTES"}}};
   RequestRecord::ResponseOutput response_output2{
       {"out_key3",
        {reinterpret_cast<const uint8_t*>(out_bufs[2].data()),
-        out_bufs[2].size()}},
+        out_bufs[2].size(), "BYTES"}},
       {"out_key4",
        {reinterpret_cast<const uint8_t*>(out_bufs[3].data()),
-        out_bufs[3].size()}}};
+        out_bufs[3].size(), "BYTES"}}};
 
   RequestRecord request_record{
       request_timestamp,
@@ -190,6 +190,139 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
   CHECK(actual_windows[2] == expected_windows[2]);
 
   CHECK(actual_version == expected_version);
+}
+
+TEST_CASE("profile_data_exporter: AddDataToJSON")
+{
+  MockProfileDataExporter exporter{};
+  rapidjson::Value json;
+  const uint8_t* buf;
+
+  SUBCASE("Test bytes")
+  {
+    const std::string data{"abc123"};
+    buf = reinterpret_cast<const uint8_t*>(data.data());
+    exporter.AddDataToJSON(json, buf, data.size(), "BYTES");
+    CHECK(json == "abc123");
+  }
+
+  SUBCASE("Test json")
+  {
+    const std::string data{"{\"abc\":\"def\"}"};
+    buf = reinterpret_cast<const uint8_t*>(data.data());
+    exporter.AddDataToJSON(json, buf, data.size(), "JSON");
+    CHECK(json == "{\"abc\":\"def\"}");
+  }
+
+  SUBCASE("Test bool")
+  {
+    const bool data[3] = {true, false, true};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "BOOL");
+    CHECK(json[0] == true);
+    CHECK(json[1] == false);
+    CHECK(json[2] == true);
+  }
+
+  SUBCASE("Test uint8")
+  {
+    const uint8_t data[3] = {1, 2, 3};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT8");
+    CHECK(json[0] == 1);
+    CHECK(json[1] == 2);
+    CHECK(json[2] == 3);
+  }
+
+  SUBCASE("Test uint16")
+  {
+    const uint16_t data[3] = {4, 5, 6};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT16");
+    CHECK(json[0] == 4);
+    CHECK(json[1] == 5);
+    CHECK(json[2] == 6);
+  }
+
+  SUBCASE("Test uint32")
+  {
+    const uint32_t data[3] = {7, 8, 9};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT32");
+    CHECK(json[0] == 7);
+    CHECK(json[1] == 8);
+    CHECK(json[2] == 9);
+  }
+
+  SUBCASE("Test uint64")
+  {
+    const uint64_t data[3] = {10, 11, 12};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT64");
+    CHECK(json[0] == 10);
+    CHECK(json[1] == 11);
+    CHECK(json[2] == 12);
+  }
+
+  SUBCASE("Test int8")
+  {
+    const int8_t data[3] = {1, -2, 3};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "INT8");
+    CHECK(json[0] == 1);
+    CHECK(json[1] == -2);
+    CHECK(json[2] == 3);
+  }
+
+  SUBCASE("Test int16")
+  {
+    const int16_t data[3] = {4, -5, 6};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "INT16");
+    CHECK(json[0] == 4);
+    CHECK(json[1] == -5);
+    CHECK(json[2] == 6);
+  }
+
+  SUBCASE("Test int32")
+  {
+    const int32_t data[3] = {7, -8, 9};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "INT32");
+    CHECK(json[0] == 7);
+    CHECK(json[1] == -8);
+    CHECK(json[2] == 9);
+  }
+
+  SUBCASE("Test int64")
+  {
+    const int64_t data[3] = {10, -11, 12};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "INT64");
+    CHECK(json[0] == 10);
+    CHECK(json[1] == -11);
+    CHECK(json[2] == 12);
+  }
+
+  SUBCASE("Test fp32")
+  {
+    const float data[3] = {1.0, -2.0, 3.0};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "FP32");
+    CHECK(json[0] == 1.0);
+    CHECK(json[1] == -2.0);
+    CHECK(json[2] == 3.0);
+  }
+
+  SUBCASE("Test fp64")
+  {
+    const double data[3] = {4.0, -5.0, 6.0};
+    buf = reinterpret_cast<const uint8_t*>(data);
+    exporter.AddDataToJSON(json, buf, sizeof(data), "FP64");
+    CHECK(json[0] == 4.0);
+    CHECK(json[1] == -5.0);
+    CHECK(json[2] == 6.0);
+  }
 }
 
 TEST_CASE("profile_data_exporter: AddExperiment")

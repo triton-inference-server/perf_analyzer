@@ -30,15 +30,27 @@ import sys
 import traceback
 from argparse import Namespace
 from pathlib import Path
+from typing import Optional
 
 import genai_perf.logging as logging
 from genai_perf import parser
+from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
-from genai_perf.llm_inputs.llm_inputs import LlmInputs
+from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
+from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
-from genai_perf.profile_data_parser import LLMProfileDataParser, ProfileDataParser
+from genai_perf.profile_data_parser import (
+    ImageRetrievalProfileDataParser,
+    LLMProfileDataParser,
+    ProfileDataParser,
+)
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TelemetryDataCollector,
+    TritonTelemetryDataCollector,
+)
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
 
 
@@ -49,27 +61,26 @@ def create_artifacts_dirs(args: Namespace) -> None:
         os.makedirs(plot_dir, exist_ok=True)
 
 
-def generate_inputs(args: Namespace, tokenizer: Tokenizer) -> None:
-    # TODO (TMA-1759): review if add_model_name is always true
+def create_config_options(args: Namespace) -> InputsConfig:
     if args.input_file:
         filepath, _ = args.input_file
         input_filename = Path(filepath)
     else:
-        input_filename = None
-    add_model_name = True
+        input_filename = Path(".")
+
     try:
         extra_input_dict = parser.get_extra_inputs_as_dict(args)
     except ValueError as e:
         raise GenAIPerfException(e)
 
-    LlmInputs.create_llm_inputs(
+    return InputsConfig(
         input_type=args.prompt_source,
         output_format=args.output_format,
         dataset_name=args.input_dataset,
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
         input_filename=input_filename,
-        starting_index=LlmInputs.DEFAULT_STARTING_INDEX,
+        starting_index=DEFAULT_STARTING_INDEX,
         length=args.num_prompts,
         prompt_tokens_mean=args.synthetic_input_tokens_mean,
         prompt_tokens_stddev=args.synthetic_input_tokens_stddev,
@@ -82,27 +93,62 @@ def generate_inputs(args: Namespace, tokenizer: Tokenizer) -> None:
         image_height_stddev=args.image_height_stddev,
         image_format=args.image_format,
         random_seed=args.random_seed,
-        num_of_output_prompts=args.num_prompts,
-        add_model_name=add_model_name,
+        num_prompts=args.num_prompts,
         add_stream=args.streaming,
-        tokenizer=tokenizer,
+        tokenizer=get_tokenizer(args.tokenizer),
         extra_inputs=extra_input_dict,
         batch_size=args.batch_size,
         output_dir=args.artifact_dir,
     )
 
 
+def create_telemetry_data_collector(
+    args: Namespace,
+) -> Optional[TelemetryDataCollector]:
+    logger = logging.getLogger(__name__)
+    telemetry_data_collector = None
+    if args.service_kind == "triton":
+        server_metrics_url = args.server_metrics_url or DEFAULT_TRITON_METRICS_URL
+        telemetry_data_collector = TritonTelemetryDataCollector(server_metrics_url)
+
+    if telemetry_data_collector and not telemetry_data_collector.is_url_reachable():
+        logger.warning(
+            f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
+            "GenAI-Perf cannot collect telemetry data."
+        )
+        telemetry_data_collector = None
+    return telemetry_data_collector
+
+
+def generate_inputs(config_options: InputsConfig) -> None:
+    inputs = Inputs(config_options)
+    inputs.create_inputs()
+
+
 def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParser:
     if args.endpoint_type in ["embeddings", "rankings"]:
-        return ProfileDataParser(args.profile_export_file)
+        return ProfileDataParser(
+            args.profile_export_file,
+            goodput_constraints=args.goodput,
+        )
+    elif args.endpoint_type == "image_retrieval":
+        return ImageRetrievalProfileDataParser(
+            args.profile_export_file,
+            goodput_constraints=args.goodput,
+        )
     else:
         return LLMProfileDataParser(
             filename=args.profile_export_file,
             tokenizer=tokenizer,
+            goodput_constraints=args.goodput,
         )
 
 
-def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
+def report_output(
+    data_parser: ProfileDataParser,
+    telemetry_data_collector: Optional[TelemetryDataCollector],
+    args: Namespace,
+) -> None:
     if args.concurrency:
         infer_mode = "concurrency"
         load_level = f"{args.concurrency}"
@@ -113,7 +159,11 @@ def report_output(data_parser: ProfileDataParser, args: Namespace) -> None:
         raise GenAIPerfException("No valid infer mode specified")
 
     stats = data_parser.get_statistics(infer_mode, load_level)
-    reporter = OutputReporter(stats, args)
+    telemetry_stats = (
+        telemetry_data_collector.get_statistics() if telemetry_data_collector else None
+    )
+    reporter = OutputReporter(stats, telemetry_stats, args)
+
     reporter.report_output()
     if args.generate_plots:
         create_plots(args)
@@ -139,15 +189,17 @@ def run():
         # TMA-1900: refactor CLI handler
         logging.init_logging()
         args, extra_args = parser.parse_args()
+        config_options = create_config_options(args)
         if args.subcommand == "compare":
             args.func(args)
         else:
             create_artifacts_dirs(args)
             tokenizer = get_tokenizer(args.tokenizer)
-            generate_inputs(args, tokenizer)
-            args.func(args, extra_args)
+            generate_inputs(config_options)
+            telemetry_data_collector = create_telemetry_data_collector(args)
+            args.func(args, extra_args, telemetry_data_collector)
             data_parser = calculate_metrics(args, tokenizer)
-            report_output(data_parser, args)
+            report_output(data_parser, telemetry_data_collector, args)
     except Exception as e:
         raise GenAIPerfException(e)
 

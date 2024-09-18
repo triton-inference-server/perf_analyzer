@@ -30,13 +30,12 @@ from pathlib import Path
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
-from genai_perf.llm_inputs.llm_inputs import (
-    ImageFormat,
+from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.llm_inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.parser import PathType
 
 
@@ -113,6 +112,10 @@ class TestCLIArguments:
             (
                 ["--endpoint-type", "rankings", "--service-kind", "openai"],
                 {"endpoint": "v1/ranking"},
+            ),
+            (
+                ["--endpoint-type", "image_retrieval", "--service-kind", "openai"],
+                {"endpoint": "v1/infer"},
             ),
             (
                 [
@@ -204,6 +207,10 @@ class TestCLIArguments:
             (["-s", "99.5"], {"stability_percentage": 99.5}),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
             (
+                ["--service-kind", "tensorrtllm_engine"],
+                {"service_kind": "tensorrtllm_engine"},
+            ),
+            (
                 ["--service-kind", "openai", "--endpoint-type", "chat"],
                 {"service_kind": "openai", "endpoint": "v1/chat/completions"},
             ),
@@ -238,6 +245,19 @@ class TestCLIArguments:
             (["--verbose"], {"verbose": True}),
             (["-u", "test_url"], {"u": "test_url"}),
             (["--url", "test_url"], {"u": "test_url"}),
+            (
+                [
+                    "--goodput",
+                    "time_to_first_token:5",
+                    "output_token_throughput_per_request:6",
+                ],
+                {
+                    "goodput": {
+                        "time_to_first_token": 5,
+                        "output_token_throughput_per_request": 6,
+                    }
+                },
+            ),
         ],
     )
     def test_non_file_flags_parsed(self, monkeypatch, arg, expected_attributes, capsys):
@@ -323,6 +343,10 @@ class TestCLIArguments:
             (
                 ["--service-kind", "openai", "--endpoint-type", "rankings"],
                 "artifacts/test_model-openai-rankings-concurrency1",
+            ),
+            (
+                ["--service-kind", "openai", "--endpoint-type", "image_retrieval"],
+                "artifacts/test_model-openai-image_retrieval-concurrency1",
             ),
             (
                 ["--service-kind", "triton", "--backend", "tensorrtllm"],
@@ -530,7 +554,7 @@ class TestCLIArguments:
                     "100",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean-deterministic option is only supported with the Triton service-kind",
+                "The --output-tokens-mean-deterministic option is only supported with the Triton and TensorRT-LLM Engine service-kind",
             ),
             (
                 [
@@ -541,7 +565,7 @@ class TestCLIArguments:
                     "--batch-size",
                     "10",
                 ],
-                "The --batch-size option is currently only supported with the embeddings and rankings endpoint types",
+                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types",
             ),
             (
                 [
@@ -580,6 +604,20 @@ class TestCLIArguments:
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
+                    "image_retrieval",
+                    "--streaming",
+                ],
+                "The --streaming option is not supported with the image_retrieval endpoint type",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
                     "embeddings",
                     "--generate-plots",
                 ],
@@ -598,6 +636,36 @@ class TestCLIArguments:
                     "--generate-plots",
                 ],
                 "The --generate-plots option is not currently supported with the rankings endpoint type",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
+                    "image_retrieval",
+                    "--generate-plots",
+                ],
+                "The --generate-plots option is not currently supported with the image_retrieval endpoint type",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "invalid_url",
+                ],
+                "The URL passed for --server-metrics-url is invalid. "
+                "It must use 'http' or 'https', have a valid domain and port, "
+                "and contain '/metrics' in the path. The expected structure is: "
+                "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
             ),
         ],
     )
@@ -638,10 +706,15 @@ class TestCLIArguments:
                 OutputFormat.RANKINGS,
             ),
             (
+                ["--service-kind", "openai", "--endpoint-type", "image_retrieval"],
+                OutputFormat.IMAGE_RETRIEVAL,
+            ),
+            (
                 ["--service-kind", "triton", "--backend", "tensorrtllm"],
                 OutputFormat.TENSORRTLLM,
             ),
             (["--service-kind", "triton", "--backend", "vllm"], OutputFormat.VLLM),
+            (["--service-kind", "tensorrtllm_engine"], OutputFormat.TENSORRTLLM_ENGINE),
         ],
     )
     def test_inferred_output_format(self, monkeypatch, args, expected_format):
@@ -685,6 +758,24 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as exc_info:
             _ = parser.get_extra_inputs_as_dict(parsed_args)
+
+        assert str(exc_info.value) == expected_error
+
+    @pytest.mark.parametrize(
+        "args, expected_error",
+        [
+            (
+                ["--goodput", "time_to_first_token:-1"],
+                "Invalid value found, time_to_first_token: -1.0. The goodput constraint value should be non-negative. ",
+            ),
+        ],
+    )
+    def test_goodput_args_warning(self, monkeypatch, args, expected_error):
+        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        monkeypatch.setattr("sys.argv", combined_args)
+
+        with pytest.raises(ValueError) as exc_info:
+            parsed_args, _ = parser.parse_args()
 
         assert str(exc_info.value) == expected_error
 
@@ -841,3 +932,41 @@ class TestCLIArguments:
         namespace.extra_inputs = extra_inputs_list
         actual_dict = parser.get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
+
+    test_triton_metrics_url = "http://tritonmetrics.com:8002/metrics"
+
+    @pytest.mark.parametrize(
+        "args_list, expected_url",
+        [
+            # server-metrics-url is specified
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    test_triton_metrics_url,
+                ],
+                test_triton_metrics_url,
+            ),
+            # server-metrics-url is not specified
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                ],
+                None,
+            ),
+        ],
+    )
+    def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
+        monkeypatch.setattr("sys.argv", args_list)
+        args, _ = parser.parse_args()
+        assert args.server_metrics_url == expected_url

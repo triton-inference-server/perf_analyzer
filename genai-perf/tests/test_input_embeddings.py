@@ -28,10 +28,17 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.llm_inputs.llm_inputs import LlmInputs, ModelSelectionStrategy
+from genai_perf.inputs.input_constants import (
+    ModelSelectionStrategy,
+    OutputFormat,
+    PromptSource,
+)
+from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
+from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.inputs_config import InputsConfig
 
 
-class TestLlmInputsEmbeddings:
+class TestInputsEmbeddings:
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
         "builtins.open",
@@ -46,11 +53,15 @@ class TestLlmInputsEmbeddings:
         ),
     )
     def test_get_input_dataset_from_embeddings_file(self, mock_file, mock_exists):
-        input_filename = Path("embeddings.jsonl")
         batch_size = 3
-        dataset = LlmInputs._get_input_dataset_from_embeddings_file(
-            input_filename, batch_size, num_prompts=100
+        config = InputsConfig(
+            input_filename=Path("embeddings.jsonl"),
+            batch_size=batch_size,
+            num_prompts=100,
         )
+        input_retriever_factory = InputRetrieverFactory(config)
+
+        dataset = input_retriever_factory._get_input_dataset_from_embeddings_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == 100
@@ -67,9 +78,8 @@ class TestLlmInputsEmbeddings:
             ValueError,
             match="Batch size cannot be larger than the number of available texts",
         ):
-            LlmInputs._get_input_dataset_from_embeddings_file(
-                input_filename, 5, num_prompts=10
-            )
+            config.batch_size = 5
+            input_retriever_factory._get_input_dataset_from_embeddings_file()
 
     def test_convert_generic_json_to_openai_embeddings_format(self):
         generic_dataset = {
@@ -100,11 +110,18 @@ class TestLlmInputsEmbeddings:
             ]
         }
 
-        result = LlmInputs._convert_generic_json_to_openai_embeddings_format(
+        inputs = Inputs(
+            InputsConfig(
+                input_type=PromptSource.SYNTHETIC,
+                extra_inputs={},
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            )
+        )
+
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None
@@ -121,12 +138,6 @@ class TestLlmInputsEmbeddings:
                 {"payload": {"input": ["text 1", "text 2"]}},
                 {"payload": {"input": ["text 3", "text 4"]}},
             ]
-        }
-
-        extra_inputs = {
-            "encoding_format": "base64",
-            "truncate": "END",
-            "additional_key": "additional_value",
         }
 
         expected_result = {
@@ -156,11 +167,23 @@ class TestLlmInputsEmbeddings:
             ]
         }
 
-        result = LlmInputs._convert_generic_json_to_openai_embeddings_format(
+        extra_inputs = {
+            "encoding_format": "base64",
+            "truncate": "END",
+            "additional_key": "additional_value",
+        }
+
+        inputs = Inputs(
+            InputsConfig(
+                input_type=PromptSource.SYNTHETIC,
+                extra_inputs=extra_inputs,
+                model_name=["test_model"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            )
+        )
+        result = inputs._convert_generic_json_to_output_format(
             generic_dataset,
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
         )
 
         assert result is not None

@@ -89,6 +89,18 @@ RequestRateManager::InitManagerFinalize()
 }
 
 cb::Error
+RequestRateManager::PerformWarmup(
+    double request_rate, size_t warmup_request_count)
+{
+  if (warmup_request_count == 0) {
+    return cb::Error::Success;
+  }
+  RETURN_IF_ERROR(ChangeRequestRate(request_rate, warmup_request_count));
+  WaitForWarmupAndCleanup();
+  return cb::Error::Success;
+}
+
+cb::Error
 RequestRateManager::ChangeRequestRate(
     const double request_rate, const size_t request_count)
 {

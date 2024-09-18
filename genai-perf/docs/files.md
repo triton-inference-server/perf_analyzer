@@ -69,10 +69,12 @@ versus the input sequence length for each request.
 
 ##### JSON Files
 
-- llm_inputs.json: This contains the input prompts provided to the LLM during testing.
+- inputs.json: This contains the input prompts provided to the LLM during testing.
 - profile_export.json: This is provided by Perf Analyzer and contains the timestamps
 for each event in the lifecycle of each request. This is low-level data used to calculate
 metrics by GenAi-Perf.
+- profile_export_genai_perf.json: A JSON of the output of GenAI-Perf as well as
+additional details, including the submitted command line arguments.
 
 ##### CSV File
 

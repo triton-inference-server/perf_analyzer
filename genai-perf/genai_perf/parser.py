@@ -30,25 +30,17 @@ import os
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
+from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.constants import (
-    CNN_DAILY_MAIL,
-    DEFAULT_ARTIFACT_DIR,
-    DEFAULT_COMPARE_DIR,
-    OPEN_ORCA,
-)
-from genai_perf.llm_inputs.llm_inputs import (
-    LlmInputs,
-    ModelSelectionStrategy,
-    OutputFormat,
-    PromptSource,
-)
-from genai_perf.llm_inputs.synthetic_image_generator import ImageFormat
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_COMPARE_DIR
+from genai_perf.inputs import input_constants as ic
+from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
+from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER
 
 from . import __version__
@@ -78,6 +70,7 @@ _endpoint_type_map = {
     "embeddings": "v1/embeddings",
     "rankings": "v1/ranking",
     "vision": "v1/chat/completions",
+    "image_retrieval": "v1/infer",
 }
 
 
@@ -89,7 +82,7 @@ def _check_model_args(
     """
     logger.info(f"Profiling these models: {', '.join(args.model)}")
     args = _convert_str_to_enum_entry(
-        args, "model_selection_strategy", ModelSelectionStrategy
+        args, "model_selection_strategy", ic.ModelSelectionStrategy
     )
     _generate_formatted_model_name(args)
     return args
@@ -150,18 +143,20 @@ def _check_conditional_args(
             )
         else:
             if args.endpoint_type == "chat":
-                args.output_format = OutputFormat.OPENAI_CHAT_COMPLETIONS
+                args.output_format = ic.OutputFormat.OPENAI_CHAT_COMPLETIONS
             elif args.endpoint_type == "completions":
-                args.output_format = OutputFormat.OPENAI_COMPLETIONS
+                args.output_format = ic.OutputFormat.OPENAI_COMPLETIONS
             elif args.endpoint_type == "embeddings":
-                args.output_format = OutputFormat.OPENAI_EMBEDDINGS
+                args.output_format = ic.OutputFormat.OPENAI_EMBEDDINGS
             elif args.endpoint_type == "rankings":
-                args.output_format = OutputFormat.RANKINGS
+                args.output_format = ic.OutputFormat.RANKINGS
+            elif args.endpoint_type == "image_retrieval":
+                args.output_format = ic.OutputFormat.IMAGE_RETRIEVAL
 
             # (TMA-1986) deduce vision format from chat completions + image CLI
             # because there's no openai vision endpoint.
             elif args.endpoint_type == "vision":
-                args.output_format = OutputFormat.OPENAI_VISION
+                args.output_format = ic.OutputFormat.OPENAI_VISION
 
             if args.endpoint is not None:
                 args.endpoint = args.endpoint.lstrip(" /")
@@ -173,12 +168,15 @@ def _check_conditional_args(
         )
 
     if args.service_kind == "triton":
-        args = _convert_str_to_enum_entry(args, "backend", OutputFormat)
+        args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
         args.output_format = args.backend
 
+    if args.service_kind == "tensorrtllm_engine":
+        args.output_format = ic.OutputFormat.TENSORRTLLM_ENGINE
+
     # Output token distribution checks
-    if args.output_tokens_mean == LlmInputs.DEFAULT_OUTPUT_TOKENS_MEAN:
-        if args.output_tokens_stddev != LlmInputs.DEFAULT_OUTPUT_TOKENS_STDDEV:
+    if args.output_tokens_mean == ic.DEFAULT_OUTPUT_TOKENS_MEAN:
+        if args.output_tokens_stddev != ic.DEFAULT_OUTPUT_TOKENS_STDDEV:
             parser.error(
                 "The --output-tokens-mean option is required when using --output-tokens-stddev."
             )
@@ -187,10 +185,11 @@ def _check_conditional_args(
                 "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic."
             )
 
-    if args.service_kind != "triton":
+    if args.service_kind not in ["triton", "tensorrtllm_engine"]:
         if args.output_tokens_mean_deterministic:
             parser.error(
-                "The --output-tokens-mean-deterministic option is only supported with the Triton service-kind."
+                "The --output-tokens-mean-deterministic option is only supported "
+                "with the Triton and TensorRT-LLM Engine service-kind."
             )
 
     _check_conditional_args_embeddings_rankings(parser, args)
@@ -203,8 +202,9 @@ def _check_conditional_args_embeddings_rankings(
 ):
 
     if args.output_format in [
-        OutputFormat.OPENAI_EMBEDDINGS,
-        OutputFormat.RANKINGS,
+        ic.OutputFormat.OPENAI_EMBEDDINGS,
+        ic.OutputFormat.RANKINGS,
+        ic.OutputFormat.IMAGE_RETRIEVAL,
     ]:
         if args.streaming:
             parser.error(
@@ -216,14 +216,14 @@ def _check_conditional_args_embeddings_rankings(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
     else:
-        if args.batch_size != LlmInputs.DEFAULT_BATCH_SIZE:
+        if args.batch_size != ic.DEFAULT_BATCH_SIZE:
             parser.error(
-                "The --batch-size option is currently only supported with the embeddings and rankings endpoint types."
+                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types."
             )
 
     if args.input_file:
         _, path_type = args.input_file
-        if args.output_format != OutputFormat.RANKINGS:
+        if args.output_format != ic.OutputFormat.RANKINGS:
             if path_type == "directory":
                 parser.error(
                     "A directory is only currently supported for the rankings endpoint type."
@@ -242,6 +242,64 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     # If no concurrency or request rate is set, default to 1
     if not args.concurrency and not args.request_rate:
         args.concurrency = 1
+    return args
+
+
+def _check_goodput_args(args):
+    """
+    Parse and check goodput args
+    """
+    if args.goodput:
+        args.goodput = parse_goodput(args.goodput)
+        for target_metric, target_val in args.goodput.items():
+            if target_val < 0:
+                raise ValueError(
+                    f"Invalid value found, {target_metric}: {target_val}. "
+                    f"The goodput constraint value should be non-negative. "
+                )
+    return args
+
+
+def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
+    """
+    Validates a URL to ensure it meets the following criteria:
+    - The scheme must be 'http' or 'https'.
+    - The netloc (domain) must be present.
+    - The path must contain '/metrics'.
+
+    Raises:
+        `parser.error()` if the URL is invalid.
+
+    The URL structure is expected to follow:
+    <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+    """
+    parsed_url = urlparse(url)
+
+    if (
+        parsed_url.scheme not in ["http", "https"]
+        or not parsed_url.netloc
+        or "/metrics" not in parsed_url.path
+        or parsed_url.port is None
+    ):
+        parser.error(
+            "The URL passed for --server-metrics-url is invalid. "
+            "It must use 'http' or 'https', have a valid domain and port, "
+            "and contain '/metrics' in the path. The expected structure is: "
+            "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
+        )
+
+
+def _check_server_metrics_url(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> argparse.Namespace:
+    """
+    Checks if the server metrics URL passed is valid
+    """
+
+    # Check if the URL is valid and contains the expected path
+    if args.service_kind == "triton" and args.server_metrics_url:
+        _is_valid_url(parser, args.server_metrics_url)
+
     return args
 
 
@@ -267,6 +325,8 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
             name += [f"{args.service_kind}-{args.endpoint_type}"]
         elif args.service_kind == "triton":
             name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
+        elif args.service_kind == "tensorrtllm_engine":
+            name += [f"{args.service_kind}"]
         else:
             raise ValueError(f"Unknown service kind '{args.service_kind}'.")
 
@@ -286,12 +346,29 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
     return args
 
 
+def parse_goodput(values):
+    constraints = {}
+    try:
+        for item in values:
+            target_metric, target_val = item.split(":")
+            constraints[target_metric] = float(target_val)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"Invalid format found for goodput constraints. "
+            f"The expected format is 'key:value' pairs. The key should be a "
+            f"service level objective name (e.g. request_latency). The value "
+            f"should be a number representing either milliseconds "
+            f"or a throughput value per second."
+        )
+    return constraints
+
+
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
     if args.input_dataset:
-        args.prompt_source = PromptSource.DATASET
+        args.prompt_source = ic.PromptSource.DATASET
         logger.debug(f"Input source is the following dataset: {args.input_dataset}")
     elif args.input_file:
-        args.prompt_source = PromptSource.FILE
+        args.prompt_source = ic.PromptSource.FILE
         if args.endpoint_type == "rankings":
             logger.debug(
                 f"Input source is the following directory: {args.input_file[0]}"
@@ -299,7 +376,7 @@ def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
         else:
             logger.debug(f"Input source is the following file: {args.input_file[0]}")
     else:
-        args.prompt_source = PromptSource.SYNTHETIC
+        args.prompt_source = ic.PromptSource.SYNTHETIC
         logger.debug("Input source is synthetic data")
     return args
 
@@ -336,17 +413,18 @@ def _add_input_args(parser):
         "--batch-size",
         "-b",
         type=int,
-        default=LlmInputs.DEFAULT_BATCH_SIZE,
+        default=ic.DEFAULT_BATCH_SIZE,
         required=False,
         help=f"The batch size of the requests GenAI-Perf should send. "
-        "This is currently only supported with the embeddings and rankings endpoint types.",
+        "This is currently only supported with the embeddings, rankings, and "
+        "image_retrieval endpoint types.",
     )
 
     input_group.add_argument(
         "--extra-inputs",
         action="append",
         help="Provide additional inputs to include with every request. "
-        "You can repeat this flag for multiple inputs. Inputs should be in an input_name:value format."
+        "You can repeat this flag for multiple inputs. Inputs should be in an input_name:value format. "
         "Alternatively, a string representing a json formatted dict can be provided.",
     )
 
@@ -355,7 +433,7 @@ def _add_input_args(parser):
         "--input-dataset",
         type=str.lower,
         default=None,
-        choices=[OPEN_ORCA, CNN_DAILY_MAIL],
+        choices=[ic.OPEN_ORCA, ic.CNN_DAILY_MAIL],
         required=False,
         help="The HuggingFace dataset to use for prompts.",
     )
@@ -375,7 +453,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--num-prompts",
         type=int,
-        default=LlmInputs.DEFAULT_NUM_PROMPTS,
+        default=ic.DEFAULT_NUM_PROMPTS,
         required=False,
         help=f"The number of unique prompts to generate as stimulus.",
     )
@@ -383,7 +461,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-mean",
         type=int,
-        default=LlmInputs.DEFAULT_OUTPUT_TOKENS_MEAN,
+        default=ic.DEFAULT_OUTPUT_TOKENS_MEAN,
         required=False,
         help=f"The mean number of tokens in each output. "
         "Ensure the --tokenizer value is set correctly. ",
@@ -405,7 +483,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_OUTPUT_TOKENS_STDDEV,
+        default=ic.DEFAULT_OUTPUT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of the number of tokens in each output. "
         "This is only used when --output-tokens-mean is provided.",
@@ -414,7 +492,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--random-seed",
         type=int,
-        default=LlmInputs.DEFAULT_RANDOM_SEED,
+        default=ic.DEFAULT_RANDOM_SEED,
         required=False,
         help="The seed used to generate random values.",
     )
@@ -422,7 +500,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--synthetic-input-tokens-mean",
         type=int,
-        default=LlmInputs.DEFAULT_PROMPT_TOKENS_MEAN,
+        default=ic.DEFAULT_PROMPT_TOKENS_MEAN,
         required=False,
         help=f"The mean of number of tokens in the generated prompts when using synthetic data.",
     )
@@ -430,9 +508,22 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--synthetic-input-tokens-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_PROMPT_TOKENS_STDDEV,
+        default=ic.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
+    )
+
+    input_group.add_argument(
+        "--goodput",
+        "-g",
+        nargs="+",
+        required=False,
+        help="An option to provide constraints in order to compute goodput. "
+        "Specify goodput constraints as 'key:value' pairs, where the key is a "
+        "valid metric name, and the value is a number representing "
+        "either milliseconds or a throughput value per second. For example, "
+        "'request_latency:300' or 'output_token_throughput_per_request:600'. "
+        "Multiple key:value pairs can be provided, separated by spaces. ",
     )
 
 
@@ -442,7 +533,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-mean",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_WIDTH_MEAN,
+        default=ic.DEFAULT_IMAGE_WIDTH_MEAN,
         required=False,
         help=f"The mean width of images when generating synthetic image data.",
     )
@@ -450,7 +541,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_WIDTH_STDDEV,
+        default=ic.DEFAULT_IMAGE_WIDTH_STDDEV,
         required=False,
         help=f"The standard deviation of width of images when generating synthetic image data.",
     )
@@ -458,7 +549,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-mean",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_HEIGHT_MEAN,
+        default=ic.DEFAULT_IMAGE_HEIGHT_MEAN,
         required=False,
         help=f"The mean height of images when generating synthetic image data.",
     )
@@ -466,7 +557,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-stddev",
         type=int,
-        default=LlmInputs.DEFAULT_IMAGE_HEIGHT_STDDEV,
+        default=ic.DEFAULT_IMAGE_HEIGHT_STDDEV,
         required=False,
         help=f"The standard deviation of height of images when generating synthetic image data.",
     )
@@ -537,7 +628,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--model-selection-strategy",
         type=str,
-        choices=utils.get_enum_names(ModelSelectionStrategy),
+        choices=utils.get_enum_names(ic.ModelSelectionStrategy),
         default="round_robin",
         required=False,
         help=f"When multiple model are specified, this is how a specific model "
@@ -549,7 +640,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--backend",
         type=str,
-        choices=utils.get_enum_names(OutputFormat)[2:],
+        choices=utils.get_enum_names(ic.OutputFormat)[2:],
         default="tensorrtllm",
         required=False,
         help=f'When using the "triton" service-kind, '
@@ -569,7 +660,14 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--endpoint-type",
         type=str,
-        choices=["chat", "completions", "embeddings", "rankings", "vision"],
+        choices=[
+            "chat",
+            "completions",
+            "embeddings",
+            "rankings",
+            "vision",
+            "image_retrieval",
+        ],
         required=False,
         help=f"The endpoint-type to send requests to on the "
         'server. This is only used with the "openai" service-kind.',
@@ -578,12 +676,22 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--service-kind",
         type=str,
-        choices=["triton", "openai"],
+        choices=["triton", "openai", "tensorrtllm_engine"],
         default="triton",
         required=False,
         help="The kind of service perf_analyzer will "
         'generate load for. In order to use "openai", '
         "you must specify an api via --endpoint-type.",
+    )
+
+    endpoint_group.add_argument(
+        "--server-metrics-url",
+        type=str,
+        default=None,
+        required=False,
+        help="The full URL to access the server metrics endpoint. "
+        "This argument is required if the metrics are available on "
+        "a different machine than localhost (where GenAI-Perf is running).",
     )
 
     endpoint_group.add_argument(
@@ -625,9 +733,8 @@ def _add_output_args(parser):
         default=Path("profile_export.json"),
         help="The path where the perf_analyzer profile export will be "
         "generated. By default, the profile export will be to profile_export.json. "
-        "The genai-perf files will be exported to <profile_export_file>_genai_perf.json and "
-        "<profile_export_file>_genai_perf.csv. "
-        "For example, if the profile export file is profile_export.json, the genai-perf CSV file will be "
+        "The genai-perf file will be exported to <profile_export_file>_genai_perf.csv. "
+        "For example, if the profile export file is profile_export.json, the genai-perf file will be "
         "exported to profile_export_genai_perf.csv.",
     )
 
@@ -640,7 +747,8 @@ def _add_other_args(parser):
         type=str,
         default=DEFAULT_TOKENIZER,
         required=False,
-        help="The HuggingFace tokenizer to use to interpret token metrics from prompts and responses.",
+        help="The HuggingFace tokenizer to use to interpret token metrics from prompts and responses. "
+        " The value can be the name of a tokenizer or the filepath of the tokenizer.",
     )
 
     other_group.add_argument(
@@ -759,10 +867,16 @@ def compare_handler(args: argparse.Namespace):
     plot_manager.generate_plots()
 
 
-def profile_handler(args, extra_args):
+def profile_handler(
+    args, extra_args, telemetry_data_collector: Optional[TelemetryDataCollector]
+) -> None:
     from genai_perf.wrapper import Profiler
 
-    Profiler.run(args=args, extra_args=extra_args)
+    Profiler.run(
+        args=args,
+        extra_args=extra_args,
+        telemetry_data_collector=telemetry_data_collector,
+    )
 
 
 ### Parser Initialization ###
@@ -811,7 +925,9 @@ def refine_args(
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
         args = _check_load_manager_args(args)
+        args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
+        args = _check_goodput_args(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
         args = _check_compare_args(parser, args)
     else:

@@ -1,4 +1,4 @@
-// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@ namespace triton { namespace perfanalyzer {
 //
 class PerfAnalyzerException : public std::exception {
  public:
+  PerfAnalyzerException(const std::string& message) : message_(message) {}
+
   PerfAnalyzerException(uint32_t error) : error_(error) {}
 
   PerfAnalyzerException(const std::string& message, uint32_t error)
@@ -48,7 +50,7 @@ class PerfAnalyzerException : public std::exception {
 
  private:
   const std::string message_{""};
-  uint32_t error_;
+  uint32_t error_{GENERIC_ERROR};
 };
 
 }}  // namespace triton::perfanalyzer

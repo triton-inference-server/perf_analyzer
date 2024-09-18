@@ -28,9 +28,10 @@
 import json
 import os
 from enum import Enum
-from typing import Dict
+from typing import Dict, Optional, Union
 
 import genai_perf.logging as logging
+from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,9 @@ class JsonExporter:
 
     def __init__(self, config: ExporterConfig):
         self._stats: Dict = config.stats
+        self._telemetry_stats: Optional[
+            Dict[str, Dict[str, Union[str, Dict[str, float]]]]
+        ] = config.telemetry_stats
         self._args = dict(vars(config.args))
         self._extra_inputs = config.extra_inputs
         self._output_dir = config.artifact_dir
@@ -76,4 +80,7 @@ class JsonExporter:
 
     def _merge_stats_and_args(self) -> None:
         self._stats_and_args = dict(self._stats)
+        telem_utils.merge_telemetry_stats_json(
+            self._telemetry_stats, self._stats_and_args
+        )
         self._stats_and_args.update({"input_config": self._args})

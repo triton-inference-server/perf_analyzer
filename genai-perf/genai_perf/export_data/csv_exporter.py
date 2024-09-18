@@ -28,6 +28,7 @@
 import csv
 
 import genai_perf.logging as logging
+from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ class CsvExporter:
 
     def __init__(self, config: ExporterConfig):
         self._stats = config.stats
+        self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
         self._output_dir = config.artifact_dir
         self._args = config.args
@@ -73,6 +75,7 @@ class CsvExporter:
             self._write_request_metrics(writer)
             writer.writerow([])
             self._write_system_metrics(writer)
+            telem_utils.export_telemetry_stats_csv(self._telemetry_stats, writer)
 
     def _write_request_metrics(self, csv_writer) -> None:
         csv_writer.writerow(self.REQUEST_METRICS_HEADER)
@@ -94,6 +97,9 @@ class CsvExporter:
         for metric in self._metrics.system_metrics:
             metric_str = metric.name.replace("_", " ").title()
             metric_str += f" ({metric.unit})"
+            if metric.name == "request_goodput":
+                if not self._args.goodput:
+                    continue
             value = self._stats[metric.name]["avg"]
             csv_writer.writerow([metric_str, f"{value:.2f}"])
 

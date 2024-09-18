@@ -28,8 +28,9 @@
 
 from enum import Enum, auto
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 
+from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
 from genai_perf.metrics import Metrics, Statistics
 from genai_perf.utils import load_json
 
@@ -41,6 +42,7 @@ class ResponseFormat(Enum):
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
+    IMAGE_RETRIEVAL = auto()
     TRITON = auto()
 
 
@@ -49,7 +51,12 @@ class ProfileDataParser:
     extract core metrics and calculate various performance statistics.
     """
 
-    def __init__(self, filename: Path) -> None:
+    def __init__(
+        self,
+        filename: Path,
+        goodput_constraints: Dict[str, float] = {},
+    ) -> None:
+        self._goodput_constraints = goodput_constraints
         data = load_json(filename)
         self._get_profile_metadata(data)
         self._parse_profile_data(data)
@@ -75,6 +82,8 @@ class ProfileDataParser:
                 self._response_format = ResponseFormat.OPENAI_EMBEDDINGS
             elif data["endpoint"] == "v1/ranking":
                 self._response_format = ResponseFormat.RANKINGS
+            elif data["endpoint"] == "v1/infer":
+                self._response_format = ResponseFormat.IMAGE_RETRIEVAL
             else:
                 # (TPA-66) add PA metadata to handle this case
                 # When endpoint field is either empty or custom endpoint, fall
@@ -93,11 +102,15 @@ class ProfileDataParser:
                     self._response_format = ResponseFormat.OPENAI_EMBEDDINGS
                 elif "ranking" in response:
                     self._response_format = ResponseFormat.RANKINGS
+                elif "image_retrieval" in response:
+                    self._response_format = ResponseFormat.IMAGE_RETRIEVAL
                 else:
                     raise RuntimeError("Unknown OpenAI response format.")
 
         elif self._service_kind == "triton":
             self._response_format = ResponseFormat.TRITON
+        elif self._service_kind == "triton_c_api":
+            pass  # ignore
         else:
             raise ValueError(f"Unknown service kind: {self._service_kind}")
 
@@ -136,10 +149,30 @@ class ProfileDataParser:
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
 
-        return Metrics(
+        metric = Metrics(
             request_throughputs,
             request_latencies,
         )
+
+        if self._goodput_constraints:
+            goodput_val = self._calculate_goodput(benchmark_duration, metric)
+            metric.request_goodputs = goodput_val
+
+        return metric
+
+    def _calculate_goodput(
+        self,
+        benchmark_duration: float,
+        metric: Metrics,
+    ) -> Optional[List[float]]:
+        llm_goodput_calculator = LLMGoodputCalculator(
+            self._goodput_constraints,
+            metric,
+            benchmark_duration,
+        )
+
+        llm_goodput_calculator.compute()
+        return llm_goodput_calculator.goodput
 
     def get_statistics(self, infer_mode: str, load_level: str) -> Statistics:
         """Return profile statistics if it exists."""

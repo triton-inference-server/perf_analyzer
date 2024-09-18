@@ -24,6 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from genai_perf.profile_data_parser.image_retrieval_profile_data_parser import (
+    ImageRetrievalProfileDataParser,
+)
 from genai_perf.profile_data_parser.llm_profile_data_parser import LLMProfileDataParser
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,

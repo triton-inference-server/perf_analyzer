@@ -30,8 +30,12 @@ from typing import List, Optional
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.constants import DEFAULT_GRPC_URL, DEFAULT_INPUT_DATA_JSON
-from genai_perf.llm_inputs.llm_inputs import OutputFormat
+from genai_perf.constants import DEFAULT_GRPC_URL
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
+from genai_perf.inputs.inputs import OutputFormat
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TelemetryDataCollector,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +75,12 @@ class Profiler:
             "formatted_model_name",
             "func",
             "generate_plots",
+            "goodput",
+            "image_format",
+            "image_height_mean",
+            "image_height_stddev",
+            "image_width_mean",
+            "image_width_stddev",
             "input_dataset",
             "input_file",
             "input_format",
@@ -78,26 +88,22 @@ class Profiler:
             "model_selection_strategy",
             "num_prompts",
             "output_format",
-            "output_tokens_mean_deterministic",
             "output_tokens_mean",
+            "output_tokens_mean_deterministic",
             "output_tokens_stddev",
             "prompt_source",
             "random_seed",
             "request_rate",
+            "server_metrics_url",
             # The 'streaming' passed in to this script is to determine if the
             # LLM response should be streaming. That is different than the
             # 'streaming' that PA takes, which means something else (and is
             # required for decoupled models into triton).
             "streaming",
+            "subcommand",
             "synthetic_input_tokens_mean",
             "synthetic_input_tokens_stddev",
-            "subcommand",
             "tokenizer",
-            "image_width_mean",
-            "image_width_stddev",
-            "image_height_mean",
-            "image_height_stddev",
-            "image_format",
         ]
 
         utils.remove_file(args.profile_export_file)
@@ -110,6 +116,9 @@ class Profiler:
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
+        cmd += Profiler.add_protocol_args(args)
+        cmd += Profiler.add_inference_load_args(args)
+
         for arg, value in vars(args).items():
             if arg in skip_args:
                 pass
@@ -122,6 +131,10 @@ class Profiler:
                     cmd += [f"-{arg}"]
                 else:
                     cmd += [f"--{arg}"]
+            # GAP needs to call PA using triton_c_api service kind when running
+            # against tensorrtllm engine.
+            elif arg == "service_kind" and value == "tensorrtllm_engine":
+                cmd += ["--service-kind", "triton_c_api", "--streaming"]
             else:
                 if len(arg) == 1:
                     cmd += [f"-{arg}", f"{value}"]
@@ -129,19 +142,26 @@ class Profiler:
                     arg = utils.convert_option_name(arg)
                     cmd += [f"--{arg}", f"{value}"]
 
-        cmd += Profiler.add_protocol_args(args)
-        cmd += Profiler.add_inference_load_args(args)
-
         if extra_args is not None:
             for arg in extra_args:
                 cmd += [f"{arg}"]
         return cmd
 
     @staticmethod
-    def run(args: Namespace, extra_args: Optional[List[str]]) -> None:
-        cmd = Profiler.build_cmd(args, extra_args)
-        logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
-        if args and args.verbose:
-            subprocess.run(cmd, check=True, stdout=None)
-        else:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+    def run(
+        args: Namespace,
+        extra_args: Optional[List[str]],
+        telemetry_data_collector: Optional[TelemetryDataCollector] = None,
+    ) -> None:
+        try:
+            if telemetry_data_collector is not None:
+                telemetry_data_collector.start()
+            cmd = Profiler.build_cmd(args, extra_args)
+            logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
+            if args and args.verbose:
+                subprocess.run(cmd, check=True, stdout=None)
+            else:
+                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+        finally:
+            if telemetry_data_collector is not None:
+                telemetry_data_collector.stop()

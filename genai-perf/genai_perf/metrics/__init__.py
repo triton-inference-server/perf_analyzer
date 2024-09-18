@@ -24,6 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from genai_perf.metrics.image_retrieval_metrics import ImageRetrievalMetrics
 from genai_perf.metrics.llm_metrics import LLMMetrics
 from genai_perf.metrics.metrics import MetricMetadata, Metrics
 from genai_perf.metrics.statistics import Statistics
+from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
