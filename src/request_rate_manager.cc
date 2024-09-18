@@ -161,18 +161,15 @@ RequestRateManager::CreateWorkerSchedules(
   // Generate schedule until we hit max_duration, but also make sure that all
   // worker schedules follow the thread id distribution
   // Maybe divide by
-  if schedule
-    .size() > 0
-    {
-      for (const float& val : schedule) {
-        next_timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::duration<float>(val));
-        worker_index = thread_ids[thread_id_index];
-        thread_id_index = ++thread_id_index % thread_ids.size();
-        worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
-      }
+  if (schedule.size() > 0) {
+    for (const float& val : schedule) {
+      next_timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::duration<float>(val));
+      worker_index = thread_ids[thread_id_index];
+      thread_id_index = ++thread_id_index % thread_ids.size();
+      worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
     }
-  else {
+  } else {
     while (next_timestamp < max_duration ||
            thread_id_index % thread_ids.size() != 0) {
       next_timestamp = next_timestamp + distribution(schedule_rng);
