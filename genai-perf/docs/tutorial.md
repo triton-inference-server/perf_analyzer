@@ -28,6 +28,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Profile Large Language Models with GenAI-Perf
 
+This tutorial will demonstrate how you can use GenAI-Perf to measure the performance of
+various inference endpoints (e.g. OpenAI API compatible endpoints).
+
+### Table of Contents
+
 - [Profile GPT2 running on Triton + TensorRT-LLM](#tensorrt-llm)
 - [Profile GPT2 running on Triton + vLLM](#triton-vllm)
 - [Profile GPT2 running on OpenAI Chat Completions API-Compatible Server](#openai-chat)
@@ -37,36 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Profile GPT2 running on Triton + TensorRT-LLM <a id="tensorrt-llm"></a>
 
-### Run GPT2 on Triton Inference Server using TensorRT-LLM
+### Serve GPT-2 TensorRT-LLM model using Triton CLI
 
-<details>
-<summary>See instructions</summary>
-
-Run Triton Inference Server with TensorRT-LLM backend container:
-
-```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
-
-docker run -it --net=host --gpus=all --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/tritonserver:${RELEASE}-trtllm-python-py3
-
-# Install Triton CLI (~5 min):
-pip install "git+https://github.com/triton-inference-server/triton_cli@0.0.8"
-
-# Download model:
-triton import -m gpt2 --backend tensorrtllm
-
-# Run server:
-triton start
-```
-
-</details>
+You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-trt-llm-model)
+on the Triton CLI github repo to run TensorRT-LLM GPT-2 model locally.
 
 ### Run GenAI-Perf
 
 Run GenAI-Perf from Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -93,53 +79,33 @@ genai-perf profile \
 Example output:
 
 ```
-                                        NVIDIA GenAI-Perf | LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
-┃                Statistic ┃         avg ┃         min ┃         max ┃         p99 ┃         p90 ┃         p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
-│ Time to first token (ns) │  13,266,974 │  11,818,732 │  18,351,779 │  16,513,479 │  13,741,986 │  13,544,376 │
-│ Inter token latency (ns) │   2,069,766 │      42,023 │  15,307,799 │   3,256,375 │   3,020,580 │   2,090,930 │
-│     Request latency (ns) │ 223,532,625 │ 219,123,330 │ 241,004,192 │ 238,198,306 │ 229,676,183 │ 224,715,918 │
-│   Output sequence length │         104 │         100 │         129 │         128 │         109 │         105 │
-│    Input sequence length │         199 │         199 │         199 │         199 │         199 │         199 │
-└──────────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
-Output token throughput (per sec): 460.42
-Request throughput (per sec): 4.44
+                              NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃                         Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│          Time to first token (ms) │  13.68 │  11.07 │  21.50 │  18.81 │  14.29 │  13.97 │
+│          Inter token latency (ms) │   1.86 │   1.28 │   2.11 │   2.11 │   2.01 │   1.95 │
+│              Request latency (ms) │ 203.70 │ 180.33 │ 228.30 │ 225.45 │ 216.48 │ 211.72 │
+│            Output sequence length │ 103.46 │  95.00 │ 134.00 │ 122.96 │ 108.00 │ 104.75 │
+│             Input sequence length │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │
+│ Output token throughput (per sec) │ 504.02 │    N/A │    N/A │    N/A │    N/A │    N/A │
+│      Request throughput (per sec) │   4.87 │    N/A │    N/A │    N/A │    N/A │    N/A │
+└───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 
 ## Profile GPT2 running on Triton + vLLM <a id="triton-vllm"></a>
 
-### Run GPT2 on Triton Inference Server using vLLM
+### Serve GPT-2 vLLM model using Triton CLI
 
-<details>
-<summary>See instructions</summary>
-
-Run Triton Inference Server with vLLM backend container:
-
-```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
-
-
-docker run -it --net=host --gpus=1 --shm-size=2g --ulimit memlock=-1 --ulimit stack=67108864 nvcr.io/nvidia/tritonserver:${RELEASE}-vllm-python-py3
-
-# Install Triton CLI (~5 min):
-pip install "git+https://github.com/triton-inference-server/triton_cli@0.0.8"
-
-# Download model:
-triton import -m gpt2 --backend vllm
-
-# Run server:
-triton start
-```
-
-</details>
+You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-vllm-model)
+on the Triton CLI github repo to run GPT-2 model locally using vLLM backend.
 
 ### Run GenAI-Perf
 
 Run GenAI-Perf from Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
 
 docker run -it --net=host --gpus=1 nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -166,18 +132,18 @@ genai-perf profile \
 Example output:
 
 ```
-                                     NVIDIA GenAI-Perf | LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
-┃                Statistic ┃         avg ┃         min ┃         max ┃         p99 ┃         p90 ┃         p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
-│ Time to first token (ns) │  15,786,560 │  11,437,189 │  49,550,549 │  40,129,652 │  21,248,091 │  17,824,695 │
-│ Inter token latency (ns) │   3,543,380 │     591,898 │  10,013,690 │   6,152,260 │   5,039,278 │   4,060,982 │
-│     Request latency (ns) │ 388,415,721 │ 312,552,612 │ 528,229,817 │ 518,189,390 │ 484,281,365 │ 459,417,637 │
-│   Output sequence length │         113 │         105 │         123 │         122 │         119 │         115 │
-│    Input sequence length │         199 │         199 │         199 │         199 │         199 │         199 │
-└──────────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
-Output token throughput (per sec): 290.24
-Request throughput (per sec): 2.57
+                              NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃                         Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│          Time to first token (ms) │  22.04 │  14.00 │  26.02 │  25.73 │  24.41 │  24.06 │
+│          Inter token latency (ms) │   4.58 │   3.45 │   5.34 │   5.33 │   5.11 │   4.86 │
+│              Request latency (ms) │ 542.48 │ 468.10 │ 622.39 │ 615.67 │ 584.73 │ 555.90 │
+│            Output sequence length │ 115.15 │ 103.00 │ 143.00 │ 138.00 │ 120.00 │ 118.50 │
+│             Input sequence length │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │
+│ Output token throughput (per sec) │ 212.04 │    N/A │    N/A │    N/A │    N/A │    N/A │
+│      Request throughput (per sec) │   1.84 │    N/A │    N/A │    N/A │    N/A │    N/A │
+└───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 
 ## Profile Zephyr running on OpenAI Chat API-Compatible Server <a id="openai-chat"></a>
@@ -200,7 +166,7 @@ docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model HuggingFace
 Run GenAI-Perf from Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -254,10 +220,9 @@ docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model gpt2 --dtyp
 Run GenAI-Perf from Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
 
 # Run GenAI-Perf in the container:
 genai-perf profile \
