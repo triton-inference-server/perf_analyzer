@@ -50,9 +50,10 @@ RequestRateManager::Create(
         request_parameters)
 {
   std::unique_ptr<RequestRateManager> local_manager(new RequestRateManager(
-      async, streaming, request_distribution, batch_size, measurement_window_ms,
-      max_trials, max_threads, num_of_sequences, shared_memory_type,
-      output_shm_size, serial_sequences, parser, factory, request_parameters));
+      async, streaming, request_distribution, schedule, batch_size,
+      measurement_window_ms, max_trials, max_threads, num_of_sequences,
+      shared_memory_type, output_shm_size, serial_sequences, parser, factory,
+      request_parameters));
 
   *manager = std::move(local_manager);
 
@@ -72,8 +73,9 @@ RequestRateManager::RequestRateManager(
     : LoadManager(
           async, streaming, batch_size, max_threads, shared_memory_type,
           output_shm_size, parser, factory, request_parameters),
-      request_distribution_(request_distribution), execute_(false),
-      num_of_sequences_(num_of_sequences), serial_sequences_(serial_sequences)
+      request_distribution_(request_distribution), schedule_(schedule),
+      execute_(false), num_of_sequences_(num_of_sequences),
+      serial_sequences_(serial_sequences)
 {
   gen_duration_.reset(new std::chrono::nanoseconds(
       max_trials * measurement_window_ms * NANOS_PER_MILLIS));
