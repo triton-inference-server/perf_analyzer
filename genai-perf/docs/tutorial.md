@@ -29,7 +29,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # Profile Large Language Models with GenAI-Perf
 
 This tutorial will demonstrate how you can use GenAI-Perf to measure the performance of
-various inference endpoints (e.g. OpenAI API compatible endpoints).
+various inference endpoints such as KServe and OpenAI APIs that are widely used
+across the industry.
 
 ### Table of Contents
 
@@ -38,14 +39,12 @@ various inference endpoints (e.g. OpenAI API compatible endpoints).
 - [Profile GPT2 running on OpenAI Chat Completions API-Compatible Server](#openai-chat)
 - [Profile GPT2 running on OpenAI Completions API-Compatible Server](#openai-completions)
 
----
+</br>
 
-## Profile GPT2 running on Triton + TensorRT-LLM <a id="tensorrt-llm"></a>
-
-### Serve GPT-2 TensorRT-LLM model using Triton CLI
+## Profile GPT-2 running on Triton + TensorRT-LLM <a id="tensorrt-llm"></a>
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-trt-llm-model)
-on the Triton CLI github repo to run TensorRT-LLM GPT-2 model locally.
+on the Triton CLI github repo to serve GPT-2 model on the Triton server with TensorRT-LLM backend.
 
 ### Run GenAI-Perf
 
@@ -61,19 +60,12 @@ genai-perf profile \
   -m gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
-  --num-prompts 100 \
-  --random-seed 123 \
   --synthetic-input-tokens-mean 200 \
   --synthetic-input-tokens-stddev 0 \
-  --streaming \
   --output-tokens-mean 100 \
   --output-tokens-stddev 0 \
   --output-tokens-mean-deterministic \
-  --tokenizer hf-internal-testing/llama-tokenizer \
-  --concurrency 1 \
-  --measurement-interval 4000 \
-  --profile-export-file my_profile_export.json \
-  --url localhost:8001
+  --streaming
 ```
 
 Example output:
@@ -93,12 +85,10 @@ Example output:
 └───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 
-## Profile GPT2 running on Triton + vLLM <a id="triton-vllm"></a>
-
-### Serve GPT-2 vLLM model using Triton CLI
+## Profile GPT-2 running on Triton + vLLM <a id="triton-vllm"></a>
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-vllm-model)
-on the Triton CLI github repo to run GPT-2 model locally using vLLM backend.
+on the Triton CLI github repo to serve GPT-2 model on the Triton server with vLLM backend.
 
 ### Run GenAI-Perf
 
@@ -114,19 +104,12 @@ genai-perf profile \
   -m gpt2 \
   --service-kind triton \
   --backend vllm \
-  --num-prompts 100 \
-  --random-seed 123 \
   --synthetic-input-tokens-mean 200 \
   --synthetic-input-tokens-stddev 0 \
-  --streaming \
   --output-tokens-mean 100 \
   --output-tokens-stddev 0 \
   --output-tokens-mean-deterministic \
-  --tokenizer hf-internal-testing/llama-tokenizer \
-  --concurrency 1 \
-  --measurement-interval 4000 \
-  --profile-export-file my_profile_export.json \
-  --url localhost:8001
+  --streaming
 ```
 
 Example output:
@@ -146,20 +129,13 @@ Example output:
 └───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 
-## Profile Zephyr running on OpenAI Chat API-Compatible Server <a id="openai-chat"></a>
+## Profile Zephyr-7B-Beta running on OpenAI Chat API-Compatible Server <a id="openai-chat"></a>
 
-### Run Zephyr on [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)-compatible server
-
-<details>
-<summary>See instructions</summary>
-
-Run the vLLM inference server:
+Serve the model on the vLLM server with [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat) endpoint:
 
 ```bash
 docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model HuggingFaceH4/zephyr-7b-beta --dtype float16
 ```
-
-</details>
 
 ### Run GenAI-Perf
 
@@ -177,9 +153,9 @@ genai-perf profile \
   --endpoint-type chat \
   --synthetic-input-tokens-mean 200 \
   --synthetic-input-tokens-stddev 0 \
-  --streaming \
   --output-tokens-mean 100 \
   --output-tokens-stddev 0 \
+  --streaming \
   --tokenizer HuggingFaceH4/zephyr-7b-beta
 ```
 
@@ -202,18 +178,11 @@ Example output:
 
 ## Profile GPT2 running on OpenAI Completions API-Compatible Server <a id="openai-completions"></a>
 
-### Running GPT2 on [OpenAI Completions API](https://platform.openai.com/docs/api-reference/completions)-compatible server
-
-<details>
-<summary>See instructions</summary>
-
-Run the vLLM inference server:
+Serve the model on the vLLM server with [OpenAI Completions API](https://platform.openai.com/docs/api-reference/completions) endpoint:
 
 ```bash
 docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model gpt2 --dtype float16 --max-model-len 1024
 ```
-
-</details>
 
 ### Run GenAI-Perf
 
@@ -228,19 +197,11 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 genai-perf profile \
   -m gpt2 \
   --service-kind openai \
-  --endpoint v1/completions \
   --endpoint-type completions \
-  --num-prompts 100 \
-  --random-seed 123 \
   --synthetic-input-tokens-mean 200 \
   --synthetic-input-tokens-stddev 0 \
   --output-tokens-mean 100 \
-  --output-tokens-stddev 0 \
-  --tokenizer hf-internal-testing/llama-tokenizer \
-  --concurrency 1 \
-  --measurement-interval 4000 \
-  --profile-export-file my_profile_export.json \
-  --url localhost:8000
+  --output-tokens-stddev 0
 ```
 
 Example output:

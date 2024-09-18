@@ -178,7 +178,7 @@ Example output:
 └───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 
-See [Tutorial](docs/tutorial.md) for additional and detailed examples.
+See [Tutorial](docs/tutorial.md) for additional examples.
 
 </br>
 
