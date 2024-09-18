@@ -67,7 +67,7 @@ CustomLoadManager::CustomLoadManager(
     const std::unordered_map<std::string, cb::RequestParameter>&
         request_parameters)
     : RequestRateManager(
-          async, streaming, Distribution::CUSTOM, batch_size,
+          async, streaming, Distribution::CUSTOM, {}, batch_size,
           measurement_window_ms, max_trials, max_threads, num_of_sequences,
           shared_memory_type, output_shm_size, serial_sequences, parser,
           factory, request_parameters),
