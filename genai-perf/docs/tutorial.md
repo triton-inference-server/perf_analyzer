@@ -29,8 +29,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # Profile Large Language Models with GenAI-Perf
 
 This tutorial will demonstrate how you can use GenAI-Perf to measure the performance of
-various inference endpoints such as KServe and OpenAI APIs that are widely used
-across the industry.
+various inference endpoints such as
+[KServe inference protocol](https://github.com/kserve/kserve/tree/master/docs/predict-api/v2)
+and [OpenAI API](https://platform.openai.com/docs/api-reference/introduction)
+that are widely used across the industry.
 
 ### Table of Contents
 
