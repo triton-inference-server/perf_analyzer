@@ -155,14 +155,9 @@ triton start
 
 ### Running GenAI-Perf
 
-Now we can run GenAI-Perf from Triton Inference Server SDK container:
+Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
-
-docker run -it --net=host --rm --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Run GenAI-Perf in the container:
 genai-perf profile -m gpt2 --service-kind triton --backend tensorrtllm --streaming
 ```
 
