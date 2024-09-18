@@ -46,7 +46,7 @@ that are widely used across the industry.
 ## Profile GPT-2 running on Triton + TensorRT-LLM <a id="tensorrt-llm"></a>
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-trt-llm-model)
-in the Triton CLI github repository to serve GPT-2 model on the Triton server with TensorRT-LLM backend.
+in the Triton CLI Github repository to serve GPT-2 on the Triton server with the TensorRT-LLM backend.
 
 ### Run GenAI-Perf
 
@@ -85,7 +85,7 @@ Example output:
 ## Profile GPT-2 running on Triton + vLLM <a id="triton-vllm"></a>
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-vllm-model)
-in the Triton CLI github repository to serve GPT-2 model on the Triton server with vLLM backend.
+in the Triton CLI Github repository to serve GPT-2 on the Triton server with the vLLM backend.
 
 ### Run GenAI-Perf
 

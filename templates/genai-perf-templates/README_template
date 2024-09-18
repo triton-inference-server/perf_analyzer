@@ -128,7 +128,7 @@ the GPT-2 model running on Triton Inference Server with a TensorRT-LLM engine.
 ### Serve GPT-2 TensorRT-LLM model using Triton CLI
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-trt-llm-model)
-in Triton CLI github repository to serve GPT-2 model on the Triton server with TensorRT-LLM backend.
+in the Triton CLI Github repository to serve GPT-2 on the Triton server with the TensorRT-LLM backend.
 The full instructions are copied below for convenience:
 
 ```bash
