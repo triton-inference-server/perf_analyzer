@@ -89,8 +89,9 @@ class RequestRateManager : public LoadManager {
   static cb::Error Create(
       const bool async, const bool streaming,
       const uint64_t measurement_window_ms, const size_t max_trials,
-      Distribution request_distribution, const int32_t batch_size,
-      const size_t max_threads, const uint32_t num_of_sequences,
+      Distribution request_distribution, std::vector<float>& schedule,
+      const int32_t batch_size, const size_t max_threads,
+      const uint32_t num_of_sequences,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
       const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
@@ -110,9 +111,9 @@ class RequestRateManager : public LoadManager {
  protected:
   RequestRateManager(
       const bool async, const bool streaming, Distribution request_distribution,
-      const int32_t batch_size, const uint64_t measurement_window_ms,
-      const size_t max_trials, const size_t max_threads,
-      const uint32_t num_of_sequences,
+      std::vector<float>& schedule, const int32_t batch_size,
+      const uint64_t measurement_window_ms, const size_t max_trials,
+      const size_t max_threads, const uint32_t num_of_sequences,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
       const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
@@ -123,11 +124,13 @@ class RequestRateManager : public LoadManager {
 
   /// Generates and update the request schedule as per the given request rate.
   /// \param request_rate The request rate to use for new schedule.
-  void GenerateSchedule(const double request_rate);
+  void GenerateSchedule(
+      const double request_rate, std::vector<float>& schedule);
 
   std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
       std::chrono::nanoseconds duration,
-      std::function<std::chrono::nanoseconds(std::mt19937&)> distribution);
+      std::function<std::chrono::nanoseconds(std::mt19937&)> distribution,
+      std::vector<float>& schedule);
 
   std::vector<RateSchedulePtr_t> CreateEmptyWorkerSchedules();
 
@@ -155,6 +158,7 @@ class RequestRateManager : public LoadManager {
   std::vector<std::shared_ptr<ThreadConfig>> threads_config_;
 
   std::shared_ptr<std::chrono::nanoseconds> gen_duration_;
+  std::vector<float> schedule_;
   Distribution request_distribution_;
   std::chrono::steady_clock::time_point start_time_;
   bool execute_;

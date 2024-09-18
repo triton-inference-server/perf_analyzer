@@ -39,7 +39,6 @@
 #include "concurrency_manager.h"
 #include "constants.h"
 #include "custom_load_manager.h"
-#include "fixed_time_manager.h"
 #include "metrics.h"
 #include "metrics_manager.h"
 #include "model_parser.h"
