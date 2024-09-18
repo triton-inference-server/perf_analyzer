@@ -28,12 +28,12 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
+from genai_perf.inputs.file_input_retriever import FileInputRetriever
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 
@@ -59,9 +59,8 @@ class TestInputsEmbeddings:
             batch_size=batch_size,
             num_prompts=100,
         )
-        input_retriever_factory = InputRetrieverFactory(config)
-
-        dataset = input_retriever_factory._get_input_dataset_from_embeddings_file()
+        file_retriever = FileInputRetriever(config)
+        dataset = file_retriever._get_input_dataset_from_embeddings_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == 100
@@ -79,7 +78,7 @@ class TestInputsEmbeddings:
             match="Batch size cannot be larger than the number of available texts",
         ):
             config.batch_size = 5
-            input_retriever_factory._get_input_dataset_from_embeddings_file()
+            file_retriever._get_input_dataset_from_embeddings_file()
 
     def test_convert_generic_json_to_openai_embeddings_format(self):
         generic_dataset = {
