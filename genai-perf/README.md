@@ -74,7 +74,7 @@ The easiest way to install GenAI-Perf is through
 Install the latest release using the following command:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="24.08"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -141,7 +141,7 @@ docker run -ti \
     -v /tmp:/tmp \
     -v ${HOME}/models:/root/models \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.05-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:24.08-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.8
@@ -159,7 +159,7 @@ triton start
 Now we can run GenAI-Perf from Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.06"
+export RELEASE="24.08"
 
 docker run -it --net=host --rm --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 

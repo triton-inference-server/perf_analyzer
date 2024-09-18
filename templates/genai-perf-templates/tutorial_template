@@ -26,7 +26,7 @@ OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-# Tutorials
+# Profile Large Language Models with GenAI-Perf
 
 - [Profile GPT2 running on Triton + TensorRT-LLM](#tensorrt-llm)
 - [Profile GPT2 running on Triton + vLLM](#triton-vllm)
@@ -93,7 +93,7 @@ genai-perf profile \
 Example output:
 
 ```
-                                                  LLM Metrics
+                                        NVIDIA GenAI-Perf | LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
 ┃                Statistic ┃         avg ┃         min ┃         max ┃         p99 ┃         p90 ┃         p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
@@ -166,7 +166,7 @@ genai-perf profile \
 Example output:
 
 ```
-                                                  LLM Metrics
+                                     NVIDIA GenAI-Perf | LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
 ┃                Statistic ┃         avg ┃         min ┃         max ┃         p99 ┃         p90 ┃         p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
@@ -180,9 +180,9 @@ Output token throughput (per sec): 290.24
 Request throughput (per sec): 2.57
 ```
 
-## Profile GPT2 running on OpenAI Chat API-Compatible Server <a id="openai-chat"></a>
+## Profile Zephyr running on OpenAI Chat API-Compatible Server <a id="openai-chat"></a>
 
-### Run GPT2 on [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)-compatible server
+### Run Zephyr on [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)-compatible server
 
 <details>
 <summary>See instructions</summary>
@@ -190,7 +190,7 @@ Request throughput (per sec): 2.57
 Run the vLLM inference server:
 
 ```bash
-docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model gpt2 --dtype float16 --max-model-len 1024
+docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model HuggingFaceH4/zephyr-7b-beta --dtype float16
 ```
 
 </details>
@@ -206,39 +206,32 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 
 # Run GenAI-Perf in the container:
 genai-perf profile \
-  -m gpt2 \
+  -m HuggingFaceH4/zephyr-7b-beta \
   --service-kind openai \
-  --endpoint v1/chat/completions \
   --endpoint-type chat \
-  --num-prompts 100 \
-  --random-seed 123 \
   --synthetic-input-tokens-mean 200 \
   --synthetic-input-tokens-stddev 0 \
   --streaming \
   --output-tokens-mean 100 \
   --output-tokens-stddev 0 \
-  --tokenizer hf-internal-testing/llama-tokenizer \
-  --concurrency 1 \
-  --measurement-interval 4000 \
-  --profile-export-file my_profile_export.json \
-  --url localhost:8000
+  --tokenizer HuggingFaceH4/zephyr-7b-beta
 ```
 
 Example output:
 
 ```
-                                                  LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
-┃                Statistic ┃         avg ┃         min ┃         max ┃         p99 ┃         p90 ┃         p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
-│ Time to first token (ns) │  13,546,815 │   9,821,658 │  48,317,756 │  34,361,913 │  16,541,625 │  14,612,026 │
-│ Inter token latency (ns) │   2,560,813 │     457,703 │   6,507,334 │   3,754,617 │   3,059,158 │   2,953,540 │
-│     Request latency (ns) │ 283,597,027 │ 240,098,890 │ 361,730,568 │ 349,164,037 │ 323,279,761 │ 306,507,562 │
-│   Output sequence length │         114 │         103 │         142 │         136 │         122 │         119 │
-│    Input sequence length │         199 │         199 │         199 │         199 │         199 │         199 │
-└──────────────────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
-Output token throughput (per sec): 401.62
-Request throughput (per sec): 3.52
+                                    NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
+┃                         Statistic ┃      avg ┃      min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
+│          Time to first token (ms) │    37.99 │    32.65 │    45.89 │    45.85 │    44.69 │    37.49 │
+│          Inter token latency (ms) │    19.19 │    18.78 │    20.11 │    20.00 │    19.39 │    19.23 │
+│              Request latency (ms) │ 1,915.41 │ 1,574.73 │ 2,027.20 │ 2,016.50 │ 1,961.22 │ 1,931.45 │
+│            Output sequence length │    98.83 │    81.00 │   101.00 │   100.83 │   100.00 │   100.00 │
+│             Input sequence length │   200.00 │   200.00 │   200.00 │   200.00 │   200.00 │   200.00 │
+│ Output token throughput (per sec) │    51.55 │      N/A │      N/A │      N/A │      N/A │      N/A │
+│      Request throughput (per sec) │     0.52 │      N/A │      N/A │      N/A │      N/A │      N/A │
+└───────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
 ```
 
 ## Profile GPT2 running on OpenAI Completions API-Compatible Server <a id="openai-completions"></a>
@@ -288,15 +281,15 @@ genai-perf profile \
 Example output:
 
 ```
-                                                LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
-┃              Statistic ┃         avg ┃        min ┃         max ┃         p99 ┃         p90 ┃         p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
-│   Request latency (ns) │ 296,990,497 │ 43,312,449 │ 332,788,242 │ 327,475,292 │ 317,392,767 │ 310,343,333 │
-│ Output sequence length │         109 │         11 │         158 │         142 │         118 │         113 │
-│  Input sequence length │           1 │          1 │           1 │           1 │           1 │           1 │
-└────────────────────────┴─────────────┴────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
-Output token throughput (per sec): 366.78
-Request throughput (per sec): 3.37
+                             NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃                         Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│              Request latency (ms) │ 437.85 │ 328.10 │ 497.05 │ 495.28 │ 485.68 │ 460.91 │
+│            Output sequence length │ 112.66 │  83.00 │ 123.00 │ 122.69 │ 119.90 │ 116.25 │
+│             Input sequence length │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │ 200.00 │
+│ Output token throughput (per sec) │ 257.21 │    N/A │    N/A │    N/A │    N/A │    N/A │
+│      Request throughput (per sec) │   2.28 │    N/A │    N/A │    N/A │    N/A │    N/A │
+└───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 

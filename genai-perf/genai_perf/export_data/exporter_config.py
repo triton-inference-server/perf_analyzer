@@ -31,6 +31,7 @@ from genai_perf.metrics import Metrics
 class ExporterConfig:
     def __init__(self):
         self._stats = None
+        self._telemetry_stats = None
         self._metrics = None
         self._args = None
         self._extra_inputs = None
@@ -43,6 +44,14 @@ class ExporterConfig:
     @stats.setter
     def stats(self, stats_value):
         self._stats = stats_value
+
+    @property
+    def telemetry_stats(self):
+        return self._telemetry_stats
+
+    @telemetry_stats.setter
+    def telemetry_stats(self, stats_value):
+        self._telemetry_stats = stats_value
 
     @property
     def metrics(self):

@@ -36,7 +36,8 @@
 
 #include "perf_analyzer_exception.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton {
+namespace perfanalyzer {
 
 PAParamsPtr
 CLParser::Parse(int argc, char** argv)
@@ -824,72 +825,91 @@ CLParser::ParseCommandLine(int argc, char** argv)
   argc_ = argc;
   argv_ = argv;
 
+  constexpr int long_option_idx_base{256};
+
   // {name, has_arg, *flag, val}
   static struct option long_options[] = {
-      {"streaming", no_argument, 0, 0},
-      {"max-threads", required_argument, 0, 1},
-      {"sequence-length", required_argument, 0, 2},
-      {"percentile", required_argument, 0, 3},
-      {"data-directory", required_argument, 0, 4},
-      {"shape", required_argument, 0, 5},
-      {"measurement-interval", required_argument, 0, 6},
-      {"concurrency-range", required_argument, 0, 7},
-      {"latency-threshold", required_argument, 0, 8},
-      {"stability-percentage", required_argument, 0, 9},
-      {"max-trials", required_argument, 0, 10},
-      {"input-data", required_argument, 0, 11},
-      {"string-length", required_argument, 0, 12},
-      {"string-data", required_argument, 0, 13},
-      {"async", no_argument, 0, 14},
-      {"sync", no_argument, 0, 15},
-      {"request-rate-range", required_argument, 0, 16},
-      {"num-of-sequences", required_argument, 0, 17},
-      {"binary-search", no_argument, 0, 18},
-      {"request-distribution", required_argument, 0, 19},
-      {"request-intervals", required_argument, 0, 20},
-      {"shared-memory", required_argument, 0, 21},
-      {"output-shared-memory-size", required_argument, 0, 22},
-      {"service-kind", required_argument, 0, 23},
-      {"model-signature-name", required_argument, 0, 24},
-      {"grpc-compression-algorithm", required_argument, 0, 25},
-      {"measurement-mode", required_argument, 0, 26},
-      {"measurement-request-count", required_argument, 0, 27},
-      {"triton-server-directory", required_argument, 0, 28},
-      {"model-repository", required_argument, 0, 29},
-      {"sequence-id-range", required_argument, 0, 30},
-      {"ssl-grpc-use-ssl", no_argument, 0, 31},
-      {"ssl-grpc-root-certifications-file", required_argument, 0, 32},
-      {"ssl-grpc-private-key-file", required_argument, 0, 33},
-      {"ssl-grpc-certificate-chain-file", required_argument, 0, 34},
-      {"ssl-https-verify-peer", required_argument, 0, 35},
-      {"ssl-https-verify-host", required_argument, 0, 36},
-      {"ssl-https-ca-certificates-file", required_argument, 0, 37},
-      {"ssl-https-client-certificate-file", required_argument, 0, 38},
-      {"ssl-https-client-certificate-type", required_argument, 0, 39},
-      {"ssl-https-private-key-file", required_argument, 0, 40},
-      {"ssl-https-private-key-type", required_argument, 0, 41},
-      {"verbose-csv", no_argument, 0, 42},
-      {"enable-mpi", no_argument, 0, 43},
-      {"trace-level", required_argument, 0, 44},
-      {"trace-rate", required_argument, 0, 45},
-      {"trace-count", required_argument, 0, 46},
-      {"log-frequency", required_argument, 0, 47},
-      {"collect-metrics", no_argument, 0, 48},
-      {"metrics-url", required_argument, 0, 49},
-      {"metrics-interval", required_argument, 0, 50},
-      {"sequence-length-variation", required_argument, 0, 51},
-      {"bls-composing-models", required_argument, 0, 52},
-      {"serial-sequences", no_argument, 0, 53},
-      {"input-tensor-format", required_argument, 0, 54},
-      {"output-tensor-format", required_argument, 0, 55},
-      {"version", no_argument, 0, 56},
-      {"profile-export-file", required_argument, 0, 57},
-      {"periodic-concurrency-range", required_argument, 0, 58},
-      {"request-period", required_argument, 0, 59},
-      {"request-parameter", required_argument, 0, 60},
-      {"endpoint", required_argument, 0, 61},
-      {"request-count", required_argument, 0, 62},
-      {"schedule", required_argument, 0, 63},
+      {"streaming", no_argument, 0, long_option_idx_base + 0},
+      {"max-threads", required_argument, 0, long_option_idx_base + 1},
+      {"sequence-length", required_argument, 0, long_option_idx_base + 2},
+      {"percentile", required_argument, 0, long_option_idx_base + 3},
+      {"data-directory", required_argument, 0, long_option_idx_base + 4},
+      {"shape", required_argument, 0, long_option_idx_base + 5},
+      {"measurement-interval", required_argument, 0, long_option_idx_base + 6},
+      {"concurrency-range", required_argument, 0, long_option_idx_base + 7},
+      {"latency-threshold", required_argument, 0, long_option_idx_base + 8},
+      {"stability-percentage", required_argument, 0, long_option_idx_base + 9},
+      {"max-trials", required_argument, 0, long_option_idx_base + 10},
+      {"input-data", required_argument, 0, long_option_idx_base + 11},
+      {"string-length", required_argument, 0, long_option_idx_base + 12},
+      {"string-data", required_argument, 0, long_option_idx_base + 13},
+      {"async", no_argument, 0, long_option_idx_base + 14},
+      {"sync", no_argument, 0, long_option_idx_base + 15},
+      {"request-rate-range", required_argument, 0, long_option_idx_base + 16},
+      {"num-of-sequences", required_argument, 0, long_option_idx_base + 17},
+      {"binary-search", no_argument, 0, long_option_idx_base + 18},
+      {"request-distribution", required_argument, 0, long_option_idx_base + 19},
+      {"request-intervals", required_argument, 0, long_option_idx_base + 20},
+      {"shared-memory", required_argument, 0, long_option_idx_base + 21},
+      {"output-shared-memory-size", required_argument, 0,
+       long_option_idx_base + 22},
+      {"service-kind", required_argument, 0, long_option_idx_base + 23},
+      {"model-signature-name", required_argument, 0, long_option_idx_base + 24},
+      {"grpc-compression-algorithm", required_argument, 0,
+       long_option_idx_base + 25},
+      {"measurement-mode", required_argument, 0, long_option_idx_base + 26},
+      {"measurement-request-count", required_argument, 0,
+       long_option_idx_base + 27},
+      {"triton-server-directory", required_argument, 0,
+       long_option_idx_base + 28},
+      {"model-repository", required_argument, 0, long_option_idx_base + 29},
+      {"sequence-id-range", required_argument, 0, long_option_idx_base + 30},
+      {"ssl-grpc-use-ssl", no_argument, 0, long_option_idx_base + 31},
+      {"ssl-grpc-root-certifications-file", required_argument, 0,
+       long_option_idx_base + 32},
+      {"ssl-grpc-private-key-file", required_argument, 0,
+       long_option_idx_base + 33},
+      {"ssl-grpc-certificate-chain-file", required_argument, 0,
+       long_option_idx_base + 34},
+      {"ssl-https-verify-peer", required_argument, 0,
+       long_option_idx_base + 35},
+      {"ssl-https-verify-host", required_argument, 0,
+       long_option_idx_base + 36},
+      {"ssl-https-ca-certificates-file", required_argument, 0,
+       long_option_idx_base + 37},
+      {"ssl-https-client-certificate-file", required_argument, 0,
+       long_option_idx_base + 38},
+      {"ssl-https-client-certificate-type", required_argument, 0,
+       long_option_idx_base + 39},
+      {"ssl-https-private-key-file", required_argument, 0,
+       long_option_idx_base + 40},
+      {"ssl-https-private-key-type", required_argument, 0,
+       long_option_idx_base + 41},
+      {"verbose-csv", no_argument, 0, long_option_idx_base + 42},
+      {"enable-mpi", no_argument, 0, long_option_idx_base + 43},
+      {"trace-level", required_argument, 0, long_option_idx_base + 44},
+      {"trace-rate", required_argument, 0, long_option_idx_base + 45},
+      {"trace-count", required_argument, 0, long_option_idx_base + 46},
+      {"log-frequency", required_argument, 0, long_option_idx_base + 47},
+      {"collect-metrics", no_argument, 0, long_option_idx_base + 48},
+      {"metrics-url", required_argument, 0, long_option_idx_base + 49},
+      {"metrics-interval", required_argument, 0, long_option_idx_base + 50},
+      {"sequence-length-variation", required_argument, 0,
+       long_option_idx_base + 51},
+      {"bls-composing-models", required_argument, 0, long_option_idx_base + 52},
+      {"serial-sequences", no_argument, 0, long_option_idx_base + 53},
+      {"input-tensor-format", required_argument, 0, long_option_idx_base + 54},
+      {"output-tensor-format", required_argument, 0, long_option_idx_base + 55},
+      {"version", no_argument, 0, long_option_idx_base + 56},
+      {"profile-export-file", required_argument, 0, long_option_idx_base + 57},
+      {"periodic-concurrency-range", required_argument, 0,
+       long_option_idx_base + 58},
+      {"request-period", required_argument, 0, long_option_idx_base + 59},
+      {"request-parameter", required_argument, 0, long_option_idx_base + 60},
+      {"endpoint", required_argument, 0, long_option_idx_base + 61},
+      {"request-count", required_argument, 0, long_option_idx_base + 62},
+      {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
+      {"schedule", required_argument, 0, long_option_idx_base + 64},
       {0, 0, 0, 0}};
 
   // Parse commandline...
@@ -899,10 +919,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
               NULL)) != -1) {
     try {
       switch (opt) {
-        case 0:
+        case long_option_idx_base + 0:
           params_->streaming = true;
           break;
-        case 1: {
+        case long_option_idx_base + 1: {
           std::string max_threads{optarg};
           if (std::stoi(max_threads) > 0) {
             params_->max_threads = std::stoull(max_threads);
@@ -912,7 +932,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 2: {
+        case long_option_idx_base + 2: {
           std::string sequence_length{optarg};
           if (std::stoi(sequence_length) > 0) {
             params_->sequence_length = std::stoull(sequence_length);
@@ -925,13 +945,13 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->sequence_length_specified = true;
           break;
         }
-        case 3:
+        case long_option_idx_base + 3:
           params_->percentile = std::atoi(optarg);
           break;
-        case 4:
+        case long_option_idx_base + 4:
           params_->user_data.push_back(optarg);
           break;
-        case 5: {
+        case long_option_idx_base + 5: {
           std::string arg = optarg;
           auto colon_pos = arg.rfind(":");
           if (colon_pos == std::string::npos) {
@@ -964,7 +984,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->input_shapes[name] = shape;
           break;
         }
-        case 6:
+        case long_option_idx_base + 6:
         case 'p': {
           std::string measurement_window_ms{optarg};
           if (std::stoi(measurement_window_ms) > 0) {
@@ -976,7 +996,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 7: {
+        case long_option_idx_base + 7: {
           params_->using_concurrency_range = true;
           std::string arg = optarg;
           std::vector<std::string> values{SplitString(arg)};
@@ -998,7 +1018,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 8:
+        case long_option_idx_base + 8:
         case 'l': {
           std::string latency_threshold_ms{optarg};
           if (std::stoi(latency_threshold_ms) == 0) {
@@ -1012,7 +1032,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 9:
+        case long_option_idx_base + 9:
         case 's': {
           std::string stability_threshold{optarg};
           if (std::stof(stability_threshold) >= 0.0) {
@@ -1024,7 +1044,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 10:
+        case long_option_idx_base + 10:
         case 'r': {
           std::string max_trials{optarg};
           if (std::stoi(max_trials) > 0) {
@@ -1034,7 +1054,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 11: {
+        case long_option_idx_base + 11: {
           std::string arg = optarg;
           // Check whether the argument is a directory
           if (IsDirectory(arg) || IsFile(arg)) {
@@ -1052,7 +1072,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 12: {
+        case long_option_idx_base + 12: {
           std::string string_length{optarg};
           if (std::stoi(string_length) > 0) {
             params_->string_length = std::stoull(string_length);
@@ -1061,20 +1081,20 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 13: {
+        case long_option_idx_base + 13: {
           params_->string_data = optarg;
           break;
         }
-        case 14:
+        case long_option_idx_base + 14:
         case 'a': {
           params_->async = true;
           break;
         }
-        case 15: {
+        case long_option_idx_base + 15: {
           params_->forced_sync = true;
           break;
         }
-        case 16: {
+        case long_option_idx_base + 16: {
           params_->using_request_rate_range = true;
           std::string arg = optarg;
           size_t pos = 0;
@@ -1100,7 +1120,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
 
           break;
         }
-        case 17: {
+        case long_option_idx_base + 17: {
           std::string num_of_sequences{optarg};
           if (std::stoi(num_of_sequences) > 0) {
             params_->num_of_sequences = std::stoul(num_of_sequences);
@@ -1109,11 +1129,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 18: {
+        case long_option_idx_base + 18: {
           params_->search_mode = SearchMode::BINARY;
           break;
         }
-        case 19: {
+        case long_option_idx_base + 19: {
           std::string arg = optarg;
           if (arg.compare("poisson") == 0) {
             params_->request_distribution = Distribution::POISSON;
@@ -1127,7 +1147,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 20: {
+        case long_option_idx_base + 20: {
           std::string request_intervals_file{optarg};
           if (IsFile(request_intervals_file)) {
             params_->request_intervals_file = request_intervals_file;
@@ -1139,7 +1159,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 21: {
+        case long_option_idx_base + 21: {
           std::string arg = optarg;
           if (arg.compare("system") == 0) {
             params_->shared_memory_type =
@@ -1163,7 +1183,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 22: {
+        case long_option_idx_base + 22: {
           std::string output_shm_size{optarg};
           if (std::stoi(output_shm_size) >= 0) {
             params_->output_shm_size = std::stoull(output_shm_size);
@@ -1174,7 +1194,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 23: {
+        case long_option_idx_base + 23: {
           std::string arg = optarg;
           if (arg.compare("triton") == 0) {
             params_->kind = cb::TRITON;
@@ -1195,10 +1215,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 24:
+        case long_option_idx_base + 24:
           params_->model_signature_name = optarg;
           break;
-        case 25: {
+        case long_option_idx_base + 25: {
           std::string arg = optarg;
           if (arg.compare("none") == 0) {
             params_->compression_algorithm = cb::COMPRESS_NONE;
@@ -1216,7 +1236,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->using_grpc_compression = true;
           break;
         }
-        case 26: {
+        case long_option_idx_base + 26: {
           std::string arg = optarg;
           if (arg.compare("time_windows") == 0) {
             params_->measurement_mode = MeasurementMode::TIME_WINDOWS;
@@ -1232,7 +1252,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 27: {
+        case long_option_idx_base + 27: {
           std::string request_count{optarg};
           if (std::stoi(request_count) > 0) {
             params_->measurement_request_count = std::stoull(request_count);
@@ -1243,15 +1263,15 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 28: {
+        case long_option_idx_base + 28: {
           params_->triton_server_path = optarg;
           break;
         }
-        case 29: {
+        case long_option_idx_base + 29: {
           params_->model_repository_path = optarg;
           break;
         }
-        case 30: {
+        case long_option_idx_base + 30: {
           std::string arg = optarg;
           int64_t start_id;
           int64_t end_id;
@@ -1299,11 +1319,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 31: {
+        case long_option_idx_base + 31: {
           params_->ssl_options.ssl_grpc_use_ssl = true;
           break;
         }
-        case 32: {
+        case long_option_idx_base + 32: {
           if (IsFile(optarg)) {
             params_->ssl_options.ssl_grpc_root_certifications_file = optarg;
           } else {
@@ -1313,7 +1333,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 33: {
+        case long_option_idx_base + 33: {
           if (IsFile(optarg)) {
             params_->ssl_options.ssl_grpc_private_key_file = optarg;
           } else {
@@ -1323,7 +1343,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 34: {
+        case long_option_idx_base + 34: {
           if (IsFile(optarg)) {
             params_->ssl_options.ssl_grpc_certificate_chain_file = optarg;
           } else {
@@ -1333,7 +1353,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 35: {
+        case long_option_idx_base + 35: {
           if (std::atol(optarg) == 0 || std::atol(optarg) == 1) {
             params_->ssl_options.ssl_https_verify_peer = std::atol(optarg);
           } else {
@@ -1343,7 +1363,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 36: {
+        case long_option_idx_base + 36: {
           if (std::atol(optarg) == 0 || std::atol(optarg) == 1 ||
               std::atol(optarg) == 2) {
             params_->ssl_options.ssl_https_verify_host = std::atol(optarg);
@@ -1354,7 +1374,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 37: {
+        case long_option_idx_base + 37: {
           if (IsFile(optarg)) {
             params_->ssl_options.ssl_https_ca_certificates_file = optarg;
           } else {
@@ -1364,7 +1384,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 38: {
+        case long_option_idx_base + 38: {
           if (IsFile(optarg)) {
             params_->ssl_options.ssl_https_client_certificate_file = optarg;
           } else {
@@ -1374,7 +1394,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 39: {
+        case long_option_idx_base + 39: {
           if (std::string(optarg) == "PEM" || std::string(optarg) == "DER") {
             params_->ssl_options.ssl_https_client_certificate_type = optarg;
           } else {
@@ -1386,7 +1406,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 40: {
+        case long_option_idx_base + 40: {
           if (IsFile(optarg)) {
             params_->ssl_options.ssl_https_private_key_file = optarg;
           } else {
@@ -1396,7 +1416,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 41: {
+        case long_option_idx_base + 41: {
           if (std::string(optarg) == "PEM" || std::string(optarg) == "DER") {
             params_->ssl_options.ssl_https_private_key_type = optarg;
           } else {
@@ -1408,15 +1428,15 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 42: {
+        case long_option_idx_base + 42: {
           params_->verbose_csv = true;
           break;
         }
-        case 43: {
+        case long_option_idx_base + 43: {
           params_->enable_mpi = true;
           break;
         }
-        case 44: {
+        case long_option_idx_base + 44: {
           std::string trace_level{optarg};
           if (trace_level == "OFF" || trace_level == "TIMESTAMPS" ||
               trace_level == "TENSORS") {
@@ -1430,11 +1450,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 45: {
+        case long_option_idx_base + 45: {
           params_->trace_options["trace_rate"] = {optarg};
           break;
         }
-        case 46: {
+        case long_option_idx_base + 46: {
           std::string trace_count{optarg};
           if (std::stoi(trace_count) >= -1) {
             params_->trace_options["trace_count"] = {trace_count};
@@ -1445,7 +1465,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 47: {
+        case long_option_idx_base + 47: {
           std::string log_frequency{optarg};
           if (std::stoi(log_frequency) >= 0) {
             params_->trace_options["log_frequency"] = {log_frequency};
@@ -1454,16 +1474,16 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 48: {
+        case long_option_idx_base + 48: {
           params_->should_collect_metrics = true;
           break;
         }
-        case 49: {
+        case long_option_idx_base + 49: {
           params_->metrics_url = optarg;
           params_->metrics_url_specified = true;
           break;
         }
-        case 50: {
+        case long_option_idx_base + 50: {
           std::string metrics_interval_ms{optarg};
           if (std::stoi(metrics_interval_ms) > 0) {
             params_->metrics_interval_ms = std::stoull(metrics_interval_ms);
@@ -1475,11 +1495,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 51: {
+        case long_option_idx_base + 51: {
           params_->sequence_length_variation = std::stod(optarg);
           break;
         }
-        case 52: {
+        case long_option_idx_base + 52: {
           std::string arg = optarg;
 
           // Remove all spaces in the string
@@ -1508,11 +1528,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 53: {
+        case long_option_idx_base + 53: {
           params_->serial_sequences = true;
           break;
         }
-        case 54: {
+        case long_option_idx_base + 54: {
           cb::TensorFormat input_tensor_format{ParseTensorFormat(optarg)};
           if (input_tensor_format == cb::TensorFormat::UNKNOWN) {
             Usage(
@@ -1524,7 +1544,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->input_tensor_format = input_tensor_format;
           break;
         }
-        case 55: {
+        case long_option_idx_base + 55: {
           cb::TensorFormat output_tensor_format{ParseTensorFormat(optarg)};
           if (output_tensor_format == cb::TensorFormat::UNKNOWN) {
             Usage(
@@ -1536,11 +1556,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->output_tensor_format = output_tensor_format;
           break;
         }
-        case 56: {
+        case long_option_idx_base + 56: {
           PrintVersion();
           break;
         }
-        case 57: {
+        case long_option_idx_base + 57: {
           std::string profile_export_file{optarg};
           if (IsFile(profile_export_file) || IsDirectory(profile_export_file)) {
             Usage(
@@ -1550,7 +1570,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->profile_export_file = profile_export_file;
           break;
         }
-        case 58: {
+        case long_option_idx_base + 58: {
           params_->is_using_periodic_concurrency_mode = true;
           std::string arg = optarg;
           std::vector<std::string> values{SplitString(arg)};
@@ -1591,7 +1611,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 59: {
+        case long_option_idx_base + 59: {
           std::string request_period{optarg};
           if (std::stoi(request_period) > 0) {
             params_->request_period = std::stoull(request_period);
@@ -1600,7 +1620,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           break;
         }
-        case 60: {
+        case long_option_idx_base + 60: {
           std::string arg = optarg;
           std::vector<std::string> values{SplitString(arg)};
           if (values.size() != 3) {
@@ -1621,18 +1641,27 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->request_parameters[name] = param;
           break;
         }
-        case 61: {
+        case long_option_idx_base + 61: {
           params_->endpoint = optarg;
           break;
         }
-        case 62: {
+        case long_option_idx_base + 62: {
           if (std::stoi(optarg) < 0) {
             Usage("Failed to parse --request-count. The value must be > 0.");
           }
           params_->request_count = std::stoi(optarg);
           break;
         }
-        case 63: {
+        case long_option_idx_base + 63: {
+          if (std::stoi(optarg) < 0) {
+            Usage(
+                "Failed to parse --warmup-request-count. The value must be >= "
+                "0.");
+          }
+          params_->warmup_request_count = std::stoi(optarg);
+          break;
+        }
+        case long_option_idx_base + 64: {
           std::vector<float> schedule;
           std::string arg = optarg;
           std::vector<std::string> float_strings = SplitString(optarg, ",");
@@ -1641,391 +1670,404 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           params_->schedule = schedule;
           break;
-        }
-        case 'v':
-          params_->extra_verbose = params_->verbose;
-          params_->verbose = true;
-          break;
-        case 'z':
-          params_->zero_input = true;
-          break;
-        case 'd':
-          params_->using_old_options = true;
-          params_->dynamic_concurrency_mode = true;
-          break;
-        case 'u':
-          params_->url_specified = true;
-          params_->url = optarg;
-          break;
-        case 'm':
-          params_->model_name = optarg;
-          break;
-        case 'x':
-          params_->model_version = optarg;
-          break;
-        case 'b': {
-          std::string batch_size{optarg};
-          if (std::stoi(batch_size) > 0) {
-            params_->batch_size = std::stoull(batch_size);
-            params_->using_batch_size = true;
-          } else {
-            Usage("Failed to parse -b (batch size). The value must be > 0.");
+          case 'v':
+            params_->extra_verbose = params_->verbose;
+            params_->verbose = true;
+            break;
+          case 'z':
+            params_->zero_input = true;
+            break;
+          case 'd':
+            params_->using_old_options = true;
+            params_->dynamic_concurrency_mode = true;
+            break;
+          case 'u':
+            params_->url_specified = true;
+            params_->url = optarg;
+            break;
+          case 'm':
+            params_->model_name = optarg;
+            break;
+          case 'x':
+            params_->model_version = optarg;
+            break;
+          case 'b': {
+            std::string batch_size{optarg};
+            if (std::stoi(batch_size) > 0) {
+              params_->batch_size = std::stoull(batch_size);
+              params_->using_batch_size = true;
+            } else {
+              Usage("Failed to parse -b (batch size). The value must be > 0.");
+            }
+            break;
           }
-          break;
+          case 't':
+            params_->using_old_options = true;
+            params_->concurrent_request_count = std::atoi(optarg);
+            break;
+          case 'i':
+            params_->protocol = ParseProtocol(optarg);
+            break;
+          case 'H': {
+            std::string arg = optarg;
+            std::string header = arg.substr(0, arg.find(":"));
+            (*params_->http_headers)[header] = arg.substr(header.size() + 1);
+            break;
+          }
+          case 'c':
+            params_->using_old_options = true;
+            params_->max_concurrency = std::atoi(optarg);
+            break;
+          case 'f':
+            params_->filename = optarg;
+            break;
+          case '?':
+            Usage();
+            break;
         }
-        case 't':
-          params_->using_old_options = true;
-          params_->concurrent_request_count = std::atoi(optarg);
-          break;
-        case 'i':
-          params_->protocol = ParseProtocol(optarg);
-          break;
-        case 'H': {
-          std::string arg = optarg;
-          std::string header = arg.substr(0, arg.find(":"));
-          (*params_->http_headers)[header] = arg.substr(header.size() + 1);
-          break;
+      }
+      catch (const std::invalid_argument& ia)
+      {
+        if (opt < long_option_idx_base) {  // short options
+          Usage(
+              "Failed to parse -" + std::string{(char)opt} +
+              ". Invalid value provided: " + std::string{optarg});
+        } else {
+          Usage(
+              "Failed to parse --" +
+              std::string{long_options[opt - long_option_idx_base].name} +
+              ". Invalid value provided: " + std::string{optarg});
         }
-        case 'c':
-          params_->using_old_options = true;
-          params_->max_concurrency = std::atoi(optarg);
-          break;
-        case 'f':
-          params_->filename = optarg;
-          break;
-        case '_':
-          Usage();
-          break;
       }
     }
-    catch (const std::invalid_argument& ia) {
-      if (opt >= 'A') {  // short options
-        Usage(
-            "Failed to parse -" + std::string{(char)opt} +
-            ". Invalid value provided: " + std::string{optarg});
-      } else {
-        Usage(
-            "Failed to parse --" + std::string{long_options[opt].name} +
-            ". Invalid value provided: " + std::string{optarg});
+
+    params_->mpi_driver = std::shared_ptr<triton::perfanalyzer::MPIDriver>{
+        std::make_shared<triton::perfanalyzer::MPIDriver>(params_->enable_mpi)};
+    params_->mpi_driver->MPIInit(&argc, &argv);
+
+    if (!params_->url_specified &&
+        (params_->protocol == cb::ProtocolType::GRPC)) {
+      if (params_->kind == cb::BackendKind::TRITON) {
+        params_->url = "localhost:8001";
+      } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
+        params_->url = "localhost:8500";
       }
     }
-  }
 
-  params_->mpi_driver = std::shared_ptr<triton::perfanalyzer::MPIDriver>{
-      std::make_shared<triton::perfanalyzer::MPIDriver>(params_->enable_mpi)};
-  params_->mpi_driver->MPIInit(&argc, &argv);
+    // Overriding the max_threads default for request_rate search
+    if (!params_->max_threads_specified && params_->targeting_concurrency()) {
+      params_->max_threads =
+          std::max(DEFAULT_MAX_THREADS, params_->concurrency_range.end);
+    }
 
-  if (!params_->url_specified &&
-      (params_->protocol == cb::ProtocolType::GRPC)) {
-    if (params_->kind == cb::BackendKind::TRITON) {
-      params_->url = "localhost:8001";
-    } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
-      params_->url = "localhost:8500";
+    if (params_->using_custom_intervals) {
+      // Will be using user-provided time intervals, hence no control variable.
+      params_->search_mode = SearchMode::NONE;
+    }
+
+    // When the request-count feature is enabled, override the measurement mode
+    // to be count windows with a window size of the requested count
+    if (params_->request_count) {
+      params_->measurement_mode = MeasurementMode::COUNT_WINDOWS;
+      params_->measurement_request_count = params_->request_count;
     }
   }
 
-  // Overriding the max_threads default for request_rate search
-  if (!params_->max_threads_specified && params_->targeting_concurrency()) {
-    params_->max_threads =
-        std::max(DEFAULT_MAX_THREADS, params_->concurrency_range.end);
-  }
-
-  if (params_->using_custom_intervals) {
-    // Will be using user-provided time intervals, hence no control variable.
-    params_->search_mode = SearchMode::NONE;
-  }
-
-  // When the request-count feature is enabled, override the measurement mode to
-  // be count windows with a window size of the requested count
-  if (params_->request_count) {
-    params_->measurement_mode = MeasurementMode::COUNT_WINDOWS;
-    params_->measurement_request_count = params_->request_count;
-  }
-}
-
-void
-CLParser::VerifyOptions()
-{
-  if (params_->model_name.empty()) {
-    Usage("Failed to parse -m (model name). The value must be specified.");
-  }
-  if (params_->concurrency_range.start <= 0 ||
-      params_->concurrent_request_count < 0) {
-    Usage("The start of the search range must be > 0");
-  }
-  if (params_->request_rate_range[SEARCH_RANGE::kSTART] <= 0) {
-    Usage(
-        "Failed to parse --request-rate-range. The start of the search range "
-        "must be > 0.");
-  }
-  if (params_->protocol == cb::ProtocolType::UNKNOWN) {
-    Usage(
-        "Failed to parse -i (protocol). The value should be either HTTP or "
-        "gRPC.");
-  }
-  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC &&
-                             params_->kind != cb::BackendKind::TRITON_C_API)) {
-    Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
-  }
-  if (params_->using_grpc_compression &&
-      (params_->protocol != cb::ProtocolType::GRPC)) {
-    Usage("Using compression algorithm is only allowed with gRPC protocol.");
-  }
-  if (params_->sequence_length_variation < 0.0) {
-    Usage(
-        "Failed to parse --sequence-length-variation. The value must be >= "
-        "0.0.");
-  }
-  if (params_->start_sequence_id == 0) {
-    params_->start_sequence_id = 1;
-    std::cerr << "WARNING: using an invalid start sequence id. Perf Analyzer"
-              << " will use default value if it is measuring on sequence model."
-              << std::endl;
-  }
-  if (params_->percentile != -1 &&
-      (params_->percentile > 99 || params_->percentile < 1)) {
-    Usage(
-        "Failed to parse --percentile. The value must be -1 for not reporting "
-        "or in range (0, 100).");
-  }
-  if (params_->zero_input && !params_->user_data.empty()) {
-    Usage("The -z flag cannot be set when --data-directory is provided.");
-  }
-  if (params_->async && params_->forced_sync) {
-    Usage("Cannot specify --async and --sync simultaneously.");
-  }
-
-  if (params_->using_concurrency_range && params_->using_old_options) {
-    Usage("Cannot use deprecated options with --concurrency-range.");
-  } else if (params_->using_old_options) {
-    if (params_->dynamic_concurrency_mode) {
-      params_->concurrency_range.end = params_->max_concurrency;
+  void CLParser::VerifyOptions()
+  {
+    if (params_->model_name.empty()) {
+      Usage("Failed to parse -m (model name). The value must be specified.");
     }
-    params_->concurrency_range.start = params_->concurrent_request_count;
-  }
-
-  if (params_->using_request_rate_range && params_->using_old_options) {
-    Usage("Cannot use concurrency options with --request-rate-range.");
-  }
-
-  std::vector<bool> load_modes{
-      params_->is_using_periodic_concurrency_mode,
-      params_->using_concurrency_range, params_->using_request_rate_range,
-      params_->using_custom_intervals};
-  if (std::count(load_modes.begin(), load_modes.end(), true) > 1) {
-    Usage(
-        "Cannot specify more then one inference load mode. Please choose only "
-        "one of the following modes: --concurrency-range, "
-        "--periodic-concurrency-range, --request-rate-range, or "
-        "--request-intervals.");
-  }
-
-  if (params_->is_using_periodic_concurrency_mode && !params_->streaming) {
-    Usage(
-        "The --periodic-concurrency-range option requires bi-directional gRPC "
-        "streaming.");
-  }
-
-  if (params_->is_using_periodic_concurrency_mode &&
-      (params_->profile_export_file == "")) {
-    Usage(
-        "Must provide --profile-export-file when using the "
-        "--periodic-concurrency-range option.");
-  }
-
-  if (params_->is_using_periodic_concurrency_mode) {
-    if (params_->periodic_concurrency_range.end == pa::NO_LIMIT) {
+    if (params_->concurrency_range.start <= 0 ||
+        params_->concurrent_request_count < 0) {
+      Usage("The start of the search range must be > 0");
+    }
+    if (params_->request_rate_range[SEARCH_RANGE::kSTART] <= 0) {
+      Usage(
+          "Failed to parse --request-rate-range. The start of the search range "
+          "must be > 0.");
+    }
+    if (params_->protocol == cb::ProtocolType::UNKNOWN) {
+      Usage(
+          "Failed to parse -i (protocol). The value should be either HTTP or "
+          "gRPC.");
+    }
+    if (params_->streaming &&
+        (params_->protocol != cb::ProtocolType::GRPC &&
+         params_->kind != cb::BackendKind::TRITON_C_API)) {
+      Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
+    }
+    if (params_->using_grpc_compression &&
+        (params_->protocol != cb::ProtocolType::GRPC)) {
+      Usage("Using compression algorithm is only allowed with gRPC protocol.");
+    }
+    if (params_->sequence_length_variation < 0.0) {
+      Usage(
+          "Failed to parse --sequence-length-variation. The value must be >= "
+          "0.0.");
+    }
+    if (params_->start_sequence_id == 0) {
+      params_->start_sequence_id = 1;
       std::cerr
-          << "WARNING: The maximum attainable concurrency will be limited by "
-             "max_threads specification."
+          << "WARNING: using an invalid start sequence id. Perf Analyzer"
+          << " will use default value if it is measuring on sequence model."
           << std::endl;
-      params_->periodic_concurrency_range.end = params_->max_threads;
-    } else {
-      if (params_->max_threads_specified) {
-        std::cerr << "WARNING: Overriding max_threads specification to ensure "
-                     "requested concurrency range."
-                  << std::endl;
-      }
-      params_->max_threads = std::max(
-          params_->max_threads, params_->periodic_concurrency_range.end);
     }
-  }
+    if (params_->percentile != -1 &&
+        (params_->percentile > 99 || params_->percentile < 1)) {
+      Usage(
+          "Failed to parse --percentile. The value must be -1 for not "
+          "reporting "
+          "or in range (0, 100).");
+    }
+    if (params_->zero_input && !params_->user_data.empty()) {
+      Usage("The -z flag cannot be set when --data-directory is provided.");
+    }
+    if (params_->async && params_->forced_sync) {
+      Usage("Cannot specify --async and --sync simultaneously.");
+    }
 
-  if (params_->request_parameters.size() > 0 &&
-      params_->protocol != cb::ProtocolType::GRPC) {
-    Usage(
-        "The --request-parameter option is currently only supported by gRPC "
-        "protocol.");
-  }
-
-  if (params_->using_request_rate_range && params_->mpi_driver->IsMPIRun() &&
-      (params_->request_rate_range[SEARCH_RANGE::kEND] != 1.0 ||
-       params_->request_rate_range[SEARCH_RANGE::kSTEP] != 1.0)) {
-    Usage("Cannot specify --request-rate-range when in multi-model mode.");
-  }
-
-  if (params_->using_custom_intervals && params_->using_old_options) {
-    Usage("Cannot use deprecated options with --request-intervals.");
-  }
-
-  if ((params_->using_custom_intervals) &&
-      (params_->using_request_rate_range || params_->using_concurrency_range)) {
-    Usage(
-        "Cannot use --concurrency-range or --request-rate-range "
-        "along with --request-intervals.");
-  }
-
-  if (params_->using_concurrency_range && params_->mpi_driver->IsMPIRun() &&
-      (params_->concurrency_range.end != 1 ||
-       params_->concurrency_range.step != 1)) {
-    Usage("Cannot specify --concurrency-range when in multi-model mode.");
-  }
-
-  if (((params_->concurrency_range.end == NO_LIMIT) ||
-       (params_->request_rate_range[SEARCH_RANGE::kEND] ==
-        static_cast<double>(NO_LIMIT))) &&
-      (params_->latency_threshold_ms == NO_LIMIT)) {
-    Usage(
-        "The end of the search range and the latency limit can not be both 0 "
-        "(or 0.0) simultaneously");
-  }
-
-  if (((params_->concurrency_range.end == NO_LIMIT) ||
-       (params_->request_rate_range[SEARCH_RANGE::kEND] ==
-        static_cast<double>(NO_LIMIT))) &&
-      (params_->search_mode == SearchMode::BINARY)) {
-    Usage("The end of the range can not be 0 (or 0.0) for binary search mode.");
-  }
-
-  if ((params_->search_mode == SearchMode::BINARY) &&
-      (params_->latency_threshold_ms == NO_LIMIT)) {
-    Usage("The --latency-threshold cannot be 0 for binary search mode.");
-  }
-
-  if (((params_->concurrency_range.end < params_->concurrency_range.start) ||
-       (params_->request_rate_range[SEARCH_RANGE::kEND] <
-        params_->request_rate_range[SEARCH_RANGE::kSTART])) &&
-      (params_->search_mode == SearchMode::BINARY)) {
-    Usage(
-        "The end of the range can not be less than start of the range for "
-        "binary search mode.");
-  }
-
-  if (params_->request_count != 0) {
-    if (params_->using_concurrency_range) {
-      if (params_->request_count < params_->concurrency_range.start) {
-        Usage("request-count can not be less than concurrency");
+    if (params_->using_concurrency_range && params_->using_old_options) {
+      Usage("Cannot use deprecated options with --concurrency-range.");
+    } else if (params_->using_old_options) {
+      if (params_->dynamic_concurrency_mode) {
+        params_->concurrency_range.end = params_->max_concurrency;
       }
-      if (params_->concurrency_range.start < params_->concurrency_range.end) {
+      params_->concurrency_range.start = params_->concurrent_request_count;
+    }
+
+    if (params_->using_request_rate_range && params_->using_old_options) {
+      Usage("Cannot use concurrency options with --request-rate-range.");
+    }
+
+    std::vector<bool> load_modes{
+        params_->is_using_periodic_concurrency_mode,
+        params_->using_concurrency_range, params_->using_request_rate_range,
+        params_->using_custom_intervals};
+    if (std::count(load_modes.begin(), load_modes.end(), true) > 1) {
+      Usage(
+          "Cannot specify more then one inference load mode. Please choose "
+          "only "
+          "one of the following modes: --concurrency-range, "
+          "--periodic-concurrency-range, --request-rate-range, or "
+          "--request-intervals.");
+    }
+
+    if (params_->is_using_periodic_concurrency_mode && !params_->streaming) {
+      Usage(
+          "The --periodic-concurrency-range option requires bi-directional "
+          "gRPC "
+          "streaming.");
+    }
+
+    if (params_->is_using_periodic_concurrency_mode &&
+        (params_->profile_export_file == "")) {
+      Usage(
+          "Must provide --profile-export-file when using the "
+          "--periodic-concurrency-range option.");
+    }
+
+    if (params_->is_using_periodic_concurrency_mode) {
+      if (params_->periodic_concurrency_range.end == pa::NO_LIMIT) {
+        std::cerr
+            << "WARNING: The maximum attainable concurrency will be limited by "
+               "max_threads specification."
+            << std::endl;
+        params_->periodic_concurrency_range.end = params_->max_threads;
+      } else {
+        if (params_->max_threads_specified) {
+          std::cerr
+              << "WARNING: Overriding max_threads specification to ensure "
+                 "requested concurrency range."
+              << std::endl;
+        }
+        params_->max_threads = std::max(
+            params_->max_threads, params_->periodic_concurrency_range.end);
+      }
+    }
+
+    if (params_->request_parameters.size() > 0 &&
+        params_->protocol != cb::ProtocolType::GRPC) {
+      Usage(
+          "The --request-parameter option is currently only supported by gRPC "
+          "protocol.");
+    }
+
+    if (params_->using_request_rate_range && params_->mpi_driver->IsMPIRun() &&
+        (params_->request_rate_range[SEARCH_RANGE::kEND] != 1.0 ||
+         params_->request_rate_range[SEARCH_RANGE::kSTEP] != 1.0)) {
+      Usage("Cannot specify --request-rate-range when in multi-model mode.");
+    }
+
+    if (params_->using_custom_intervals && params_->using_old_options) {
+      Usage("Cannot use deprecated options with --request-intervals.");
+    }
+
+    if ((params_->using_custom_intervals) &&
+        (params_->using_request_rate_range ||
+         params_->using_concurrency_range)) {
+      Usage(
+          "Cannot use --concurrency-range or --request-rate-range "
+          "along with --request-intervals.");
+    }
+
+    if (params_->using_concurrency_range && params_->mpi_driver->IsMPIRun() &&
+        (params_->concurrency_range.end != 1 ||
+         params_->concurrency_range.step != 1)) {
+      Usage("Cannot specify --concurrency-range when in multi-model mode.");
+    }
+
+    if (((params_->concurrency_range.end == NO_LIMIT) ||
+         (params_->request_rate_range[SEARCH_RANGE::kEND] ==
+          static_cast<double>(NO_LIMIT))) &&
+        (params_->latency_threshold_ms == NO_LIMIT)) {
+      Usage(
+          "The end of the search range and the latency limit can not be both 0 "
+          "(or 0.0) simultaneously");
+    }
+
+    if (((params_->concurrency_range.end == NO_LIMIT) ||
+         (params_->request_rate_range[SEARCH_RANGE::kEND] ==
+          static_cast<double>(NO_LIMIT))) &&
+        (params_->search_mode == SearchMode::BINARY)) {
+      Usage(
+          "The end of the range can not be 0 (or 0.0) for binary search mode.");
+    }
+
+    if ((params_->search_mode == SearchMode::BINARY) &&
+        (params_->latency_threshold_ms == NO_LIMIT)) {
+      Usage("The --latency-threshold cannot be 0 for binary search mode.");
+    }
+
+    if (((params_->concurrency_range.end < params_->concurrency_range.start) ||
+         (params_->request_rate_range[SEARCH_RANGE::kEND] <
+          params_->request_rate_range[SEARCH_RANGE::kSTART])) &&
+        (params_->search_mode == SearchMode::BINARY)) {
+      Usage(
+          "The end of the range can not be less than start of the range for "
+          "binary search mode.");
+    }
+
+    if (params_->request_count != 0) {
+      if (params_->using_concurrency_range) {
+        if (params_->request_count < params_->concurrency_range.start) {
+          Usage("request-count can not be less than concurrency");
+        }
+        if (params_->concurrency_range.start < params_->concurrency_range.end) {
+          Usage(
+              "request-count not supported with multiple concurrency values in "
+              "one run");
+        }
+      }
+      if (params_->using_request_rate_range) {
+        if (params_->request_count <
+            static_cast<int>(params_->request_rate_range[0])) {
+          Usage("request-count can not be less than request-rate");
+        }
+        if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
+            params_->request_rate_range[SEARCH_RANGE::kEND]) {
+          Usage(
+              "request-count not supported with multiple request-rate values "
+              "in "
+              "one run");
+        }
+      }
+    }
+
+    if (params_->kind == cb::TENSORFLOW_SERVING) {
+      if (params_->protocol != cb::ProtocolType::GRPC) {
         Usage(
-            "request-count not supported with multiple concurrency values in "
-            "one run");
-      }
-    }
-    if (params_->using_request_rate_range) {
-      if (params_->request_count <
-          static_cast<int>(params_->request_rate_range[0])) {
-        Usage("request-count can not be less than request-rate");
-      }
-      if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
-          params_->request_rate_range[SEARCH_RANGE::kEND]) {
+            "perf_analyzer supports only grpc protocol for TensorFlow "
+            "Serving.");
+      } else if (params_->streaming) {
         Usage(
-            "request-count not supported with multiple request-rate values in "
-            "one run");
+            "perf_analyzer does not support streaming for TensorFlow Serving.");
+      } else if (params_->async) {
+        Usage(
+            "perf_analyzer does not support async API for TensorFlow Serving.");
+      } else if (!params_->using_batch_size) {
+        params_->batch_size = 0;
+      }
+    } else if (params_->kind == cb::TORCHSERVE) {
+      if (params_->user_data.empty()) {
+        Usage(
+            "--input-data should be provided with a json file with "
+            "input data for torchserve.");
       }
     }
-  }
 
-  if (params_->kind == cb::TENSORFLOW_SERVING) {
-    if (params_->protocol != cb::ProtocolType::GRPC) {
+    if (params_->kind == cb::BackendKind::TRITON_C_API) {
+      if (params_->triton_server_path.empty()) {
+        Usage(
+            "--triton-server-path should not be empty when using "
+            "service-kind=triton_c_api.");
+      }
+
+      if (params_->model_repository_path.empty()) {
+        Usage(
+            "--model-repository should not be empty when using "
+            "service-kind=triton_c_api.");
+      }
+
+      // Decoupled models run via Triton C API do not support shared memory
+      if (params_->async && params_->streaming &&
+          params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
+        Usage(
+            "Cannot use --shared-memory=system or --shared-memory=cuda with "
+            "--service-kind=triton_c_api and --async and --streaming.");
+      }
+
+      params_->protocol = cb::ProtocolType::UNKNOWN;
+    }
+
+    if (params_->kind == cb::BackendKind::OPENAI) {
+      if (params_->user_data.empty()) {
+        Usage("Must supply --input-data for OpenAI service kind.");
+      }
+      if (params_->endpoint.empty()) {
+        Usage(
+            "Must supply --endpoint for OpenAI service kind. For example, "
+            "\"v1/chat/completions\".");
+      }
+      if (!params_->async) {
+        Usage("Only async mode is currently supported for OpenAI service-kind");
+      }
+      if (params_->batch_size != 1) {
+        Usage("Batching is not currently supported with OpenAI service-kind");
+      }
+    }
+
+    if (params_->should_collect_metrics &&
+        params_->kind != cb::BackendKind::TRITON) {
       Usage(
-          "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
-    } else if (params_->streaming) {
-      Usage("perf_analyzer does not support streaming for TensorFlow Serving.");
-    } else if (params_->async) {
-      Usage("perf_analyzer does not support async API for TensorFlow Serving.");
-    } else if (!params_->using_batch_size) {
-      params_->batch_size = 0;
+          "Server-side metric collection is only supported with Triton client "
+          "backend.");
     }
-  } else if (params_->kind == cb::TORCHSERVE) {
-    if (params_->user_data.empty()) {
+
+    if (params_->metrics_url_specified &&
+        params_->should_collect_metrics == false) {
       Usage(
-          "--input-data should be provided with a json file with "
-          "input data for torchserve.");
+          "Must specify --collect-metrics when using the --metrics-url "
+          "option.");
     }
-  }
 
-  if (params_->kind == cb::BackendKind::TRITON_C_API) {
-    if (params_->triton_server_path.empty()) {
+    if (params_->metrics_interval_ms_specified &&
+        params_->should_collect_metrics == false) {
       Usage(
-          "--triton-server-path should not be empty when using "
-          "service-kind=triton_c_api.");
+          "Must specify --collect-metrics when using the --metrics-interval "
+          "option.");
     }
 
-    if (params_->model_repository_path.empty()) {
-      Usage(
-          "--model-repository should not be empty when using "
-          "service-kind=triton_c_api.");
-    }
-
-    // Decoupled models run via Triton C API do not support shared memory
-    if (params_->async && params_->streaming &&
-        params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
-      Usage(
-          "Cannot use --shared-memory=system or --shared-memory=cuda with "
-          "--service-kind=triton_c_api and --async and --streaming.");
-    }
-
-    params_->protocol = cb::ProtocolType::UNKNOWN;
-  }
-
-  if (params_->kind == cb::BackendKind::OPENAI) {
-    if (params_->user_data.empty()) {
-      Usage("Must supply --input-data for OpenAI service kind.");
-    }
-    if (params_->endpoint.empty()) {
-      Usage(
-          "Must supply --endpoint for OpenAI service kind. For example, "
-          "\"v1/chat/completions\".");
-    }
-    if (!params_->async) {
-      Usage("Only async mode is currently supported for OpenAI service-kind");
-    }
-    if (params_->batch_size != 1) {
-      Usage("Batching is not currently supported with OpenAI service-kind");
-    }
-  }
-
-  if (params_->should_collect_metrics &&
-      params_->kind != cb::BackendKind::TRITON) {
-    Usage(
-        "Server-side metric collection is only supported with Triton client "
-        "backend.");
-  }
-
-  if (params_->metrics_url_specified &&
-      params_->should_collect_metrics == false) {
-    Usage(
-        "Must specify --collect-metrics when using the --metrics-url option.");
-  }
-
-  if (params_->metrics_interval_ms_specified &&
-      params_->should_collect_metrics == false) {
-    Usage(
-        "Must specify --collect-metrics when using the --metrics-interval "
-        "option.");
-  }
-
-  if (params_->should_collect_metrics && !params_->metrics_url_specified) {
-    // Update the default metrics URL to be associated with the input URL
-    // instead of localhost
-    //
-    size_t colon_pos = params_->url.find(':');
-    if (colon_pos != std::string::npos) {
-      params_->metrics_url =
-          params_->url.substr(0, colon_pos) + ":8002/metrics";
+    if (params_->should_collect_metrics && !params_->metrics_url_specified) {
+      // Update the default metrics URL to be associated with the input URL
+      // instead of localhost
+      //
+      size_t colon_pos = params_->url.find(':');
+      if (colon_pos != std::string::npos) {
+        params_->metrics_url =
+            params_->url.substr(0, colon_pos) + ":8002/metrics";
+      }
     }
   }
 }
-
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer

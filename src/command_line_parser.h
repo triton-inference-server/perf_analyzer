@@ -158,6 +158,7 @@ struct PerfAnalyzerParameters {
   uint64_t request_period{10};
 
   std::vector<float> schedule{};
+  size_t warmup_request_count{0};
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;
