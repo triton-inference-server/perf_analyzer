@@ -34,8 +34,8 @@ across the industry.
 
 ### Table of Contents
 
-- [Profile GPT2 running on Triton + TensorRT-LLM](#tensorrt-llm)
-- [Profile GPT2 running on Triton + vLLM](#triton-vllm)
+- [Profile GPT2 running on Triton + TensorRT-LLM Backend](#tensorrt-llm)
+- [Profile GPT2 running on Triton + vLLM Backend](#triton-vllm)
 - [Profile GPT2 running on OpenAI Chat Completions API-Compatible Server](#openai-chat)
 - [Profile GPT2 running on OpenAI Completions API-Compatible Server](#openai-completions)
 
@@ -48,14 +48,9 @@ on the Triton CLI github repo to serve GPT-2 model on the Triton server with Ten
 
 ### Run GenAI-Perf
 
-Run GenAI-Perf from Triton Inference Server SDK container:
+Run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
-
-docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Run GenAI-Perf in the container:
 genai-perf profile \
   -m gpt2 \
   --service-kind triton \
@@ -92,14 +87,9 @@ on the Triton CLI github repo to serve GPT-2 model on the Triton server with vLL
 
 ### Run GenAI-Perf
 
-Run GenAI-Perf from Triton Inference Server SDK container:
+Run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
-
-docker run -it --net=host --gpus=1 nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Run GenAI-Perf in the container:
 genai-perf profile \
   -m gpt2 \
   --service-kind triton \
@@ -139,14 +129,9 @@ docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model HuggingFace
 
 ### Run GenAI-Perf
 
-Run GenAI-Perf from Triton Inference Server SDK container:
+Run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
-
-docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Run GenAI-Perf in the container:
 genai-perf profile \
   -m HuggingFaceH4/zephyr-7b-beta \
   --service-kind openai \
@@ -186,14 +171,9 @@ docker run -it --net=host --gpus=all vllm/vllm-openai:latest --model gpt2 --dtyp
 
 ### Run GenAI-Perf
 
-Run GenAI-Perf from Triton Inference Server SDK container:
+Run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
-
-docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Run GenAI-Perf in the container:
 genai-perf profile \
   -m gpt2 \
   --service-kind openai \
