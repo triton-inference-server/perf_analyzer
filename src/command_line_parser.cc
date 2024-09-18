@@ -36,8 +36,7 @@
 
 #include "perf_analyzer_exception.h"
 
-namespace triton {
-namespace perfanalyzer {
+namespace triton { namespace perfanalyzer {
 
 PAParamsPtr
 CLParser::Parse(int argc, char** argv)
@@ -1670,404 +1669,397 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           params_->schedule = schedule;
           break;
-          case 'v':
-            params_->extra_verbose = params_->verbose;
-            params_->verbose = true;
-            break;
-          case 'z':
-            params_->zero_input = true;
-            break;
-          case 'd':
-            params_->using_old_options = true;
-            params_->dynamic_concurrency_mode = true;
-            break;
-          case 'u':
-            params_->url_specified = true;
-            params_->url = optarg;
-            break;
-          case 'm':
-            params_->model_name = optarg;
-            break;
-          case 'x':
-            params_->model_version = optarg;
-            break;
-          case 'b': {
-            std::string batch_size{optarg};
-            if (std::stoi(batch_size) > 0) {
-              params_->batch_size = std::stoull(batch_size);
-              params_->using_batch_size = true;
-            } else {
-              Usage("Failed to parse -b (batch size). The value must be > 0.");
-            }
-            break;
-          }
-          case 't':
-            params_->using_old_options = true;
-            params_->concurrent_request_count = std::atoi(optarg);
-            break;
-          case 'i':
-            params_->protocol = ParseProtocol(optarg);
-            break;
-          case 'H': {
-            std::string arg = optarg;
-            std::string header = arg.substr(0, arg.find(":"));
-            (*params_->http_headers)[header] = arg.substr(header.size() + 1);
-            break;
-          }
-          case 'c':
-            params_->using_old_options = true;
-            params_->max_concurrency = std::atoi(optarg);
-            break;
-          case 'f':
-            params_->filename = optarg;
-            break;
-          case '?':
-            Usage();
-            break;
         }
-      }
-      catch (const std::invalid_argument& ia)
-      {
-        if (opt < long_option_idx_base) {  // short options
-          Usage(
-              "Failed to parse -" + std::string{(char)opt} +
-              ". Invalid value provided: " + std::string{optarg});
-        } else {
-          Usage(
-              "Failed to parse --" +
-              std::string{long_options[opt - long_option_idx_base].name} +
-              ". Invalid value provided: " + std::string{optarg});
+        case 'v':
+          params_->extra_verbose = params_->verbose;
+          params_->verbose = true;
+          break;
+        case 'z':
+          params_->zero_input = true;
+          break;
+        case 'd':
+          params_->using_old_options = true;
+          params_->dynamic_concurrency_mode = true;
+          break;
+        case 'u':
+          params_->url_specified = true;
+          params_->url = optarg;
+          break;
+        case 'm':
+          params_->model_name = optarg;
+          break;
+        case 'x':
+          params_->model_version = optarg;
+          break;
+        case 'b': {
+          std::string batch_size{optarg};
+          if (std::stoi(batch_size) > 0) {
+            params_->batch_size = std::stoull(batch_size);
+            params_->using_batch_size = true;
+          } else {
+            Usage("Failed to parse -b (batch size). The value must be > 0.");
+          }
+          break;
         }
+        case 't':
+          params_->using_old_options = true;
+          params_->concurrent_request_count = std::atoi(optarg);
+          break;
+        case 'i':
+          params_->protocol = ParseProtocol(optarg);
+          break;
+        case 'H': {
+          std::string arg = optarg;
+          std::string header = arg.substr(0, arg.find(":"));
+          (*params_->http_headers)[header] = arg.substr(header.size() + 1);
+          break;
+        }
+        case 'c':
+          params_->using_old_options = true;
+          params_->max_concurrency = std::atoi(optarg);
+          break;
+        case 'f':
+          params_->filename = optarg;
+          break;
+        case '?':
+          Usage();
+          break;
       }
     }
-
-    params_->mpi_driver = std::shared_ptr<triton::perfanalyzer::MPIDriver>{
-        std::make_shared<triton::perfanalyzer::MPIDriver>(params_->enable_mpi)};
-    params_->mpi_driver->MPIInit(&argc, &argv);
-
-    if (!params_->url_specified &&
-        (params_->protocol == cb::ProtocolType::GRPC)) {
-      if (params_->kind == cb::BackendKind::TRITON) {
-        params_->url = "localhost:8001";
-      } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
-        params_->url = "localhost:8500";
+    catch (const std::invalid_argument& ia) {
+      if (opt < long_option_idx_base) {  // short options
+        Usage(
+            "Failed to parse -" + std::string{(char)opt} +
+            ". Invalid value provided: " + std::string{optarg});
+      } else {
+        Usage(
+            "Failed to parse --" +
+            std::string{long_options[opt - long_option_idx_base].name} +
+            ". Invalid value provided: " + std::string{optarg});
       }
-    }
-
-    // Overriding the max_threads default for request_rate search
-    if (!params_->max_threads_specified && params_->targeting_concurrency()) {
-      params_->max_threads =
-          std::max(DEFAULT_MAX_THREADS, params_->concurrency_range.end);
-    }
-
-    if (params_->using_custom_intervals) {
-      // Will be using user-provided time intervals, hence no control variable.
-      params_->search_mode = SearchMode::NONE;
-    }
-
-    // When the request-count feature is enabled, override the measurement mode
-    // to be count windows with a window size of the requested count
-    if (params_->request_count) {
-      params_->measurement_mode = MeasurementMode::COUNT_WINDOWS;
-      params_->measurement_request_count = params_->request_count;
     }
   }
 
-  void CLParser::VerifyOptions()
-  {
-    if (params_->model_name.empty()) {
-      Usage("Failed to parse -m (model name). The value must be specified.");
-    }
-    if (params_->concurrency_range.start <= 0 ||
-        params_->concurrent_request_count < 0) {
-      Usage("The start of the search range must be > 0");
-    }
-    if (params_->request_rate_range[SEARCH_RANGE::kSTART] <= 0) {
-      Usage(
-          "Failed to parse --request-rate-range. The start of the search range "
-          "must be > 0.");
-    }
-    if (params_->protocol == cb::ProtocolType::UNKNOWN) {
-      Usage(
-          "Failed to parse -i (protocol). The value should be either HTTP or "
-          "gRPC.");
-    }
-    if (params_->streaming &&
-        (params_->protocol != cb::ProtocolType::GRPC &&
-         params_->kind != cb::BackendKind::TRITON_C_API)) {
-      Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
-    }
-    if (params_->using_grpc_compression &&
-        (params_->protocol != cb::ProtocolType::GRPC)) {
-      Usage("Using compression algorithm is only allowed with gRPC protocol.");
-    }
-    if (params_->sequence_length_variation < 0.0) {
-      Usage(
-          "Failed to parse --sequence-length-variation. The value must be >= "
-          "0.0.");
-    }
-    if (params_->start_sequence_id == 0) {
-      params_->start_sequence_id = 1;
-      std::cerr
-          << "WARNING: using an invalid start sequence id. Perf Analyzer"
-          << " will use default value if it is measuring on sequence model."
-          << std::endl;
-    }
-    if (params_->percentile != -1 &&
-        (params_->percentile > 99 || params_->percentile < 1)) {
-      Usage(
-          "Failed to parse --percentile. The value must be -1 for not "
-          "reporting "
-          "or in range (0, 100).");
-    }
-    if (params_->zero_input && !params_->user_data.empty()) {
-      Usage("The -z flag cannot be set when --data-directory is provided.");
-    }
-    if (params_->async && params_->forced_sync) {
-      Usage("Cannot specify --async and --sync simultaneously.");
-    }
+  params_->mpi_driver = std::shared_ptr<triton::perfanalyzer::MPIDriver>{
+      std::make_shared<triton::perfanalyzer::MPIDriver>(params_->enable_mpi)};
+  params_->mpi_driver->MPIInit(&argc, &argv);
 
-    if (params_->using_concurrency_range && params_->using_old_options) {
-      Usage("Cannot use deprecated options with --concurrency-range.");
-    } else if (params_->using_old_options) {
-      if (params_->dynamic_concurrency_mode) {
-        params_->concurrency_range.end = params_->max_concurrency;
-      }
-      params_->concurrency_range.start = params_->concurrent_request_count;
+  if (!params_->url_specified &&
+      (params_->protocol == cb::ProtocolType::GRPC)) {
+    if (params_->kind == cb::BackendKind::TRITON) {
+      params_->url = "localhost:8001";
+    } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
+      params_->url = "localhost:8500";
     }
+  }
 
-    if (params_->using_request_rate_range && params_->using_old_options) {
-      Usage("Cannot use concurrency options with --request-rate-range.");
-    }
+  // Overriding the max_threads default for request_rate search
+  if (!params_->max_threads_specified && params_->targeting_concurrency()) {
+    params_->max_threads =
+        std::max(DEFAULT_MAX_THREADS, params_->concurrency_range.end);
+  }
 
-    std::vector<bool> load_modes{
-        params_->is_using_periodic_concurrency_mode,
-        params_->using_concurrency_range, params_->using_request_rate_range,
-        params_->using_custom_intervals};
-    if (std::count(load_modes.begin(), load_modes.end(), true) > 1) {
-      Usage(
-          "Cannot specify more then one inference load mode. Please choose "
-          "only "
-          "one of the following modes: --concurrency-range, "
-          "--periodic-concurrency-range, --request-rate-range, or "
-          "--request-intervals.");
-    }
+  if (params_->using_custom_intervals) {
+    // Will be using user-provided time intervals, hence no control variable.
+    params_->search_mode = SearchMode::NONE;
+  }
 
-    if (params_->is_using_periodic_concurrency_mode && !params_->streaming) {
-      Usage(
-          "The --periodic-concurrency-range option requires bi-directional "
-          "gRPC "
-          "streaming.");
-    }
+  // When the request-count feature is enabled, override the measurement mode
+  // to be count windows with a window size of the requested count
+  if (params_->request_count) {
+    params_->measurement_mode = MeasurementMode::COUNT_WINDOWS;
+    params_->measurement_request_count = params_->request_count;
+  }
+}
 
-    if (params_->is_using_periodic_concurrency_mode &&
-        (params_->profile_export_file == "")) {
-      Usage(
-          "Must provide --profile-export-file when using the "
-          "--periodic-concurrency-range option.");
-    }
-
-    if (params_->is_using_periodic_concurrency_mode) {
-      if (params_->periodic_concurrency_range.end == pa::NO_LIMIT) {
-        std::cerr
-            << "WARNING: The maximum attainable concurrency will be limited by "
-               "max_threads specification."
-            << std::endl;
-        params_->periodic_concurrency_range.end = params_->max_threads;
-      } else {
-        if (params_->max_threads_specified) {
-          std::cerr
-              << "WARNING: Overriding max_threads specification to ensure "
-                 "requested concurrency range."
+void
+CLParser::VerifyOptions()
+{
+  if (params_->model_name.empty()) {
+    Usage("Failed to parse -m (model name). The value must be specified.");
+  }
+  if (params_->concurrency_range.start <= 0 ||
+      params_->concurrent_request_count < 0) {
+    Usage("The start of the search range must be > 0");
+  }
+  if (params_->request_rate_range[SEARCH_RANGE::kSTART] <= 0) {
+    Usage(
+        "Failed to parse --request-rate-range. The start of the search range "
+        "must be > 0.");
+  }
+  if (params_->protocol == cb::ProtocolType::UNKNOWN) {
+    Usage(
+        "Failed to parse -i (protocol). The value should be either HTTP or "
+        "gRPC.");
+  }
+  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC &&
+                             params_->kind != cb::BackendKind::TRITON_C_API)) {
+    Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
+  }
+  if (params_->using_grpc_compression &&
+      (params_->protocol != cb::ProtocolType::GRPC)) {
+    Usage("Using compression algorithm is only allowed with gRPC protocol.");
+  }
+  if (params_->sequence_length_variation < 0.0) {
+    Usage(
+        "Failed to parse --sequence-length-variation. The value must be >= "
+        "0.0.");
+  }
+  if (params_->start_sequence_id == 0) {
+    params_->start_sequence_id = 1;
+    std::cerr << "WARNING: using an invalid start sequence id. Perf Analyzer"
+              << " will use default value if it is measuring on sequence model."
               << std::endl;
-        }
-        params_->max_threads = std::max(
-            params_->max_threads, params_->periodic_concurrency_range.end);
+  }
+  if (params_->percentile != -1 &&
+      (params_->percentile > 99 || params_->percentile < 1)) {
+    Usage(
+        "Failed to parse --percentile. The value must be -1 for not "
+        "reporting "
+        "or in range (0, 100).");
+  }
+  if (params_->zero_input && !params_->user_data.empty()) {
+    Usage("The -z flag cannot be set when --data-directory is provided.");
+  }
+  if (params_->async && params_->forced_sync) {
+    Usage("Cannot specify --async and --sync simultaneously.");
+  }
+
+  if (params_->using_concurrency_range && params_->using_old_options) {
+    Usage("Cannot use deprecated options with --concurrency-range.");
+  } else if (params_->using_old_options) {
+    if (params_->dynamic_concurrency_mode) {
+      params_->concurrency_range.end = params_->max_concurrency;
+    }
+    params_->concurrency_range.start = params_->concurrent_request_count;
+  }
+
+  if (params_->using_request_rate_range && params_->using_old_options) {
+    Usage("Cannot use concurrency options with --request-rate-range.");
+  }
+
+  std::vector<bool> load_modes{
+      params_->is_using_periodic_concurrency_mode,
+      params_->using_concurrency_range, params_->using_request_rate_range,
+      params_->using_custom_intervals};
+  if (std::count(load_modes.begin(), load_modes.end(), true) > 1) {
+    Usage(
+        "Cannot specify more then one inference load mode. Please choose "
+        "only "
+        "one of the following modes: --concurrency-range, "
+        "--periodic-concurrency-range, --request-rate-range, or "
+        "--request-intervals.");
+  }
+
+  if (params_->is_using_periodic_concurrency_mode && !params_->streaming) {
+    Usage(
+        "The --periodic-concurrency-range option requires bi-directional "
+        "gRPC "
+        "streaming.");
+  }
+
+  if (params_->is_using_periodic_concurrency_mode &&
+      (params_->profile_export_file == "")) {
+    Usage(
+        "Must provide --profile-export-file when using the "
+        "--periodic-concurrency-range option.");
+  }
+
+  if (params_->is_using_periodic_concurrency_mode) {
+    if (params_->periodic_concurrency_range.end == pa::NO_LIMIT) {
+      std::cerr
+          << "WARNING: The maximum attainable concurrency will be limited by "
+             "max_threads specification."
+          << std::endl;
+      params_->periodic_concurrency_range.end = params_->max_threads;
+    } else {
+      if (params_->max_threads_specified) {
+        std::cerr << "WARNING: Overriding max_threads specification to ensure "
+                     "requested concurrency range."
+                  << std::endl;
       }
+      params_->max_threads = std::max(
+          params_->max_threads, params_->periodic_concurrency_range.end);
     }
+  }
 
-    if (params_->request_parameters.size() > 0 &&
-        params_->protocol != cb::ProtocolType::GRPC) {
-      Usage(
-          "The --request-parameter option is currently only supported by gRPC "
-          "protocol.");
-    }
+  if (params_->request_parameters.size() > 0 &&
+      params_->protocol != cb::ProtocolType::GRPC) {
+    Usage(
+        "The --request-parameter option is currently only supported by gRPC "
+        "protocol.");
+  }
 
-    if (params_->using_request_rate_range && params_->mpi_driver->IsMPIRun() &&
-        (params_->request_rate_range[SEARCH_RANGE::kEND] != 1.0 ||
-         params_->request_rate_range[SEARCH_RANGE::kSTEP] != 1.0)) {
-      Usage("Cannot specify --request-rate-range when in multi-model mode.");
-    }
+  if (params_->using_request_rate_range && params_->mpi_driver->IsMPIRun() &&
+      (params_->request_rate_range[SEARCH_RANGE::kEND] != 1.0 ||
+       params_->request_rate_range[SEARCH_RANGE::kSTEP] != 1.0)) {
+    Usage("Cannot specify --request-rate-range when in multi-model mode.");
+  }
 
-    if (params_->using_custom_intervals && params_->using_old_options) {
-      Usage("Cannot use deprecated options with --request-intervals.");
-    }
+  if (params_->using_custom_intervals && params_->using_old_options) {
+    Usage("Cannot use deprecated options with --request-intervals.");
+  }
 
-    if ((params_->using_custom_intervals) &&
-        (params_->using_request_rate_range ||
-         params_->using_concurrency_range)) {
-      Usage(
-          "Cannot use --concurrency-range or --request-rate-range "
-          "along with --request-intervals.");
-    }
+  if ((params_->using_custom_intervals) &&
+      (params_->using_request_rate_range || params_->using_concurrency_range)) {
+    Usage(
+        "Cannot use --concurrency-range or --request-rate-range "
+        "along with --request-intervals.");
+  }
 
-    if (params_->using_concurrency_range && params_->mpi_driver->IsMPIRun() &&
-        (params_->concurrency_range.end != 1 ||
-         params_->concurrency_range.step != 1)) {
-      Usage("Cannot specify --concurrency-range when in multi-model mode.");
-    }
+  if (params_->using_concurrency_range && params_->mpi_driver->IsMPIRun() &&
+      (params_->concurrency_range.end != 1 ||
+       params_->concurrency_range.step != 1)) {
+    Usage("Cannot specify --concurrency-range when in multi-model mode.");
+  }
 
-    if (((params_->concurrency_range.end == NO_LIMIT) ||
-         (params_->request_rate_range[SEARCH_RANGE::kEND] ==
-          static_cast<double>(NO_LIMIT))) &&
-        (params_->latency_threshold_ms == NO_LIMIT)) {
-      Usage(
-          "The end of the search range and the latency limit can not be both 0 "
-          "(or 0.0) simultaneously");
-    }
+  if (((params_->concurrency_range.end == NO_LIMIT) ||
+       (params_->request_rate_range[SEARCH_RANGE::kEND] ==
+        static_cast<double>(NO_LIMIT))) &&
+      (params_->latency_threshold_ms == NO_LIMIT)) {
+    Usage(
+        "The end of the search range and the latency limit can not be both 0 "
+        "(or 0.0) simultaneously");
+  }
 
-    if (((params_->concurrency_range.end == NO_LIMIT) ||
-         (params_->request_rate_range[SEARCH_RANGE::kEND] ==
-          static_cast<double>(NO_LIMIT))) &&
-        (params_->search_mode == SearchMode::BINARY)) {
-      Usage(
-          "The end of the range can not be 0 (or 0.0) for binary search mode.");
-    }
+  if (((params_->concurrency_range.end == NO_LIMIT) ||
+       (params_->request_rate_range[SEARCH_RANGE::kEND] ==
+        static_cast<double>(NO_LIMIT))) &&
+      (params_->search_mode == SearchMode::BINARY)) {
+    Usage("The end of the range can not be 0 (or 0.0) for binary search mode.");
+  }
 
-    if ((params_->search_mode == SearchMode::BINARY) &&
-        (params_->latency_threshold_ms == NO_LIMIT)) {
-      Usage("The --latency-threshold cannot be 0 for binary search mode.");
-    }
+  if ((params_->search_mode == SearchMode::BINARY) &&
+      (params_->latency_threshold_ms == NO_LIMIT)) {
+    Usage("The --latency-threshold cannot be 0 for binary search mode.");
+  }
 
-    if (((params_->concurrency_range.end < params_->concurrency_range.start) ||
-         (params_->request_rate_range[SEARCH_RANGE::kEND] <
-          params_->request_rate_range[SEARCH_RANGE::kSTART])) &&
-        (params_->search_mode == SearchMode::BINARY)) {
-      Usage(
-          "The end of the range can not be less than start of the range for "
-          "binary search mode.");
-    }
+  if (((params_->concurrency_range.end < params_->concurrency_range.start) ||
+       (params_->request_rate_range[SEARCH_RANGE::kEND] <
+        params_->request_rate_range[SEARCH_RANGE::kSTART])) &&
+      (params_->search_mode == SearchMode::BINARY)) {
+    Usage(
+        "The end of the range can not be less than start of the range for "
+        "binary search mode.");
+  }
 
-    if (params_->request_count != 0) {
-      if (params_->using_concurrency_range) {
-        if (params_->request_count < params_->concurrency_range.start) {
-          Usage("request-count can not be less than concurrency");
-        }
-        if (params_->concurrency_range.start < params_->concurrency_range.end) {
-          Usage(
-              "request-count not supported with multiple concurrency values in "
-              "one run");
-        }
+  if (params_->request_count != 0) {
+    if (params_->using_concurrency_range) {
+      if (params_->request_count < params_->concurrency_range.start) {
+        Usage("request-count can not be less than concurrency");
       }
-      if (params_->using_request_rate_range) {
-        if (params_->request_count <
-            static_cast<int>(params_->request_rate_range[0])) {
-          Usage("request-count can not be less than request-rate");
-        }
-        if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
-            params_->request_rate_range[SEARCH_RANGE::kEND]) {
-          Usage(
-              "request-count not supported with multiple request-rate values "
-              "in "
-              "one run");
-        }
-      }
-    }
-
-    if (params_->kind == cb::TENSORFLOW_SERVING) {
-      if (params_->protocol != cb::ProtocolType::GRPC) {
+      if (params_->concurrency_range.start < params_->concurrency_range.end) {
         Usage(
-            "perf_analyzer supports only grpc protocol for TensorFlow "
-            "Serving.");
-      } else if (params_->streaming) {
-        Usage(
-            "perf_analyzer does not support streaming for TensorFlow Serving.");
-      } else if (params_->async) {
-        Usage(
-            "perf_analyzer does not support async API for TensorFlow Serving.");
-      } else if (!params_->using_batch_size) {
-        params_->batch_size = 0;
-      }
-    } else if (params_->kind == cb::TORCHSERVE) {
-      if (params_->user_data.empty()) {
-        Usage(
-            "--input-data should be provided with a json file with "
-            "input data for torchserve.");
+            "request-count not supported with multiple concurrency values in "
+            "one run");
       }
     }
-
-    if (params_->kind == cb::BackendKind::TRITON_C_API) {
-      if (params_->triton_server_path.empty()) {
+    if (params_->using_request_rate_range) {
+      if (params_->request_count <
+          static_cast<int>(params_->request_rate_range[0])) {
+        Usage("request-count can not be less than request-rate");
+      }
+      if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
+          params_->request_rate_range[SEARCH_RANGE::kEND]) {
         Usage(
-            "--triton-server-path should not be empty when using "
-            "service-kind=triton_c_api.");
-      }
-
-      if (params_->model_repository_path.empty()) {
-        Usage(
-            "--model-repository should not be empty when using "
-            "service-kind=triton_c_api.");
-      }
-
-      // Decoupled models run via Triton C API do not support shared memory
-      if (params_->async && params_->streaming &&
-          params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
-        Usage(
-            "Cannot use --shared-memory=system or --shared-memory=cuda with "
-            "--service-kind=triton_c_api and --async and --streaming.");
-      }
-
-      params_->protocol = cb::ProtocolType::UNKNOWN;
-    }
-
-    if (params_->kind == cb::BackendKind::OPENAI) {
-      if (params_->user_data.empty()) {
-        Usage("Must supply --input-data for OpenAI service kind.");
-      }
-      if (params_->endpoint.empty()) {
-        Usage(
-            "Must supply --endpoint for OpenAI service kind. For example, "
-            "\"v1/chat/completions\".");
-      }
-      if (!params_->async) {
-        Usage("Only async mode is currently supported for OpenAI service-kind");
-      }
-      if (params_->batch_size != 1) {
-        Usage("Batching is not currently supported with OpenAI service-kind");
+            "request-count not supported with multiple request-rate values "
+            "in "
+            "one run");
       }
     }
+  }
 
-    if (params_->should_collect_metrics &&
-        params_->kind != cb::BackendKind::TRITON) {
+  if (params_->kind == cb::TENSORFLOW_SERVING) {
+    if (params_->protocol != cb::ProtocolType::GRPC) {
       Usage(
-          "Server-side metric collection is only supported with Triton client "
-          "backend.");
+          "perf_analyzer supports only grpc protocol for TensorFlow "
+          "Serving.");
+    } else if (params_->streaming) {
+      Usage("perf_analyzer does not support streaming for TensorFlow Serving.");
+    } else if (params_->async) {
+      Usage("perf_analyzer does not support async API for TensorFlow Serving.");
+    } else if (!params_->using_batch_size) {
+      params_->batch_size = 0;
     }
-
-    if (params_->metrics_url_specified &&
-        params_->should_collect_metrics == false) {
+  } else if (params_->kind == cb::TORCHSERVE) {
+    if (params_->user_data.empty()) {
       Usage(
-          "Must specify --collect-metrics when using the --metrics-url "
-          "option.");
+          "--input-data should be provided with a json file with "
+          "input data for torchserve.");
     }
+  }
 
-    if (params_->metrics_interval_ms_specified &&
-        params_->should_collect_metrics == false) {
+  if (params_->kind == cb::BackendKind::TRITON_C_API) {
+    if (params_->triton_server_path.empty()) {
       Usage(
-          "Must specify --collect-metrics when using the --metrics-interval "
-          "option.");
+          "--triton-server-path should not be empty when using "
+          "service-kind=triton_c_api.");
     }
 
-    if (params_->should_collect_metrics && !params_->metrics_url_specified) {
-      // Update the default metrics URL to be associated with the input URL
-      // instead of localhost
-      //
-      size_t colon_pos = params_->url.find(':');
-      if (colon_pos != std::string::npos) {
-        params_->metrics_url =
-            params_->url.substr(0, colon_pos) + ":8002/metrics";
-      }
+    if (params_->model_repository_path.empty()) {
+      Usage(
+          "--model-repository should not be empty when using "
+          "service-kind=triton_c_api.");
+    }
+
+    // Decoupled models run via Triton C API do not support shared memory
+    if (params_->async && params_->streaming &&
+        params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
+      Usage(
+          "Cannot use --shared-memory=system or --shared-memory=cuda with "
+          "--service-kind=triton_c_api and --async and --streaming.");
+    }
+
+    params_->protocol = cb::ProtocolType::UNKNOWN;
+  }
+
+  if (params_->kind == cb::BackendKind::OPENAI) {
+    if (params_->user_data.empty()) {
+      Usage("Must supply --input-data for OpenAI service kind.");
+    }
+    if (params_->endpoint.empty()) {
+      Usage(
+          "Must supply --endpoint for OpenAI service kind. For example, "
+          "\"v1/chat/completions\".");
+    }
+    if (!params_->async) {
+      Usage("Only async mode is currently supported for OpenAI service-kind");
+    }
+    if (params_->batch_size != 1) {
+      Usage("Batching is not currently supported with OpenAI service-kind");
+    }
+  }
+
+  if (params_->should_collect_metrics &&
+      params_->kind != cb::BackendKind::TRITON) {
+    Usage(
+        "Server-side metric collection is only supported with Triton client "
+        "backend.");
+  }
+
+  if (params_->metrics_url_specified &&
+      params_->should_collect_metrics == false) {
+    Usage(
+        "Must specify --collect-metrics when using the --metrics-url "
+        "option.");
+  }
+
+  if (params_->metrics_interval_ms_specified &&
+      params_->should_collect_metrics == false) {
+    Usage(
+        "Must specify --collect-metrics when using the --metrics-interval "
+        "option.");
+  }
+
+  if (params_->should_collect_metrics && !params_->metrics_url_specified) {
+    // Update the default metrics URL to be associated with the input URL
+    // instead of localhost
+    //
+    size_t colon_pos = params_->url.find(':');
+    if (colon_pos != std::string::npos) {
+      params_->metrics_url =
+          params_->url.substr(0, colon_pos) + ":8002/metrics";
     }
   }
 }
-}  // namespace triton::perfanalyzer
+}}  // namespace triton::perfanalyzer
