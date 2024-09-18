@@ -58,8 +58,8 @@ class TestRequestRateManager : public TestLoadManagerBase,
         TestLoadManagerBase(params, is_sequence_model, is_decoupled_model),
         RequestRateManager(
             params.async, params.streaming, params.request_distribution,
-            params.batch_size, params.measurement_window_ms, params.max_trials,
-            params.max_threads, params.num_of_sequences,
+            params.schedule, params.batch_size, params.measurement_window_ms,
+            params.max_trials, params.max_threads, params.num_of_sequences,
             params.shared_memory_type, params.output_shm_size,
             params.serial_sequences, GetParser(), GetFactory(),
             params.request_parameters)
@@ -128,7 +128,7 @@ class TestRequestRateManager : public TestLoadManagerBase,
   {
     PauseWorkers();
     ConfigureThreads();
-    GenerateSchedule(rate);
+    GenerateSchedule(rate, params.schedule);
 
     nanoseconds measurement_window_nanoseconds{
         params.measurement_window_ms * NANOS_PER_MILLIS};
@@ -158,7 +158,7 @@ class TestRequestRateManager : public TestLoadManagerBase,
   {
     PauseWorkers();
     ConfigureThreads();
-    GenerateSchedule(rate);
+    GenerateSchedule(rate, params.schedule);
 
     std::vector<uint32_t> worker_schedule_sizes;
     uint32_t total_num_seqs{0};
