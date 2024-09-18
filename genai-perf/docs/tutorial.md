@@ -163,7 +163,7 @@ Example output:
 └───────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
 ```
 
-## Profile GPT2 running on OpenAI Completions API-Compatible Server <a id="openai-completions"></a>
+## Profile GPT-2 running on OpenAI Completions API-Compatible Server <a id="openai-completions"></a>
 
 Serve the model on the vLLM server with [OpenAI Completions API](https://platform.openai.com/docs/api-reference/completions) endpoint:
 
@@ -189,7 +189,7 @@ genai-perf profile \
 Example output:
 
 ```
-                              NVIDIA GenAI-Perf | LLM Metrics
+                             NVIDIA GenAI-Perf | LLM Metrics
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃                         Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
