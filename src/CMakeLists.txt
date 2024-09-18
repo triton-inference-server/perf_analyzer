@@ -130,11 +130,9 @@ set(
   data_loader.cc
   concurrency_manager.cc
   request_rate_manager.cc
-  fixed_time_manager.cc
   load_worker.cc
   concurrency_worker.cc
   request_rate_worker.cc
-  fixed_time_worker.cc
   custom_load_manager.cc
   infer_context.cc
   inference_profiler.cc
@@ -162,12 +160,10 @@ set(
   data_loader.h
   concurrency_manager.h
   request_rate_manager.h
-  fixed_time_manager.h
   custom_load_manager.h
   iworker.h
   load_worker.h
   request_rate_worker.h
-  fixed_time_worker.h
   concurrency_worker.h
   infer_context.h
   inference_profiler.h
