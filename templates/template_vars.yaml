@@ -1,6 +1,7 @@
 General:
   release: 24.08
   triton_cli_version: 0.0.8
+  genai_perf_version: 0.0.6dev
 
 README:
   filename: README.md
@@ -41,3 +42,8 @@ tutorial:
   filename: tutorial.md
   template: genai-perf-templates/tutorial_template
   output_dir: ../genai-perf/docs/
+
+version:
+  filename: __init__.py
+  template: genai-perf-templates/version_template
+  output_dir: ../genai-perf/genai_perf/
