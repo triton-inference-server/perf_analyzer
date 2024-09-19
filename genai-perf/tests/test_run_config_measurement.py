@@ -15,7 +15,6 @@
 import json
 import unittest
 from copy import deepcopy
-from statistics import mean
 from unittest.mock import patch
 
 from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
@@ -204,8 +203,7 @@ class TestRunConfigMeasurement(unittest.TestCase):
         }
 
         self.rcmMM.set_gpu_metric_objectives(gpu_metric_objectives)
-        foo = self.rcmMM._gpu_metric_objectives
-        self.assertEqual(gpu_metric_objectives, foo)
+        self.assertEqual(gpu_metric_objectives, self.rcmMM._gpu_metric_objectives)
 
     ###########################################################################
     # Checkpoint Tests
@@ -276,6 +274,27 @@ class TestRunConfigMeasurement(unittest.TestCase):
     ###########################################################################
     # Calculation Tests
     ###########################################################################
+    def test_calculate_weighted_percentage_gain(self):
+        """
+        Test that weighted percentages are returned correctly
+        """
+        rcmA = deepcopy(self.rcmA)
+        rcmB = deepcopy(self.rcmB)
+
+        # Default is throughput, rcmA = 1000, rcmB = 500
+        self.assertEqual(rcmA.calculate_weighted_percentage_gain(rcmB), 100)
+        self.assertEqual(rcmB.calculate_weighted_percentage_gain(rcmA), -50)
+
+        # Now we'll add in GPU Power, this has equal weighting with perf metrics
+        # rcmA = 120, rcmB = 60
+        rcmA.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
+        rcmB.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
+        self.assertEqual(rcmA.calculate_weighted_percentage_gain(rcmB), 25)
+        self.assertEqual(rcmB.calculate_weighted_percentage_gain(rcmA), 25)
+
+        # You'll note that they both report being 25% better because one metric
+        # has a 100% gain, while the other has a -50% gain. This illustrates why
+        # percentage gain is not reliable when multiple objectives are present
 
     # def test_is_passing_constraints_none(self):
     #     """

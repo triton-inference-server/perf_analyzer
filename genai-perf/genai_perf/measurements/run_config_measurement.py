@@ -463,51 +463,121 @@ class RunConfigMeasurement:
     ###########################################################################
     # Percentage Calculation Methods
     ###########################################################################
-    # def calculate_weighted_percentage_gain(
-    #     self, other: "RunConfigMeasurement"
-    # ) -> float:
-    #     """
-    #     Calculates the weighted percentage gain between
-    #     two RunConfigMeasurements based on each model's
-    #     weighted metric objectives and the model's
-    #     weighted value within the RunConfigMeasurement
+    def calculate_weighted_percentage_gain(
+        self, other: "RunConfigMeasurement"
+    ) -> float:
+        """
+        Calculates the weighted percentage gain between
+        two RunConfigMeasurements based on each model's
+        weighted metric objectives and the model's
+        weighted value within the RunConfigMeasurement
 
-    #     Returns
-    #     -------
-    #        The weighted percentage gain. A positive value indicates
-    #        this RCM is better than the other RCM
-    #     """
-    #     # For each model determine the weighted percentage gain
-    #     weighted_mcm_pct_gains = self._calculate_weighted_mcm_percentage_gains(other)
+        Returns
+        -------
+           The weighted percentage gain. A positive value indicates
+           this RCM is better than the other RCM
+        """
 
-    #     # And, then combine these using the model's weighting
-    #     weighted_rcm_pct_gain = self._calculate_weighted_rcm_score(
-    #         weighted_mcm_pct_gains
-    #     )
+        # For each model determine the weighted percentage gain
+        weighted_rcm_pct_gain = self._calculate_weighted_rcm_percentage_gain(other)
+        weighted_mcm_pct_gains = self._calculate_weighted_mcm_percentage_gains(other)
 
-    #     return weighted_rcm_pct_gain
+        # And, then combine these using the model's weighting
+        weighted_mean_gain = self._calculate_weighted_rcm_and_mcm_percentage_gain(
+            weighted_rcm_pct_gain, weighted_mcm_pct_gains
+        )
 
-    # def _calculate_weighted_mcm_percentage_gains(
-    #     self, other: "RunConfigMeasurement"
-    # ) -> WeightedMcmScores:
-    #     """
-    #     Returns a weighted percentager (as a score) for each ModelConfigMeasurement
-    #     """
-    #     assert (
-    #         self._model_config_measurements.keys()
-    #         == other._model_config_measurements.keys()
-    #     )
+        return weighted_mean_gain
 
-    #     weighted_mcm_percentage_gains = {
-    #         model_name: self._model_config_measurements[
-    #             model_name
-    #         ].calculate_weighted_percentage_gain(
-    #             other._model_config_measurements[model_name]
-    #         )
-    #         for model_name in self._model_config_measurements.keys()
-    #     }
+    def _calculate_weighted_rcm_percentage_gain(
+        self, other: "RunConfigMeasurement"
+    ) -> WeightedRcmScore:
+        weighted_rcm_gains = []
+        for gpu_id in self._gpu_metrics.keys():
+            weighted_rcm_gains.append(
+                self._calculate_weighted_model_rcm_percentage_gain(other, gpu_id)
+            )
 
-    #     return weighted_mcm_percentage_gains
+        return mean(weighted_rcm_gains)
+
+    def _calculate_weighted_model_rcm_percentage_gain(
+        self, other: "RunConfigMeasurement", gpu_id: GpuId
+    ) -> float:
+        """
+        Return a weighted score for this models GPU metrics
+        """
+        weighted_pct = 0.0
+        if not self._gpu_metric_objectives:
+            return weighted_pct
+
+        for per_model_gpu_metric_objectives in self._gpu_metric_objectives.values():
+            for objective, weight in per_model_gpu_metric_objectives.items():
+                self_metric = self.get_gpu_metric(objective)[gpu_id][objective]  # type: ignore
+                other_metric = other.get_gpu_metric(objective)[gpu_id][objective]  # type: ignore
+
+                # This handles the case where metric(s) do not exist
+                if self_metric and other_metric is None:
+                    return 100 * RunConfigMeasurementDefaults.SELF_IS_BETTER
+                elif other_metric and self_metric is None:
+                    return 100 * RunConfigMeasurementDefaults.OTHER_IS_BETTER
+                elif self_metric is None and other_metric is None:
+                    return 100 * RunConfigMeasurementDefaults.EQUALIVILENT
+
+                metric_pct = self_metric.calculate_percentage_gain(other_metric)  # type: ignore
+
+                weighted_pct += metric_pct * weight
+
+        return weighted_pct
+
+    def _calculate_weighted_mcm_percentage_gains(
+        self, other: "RunConfigMeasurement"
+    ) -> WeightedMcmScores:
+        """
+        Returns a weighted percentage (as a score) for each ModelConfigMeasurement
+        """
+        assert (
+            self._model_config_measurements.keys()
+            == other._model_config_measurements.keys()
+        )
+
+        weighted_mcm_percentage_gains = {
+            model_name: self._model_config_measurements[
+                model_name
+            ].calculate_weighted_percentage_gain(
+                other._model_config_measurements[model_name]
+            )
+            for model_name in self._model_config_measurements.keys()
+        }
+
+        return weighted_mcm_percentage_gains
+
+    def _calculate_weighted_rcm_and_mcm_percentage_gain(
+        self,
+        weighted_rcm_gain: WeightedRcmScore,
+        weighted_mcm_gains: WeightedMcmScores,
+    ) -> float:
+        assert self._model_weights.keys() == weighted_mcm_gains.keys()
+
+        weighted_combined_mcm_gains = [
+            (weighted_mcm_gains[model_name]) * self._model_weights[model_name]
+            for model_name in self._model_weights.keys()
+        ]
+
+        perf_metric_objectives_set = bool(
+            list(self._model_config_measurements.values())[0].get_perf_metrics()
+        )
+
+        weighted_mean_gain = 0.0
+        if self._gpu_metric_objectives and perf_metric_objectives_set:
+            weighted_mean_gain = mean(
+                [mean(weighted_combined_mcm_gains), weighted_rcm_gain]
+            )
+        elif self._gpu_metric_objectives:
+            weighted_mean_gain = weighted_rcm_gain
+        elif perf_metric_objectives_set:
+            weighted_mean_gain = mean(weighted_combined_mcm_gains)
+
+        return weighted_mean_gain
 
     # TODO: OPTIMIZE
     # def is_passing_constraints(self) -> bool:
