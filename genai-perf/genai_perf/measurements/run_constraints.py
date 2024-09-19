@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, TypeAlias, Union
+from typing import Dict, Optional, TypeAlias
 
 from .model_constraints import ConstraintName, ModelConstraints
 
