@@ -74,7 +74,7 @@ The easiest way to install GenAI-Perf is through
 Install the latest release using the following command:
 
 ```bash
-export RELEASE="yy.mm" # e.g. export RELEASE="24.08"
+export RELEASE="24.08"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
