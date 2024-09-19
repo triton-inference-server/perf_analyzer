@@ -75,18 +75,19 @@ class TestModelConfigMeasurement(unittest.TestCase):
             -1,
         )
 
-    def test_set_metric_weighting(self):
+    def test_set_metric_objective(self):
         """
-        Test that metric weighting is set correctly
+        Test that metric objective weighting is set correctly
         """
         # Default
         self.assertEqual(
-            ModelConfigMeasurementDefaults.METRIC_WEIGHTING, self.mcmA._metric_weights
+            ModelConfigMeasurementDefaults.METRIC_OBJECTIVE,
+            self.mcmA._metric_objectives,
         )
 
-        self.mcmA.set_metric_weighting({PerfThroughput.tag: 2, PerfLatencyP99.tag: 3})
+        self.mcmA.set_metric_objectives({PerfThroughput.tag: 2, PerfLatencyP99.tag: 3})
         expected_mw = {PerfThroughput.tag: 2 / 5, PerfLatencyP99.tag: 3 / 5}
-        self.assertEqual(expected_mw, self.mcmA._metric_weights)
+        self.assertEqual(expected_mw, self.mcmA._metric_objectives)
 
     def test_get_weighted_score(self):
         """
@@ -103,8 +104,8 @@ class TestModelConfigMeasurement(unittest.TestCase):
 
         # In this case we will change the objective to be latency, with mcmA = 20, mcmB = 5
         # since latency is a decreasing record (lower is better), scoreB will be positive
-        self.mcmA.set_metric_weighting({PerfLatencyP99.tag: 1})
-        self.mcmB.set_metric_weighting({PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives({PerfLatencyP99.tag: 1})
+        self.mcmB.set_metric_objectives({PerfLatencyP99.tag: 1})
         scoreA = self.mcmA.get_weighted_score(self.mcmB)
         scoreB = self.mcmB.get_weighted_score(self.mcmA)
 
@@ -143,8 +144,8 @@ class TestModelConfigMeasurement(unittest.TestCase):
         self.assertEqual(self.mcmA.calculate_weighted_percentage_gain(self.mcmB), 100)
         self.assertEqual(self.mcmB.calculate_weighted_percentage_gain(self.mcmA), -50)
 
-        self.mcmA.set_metric_weighting({PerfLatencyP99.tag: 1})
-        self.mcmB.set_metric_weighting({PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives({PerfLatencyP99.tag: 1})
+        self.mcmB.set_metric_objectives({PerfLatencyP99.tag: 1})
 
         # latency: mcmA: 20, mcmB: 10
         self.assertEqual(self.mcmA.calculate_weighted_percentage_gain(self.mcmB), -50)
@@ -156,8 +157,8 @@ class TestModelConfigMeasurement(unittest.TestCase):
         #
         # mcmA has 50% worse throughput, but 100% better latency
         # mcmB has 100% better latency, but 50% worse throughput
-        self.mcmA.set_metric_weighting({PerfThroughput.tag: 1, PerfLatencyP99.tag: 1})
-        self.mcmB.set_metric_weighting({PerfThroughput.tag: 1, PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives({PerfThroughput.tag: 1, PerfLatencyP99.tag: 1})
+        self.mcmB.set_metric_objectives({PerfThroughput.tag: 1, PerfLatencyP99.tag: 1})
         self.assertEqual(self.mcmA, self.mcmB)
         self.assertEqual(self.mcmA.calculate_weighted_percentage_gain(self.mcmB), 25)
         self.assertEqual(self.mcmB.calculate_weighted_percentage_gain(self.mcmA), 25)
@@ -169,13 +170,13 @@ class TestModelConfigMeasurement(unittest.TestCase):
         """
         Test that individual metric comparison works as expected
         """
-        self.mcmA.set_metric_weighting({PerfThroughput.tag: 1})
+        self.mcmA.set_metric_objectives({PerfThroughput.tag: 1})
 
         # throughput: 1000 is better than 500
         self.assertTrue(self.mcmA.is_better_than(self.mcmB))
         self.assertGreater(self.mcmA, self.mcmB)
 
-        self.mcmA.set_metric_weighting({PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives({PerfLatencyP99.tag: 1})
 
         # latency: 20 is worse than 10
         self.assertFalse(self.mcmA.is_better_than(self.mcmB))
@@ -187,7 +188,7 @@ class TestModelConfigMeasurement(unittest.TestCase):
         """
         # throuhput: 2000 vs. 1000 (better), latency: 20 vs. 10 (worse)
         # with latency bias mcmB is better
-        self.mcmA.set_metric_weighting({PerfThroughput.tag: 1, PerfLatencyP99.tag: 3})
+        self.mcmA.set_metric_objectives({PerfThroughput.tag: 1, PerfLatencyP99.tag: 3})
 
         self.assertFalse(self.mcmA.is_better_than(self.mcmB))
 
