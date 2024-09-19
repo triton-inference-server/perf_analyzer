@@ -128,7 +128,7 @@ the GPT-2 model running on Triton Inference Server with a TensorRT-LLM engine.
 ### Serve GPT-2 TensorRT-LLM model using Triton CLI
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-trt-llm-model)
-on Triton CLI github repo to run GPT-2 model locally.
+in the Triton CLI Github repository to serve GPT-2 on the Triton server with the TensorRT-LLM backend.
 The full instructions are copied below for convenience:
 
 ```bash
@@ -139,7 +139,6 @@ docker run -ti \
     --network=host \
     --shm-size=1g --ulimit memlock=-1 \
     -v /tmp:/tmp \
-    -v ${HOME}/models:/root/models \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
     nvcr.io/nvidia/tritonserver:{{ release }}-trtllm-python-py3
 
@@ -156,48 +155,27 @@ triton start
 
 ### Running GenAI-Perf
 
-Now we can run GenAI-Perf from Triton Inference Server SDK container:
+Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="{{ release }}"
-
-docker run -it --net=host --rm --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Run GenAI-Perf in the container:
-genai-perf profile \
-  -m gpt2 \
-  --service-kind triton \
-  --backend tensorrtllm \
-  --num-prompts 100 \
-  --random-seed 123 \
-  --synthetic-input-tokens-mean 200 \
-  --synthetic-input-tokens-stddev 0 \
-  --streaming \
-  --output-tokens-mean 100 \
-  --output-tokens-stddev 0 \
-  --output-tokens-mean-deterministic \
-  --tokenizer hf-internal-testing/llama-tokenizer \
-  --concurrency 1 \
-  --measurement-interval 4000 \
-  --profile-export-file my_profile_export.json \
-  --url localhost:8001
+genai-perf profile -m gpt2 --service-kind triton --backend tensorrtllm --streaming
 ```
 
 Example output:
 
 ```
-                                   LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
-┃                Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
-│ Time to first token (ms) │  11.70 │   9.88 │  17.21 │  14.35 │  12.01 │  11.87 │
-│ Inter token latency (ms) │   1.46 │   1.08 │   1.89 │   1.87 │   1.62 │   1.52 │
-│     Request latency (ms) │ 161.24 │ 153.45 │ 200.74 │ 200.66 │ 179.43 │ 162.23 │
-│   Output sequence length │ 103.39 │  95.00 │ 134.00 │ 120.08 │ 107.30 │ 105.00 │
-│    Input sequence length │ 200.01 │ 200.00 │ 201.00 │ 200.13 │ 200.00 │ 200.00 │
-└──────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
-Output token throughput (per sec): 635.61
-Request throughput (per sec): 6.15
+                              NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃                         Statistic ┃    avg ┃    min ┃    max ┃    p99 ┃    p90 ┃    p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│          Time to first token (ms) │  16.26 │  12.39 │  17.25 │  17.09 │  16.68 │  16.56 │
+│          Inter token latency (ms) │   1.85 │   1.55 │   2.04 │   2.02 │   1.97 │   1.92 │
+│              Request latency (ms) │ 499.20 │ 451.01 │ 554.61 │ 548.69 │ 526.13 │ 514.19 │
+│            Output sequence length │ 261.90 │ 256.00 │ 298.00 │ 296.60 │ 270.00 │ 265.00 │
+│             Input sequence length │ 550.06 │ 550.00 │ 553.00 │ 551.60 │ 550.00 │ 550.00 │
+│ Output token throughput (per sec) │ 520.87 │    N/A │    N/A │    N/A │    N/A │    N/A │
+│      Request throughput (per sec) │   1.99 │    N/A │    N/A │    N/A │    N/A │    N/A │
+└───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
 
 See [Tutorial](docs/tutorial.md) for additional examples.
@@ -432,9 +410,9 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 
 The batch size of the requests GenAI-Perf should send.
 This is currently only supported with the
-[embeddings endpoint type](docs/embeddings.md).
-(default: `1`) and
-[rankings endpoint type](docs/rankings.md).
+[embeddings](docs/embeddings.md), image_retrieval, and
+[rankings](docs/rankings.md) endpoint types.
+(default: `1`)
 
 ##### `--extra-inputs <str>`
 
