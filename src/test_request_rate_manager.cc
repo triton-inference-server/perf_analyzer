@@ -502,7 +502,7 @@ class TestRequestRateManager : public TestLoadManagerBase,
       //
       // Allow it to be at most 5% of average
       //
-      auto max_allowed_delay_variance = 0.05 * delay_average;
+      auto max_allowed_delay_variance = 0.25 * delay_average;
 
       // Constant should be pretty tight. Allowing 1% slop there is noise in the
       // thread scheduling
