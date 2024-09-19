@@ -245,22 +245,26 @@ TritonLoader::StartTriton()
       api_version_fn_(&api_version_major, &api_version_minor),
       "unable to get api version");
 
+  auto createErrorMessage = [](const std::string& message, int expected,
+                               int actual) {
+    return message + "Expected version: " + std::to_string(expected) + "\n" +
+           "Actual version: " + std::to_string(actual) + "\n";
+  };
+
   if (TRITONSERVER_API_VERSION_MAJOR != api_version_major) {
-    std::stringstream sstream;
-    sstream << "Triton server API major version mismatch. \n"
-            << "Expected major version: " << TRITONSERVER_API_VERSION_MAJOR
-            << "\n"
-            << "Actual major version: " << api_version_major;
-    return Error(sstream.str());
+    std::string errorMessage = createErrorMessage(
+        "Error: Triton server API major version mismatch.\n",
+        TRITONSERVER_API_VERSION_MAJOR, api_version_major);
+    return Error(errorMessage);
   }
 
-  if (TRITONSERVER_API_VERSION_MINOR > 30) {
-    std::stringstream sstream;
-    sstream << "Warning: Triton server API minor version mismatch. \n"
-            << "Expected minor version: " << TRITONSERVER_API_VERSION_MINOR
-            << "\n"
-            << "Actual minor version: " << api_version_minor;
-    std::cerr << sstream.str() << std::endl;
+  if (TRITONSERVER_API_VERSION_MINOR != api_version_minor) {
+    std::string warningMessage = createErrorMessage(
+        "Warning: Triton server API minor version mismatch.\n",
+        TRITONSERVER_API_VERSION_MINOR, api_version_minor);
+    warningMessage +=
+        "Attempting to proceed, but undefined behavior may occur.\n";
+    std::cerr << warningMessage;
   }
 
   // Create the server...
