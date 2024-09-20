@@ -47,6 +47,8 @@ class OutputFormatConverterFactory:
             OutputFormat.VLLM: VLLMConverter,
             OutputFormat.TENSORRTLLM: TensorRTLLMConverter,
             OutputFormat.TENSORRTLLM_ENGINE: TensorRTLLMEngineConverter,
+            OutputFormat.TRITON_GENERATE: TritonGenerateConverter,
+            
         }
         if output_format not in converters:
             raise GenAIPerfException(f"Output format {output_format} is not supported")
