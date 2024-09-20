@@ -24,11 +24,7 @@ from genai_perf.measurements.model_config_measurement import (
     ModelConfigMeasurement,
     PerfRecords,
 )
-from genai_perf.measurements.model_constraints import (
-    Constraint,
-    ConstraintName,
-    ConstraintValue,
-)
+from genai_perf.measurements.model_constraints import ConstraintName, ConstraintValue
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.gpu_record import GPURecord
 from genai_perf.record.record import Record

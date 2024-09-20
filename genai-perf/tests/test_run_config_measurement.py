@@ -19,10 +19,7 @@ from unittest.mock import patch
 
 from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
 from genai_perf.measurements.model_constraints import ModelConstraints
-from genai_perf.measurements.run_config_measurement import (
-    RunConfigMeasurement,
-    RunConfigMeasurementDefaults,
-)
+from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
 from genai_perf.record.types.gpu_utilization import GPUUtilization
