@@ -18,10 +18,12 @@ from copy import deepcopy
 from unittest.mock import patch
 
 from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
+from genai_perf.measurements.model_constraints import ModelConstraints
 from genai_perf.measurements.run_config_measurement import (
     RunConfigMeasurement,
     RunConfigMeasurementDefaults,
 )
+from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
 from genai_perf.record.types.gpu_utilization import GPUUtilization
 from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
@@ -296,170 +298,54 @@ class TestRunConfigMeasurement(unittest.TestCase):
         # has a 100% gain, while the other has a -50% gain. This illustrates why
         # percentage gain is not reliable when multiple objectives are present
 
-    # def test_is_passing_constraints_none(self):
-    #     """
-    #     Test to ensure constraints are reported as passing
-    #     if none were specified
-    #     """
-    #     self.rcm5.set_constraint_manager(
-    #         construct_constraint_manager(
-    #             """
-    #         profile_models:
-    #           test_model
-    #         """
-    #         )
-    #     )
-    #     self.assertTrue(self.rcm5.is_passing_constraints())
+    ###########################################################################
+    # Constraint Tests
+    ###########################################################################
+    def test_is_passing_constraints_none(self):
+        """
+        Test to ensure constraints are reported as passing
+        if none were specified
+        """
+        self.assertTrue(self.rcmA.is_passing_constraints())
 
-    # def test_is_passing_constraints(self):
-    #     """
-    #     Test to ensure constraints are reported as
-    #     passing/failing if model is above/below
-    #     throughput threshold
-    #     """
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 500
-    #         """
-    #     )
-    #     self.rcm5.set_constraint_manager(constraint_manager)
+        self.rcmA.set_constraints(RunConstraints({"modelA": None}))
+        self.assertTrue(self.rcmA.is_passing_constraints())
 
-    #     self.assertTrue(self.rcm5.is_passing_constraints())
+    def test_is_passing_gpu_constraints(self):
+        """
+        Test to ensure GPU constraints are reported as
+        passing/failing if model is above/below
+        GPU Power threshold
+        """
 
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 3000
-    #         """
-    #     )
-    #     self.rcm5.set_constraint_manager(constraint_manager)
+        # RCMA's power is 120
+        model_constraints = ModelConstraints({GPUPowerUsage.tag: 50})
+        run_constraints = RunConstraints({"test_model": model_constraints})
+        self.rcmA.set_constraints(run_constraints)
+        self.assertFalse(self.rcmA.is_passing_constraints())
 
-    #     self.assertFalse(self.rcm5.is_passing_constraints())
+        model_constraints = ModelConstraints({GPUPowerUsage.tag: 150})
+        run_constraints = RunConstraints({"test_model": model_constraints})
+        self.rcmA.set_constraints(run_constraints)
+        self.assertTrue(self.rcmA.is_passing_constraints())
 
-    # def test_compare_constraints_none(self):
-    #     """
-    #     Checks case where either self or other is passing constraints
-    #     """
-    #     # RCM4's throughput is 1000
-    #     # RCM5's throughput is 2000
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 500
-    #         """
-    #     )
-    #     self.rcm4.set_constraint_manager(constraint_manager)
+    def test_is_passing_perf_constraints(self):
+        """
+        Test to ensure perf constraints are reported as
+        passing/failing if model is above/below
+        latency threshold
+        """
 
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 2500
-    #         """
-    #     )
-    #     self.rcm5.set_constraint_manager(constraint_manager)
+        # RCMA's latency is 40
+        model_constraints = ModelConstraints({PerfLatencyP99.tag: 50})
+        run_constraints = RunConstraints({"test_model": model_constraints})
+        self.rcmA.set_constraints(run_constraints)
+        self.assertTrue(self.rcmA.is_passing_constraints())
 
-    #     self.assertEqual(self.rcm4.compare_constraints(self.rcm5), None)
-    #     self.assertEqual(self.rcm5.compare_constraints(self.rcm4), None)
-
-    # def test_compare_constraints_equal(self):
-    #     """
-    #     Test to ensure compare constraints reports zero when both
-    #     RCMs are missing constraints by the same amount
-    #     """
-    #     # RCM4's throughput is 1000
-    #     # RCM5's throughput is 2000
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 1250
-    #         """
-    #     )
-    #     self.rcm4.set_constraint_manager(constraint_manager)
-
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 2500
-    #         """
-    #     )
-    #     self.rcm5.set_constraint_manager(constraint_manager)
-
-    #     # RCM4 is failing by 20%, RCM5 is failing by 20%
-    #     self.assertEqual(self.rcm4.compare_constraints(self.rcm5), 0)
-    #     self.assertEqual(self.rcm5.compare_constraints(self.rcm4), 0)
-
-    # def test_compare_constraints_unequal(self):
-    #     """
-    #     Test to ensure compare constraints reports the correct
-    #     value when the RCMs are both failing constraints by different
-    #     amounts
-    #     """
-    #     # RCM4's throughput is 1000
-    #     # RCM5's throughput is 2000
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 2000
-    #         """
-    #     )
-    #     self.rcm4.set_constraint_manager(constraint_manager)
-
-    #     constraint_manager = construct_constraint_manager(
-    #         """
-    #         profile_models:
-    #           test_model:
-    #             constraints:
-    #               perf_throughput:
-    #                 min: 2500
-    #         """
-    #     )
-    #     self.rcm5.set_constraint_manager(constraint_manager)
-
-    #     # RCM4 is failing by 50%, RCM5 is failing by 20%
-    #     self.assertEqual(self.rcm4.compare_constraints(self.rcm5), 0.30)
-    #     self.assertEqual(self.rcm5.compare_constraints(self.rcm4), -0.30)
-
-    # def test_calculate_weighted_percentage_gain(self):
-    #     """
-    #     Test to ensure weighted percentage gain is being calculated correctly
-    #     """
-
-    #     # RCM0: 1000, 40    RCM1: 500, 30  weights:[1,3]
-    #     # RCM0-A's throughput is better than RCM1-A (0.5)
-    #     # RCM0-B's latency is worse than RCM1-B (-0.25)
-    #     # Factoring in model config weighting
-    #     # tips this is favor of RCM1 (0.125, -0.1875)
-    #     # However, by percentage RCM0 will be evaluated as slightly better
-    #     # 100% on throughput, -25% on latency
-    #     # Factoring in weighting, RCM0 is slightly better (100 - 75) / 4 = 6.25%
-    #     self.assertEqual(self.rcm0.calculate_weighted_percentage_gain(self.rcm1), 6.25)
-
-    #     # Changing the weighting tips the scale in the favor of RCM0 (0.2, -0.15)
-    #     # And, from a percentage standpoint we get: (200 - 75) / 5 = 25%
-    #     self.rcm0.set_model_config_weighting([2, 3])
-    #     self.assertEqual(self.rcm0.calculate_weighted_percentage_gain(self.rcm1), 25.0)
+        model_constraints = ModelConstraints({PerfLatencyP99.tag: 20})
+        run_constraints = RunConstraints({"test_model": model_constraints})
+        self.rcmA.set_constraints(run_constraints)
+        self.assertFalse(self.rcmA.is_passing_constraints())
 
 
 if __name__ == "__main__":

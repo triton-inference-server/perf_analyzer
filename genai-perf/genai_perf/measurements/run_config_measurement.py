@@ -24,6 +24,11 @@ from genai_perf.measurements.model_config_measurement import (
     ModelConfigMeasurement,
     PerfRecords,
 )
+from genai_perf.measurements.model_constraints import (
+    Constraint,
+    ConstraintName,
+    ConstraintValue,
+)
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.gpu_record import GPURecord
 from genai_perf.record.record import Record
@@ -579,45 +584,81 @@ class RunConfigMeasurement:
 
         return weighted_mean_gain
 
-    # TODO: OPTIMIZE
-    # def is_passing_constraints(self) -> bool:
-    #     """
-    #     Returns true if all model measurements pass
-    #     their respective constraints
-    #     """
+    def is_passing_constraints(self) -> bool:
+        """
+        Returns true if all model measurements pass
+        their respective constraints
+        """
 
-    #     assert self._constraint_manager is not None
-    #     return self._constraint_manager.satisfies_constraints(self)
+        if not self._constraints:
+            return True
 
-    # def compare_constraints(self, other: "RunConfigMeasurement") -> Optional[float]:
-    #     """
-    #     Compares two RunConfigMeasurements based on how close
-    #     each RCM is to passing their constraints
+        passing_constraints = True
+        for model_name in self._constraints.constraints.keys():  # type: ignore
+            if self._constraints.constraints[model_name]:  # type: ignore
+                for model_constraints in self._constraints.constraints.values():  # type: ignore
+                    if model_constraints:
+                        for (
+                            constraint_name,
+                            value,
+                        ) in model_constraints.constraints.items():  # type: ignore
+                            if not self._passing_model_constraint(
+                                model_name, constraint_name, value
+                            ):
+                                passing_constraints = False
 
-    #     Parameters
-    #     ----------
-    #     other: RunConfigMeasurement
+        return passing_constraints
 
-    #     Returns
-    #     -------
-    #     float
-    #        Positive value if other is closer to passing constraints
-    #        Negative value if self is closer to passing constraints
-    #        Zero if they are equally close to passing constraints
-    #        None if either RCM is passing constraints
-    #     """
+    def _passing_model_constraint(
+        self,
+        model_name: ModelName,
+        constraint_name: ConstraintName,
+        constraint_value: ConstraintValue,
+    ) -> bool:
+        passing_constraint = self._passing_gpu_metric_constraint(
+            model_name, constraint_name, constraint_value
+        )
+        passing_constraint &= self._passing_perf_metric_constraint(
+            model_name, constraint_name, constraint_value
+        )
 
-    #     assert (
-    #         self._constraint_manager is not None
-    #         and other._constraint_manager is not None
-    #     )
+        return passing_constraint
 
-    #     if self.is_passing_constraints() or other.is_passing_constraints():
-    #         return None
+    def _passing_gpu_metric_constraint(
+        self,
+        model_name: ModelName,
+        constraint_name: ConstraintName,
+        constraint_value: ConstraintValue,
+    ) -> bool:
+        passing_constraint = True
+        gpu_metric = self.get_gpu_metric(constraint_name)
 
-    #     self_failing_pct = self._constraint_manager.constraint_failure_percentage(self)
-    #     other_failing_pct = other._constraint_manager.constraint_failure_percentage(
-    #         other
-    #     )
+        if gpu_metric:
+            avg_gpu_metric_value = mean(
+                [
+                    gpu_record[constraint_name].value()
+                    for gpu_record in gpu_metric.values()
+                ]
+            )
 
-    #     return (self_failing_pct - other_failing_pct) / 100
+            avg_gpu_record_dict = list(gpu_metric.values())[0]
+            avg_gpu_record = deepcopy(list(avg_gpu_record_dict.values())[0])
+            avg_gpu_record._value = avg_gpu_metric_value
+
+            passing_constraint = avg_gpu_record.is_passing_constraint(constraint_value)
+
+        return passing_constraint
+
+    def _passing_perf_metric_constraint(
+        self,
+        model_name: ModelName,
+        constraint_name: ConstraintName,
+        constraint_value: ConstraintValue,
+    ) -> bool:
+        passing_constraint = True
+        perf_metric = self.get_model_perf_metric(model_name, constraint_name)
+
+        if perf_metric:
+            passing_constraint = perf_metric.is_passing_constraint(constraint_value)
+
+        return passing_constraint
