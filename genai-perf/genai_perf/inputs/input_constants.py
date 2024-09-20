@@ -92,10 +92,3 @@ DEFAULT_IMAGE_WIDTH_MEAN = 100
 DEFAULT_IMAGE_WIDTH_STDDEV = 0
 DEFAULT_IMAGE_HEIGHT_MEAN = 100
 DEFAULT_IMAGE_HEIGHT_STDDEV = 0
-
-###########################
-# Default JSON Parameters
-###########################
-EMPTY_JSON_IN_VLLM_PA_FORMAT: Dict = {"data": []}
-EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT: Dict = {"data": []}
-EMPTY_JSON_IN_OPENAI_PA_FORMAT: Dict = {"data": []}

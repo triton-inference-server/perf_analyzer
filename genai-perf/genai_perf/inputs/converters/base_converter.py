@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
@@ -33,18 +33,16 @@ from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class BaseConverter:
-    def convert(
-        self,
-        generic_dataset: Dict,
-        config: InputsConfig,
-    ) -> Dict:
+
+    _CONTENT_NAMES: List[str]
+
+    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+        """
+        Construct a request body using the endpoint specific request format.
+        """
         raise NotImplementedError
 
-    def _select_model_name(
-        self,
-        config: InputsConfig,
-        index: int,
-    ) -> str:
+    def _select_model_name(self, config: InputsConfig, index: int) -> str:
         if config.model_selection_strategy == ModelSelectionStrategy.ROUND_ROBIN:
             return config.model_name[index % len(config.model_name)]
         elif config.model_selection_strategy == ModelSelectionStrategy.RANDOM:
@@ -54,62 +52,11 @@ class BaseConverter:
                 f"Model selection strategy '{config.model_selection_strategy}' is unsupported"
             )
 
-    def _determine_json_feature_roles(
-        self, generic_dataset: Dict
-    ) -> Tuple[List[str], List[str], List[str]]:
-        SYSTEM_ROLE_LIST = ["system_prompt"]
-        USER_ROLE_LIST = ["question", "article"]
-        TEXT_INPUT_LIST = ["text_input"]
-
-        system_role_headers: List[str] = []
-        user_role_headers: List[str] = []
-        text_input_headers: List[str] = []
-
-        if "features" in generic_dataset.keys():
-            for feature in generic_dataset["features"]:
-                if feature in SYSTEM_ROLE_LIST:
-                    system_role_headers.append(feature)
-                if feature in USER_ROLE_LIST:
-                    user_role_headers.append(feature)
-                if feature in TEXT_INPUT_LIST:
-                    user_role_headers.append(feature)
-
-        assert (
-            system_role_headers is not None
-            or user_role_headers is not None
-            or text_input_headers is not None
-        )
-
-        return system_role_headers, user_role_headers, text_input_headers
-
-    def _create_new_text_input(
-        self,
-        header: str,
-        system_role_headers: List[str],
-        user_role_headers: List[str],
-        text_input_headers: List[str],
-        content: str,
-    ) -> str:
-        new_text_input = ""
-
-        if (
-            header in system_role_headers
-            or header in user_role_headers
-            or header in text_input_headers
-        ):
-            new_text_input = content
-
-        return new_text_input
-
-    def _add_new_text_input_to_json(
-        self, pa_json: Dict, index: int, new_text_input: str
-    ) -> Dict:
-        if new_text_input:
-            if pa_json["data"][index]["text_input"][0]:
-                pa_json["data"][index]["text_input"][0] = (
-                    pa_json["data"][index]["text_input"][0] + f" {new_text_input}"
-                )
-            else:
-                pa_json["data"][index]["text_input"][0] = new_text_input
-
-        return pa_json
+    def _construct_text_payload(self, input_data: Dict) -> str:
+        """
+        Construct text payload content for non-chat based LLM converters.
+        Since there are no roles or turns in non-chat LLM endpoints, all the
+        (pre-defined) text contents are concatenated into a single text prompt.
+        """
+        contents = [v for k, v in input_data.items() if k in self._CONTENT_NAMES]
+        return " ".join(contents)
