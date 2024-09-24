@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 # TODO: OPTIMIZE
-# from genai_perf.result.model_constraints import ModelConstraints
+from genai_perf.measurements.model_constraints import ModelConstraints
 
 
 @dataclass
@@ -30,8 +30,7 @@ class ModelSpec:
     model_name: str
     cpu_only: bool = False
     objectives: Optional[List] = None
-    # TODO: OPTIMIZE
-    # constraints: Optional[ModelConstraints]
+    constraints: Optional[ModelConstraints] = None
     model_config_parameters: Optional[Dict] = None
 
     # PA/GAP flags/parameters
