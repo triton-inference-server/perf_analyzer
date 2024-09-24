@@ -21,13 +21,13 @@ from typing import Any, Dict, Optional, TypeAlias
 
 from genai_perf.record.record import Record
 
-Records: TypeAlias = Dict[str, Record]
+PerfRecords: TypeAlias = Dict[str, Record]
 MetricObjectives: TypeAlias = Dict[str, float]
 
 
 @dataclass(frozen=True)
 class ModelConfigMeasurementDefaults:
-    METRIC_WEIGHTING = {"perf_throughput": 1.0}
+    METRIC_OBJECTIVE = {"perf_throughput": 1.0}
 
     SELF_IS_BETTER = 1
     OTHER_IS_BETTER = -1
@@ -42,7 +42,7 @@ class ModelConfigMeasurement:
     Encapsulates the set of performance metrics (measurements) obtained when profiling a model
     """
 
-    def __init__(self, perf_metrics: Records):
+    def __init__(self, perf_metrics: PerfRecords):
         """
         perf_metrics:
             Metrics (stored in the Record class) that are associated with how the model
@@ -51,13 +51,13 @@ class ModelConfigMeasurement:
 
         self._perf_metrics = perf_metrics
 
-        # Set a default metric weighting
-        self._metric_weights = ModelConfigMeasurementDefaults.METRIC_WEIGHTING
+        # Set a default metric objective
+        self._metric_objectives = ModelConfigMeasurementDefaults.METRIC_OBJECTIVE
 
     ###########################################################################
     # Accessor Methods
     ###########################################################################
-    def get_perf_metrics(self) -> Records:
+    def get_perf_metrics(self) -> PerfRecords:
         return self._perf_metrics
 
     def get_perf_metric(self, name: str) -> Optional[Record]:
@@ -74,15 +74,15 @@ class ModelConfigMeasurement:
         """
         return self._calculate_weighted_score(other)
 
-    def set_metric_weighting(self, metric_objectives: MetricObjectives) -> None:
+    def set_metric_objectives(self, metric_objectives: MetricObjectives) -> None:
         """
-        Sets the metric weighting for this measurement based
+        Sets metric weighting for this measurement based
         on the objectives
         """
 
         # Each individual weighting is based on it's percentage of the total
         # weighting. Example: {A: 1, B: 3} would be stored as {A: 0.25, B: 0.75}
-        self._metric_weights = {
+        self._metric_objectives = {
             objective: (value / sum(metric_objectives.values()))
             for objective, value in metric_objectives.items()
         }
@@ -99,7 +99,7 @@ class ModelConfigMeasurement:
 
         # Values based solely on user/config settings (that can vary from run to run)
         # are not stored in the checkpoint
-        del mcm_dict["_metric_weights"]
+        del mcm_dict["_metric_objectives"]
 
         return mcm_dict
 
@@ -118,8 +118,8 @@ class ModelConfigMeasurement:
     @classmethod
     def _read_perf_metrics_from_checkpoint(
         cls, perf_metrics_dict: Dict[str, Any]
-    ) -> Records:
-        perf_metrics: Records = {}
+    ) -> PerfRecords:
+        perf_metrics: PerfRecords = {}
 
         for [tag, record_dict] in perf_metrics_dict.values():
             record = Record.get(tag)
@@ -164,9 +164,7 @@ class ModelConfigMeasurement:
 
         if weighted_score > ModelConfigMeasurementDefaults.COMPARISON_SCORE_THRESHOLD:
             return ModelConfigMeasurementDefaults.SELF_IS_BETTER
-        elif (
-            weighted_score < -ModelConfigMeasurementDefaults.COMPARISON_SCORE_THRESHOLD
-        ):
+        elif weighted_score < ModelConfigMeasurementDefaults.COMPARISON_SCORE_THRESHOLD:
             return ModelConfigMeasurementDefaults.OTHER_IS_BETTER
         else:
             return ModelConfigMeasurementDefaults.EQUALIVILENT
@@ -184,7 +182,7 @@ class ModelConfigMeasurement:
         """
 
         weighted_score = 0.0
-        for objective, weight in self._metric_weights.items():
+        for objective, weight in self._metric_objectives.items():
             self_metric = self.get_perf_metric(objective)
             other_metric = other.get_perf_metric(objective)
 
@@ -215,7 +213,7 @@ class ModelConfigMeasurement:
         """
 
         weighted_pct = 0.0
-        for objective, weight in self._metric_weights.items():
+        for objective, weight in self._metric_objectives.items():
             self_metric = self.get_perf_metric(objective)
             other_metric = other.get_perf_metric(objective)
 
