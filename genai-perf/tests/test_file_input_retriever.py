@@ -63,8 +63,7 @@ class TestFileInputRetriever:
         assert len(dataset["rows"]) == 100
         for row in dataset["rows"]:
             assert "row" in row
-            assert "payload" in row["row"]
-            payload = row["row"]["payload"]
+            payload = row["row"]
             assert "input" in payload
             assert isinstance(payload["input"], list)
             assert len(payload["input"]) == batch_size
@@ -123,8 +122,7 @@ class TestFileInputRetriever:
         assert len(dataset["rows"]) == 100
         for row in dataset["rows"]:
             assert "row" in row
-            assert "payload" in row["row"]
-            payload = row["row"]["payload"]
+            payload = row["row"]
             assert "query" in payload
             assert "passages" in payload
             assert isinstance(payload["passages"], list)

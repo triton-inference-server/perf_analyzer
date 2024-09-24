@@ -135,6 +135,9 @@ def _check_conditional_args(
     Check for conditional args and raise an error if they are not set.
     """
 
+    if args.num_prompts <= 0:
+        parser.error("The --num-prompts option must be greater than zero.")
+
     # Endpoint and output format checks
     if args.service_kind == "openai":
         if args.endpoint_type is None:

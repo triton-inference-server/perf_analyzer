@@ -27,8 +27,7 @@
 from pathlib import Path
 from unittest.mock import mock_open, patch
 
-import pytest
-from genai_perf.inputs.file_input_retriever import FileInputRetriever
+from genai_perf.inputs.converters import OpenAIEmbeddingsConverter
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
@@ -38,53 +37,13 @@ from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
-class TestInputsEmbeddings:
-    @patch("pathlib.Path.exists", return_value=True)
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data="\n".join(
-            [
-                '{"text": "What production company co-owned by Kevin Loader and Rodger Michell produced My Cousin Rachel?"}',
-                '{"text": "Who served as the 1st Vice President of Colombia under El Libertador?"}',
-                '{"text": "Are the Barton Mine and Hermiston-McCauley Mine located in The United States of America?"}',
-                '{"text": "what state did they film daddy\'s home 2"}',
-            ]
-        ),
-    )
-    def test_get_input_dataset_from_embeddings_file(self, mock_file, mock_exists):
-        batch_size = 3
-        config = InputsConfig(
-            input_filename=Path("embeddings.jsonl"),
-            batch_size=batch_size,
-            num_prompts=100,
-        )
-        file_retriever = FileInputRetriever(config)
-        dataset = file_retriever._get_input_dataset_from_embeddings_file()
-
-        assert dataset is not None
-        assert len(dataset["rows"]) == 100
-        for row in dataset["rows"]:
-            assert "row" in row
-            assert "payload" in row["row"]
-            payload = row["row"]["payload"]
-            assert "input" in payload
-            assert isinstance(payload["input"], list)
-            assert len(payload["input"]) == batch_size
-
-        # Try error case where batch size is larger than the number of available texts
-        with pytest.raises(
-            ValueError,
-            match="Batch size cannot be larger than the number of available texts",
-        ):
-            config.batch_size = 5
-            file_retriever._get_input_dataset_from_embeddings_file()
+class TestEmbeddingsConverter:
 
     def test_convert_generic_json_to_openai_embeddings_format(self):
         generic_dataset = {
             "rows": [
-                {"payload": {"input": ["text 1", "text 2"]}},
-                {"payload": {"input": ["text 3", "text 4"]}},
+                {"input": ["text 1", "text 2"]},
+                {"input": ["text 3", "text 4"]},
             ]
         }
 
@@ -109,18 +68,16 @@ class TestInputsEmbeddings:
             ]
         }
 
-        inputs = Inputs(
-            InputsConfig(
+        embedding_converter = OpenAIEmbeddingsConverter()
+        result = embedding_converter.convert(
+            generic_dataset=generic_dataset,
+            config=InputsConfig(
                 input_type=PromptSource.SYNTHETIC,
                 extra_inputs={},
                 model_name=["test_model"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            )
-        )
-
-        result = inputs._convert_generic_json_to_output_format(
-            generic_dataset,
+            ),
         )
 
         assert result is not None
@@ -134,8 +91,8 @@ class TestInputsEmbeddings:
     def test_convert_generic_json_to_openai_embeddings_format_with_extra_inputs(self):
         generic_dataset = {
             "rows": [
-                {"payload": {"input": ["text 1", "text 2"]}},
-                {"payload": {"input": ["text 3", "text 4"]}},
+                {"input": ["text 1", "text 2"]},
+                {"input": ["text 3", "text 4"]},
             ]
         }
 

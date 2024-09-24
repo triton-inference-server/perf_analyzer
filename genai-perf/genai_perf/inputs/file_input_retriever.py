@@ -74,7 +74,7 @@ class FileInputRetriever:
 
         for _ in range(self.config.num_prompts):
             sampled_texts = random.sample(texts, self.config.batch_size)
-            dataset_json["rows"].append({"row": {"payload": {"input": sampled_texts}}})
+            dataset_json["rows"].append({"row": {"input": sampled_texts}})
 
         return dataset_json
 
@@ -84,15 +84,23 @@ class FileInputRetriever:
         passages_filename: Path,
     ) -> Dict[str, Any]:
 
+        # Check whether 'text' key field exists in each json line.
+        def key_exists(x: Dict):
+            if "text" not in x:
+                raise ValueError("Each data entry must have 'text' key name.")
+            return x
+
         with open(queries_filename, "r") as file:
-            queries_content = [load_json_str(line) for line in file]
-        queries_texts = [item for item in queries_content]
+            queries = [load_json_str(line, func=key_exists) for line in file]
 
         with open(passages_filename, "r") as file:
-            passages_content = [load_json_str(line) for line in file]
-        passages_texts = [item for item in passages_content]
+            passages = [load_json_str(line, func=key_exists) for line in file]
 
-        if self.config.batch_size > len(passages_texts):
+        if len(queries) == 0:
+            raise ValueError("Queries file must have at least one entry.")
+        if len(passages) == 0:
+            raise ValueError("Passages file must have at least one entry.")
+        if self.config.batch_size > len(passages):
             raise ValueError(
                 "Batch size cannot be larger than the number of available passages"
             )
@@ -102,12 +110,13 @@ class FileInputRetriever:
         dataset_json["rows"] = []
 
         for _ in range(self.config.num_prompts):
-            sampled_texts = random.sample(passages_texts, self.config.batch_size)
-            query_sample = random.choice(queries_texts)
-            entry_dict: Dict = {}
-            entry_dict["query"] = query_sample
-            entry_dict["passages"] = sampled_texts
-            dataset_json["rows"].append({"row": {"payload": entry_dict}})
+            sampled_query = random.choice(queries)
+            sampled_passages = random.sample(passages, self.config.batch_size)
+            entry_dict = {
+                "query": sampled_query,
+                "passages": sampled_passages,
+            }
+            dataset_json["rows"].append({"row": entry_dict})
         return dataset_json
 
     def _get_input_dataset_from_file(self) -> Dict[str, Any]:
