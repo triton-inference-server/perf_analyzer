@@ -16,6 +16,8 @@ from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Optional, TypeAlias, Union
 
+from genai_perf.types import ModelName
+
 
 def default_field(obj):
     return field(default_factory=lambda: copy(obj))
@@ -114,4 +116,5 @@ class ConfigOptimize:
 
 @dataclass
 class ConfigCommand:
+    model_names: List[ModelName]
     optimize: ConfigOptimize = ConfigOptimize()

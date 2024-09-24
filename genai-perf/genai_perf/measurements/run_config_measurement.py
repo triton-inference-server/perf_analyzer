@@ -22,22 +22,23 @@ from typing import Any, Dict, Optional, TypeAlias, Union
 from genai_perf.measurements.model_config_measurement import (
     MetricObjectives,
     ModelConfigMeasurement,
-    PerfRecords,
+    ModelConfigMeasurements,
 )
-from genai_perf.measurements.model_constraints import ConstraintName, ConstraintValue
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.gpu_record import GPURecord
 from genai_perf.record.record import Record
+from genai_perf.types import (
+    ConstraintName,
+    ConstraintValue,
+    GpuId,
+    GpuRecords,
+    ModelName,
+    ModelWeights,
+    PerfRecords,
+)
 
 logger = logging.getLogger(__name__)
 
-ModelName: TypeAlias = str
-ModelWeights: TypeAlias = Dict[ModelName, Union[int, float]]
-ModelConfigMeasurements: TypeAlias = Dict[ModelName, ModelConfigMeasurement]
-
-GpuId: TypeAlias = str
-TelemetryRecords: TypeAlias = Dict[str, GPURecord]
-GpuRecords: TypeAlias = Dict[GpuId, TelemetryRecords]
 
 WeightedMcmScores: TypeAlias = Dict[ModelName, float]
 WeightedRcmScore: TypeAlias = float

@@ -13,24 +13,22 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, TypeAlias, Union
+from typing import Any, Dict, TypeAlias
 
-from genai_perf.types import ConstraintName, Constraints
+from genai_perf.config.generate.search_parameter import (
+    ParameterCategory,
+    ParameterUsage,
+)
+
+ObjectiveParameters: TypeAlias = Dict[str, "ObjectiveParameter"]
 
 
 @dataclass
-class ModelConstraints:
+class ObjectiveParameter:
     """
-    A dataclass that specifies the constraints used for a single model
+    A dataclass that holds information about a configuration's objective parameter
     """
 
-    constraints: Optional[Constraints] = None
-
-    def has_constraint(self, constraint_name: ConstraintName) -> bool:
-        """
-        Checks if a given constraint is present
-        """
-        if self.constraints and constraint_name in self.constraints:
-            return True
-        else:
-            return False
+    usage: ParameterUsage
+    category: ParameterCategory
+    value: Any
