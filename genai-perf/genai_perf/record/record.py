@@ -255,6 +255,12 @@ class Record(metaclass=RecordType):
         else:
             return ((other.value() - self.value()) / self.value()) * 100
 
+    def is_passing_constraint(self, constraint_value: Union[int | float]) -> bool:
+        if self._positive_is_better():
+            return self.value() > constraint_value
+        else:
+            return self.value() < constraint_value
+
 
 class IncreasingRecord(Record):
     """
