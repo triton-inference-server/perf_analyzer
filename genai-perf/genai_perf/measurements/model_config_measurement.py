@@ -164,9 +164,7 @@ class ModelConfigMeasurement:
 
         if weighted_score > ModelConfigMeasurementDefaults.COMPARISON_SCORE_THRESHOLD:
             return ModelConfigMeasurementDefaults.SELF_IS_BETTER
-        elif (
-            weighted_score < -ModelConfigMeasurementDefaults.COMPARISON_SCORE_THRESHOLD
-        ):
+        elif weighted_score < ModelConfigMeasurementDefaults.COMPARISON_SCORE_THRESHOLD:
             return ModelConfigMeasurementDefaults.OTHER_IS_BETTER
         else:
             return ModelConfigMeasurementDefaults.EQUALIVILENT
