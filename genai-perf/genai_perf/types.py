@@ -14,14 +14,16 @@
 
 from typing import Dict, Tuple, TypeAlias, Union
 
-from genai_perf.record.gpu_record import GPURecord
-from genai_perf.record.record import Record
+# NOTE: Any classes used must be declared as "<class_name>" and use `#type: ignore`
+# this is to prevent circular import issues, while still allowing us to keep any
+# TypeAlias used across multiple files in a single location
 
 ###########################################################################
 # Model
 ###########################################################################
 ModelName: TypeAlias = str
 ModelWeights: TypeAlias = Dict[ModelName, Union[int, float]]
+ModelSearchParameters: TypeAlias = Dict[ModelName, "SearchParameters"]  # type: ignore
 
 ###########################################################################
 # GPU
@@ -31,9 +33,9 @@ GpuId: TypeAlias = str
 ###########################################################################
 # Records
 ###########################################################################
-TelemetryRecords: TypeAlias = Dict[str, GPURecord]
+TelemetryRecords: TypeAlias = Dict[str, "GPURecord"]  # type: ignore
 GpuRecords: TypeAlias = Dict[GpuId, TelemetryRecords]
-PerfRecords: TypeAlias = Dict[str, Record]
+PerfRecords: TypeAlias = Dict[str, "Record"]  # type: ignore
 
 ###########################################################################
 # Constraints

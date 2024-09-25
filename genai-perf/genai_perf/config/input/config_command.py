@@ -23,11 +23,27 @@ def default_field(obj):
     return field(default_factory=lambda: copy(obj))
 
 
+@dataclass
+class Range:
+    min: int
+    max: int
+
+
+ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
+
+
 # TODO: OPTIMIZE
 # These will be moved to RunConfig once it's created
 @dataclass(frozen=True)
 class RunConfigDefaults:
-    # Model Defaults
+    # Optimize: Top-level Defaults
+    OBJECTIVE = "throughput"
+    CONSTRAINT = None
+    SEARCH_SPACE_PERCENTAGE = Range(min=5, max=10)
+    NUMBER_OF_TRIALS = Range(min=0, max=0)
+    EARLY_EXIT_THRESHOLD = 10
+
+    # Optimize: Model Defaults
     MIN_MODEL_BATCH_SIZE = 1
     MAX_MODEL_BATCH_SIZE = 128
     MIN_INSTANCE_COUNT = 1
@@ -36,7 +52,7 @@ class RunConfigDefaults:
     DYNAMIC_BATCHING = True
     CPU_ONLY = False
 
-    # PA Defaults
+    # Optimize: PA Defaults
     STIMULUS_TYPE = "concurrency"
     PA_BATCH_SIZE = [1]
     MIN_CONCURRENCY = 1
@@ -48,17 +64,6 @@ class RunConfigDefaults:
 
 # TODO: OPTIMIZE
 # These are placeholder dataclasses until the real Command Parser is written
-
-
-@dataclass
-class Range:
-    min: int
-    max: int
-
-
-ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
-
-
 @dataclass
 class ConfigModelConfig:
     batch_size: ConfigRangeOrList = default_field(
@@ -107,11 +112,23 @@ class ConfigPerfAnalyzer:
 
 @dataclass
 class ConfigOptimize:
+    objective: str = default_field(RunConfigDefaults.OBJECTIVE)
+    constraint: Optional[str] = default_field(RunConfigDefaults.CONSTRAINT)
+    search_space_percentage: Range = default_field(
+        RunConfigDefaults.SEARCH_SPACE_PERCENTAGE
+    )
+    number_of_trials: Range = default_field(RunConfigDefaults.NUMBER_OF_TRIALS)
+    early_exit_threshold: int = default_field(RunConfigDefaults.EARLY_EXIT_THRESHOLD)
+
     model_config: ConfigModelConfig = ConfigModelConfig()
     perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
 
     def is_request_rate_specified(self) -> bool:
         return self.perf_analyzer.is_request_rate_specified()
+
+    def is_set_by_user(self, field: str) -> bool:
+        # FIXME: OPTIMIZE - we have no way of knowing this until a real config class is created
+        return False
 
 
 @dataclass

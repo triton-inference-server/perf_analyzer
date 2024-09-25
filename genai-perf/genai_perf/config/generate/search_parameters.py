@@ -49,7 +49,7 @@ class SearchParameters:
 
     def __init__(
         self,
-        config: ConfigCommand = ConfigCommand(model_names=["test_model"]),
+        config: ConfigCommand,
         is_bls_model: bool = False,
         is_ensemble_model: bool = False,
         is_composing_model: bool = False,

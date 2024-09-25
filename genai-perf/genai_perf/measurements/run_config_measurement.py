@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import total_ordering
 from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias, Union
 
+import genai_perf.logging as logging
 from genai_perf.measurements.model_config_measurement import (
     MetricObjectives,
     ModelConfigMeasurement,
