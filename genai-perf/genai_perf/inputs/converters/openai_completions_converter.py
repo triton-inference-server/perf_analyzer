@@ -58,15 +58,11 @@ class OpenAICompletionsConverter(BaseConverter):
             prompt = self._construct_text_payload(entry)
 
             payload = {
-                "payload": [
-                    {
-                        "model": model_name,
-                        "prompt": prompt,
-                    }
-                ]
+                "model": model_name,
+                "prompt": prompt,
             }
             self._add_request_params(payload, config)
-            request_body["data"].append(payload)
+            request_body["data"].append({"payload": [payload]})
 
         return request_body
 

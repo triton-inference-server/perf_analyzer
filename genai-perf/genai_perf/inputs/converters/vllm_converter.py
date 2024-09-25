@@ -26,7 +26,7 @@
 
 import json
 import random
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
