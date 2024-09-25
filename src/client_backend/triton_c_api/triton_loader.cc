@@ -321,6 +321,7 @@ TritonLoader::StartTriton()
         server_is_ready_fn_(server_.get(), &ready),
         "unable to get server readiness");
     if (live && ready) {
+      std::lock_guard<std::mutex> lock(server_is_ready_mtx_);
       server_is_ready_ = true;
       break;
     }

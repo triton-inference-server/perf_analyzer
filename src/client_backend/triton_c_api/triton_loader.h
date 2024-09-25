@@ -540,6 +540,7 @@ class TritonLoader : public tc::InferenceServerClient {
   std::unique_ptr<SharedMemoryManager> shm_manager_{nullptr};
   TRITONSERVER_ResponseAllocator* allocator_{};
   std::mutex update_infer_stat_mutex_{};
+  std::mutex server_is_ready_mtx_{};
 };
 
 }}}}  // namespace triton::perfanalyzer::clientbackend::tritoncapi
