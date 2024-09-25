@@ -29,7 +29,6 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
     ModelSelectionStrategy,
     OutputFormat,
-    PromptSource,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 
