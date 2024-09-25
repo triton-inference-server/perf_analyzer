@@ -141,10 +141,9 @@ class OptunaObjectiveGenerator:
             # if logging.DEBUG:
             #     self._print_debug_score_info(run_config, score)
 
-            # TODO: OPTIMIZE
-            # if self._should_terminate_early(min_configs_to_search, trial_number):
-            #     logger.debug("Early termination threshold reached")
-            #     break
+            if self._should_terminate_early(min_configs_to_search, trial_number):
+                logger.debug("Early termination threshold reached")
+                break
             self._study.tell(trial, score)
 
     ###########################################################################
@@ -416,3 +415,19 @@ class OptunaObjectiveGenerator:
             )
 
         return int(log2(concurrency))
+
+    ###########################################################################
+    # Early Termination Methods
+    ###########################################################################
+    def _should_terminate_early(
+        self, min_configs_to_search: int, trial_number: int
+    ) -> bool:
+        number_of_trials_since_best = trial_number - self._best_trial_number  # type: ignore
+        if trial_number < min_configs_to_search:
+            should_terminate_early = False
+        elif number_of_trials_since_best >= self._config.optimize.early_exit_threshold:
+            should_terminate_early = True
+        else:
+            should_terminate_early = False
+
+        return should_terminate_early
