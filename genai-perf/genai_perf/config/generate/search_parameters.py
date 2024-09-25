@@ -285,7 +285,7 @@ class SearchParameters:
         elif name in SearchParameters.linear_range_parameters:
             category = SearchCategory.INTEGER
         else:
-            GenAIPerfException(f"SearchCategory not found for {name}")
+            raise (GenAIPerfException(f"SearchCategory not found for {name}"))
 
         return category
 
@@ -295,7 +295,7 @@ class SearchParameters:
         elif name in SearchParameters.runtime_parameters:
             usage = SearchUsage.RUNTIME
         else:
-            GenAIPerfException(f"SearchUsage not found for {name}")
+            raise (GenAIPerfException(f"SearchUsage not found for {name}"))
 
         return usage
 

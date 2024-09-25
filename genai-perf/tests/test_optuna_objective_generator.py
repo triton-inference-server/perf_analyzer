@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import unittest
 from copy import deepcopy
 from unittest.mock import MagicMock, patch
@@ -24,11 +23,7 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.optuna_objective_generator import (
     OptunaObjectiveGenerator,
 )
-from genai_perf.config.generate.search_parameters import (
-    SearchCategory,
-    SearchParameters,
-    SearchUsage,
-)
+from genai_perf.config.generate.search_parameters import SearchParameters, SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
 from tests.test_utils import (
     create_model_config_measurement,

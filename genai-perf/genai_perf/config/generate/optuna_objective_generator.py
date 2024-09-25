@@ -18,10 +18,7 @@ from typing import Dict, Generator, Optional, TypeAlias, Union
 
 import genai_perf.logging as logging
 import optuna
-from genai_perf.config.generate.objective_parameter import (
-    ObjectiveParameter,
-    ObjectiveParameters,
-)
+from genai_perf.config.generate.objective_parameter import ObjectiveParameter
 from genai_perf.config.generate.search_parameter import SearchCategory, SearchParameter
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
@@ -401,21 +398,21 @@ class OptunaObjectiveGenerator:
                 "model_batch_size", RunConfigDefaults.MIN_MODEL_BATCH_SIZE
             )
         )
-        concurrency_formula = int(
+        concurrency = int(
             2 * int(trial_objectives["instance_count"]) * model_batch_size**2
         )
 
-        concurrency = (
-            self._config.get_max(self._config.optimize.perf_analyzer.concurrency)
-            if concurrency_formula
-            > self._config.get_max(self._config.optimize.perf_analyzer.concurrency)
-            else concurrency_formula
-        )
-        concurrency = (
-            self._config.get_min(self._config.optimize.perf_analyzer.concurrency)
-            if concurrency_formula
-            < self._config.get_min(self._config.optimize.perf_analyzer.concurrency)
-            else concurrency_formula
-        )
+        if concurrency > self._config.get_max(
+            self._config.optimize.perf_analyzer.concurrency
+        ):
+            concurrency = self._config.get_max(
+                self._config.optimize.perf_analyzer.concurrency
+            )
+        elif concurrency < self._config.get_min(
+            self._config.optimize.perf_analyzer.concurrency
+        ):
+            concurrency = self._config.get_min(
+                self._config.optimize.perf_analyzer.concurrency
+            )
 
         return int(log2(concurrency))

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Dict, TypeAlias
 
-from genai_perf.config.generate.search_parameter import SearchCategory, SearchUsage
+from genai_perf.config.generate.search_parameter import SearchUsage
 
 
 class ObjectiveCategory(Enum):
