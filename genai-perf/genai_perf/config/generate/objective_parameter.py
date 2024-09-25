@@ -13,12 +13,17 @@
 # limitations under the License.
 
 from dataclasses import dataclass
+from enum import Enum, auto
 from typing import Any, Dict, TypeAlias
 
-from genai_perf.config.generate.search_parameter import (
-    ParameterCategory,
-    ParameterUsage,
-)
+from genai_perf.config.generate.search_parameter import SearchCategory, SearchUsage
+
+
+class ObjectiveCategory(Enum):
+    INTEGER = auto()
+    EXPONENTIAL = auto()
+    STR = auto()
+
 
 ObjectiveParameters: TypeAlias = Dict[str, "ObjectiveParameter"]
 
@@ -29,6 +34,6 @@ class ObjectiveParameter:
     A dataclass that holds information about a configuration's objective parameter
     """
 
-    usage: ParameterUsage
-    category: ParameterCategory
+    usage: SearchUsage
+    category: ObjectiveCategory
     value: Any

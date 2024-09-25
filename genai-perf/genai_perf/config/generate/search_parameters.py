@@ -15,11 +15,12 @@
 from math import log2
 from typing import Any, Dict, List, Optional
 
+from genai_perf.config.generate.objective_parameter import ObjectiveCategory
 from genai_perf.config.generate.search_parameter import (
-    ParameterCategory,
     ParameterList,
-    ParameterUsage,
+    SearchCategory,
     SearchParameter,
+    SearchUsage,
 )
 from genai_perf.config.input.config_command import ConfigCommand, Range
 from genai_perf.exceptions import GenAIPerfException
@@ -47,6 +48,8 @@ class SearchParameters:
     ]
     runtime_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
 
+    all_parameters = model_parameters + runtime_parameters
+
     def __init__(
         self,
         config: ConfigCommand,
@@ -73,11 +76,31 @@ class SearchParameters:
     def get_parameter(self, name: str) -> Optional[SearchParameter]:
         return self._search_parameters.get(name)
 
-    def get_type(self, name: str) -> ParameterUsage:
-        return self._search_parameters[name].usage
+    def get_type(self, name: str) -> SearchUsage:
+        if name in self._search_parameters:
+            return self._search_parameters[name].usage
+        else:
+            return self._determine_parameter_usage(name)
 
-    def get_category(self, name: str) -> ParameterCategory:
-        return self._search_parameters[name].category
+    def get_category(self, name: str) -> SearchCategory:
+        if name in self._search_parameters:
+            return self._search_parameters[name].category
+        else:
+            return self._determine_parameter_category(name)
+
+    def get_objective_category(self, name: str) -> ObjectiveCategory:
+        # The difference here is that for objectives lists are not possible
+        search_category = self.get_category(name)
+
+        if search_category is SearchCategory.EXPONENTIAL:
+            return ObjectiveCategory.EXPONENTIAL
+        elif (
+            search_category is SearchCategory.INTEGER
+            or search_category is SearchCategory.INT_LIST
+        ):
+            return ObjectiveCategory.INTEGER
+        else:
+            return ObjectiveCategory.STR
 
     def get_range(self, name: str) -> Range:
         min_range = int(self._search_parameters[name].min_range or 0)
@@ -115,7 +138,7 @@ class SearchParameters:
             self._populate_list_parameter(
                 parameter_name="runtime_batch_size",
                 parameter_list=list(self._config.perf_analyzer.batch_size),
-                parameter_category=ParameterCategory.INT_LIST,
+                parameter_category=SearchCategory.INT_LIST,
             )
         elif isinstance(self._config.perf_analyzer.batch_size, Range):
             self._populate_range_parameter(
@@ -131,7 +154,7 @@ class SearchParameters:
             self._populate_list_parameter(
                 parameter_name="concurrency",
                 parameter_list=list(self._config.perf_analyzer.concurrency),
-                parameter_category=ParameterCategory.INT_LIST,
+                parameter_category=SearchCategory.INT_LIST,
             )
         elif isinstance(self._config.perf_analyzer.concurrency, Range):
             self._populate_range_parameter(
@@ -145,7 +168,7 @@ class SearchParameters:
             self._populate_list_parameter(
                 parameter_name="request_rate",
                 parameter_list=list(self._config.perf_analyzer.request_rate),
-                parameter_category=ParameterCategory.INT_LIST,
+                parameter_category=SearchCategory.INT_LIST,
             )
         elif isinstance(self._config.perf_analyzer.request_rate, Range):
             self._populate_range_parameter(
@@ -167,7 +190,7 @@ class SearchParameters:
             self._populate_list_parameter(
                 parameter_name="model_batch_size",
                 parameter_list=list(self._config.model_config.batch_size),
-                parameter_category=ParameterCategory.INT_LIST,
+                parameter_category=SearchCategory.INT_LIST,
             )
         elif (
             self._supports_model_batch_size
@@ -187,7 +210,7 @@ class SearchParameters:
             self._populate_list_parameter(
                 parameter_name="instance_count",
                 parameter_list=list(self._config.model_config.instance_count),
-                parameter_category=ParameterCategory.INT_LIST,
+                parameter_category=SearchCategory.INT_LIST,
             )
         elif not self._is_ensemble_model and isinstance(
             self._config.model_config.instance_count, Range
@@ -205,7 +228,7 @@ class SearchParameters:
             self._populate_list_parameter(
                 parameter_name="max_queue_delay",
                 parameter_list=list(self._config.model_config.max_queue_delay),
-                parameter_category=ParameterCategory.INT_LIST,
+                parameter_category=SearchCategory.INT_LIST,
             )
         elif isinstance(self._config.model_config.max_queue_delay, Range):
             self._populate_range_parameter(
@@ -221,7 +244,7 @@ class SearchParameters:
         self,
         parameter_name: str,
         parameter_list: ParameterList,
-        parameter_category: ParameterCategory,
+        parameter_category: SearchCategory,
     ) -> None:
         usage = self._determine_parameter_usage(parameter_name)
 
@@ -241,7 +264,7 @@ class SearchParameters:
         usage = self._determine_parameter_usage(parameter_name)
         category = self._determine_parameter_category(parameter_name)
 
-        if category == ParameterCategory.EXPONENTIAL:
+        if category == SearchCategory.EXPONENTIAL:
             min_range = int(log2(parameter_min_value))  # type: ignore
             max_range = int(log2(parameter_max_value))  # type: ignore
         else:
@@ -256,31 +279,31 @@ class SearchParameters:
             max_range=max_range,
         )
 
-    def _determine_parameter_category(self, name: str) -> ParameterCategory:
+    def _determine_parameter_category(self, name: str) -> SearchCategory:
         if name in SearchParameters.exponential_range_parameters:
-            category = ParameterCategory.EXPONENTIAL
+            category = SearchCategory.EXPONENTIAL
         elif name in SearchParameters.linear_range_parameters:
-            category = ParameterCategory.INTEGER
+            category = SearchCategory.INTEGER
         else:
-            GenAIPerfException(f"ParameterCategory not found for {name}")
+            GenAIPerfException(f"SearchCategory not found for {name}")
 
         return category
 
-    def _determine_parameter_usage(self, name: str) -> ParameterUsage:
+    def _determine_parameter_usage(self, name: str) -> SearchUsage:
         if name in SearchParameters.model_parameters:
-            usage = ParameterUsage.MODEL
+            usage = SearchUsage.MODEL
         elif name in SearchParameters.runtime_parameters:
-            usage = ParameterUsage.RUNTIME
+            usage = SearchUsage.RUNTIME
         else:
-            GenAIPerfException(f"ParameterUsage not found for {name}")
+            GenAIPerfException(f"SearchUsage not found for {name}")
 
         return usage
 
     def _add_search_parameter(
         self,
         name: str,
-        usage: ParameterUsage,
-        category: ParameterCategory,
+        usage: SearchUsage,
+        category: SearchCategory,
         min_range: Optional[int] = None,
         max_range: Optional[int] = None,
         enumerated_list: List[Any] = [],
@@ -311,13 +334,13 @@ class SearchParameters:
         info_string = f"  {name}: "
 
         parameter = self._search_parameters[name]
-        if parameter.category is ParameterCategory.INTEGER:
+        if parameter.category is SearchCategory.INTEGER:
             info_string += f"{parameter.min_range} to {parameter.max_range}"
-        elif parameter.category is ParameterCategory.EXPONENTIAL:
+        elif parameter.category is SearchCategory.EXPONENTIAL:
             info_string += f"{2**parameter.min_range} to {2**parameter.max_range}"  # type: ignore
         elif (
-            parameter.category is ParameterCategory.INT_LIST
-            or parameter.category is ParameterCategory.STR_LIST
+            parameter.category is SearchCategory.INT_LIST
+            or parameter.category is SearchCategory.STR_LIST
         ):
             info_string += f"{parameter.enumerated_list}"
 
@@ -329,8 +352,8 @@ class SearchParameters:
         self, parameter: SearchParameter
     ) -> int:
         if (
-            parameter.category is ParameterCategory.INTEGER
-            or parameter.category is ParameterCategory.EXPONENTIAL
+            parameter.category is SearchCategory.INTEGER
+            or parameter.category is SearchCategory.EXPONENTIAL
         ):
             number_of_parameter_configs = parameter.max_range - parameter.min_range + 1  # type: ignore
         else:
@@ -343,15 +366,12 @@ class SearchParameters:
     ###########################################################################
     def _check_for_illegal_input(
         self,
-        category: ParameterCategory,
+        category: SearchCategory,
         min_range: Optional[int],
         max_range: Optional[int],
         enumerated_list: List[Any],
     ) -> None:
-        if (
-            category is ParameterCategory.INT_LIST
-            or category is ParameterCategory.STR_LIST
-        ):
+        if category is SearchCategory.INT_LIST or category is SearchCategory.STR_LIST:
             self._check_for_illegal_list_input(min_range, max_range, enumerated_list)
         else:
             if min_range is None or max_range is None:
@@ -373,13 +393,13 @@ class SearchParameters:
     ) -> None:
         if not enumerated_list:
             raise GenAIPerfException(
-                f"enumerated_list must be specified for a ParameterCategory.LIST"
+                f"enumerated_list must be specified for a SearchCategory.LIST"
             )
         elif min_range is not None:
             raise GenAIPerfException(
-                f"min_range cannot be specified for a ParameterCategory.LIST"
+                f"min_range cannot be specified for a SearchCategory.LIST"
             )
         elif max_range is not None:
             raise GenAIPerfException(
-                f"max_range cannot be specified for a ParameterCategory.LIST"
+                f"max_range cannot be specified for a SearchCategory.LIST"
             )

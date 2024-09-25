@@ -316,6 +316,16 @@ class RunConfigMeasurement:
     ###########################################################################
     # Comparison Methods
     ###########################################################################
+    def get_score(self, other: "RunConfigMeasurement") -> float:
+        """
+        Compares the measurements and returns a score.
+        The larger the positive value the better self is,
+        the larger the negative value the better other is
+        """
+        score = self._compare_measurements(other, return_score=True)
+
+        return score
+
     def is_better_than(self, other: "RunConfigMeasurement") -> bool:
         return (
             self._compare_measurements(other)
@@ -340,18 +350,13 @@ class RunConfigMeasurement:
             == RunConfigMeasurementDefaults.EQUALIVILENT
         )
 
-    def _compare_measurements(self, other: "RunConfigMeasurement") -> int:
+    def _compare_measurements(
+        self, other: "RunConfigMeasurement", return_score: bool = False
+    ) -> Union[int, float]:
         """
         Compares two RunConfigMeasurements based on each
         ModelConfigs weighted metric objectives and the
         ModelConfigs weighted value within the RunConfigMeasurement
-
-        Returns
-        -------
-        float
-           Positive value if other is better
-           Negative value is self is better
-           Zero if they are equal
         """
         # Step 1: for each model determine the weighted score
         weighted_mcm_scores = self._calculate_weighted_mcm_scores(other)
@@ -361,6 +366,10 @@ class RunConfigMeasurement:
         weighted_combined_score = self._calculate_weighted_rcm_and_mcm_score(
             weighted_rcm_score, weighted_mcm_scores
         )
+
+        # Step 2.5: if only the score is wanted stop here
+        if return_score:
+            return weighted_combined_score
 
         # Step 3: Determine which RCM is better
         if (

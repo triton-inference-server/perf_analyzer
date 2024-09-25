@@ -24,6 +24,7 @@ from typing import Dict, Tuple, TypeAlias, Union
 ModelName: TypeAlias = str
 ModelWeights: TypeAlias = Dict[ModelName, Union[int, float]]
 ModelSearchParameters: TypeAlias = Dict[ModelName, "SearchParameters"]  # type: ignore
+ModelObjectiveParameters: TypeAlias = Dict[ModelName, "ObjectiveParameters"]  # type: ignore
 
 ###########################################################################
 # GPU

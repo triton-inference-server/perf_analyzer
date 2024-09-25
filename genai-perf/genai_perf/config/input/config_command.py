@@ -135,3 +135,19 @@ class ConfigOptimize:
 class ConfigCommand:
     model_names: List[ModelName]
     optimize: ConfigOptimize = ConfigOptimize()
+
+    def get_max(self, config_value: ConfigRangeOrList) -> int:
+        if type(config_value) is list:
+            return max(config_value)
+        elif type(config_value) is Range:
+            return config_value.max
+        else:
+            return 0
+
+    def get_min(self, config_value: ConfigRangeOrList) -> int:
+        if type(config_value) is list:
+            return min(config_value)
+        elif type(config_value) is Range:
+            return config_value.min
+        else:
+            return 0

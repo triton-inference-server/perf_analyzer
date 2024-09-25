@@ -17,10 +17,18 @@ import unittest
 from copy import deepcopy
 from unittest.mock import MagicMock, patch
 
+from genai_perf.config.generate.objective_parameter import (
+    ObjectiveCategory,
+    ObjectiveParameter,
+)
 from genai_perf.config.generate.optuna_objective_generator import (
     OptunaObjectiveGenerator,
 )
-from genai_perf.config.generate.search_parameters import SearchParameters
+from genai_perf.config.generate.search_parameters import (
+    SearchCategory,
+    SearchParameters,
+    SearchUsage,
+)
 from genai_perf.config.input.config_command import ConfigCommand
 from tests.test_utils import (
     create_model_config_measurement,
@@ -134,6 +142,61 @@ class TestModelConfigMeasurement(unittest.TestCase):
         )
 
         self.assertEqual(30, max_configs_to_search)
+
+    ###########################################################################
+    # Trial Objective Testing
+    ###########################################################################
+    def test_create_trial_objectives(self):
+        """
+        Test that trial objectives are created correctly
+        """
+        trial = self._optuna_obj_gen._study.ask()
+        trial_objectives = self._optuna_obj_gen._create_trial_objectives(trial)
+
+        # These are based on seed=100 if the seed or the Optuna version is updated
+        # then these values will change
+        expected_trial_objectives = {
+            "test_model": {
+                "model_batch_size": 4,
+                "runtime_batch_size": 1,
+                "instance_count": 2,
+                "concurrency": 6,
+            }
+        }
+
+        self.assertEqual(expected_trial_objectives, trial_objectives)
+
+    ###########################################################################
+    # Objective Parameter Testing
+    ###########################################################################
+    def test_create_objective_parameters(self):
+        """
+        Test that objective parameters are created correctly
+        """
+        trial = self._optuna_obj_gen._study.ask()
+        trial_objectives = self._optuna_obj_gen._create_trial_objectives(trial)
+        objective_parameters = self._optuna_obj_gen._create_objective_parameters(
+            trial_objectives
+        )
+
+        expected_objective_parameters = {
+            "test_model": {
+                "model_batch_size": ObjectiveParameter(
+                    SearchUsage.MODEL, ObjectiveCategory.EXPONENTIAL, 4
+                ),
+                "runtime_batch_size": ObjectiveParameter(
+                    SearchUsage.RUNTIME, ObjectiveCategory.INTEGER, 1
+                ),
+                "instance_count": ObjectiveParameter(
+                    SearchUsage.MODEL, ObjectiveCategory.INTEGER, 2
+                ),
+                "concurrency": ObjectiveParameter(
+                    SearchUsage.RUNTIME, ObjectiveCategory.EXPONENTIAL, 6
+                ),
+            }
+        }
+
+        self.assertEqual(expected_objective_parameters, objective_parameters)
 
 
 if __name__ == "__main__":

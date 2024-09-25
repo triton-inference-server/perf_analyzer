@@ -19,13 +19,13 @@ from typing import Any, List, Optional, TypeAlias, Union
 ParameterList: TypeAlias = List[Union[int, str]]
 
 
-class ParameterUsage(Enum):
+class SearchUsage(Enum):
     MODEL = auto()
     RUNTIME = auto()
     BUILD = auto()
 
 
-class ParameterCategory(Enum):
+class SearchCategory(Enum):
     INTEGER = auto()
     EXPONENTIAL = auto()
     STR_LIST = auto()
@@ -38,8 +38,8 @@ class SearchParameter:
     A dataclass that holds information about a configuration's search parameter
     """
 
-    usage: ParameterUsage
-    category: ParameterCategory
+    usage: SearchUsage
+    category: SearchCategory
 
     # This is only applicable to the LIST categories
     enumerated_list: Optional[List[Any]] = None

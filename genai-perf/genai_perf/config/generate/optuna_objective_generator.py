@@ -12,22 +12,43 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
+from math import log2
 from random import randint
-from typing import Generator, Optional
+from typing import Dict, Generator, Optional, TypeAlias, Union
 
 import genai_perf.logging as logging
 import optuna
-from genai_perf.config.generate.objective_parameter import ObjectiveParameters
-from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.generate.objective_parameter import (
+    ObjectiveParameter,
+    ObjectiveParameters,
+)
+from genai_perf.config.generate.search_parameter import SearchCategory, SearchParameter
+from genai_perf.config.generate.search_parameters import SearchParameters
+from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
-from genai_perf.types import ModelSearchParameters
+from genai_perf.types import ModelName, ModelObjectiveParameters, ModelSearchParameters
 
 logger = logging.getLogger(__name__)
 
 
+###########################################################################
+# Type Aliases
+###########################################################################
+ParameterName: TypeAlias = str
+ObjectiveName: TypeAlias = str
+
+TrialObjective: TypeAlias = Union[str | int]
+TrialObjectives: TypeAlias = Dict[ParameterName, TrialObjective]
+ModelTrialObjectives: TypeAlias = Dict[ModelName, TrialObjectives]
+
+
+###########################################################################
+# Defaults
+###########################################################################
 @dataclass(frozen=True)
 class OptunaObjectiveGeneratorDefaults:
     BASELINE_SCORE = 0
+    NO_MEASUREMENT_SCORE = -1
 
 
 class OptunaObjectiveGenerator:
@@ -35,16 +56,6 @@ class OptunaObjectiveGenerator:
     Generates the next set of objectives to profile using Optuna's hyperparameter
     algorithm
     """
-
-    # This list represents all possible parameters Optuna can currently search for
-    optuna_parameter_list = [
-        "batch_sizes",
-        "max_batch_size",
-        "instance_group",
-        "concurrency",
-        "max_queue_delay_microseconds",
-        "request_rate",
-    ]
 
     def __init__(
         self,
@@ -58,7 +69,8 @@ class OptunaObjectiveGenerator:
         self._seed = self._create_seed(user_seed)
 
         self._baseline_measurement = baseline_measurement
-        self._last_measurement: Optional[RunConfigMeasurement] = None
+        self._measurement: Optional[RunConfigMeasurement] = None
+
         self._best_score: Optional[float] = (
             OptunaObjectiveGeneratorDefaults.BASELINE_SCORE
         )
@@ -93,11 +105,73 @@ class OptunaObjectiveGenerator:
     # def _init_state(self) -> None:
     #     self._state_manager.set_state_variable("OptunaRunConfigGenerator.seed", self._seed)
 
-    def set_last_measurement(self, measurement: Optional[RunConfigMeasurement]):
-        self._last_measurement = measurement
+    ###########################################################################
+    # Objective (Generator) Method
+    ###########################################################################
+    def get_objectives(self) -> Generator[ModelObjectiveParameters, None, None]:
+        """
+        Generates objectives that will be used to create the next
+        RunConfig to be profiled
 
-    # def get_next_objective(self) -> Generator[ObjectiveParameters, None, None]:
-    #     NotImplemented
+        After profiling completes the RunConfigMeasurement must be passed back
+        to the class (via set_last_measurement) so that a score can be calculated
+        and Optuna can make a suggestion for the next set of parameters
+        """
+
+        # FIXME: OPTIMIZE: Why doesn't this work?
+        # if logging.DEBUG:
+        # self._print_debug_search_space_info()
+
+        min_configs_to_search = self._determine_minimum_number_of_configs_to_search()
+        max_configs_to_search = self._determine_maximum_number_of_configs_to_search()
+
+        for trial_number in range(1, max_configs_to_search + 1):
+            trial = self._study.ask()
+            trial_objectives = self._create_trial_objectives(trial)
+            logger.debug(f"Trial {trial_number} of {max_configs_to_search}:")
+
+            objective_parameters = self._create_objective_parameters(trial_objectives)
+
+            self._measurement_set = False
+            yield objective_parameters
+
+            # A measurement must be set before the next call to the generator is made
+            assert self._measurement_set
+            score = self._calculate_score()
+            self._set_best_measurement(score, trial_number)
+
+            # FIXME: OPTIMIZE: Why doesn't this work?
+            # if logging.DEBUG:
+            #     self._print_debug_score_info(run_config, score)
+
+            # TODO: OPTIMIZE
+            # if self._should_terminate_early(min_configs_to_search, trial_number):
+            #     logger.debug("Early termination threshold reached")
+            #     break
+            self._study.tell(trial, score)
+
+    ###########################################################################
+    # Measurement Methods
+    ###########################################################################
+    def set_measurement(self, measurement: Optional[RunConfigMeasurement]):
+        """
+        After profiling completes you must pass in the results
+        """
+        self._measurement_set = True
+        self._measurement = measurement
+
+    def _set_best_measurement(self, score: float = 0, trial_number: int = 0) -> None:
+        if self._best_score is None or score > self._best_score:
+            self._best_score = score
+            self._best_trial_number = trial_number
+
+    def _calculate_score(self) -> float:
+        if self._measurement:
+            score = self._measurement.get_score(self._baseline_measurement)
+        else:
+            score = OptunaObjectiveGeneratorDefaults.NO_MEASUREMENT_SCORE
+
+        return score
 
     ###########################################################################
     # General Search Space Methods
@@ -245,3 +319,103 @@ class OptunaObjectiveGenerator:
         # if logging.DEBUG:
         #     logger.info("")
         return max_configs_to_search
+
+    ###########################################################################
+    # Trial Objective Methods
+    ###########################################################################
+    def _create_objective_parameters(
+        self, trial_objectives: ModelTrialObjectives
+    ) -> ModelObjectiveParameters:
+        model_objective_parameters: ModelObjectiveParameters = {}
+        for model_name, model_objectives in trial_objectives.items():
+            model_objective_parameters[model_name] = {}
+            for model_objective, value in model_objectives.items():
+                usage = self._model_search_parameters[model_name].get_type(
+                    model_objective
+                )
+                category = self._model_search_parameters[
+                    model_name
+                ].get_objective_category(model_objective)
+
+                model_objective_parameters[model_name][model_objective] = (
+                    ObjectiveParameter(usage, category, value)
+                )
+
+        return model_objective_parameters
+
+    def _create_trial_objective_name(
+        self, model_name: ModelName, parameter_name: ParameterName
+    ) -> ObjectiveName:
+        # This ensures that Optuna has a unique name
+        # for each objective we are searching
+        objective_name = f"{model_name}::{parameter_name}"
+
+        return objective_name
+
+    def _create_trial_objectives(self, trial: optuna.Trial) -> ModelTrialObjectives:
+        trial_objectives: ModelTrialObjectives = {}
+
+        for model_name in self._config.model_names:
+            trial_objectives[model_name] = {}
+
+            for parameter_name in SearchParameters.all_parameters:
+                parameter = self._model_search_parameters[model_name].get_parameter(
+                    parameter_name
+                )
+                if parameter:
+                    objective_name = self._create_trial_objective_name(
+                        model_name=model_name, parameter_name=parameter_name
+                    )
+
+                    trial_objectives[model_name][parameter_name] = (
+                        self._create_trial_objective(trial, objective_name, parameter)
+                    )
+
+            if self._config.optimize.perf_analyzer.use_concurrency_formula:
+                trial_objectives[model_name]["concurrency"] = (
+                    self._get_objective_concurrency(trial_objectives[model_name])
+                )
+
+        return trial_objectives
+
+    def _create_trial_objective(
+        self, trial: optuna.Trial, name: ObjectiveName, parameter: SearchParameter
+    ) -> TrialObjective:
+        if (
+            parameter.category is SearchCategory.INTEGER
+            or parameter.category is SearchCategory.EXPONENTIAL
+        ):
+            objective = trial.suggest_int(
+                name, parameter.min_range, parameter.max_range
+            )
+        elif parameter.category is SearchCategory.INT_LIST:
+            objective = int(trial.suggest_categorical(name, parameter.enumerated_list))
+        elif parameter.category is SearchCategory.STR_LIST:
+            objective = trial.suggest_categorical(name, parameter.enumerated_list)
+
+        return objective
+
+    def _get_objective_concurrency(self, trial_objectives: TrialObjectives) -> int:
+        model_batch_size = int(
+            trial_objectives.get(
+                "model_batch_size", RunConfigDefaults.MIN_MODEL_BATCH_SIZE
+            )
+        )
+        concurrency_formula = int(
+            2 * int(trial_objectives["instance_count"]) * model_batch_size**2
+        )
+
+        concurrency = (
+            self._config.get_max(self._config.optimize.perf_analyzer.concurrency)
+            if concurrency_formula
+            > self._config.get_max(self._config.optimize.perf_analyzer.concurrency)
+            else concurrency_formula
+        )
+        concurrency = (
+            self._config.get_min(self._config.optimize.perf_analyzer.concurrency)
+            if concurrency_formula
+            < self._config.get_min(self._config.optimize.perf_analyzer.concurrency)
+            else concurrency_formula
+        )
+
+        return int(log2(concurrency))
