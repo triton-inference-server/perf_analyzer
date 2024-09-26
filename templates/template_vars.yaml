@@ -1,7 +1,7 @@
 General:
   release: 24.09
   triton_cli_version: 0.0.12
-  genai_perf_version: 0.0.6
+  genai_perf_version: 0.0.7dev
 
 README:
   filename: README.md
