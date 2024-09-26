@@ -76,6 +76,9 @@ class SearchParameters:
     def get_parameter(self, name: str) -> Optional[SearchParameter]:
         return self._search_parameters.get(name)
 
+    def get_parameter_names(self) -> Optional[List[str]]:
+        return list(self._search_parameters.keys())
+
     def get_type(self, name: str) -> SearchUsage:
         if name in self._search_parameters:
             return self._search_parameters[name].usage

@@ -115,9 +115,8 @@ class OptunaObjectiveGenerator:
         and Optuna can make a suggestion for the next set of parameters
         """
 
-        # FIXME: OPTIMIZE: Why doesn't this work?
-        # if logging.DEBUG:
-        # self._print_debug_search_space_info()
+        if logger.level == logging.logging.DEBUG:
+            self._print_debug_search_space_info()
 
         min_configs_to_search = self._determine_minimum_number_of_configs_to_search()
         max_configs_to_search = self._determine_maximum_number_of_configs_to_search()
@@ -137,9 +136,8 @@ class OptunaObjectiveGenerator:
             score = self._calculate_score()
             self._set_best_measurement(score, trial_number)
 
-            # FIXME: OPTIMIZE: Why doesn't this work?
-            # if logging.DEBUG:
-            #     self._print_debug_score_info(run_config, score)
+            if logger.level == logging.logging.DEBUG:
+                self._print_debug_score_info(trial_number, score)
 
             if self._should_terminate_early(min_configs_to_search, trial_number):
                 logger.debug("Early termination threshold reached")
@@ -311,9 +309,9 @@ class OptunaObjectiveGenerator:
             )
             max_configs_to_search = max_trials_based_on_percentage_of_search_space
 
-        # FIXME: OPTIMIZE: Why doesn't this work?
-        # if logging.DEBUG:
-        #     logger.info("")
+        if logger.level == logging.logging.DEBUG:
+            logger.info("")
+
         return max_configs_to_search
 
     ###########################################################################
@@ -431,3 +429,42 @@ class OptunaObjectiveGenerator:
             should_terminate_early = False
 
         return should_terminate_early
+
+    ###########################################################################
+    # Info/Debug Methods
+    ###########################################################################
+    def _print_debug_search_space_info(self) -> None:
+        logger.info("")
+        num_of_configs_in_search_space = (
+            self._calculate_num_of_configs_in_search_space()
+        )
+        logger.debug(
+            f"Number of configs in search space: {num_of_configs_in_search_space}"
+        )
+        self._print_debug_model_search_space_info()
+        logger.info("")
+
+    def _print_debug_model_search_space_info(self) -> None:
+        for model_name in self._config.model_names:
+            logger.debug(f"Model - {model_name}:")
+            for search_parameter_name in self._model_search_parameters[
+                model_name
+            ].get_parameter_names():
+                logger.debug(
+                    self._model_search_parameters[model_name].print_info(
+                        search_parameter_name
+                    )
+                )
+
+    def _print_debug_score_info(
+        self,
+        trial_number: int,
+        score: float,
+    ) -> None:
+        if score != OptunaObjectiveGeneratorDefaults.NO_MEASUREMENT_SCORE:
+            logger.debug(
+                f"Objective score for {trial_number}: {int(score * 100)} --- "  # type: ignore
+                f"Best: {self._best_trial_number} ({int(self._best_score * 100)})"  # type: ignore
+            )
+
+        logger.info("")
