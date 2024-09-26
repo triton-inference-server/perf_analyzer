@@ -24,36 +24,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import pytest
 from genai_perf.inputs.converters import OpenAIEmbeddingsConverter
-from genai_perf.inputs.input_constants import (
-    ModelSelectionStrategy,
-    OutputFormat,
-    PromptSource,
-)
+from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TestEmbeddingsConverter:
 
-    @pytest.mark.parametrize(
-        "model, extra_inputs",
-        [
-            (
-                "test_model_1",
-                {},  # no extra inputs
-            ),
-            (
-                "test_model_2",
-                {
-                    "encoding_format": "base64",
-                    "truncate": "END",
-                    "additional_key": "additional_value",
-                },
-            ),
-        ],
-    )
-    def test_convert(self, model, extra_inputs):
+    def test_convert_default(self):
         generic_dataset = {
             "rows": [
                 {"input": ["text 1", "text 2"]},
@@ -62,9 +40,8 @@ class TestEmbeddingsConverter:
         }
 
         config = InputsConfig(
-            input_type=PromptSource.SYNTHETIC,
-            extra_inputs=extra_inputs,
-            model_name=[model],
+            extra_inputs={},  # no extra inputs
+            model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_EMBEDDINGS,
         )
@@ -78,8 +55,7 @@ class TestEmbeddingsConverter:
                     "payload": [
                         {
                             "input": ["text 1", "text 2"],
-                            "model": model,
-                            **extra_inputs,
+                            "model": "test_model",
                         }
                     ]
                 },
@@ -87,8 +63,60 @@ class TestEmbeddingsConverter:
                     "payload": [
                         {
                             "input": ["text 3", "text 4"],
-                            "model": model,
-                            **extra_inputs,
+                            "model": "test_model",
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_request_parameters(self):
+        generic_dataset = {
+            "rows": [
+                {"input": ["text 1", "text 2"]},
+                {"input": ["text 3", "text 4"]},
+            ]
+        }
+
+        extra_inputs = {
+            "encoding_format": "base64",
+            "truncate": "END",
+            "additional_key": "additional_value",
+        }
+
+        config = InputsConfig(
+            extra_inputs=extra_inputs,
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_EMBEDDINGS,
+        )
+
+        embedding_converter = OpenAIEmbeddingsConverter()
+        result = embedding_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "input": ["text 1", "text 2"],
+                            "model": "test_model",
+                            "encoding_format": "base64",
+                            "truncate": "END",
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "input": ["text 3", "text 4"],
+                            "model": "test_model",
+                            "encoding_format": "base64",
+                            "truncate": "END",
+                            "additional_key": "additional_value",
                         }
                     ]
                 },

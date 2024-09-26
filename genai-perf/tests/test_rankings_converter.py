@@ -24,69 +24,173 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import pytest
 from genai_perf.inputs.converters.rankings_converter import RankingsConverter
-from genai_perf.inputs.input_constants import (
-    ModelSelectionStrategy,
-    OutputFormat,
-    PromptSource,
-)
+from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TestRankingsConverter:
 
-    @pytest.mark.parametrize(
-        "model, extra_inputs",
-        [
-            (
-                "test_model_1",
-                {},  # no extra inputs
-            ),
-            (
-                "test_model_2",
-                {
-                    "encoding_format": "base64",
-                    "truncate": "END",
-                    "additional_key": "additional_value",
-                },
-            ),
-        ],
-    )
-    def test_convert(self, model, extra_inputs):
+    def test_convert_default(self):
         generic_dataset = {
             "rows": [
                 {
-                    "query": {"text": "1"},
-                    "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
-                }
-            ]
-        }
-
-        expected_result = {
-            "data": [
+                    "query": {"text": "query 1"},
+                    "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
+                },
                 {
-                    "payload": [
-                        {
-                            "query": {"text": "1"},
-                            "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
-                            "model": model,
-                            **extra_inputs,
-                        }
-                    ]
-                }
+                    "query": {"text": "query 2"},
+                    "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
+                },
             ]
         }
 
         config = InputsConfig(
-            input_type=PromptSource.SYNTHETIC,
-            extra_inputs=extra_inputs,
-            model_name=[model],
+            extra_inputs={},  # no extra inputs
+            model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.RANKINGS,
         )
 
         rankings_converter = RankingsConverter()
         result = rankings_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "query": {"text": "query 1"},
+                            "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
+                            "model": "test_model",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "query": {"text": "query 2"},
+                            "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
+                            "model": "test_model",
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_request_parameters(self):
+        generic_dataset = {
+            "rows": [
+                {
+                    "query": {"text": "query 1"},
+                    "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
+                },
+                {
+                    "query": {"text": "query 2"},
+                    "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
+                },
+            ]
+        }
+
+        extra_inputs = {
+            "encoding_format": "base64",
+            "truncate": "END",
+            "additional_key": "additional_value",
+        }
+
+        config = InputsConfig(
+            extra_inputs=extra_inputs,
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.RANKINGS,
+        )
+
+        rankings_converter = RankingsConverter()
+        result = rankings_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "query": {"text": "query 1"},
+                            "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
+                            "model": "test_model",
+                            "encoding_format": "base64",
+                            "truncate": "END",
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "query": {"text": "query 2"},
+                            "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
+                            "model": "test_model",
+                            "encoding_format": "base64",
+                            "truncate": "END",
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_huggingface_tei(self):
+        generic_dataset = {
+            "rows": [
+                {
+                    "query": {"text": "query 1"},
+                    "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
+                },
+                {
+                    "query": {"text": "query 2"},
+                    "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
+                },
+            ]
+        }
+
+        extra_inputs = {
+            "rankings": "tei",  # specify HF TGI
+            "additional_key": "additional_value",
+        }
+
+        config = InputsConfig(
+            extra_inputs=extra_inputs,
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.RANKINGS,
+        )
+
+        rankings_converter = RankingsConverter()
+        result = rankings_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "query": "query 1",
+                            "texts": ["passage 1", "passage 2"],
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "query": "query 2",
+                            "texts": ["passage 3", "passage 4"],
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
+            ]
+        }
 
         assert result == expected_result
