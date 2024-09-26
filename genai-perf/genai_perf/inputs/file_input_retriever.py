@@ -108,13 +108,11 @@ class FileInputRetriever:
         dataset_json["rows"] = []
 
         for _ in range(self.config.num_prompts):
-            sampled_query = random.choice(queries)
-            sampled_passages = random.sample(passages, self.config.batch_size)
-            entry_dict = {
-                "query": sampled_query,
-                "passages": sampled_passages,
+            data = {
+                "query": random.choice(queries),
+                "passages": random.sample(passages, self.config.batch_size),
             }
-            dataset_json["rows"].append({"row": entry_dict})
+            dataset_json["rows"].append({"row": data})
         return dataset_json
 
     def _get_input_dataset_from_file(self) -> Dict[str, Any]:
