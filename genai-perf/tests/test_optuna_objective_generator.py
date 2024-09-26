@@ -25,10 +25,7 @@ from genai_perf.config.generate.optuna_objective_generator import (
 )
 from genai_perf.config.generate.search_parameters import SearchParameters, SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
-from tests.test_utils import (
-    create_model_config_measurement,
-    create_run_config_measurement,
-)
+from tests.test_utils import create_perf_metrics, create_run_config_measurement
 
 
 class TestModelConfigMeasurement(unittest.TestCase):
@@ -39,15 +36,11 @@ class TestModelConfigMeasurement(unittest.TestCase):
         self._config = ConfigCommand(model_names=["test_model"])
         self._model_search_parameters = {"test_model": SearchParameters(self._config)}
 
-        self._baseline_mcm = create_model_config_measurement(
-            throughput=1000, latency=50
-        )
+        self._perf_metrics = create_perf_metrics(throughput=1000, latency=50)
         self._baseline_rcm = create_run_config_measurement(
             gpu_power=80, gpu_utilization=70
         )
-        self._baseline_rcm.add_model_config_measurement(
-            "test_model", self._baseline_mcm
-        )
+        self._baseline_rcm.add_perf_metrics("test_model", self._perf_metrics)
 
         self._optuna_obj_gen = OptunaObjectiveGenerator(
             self._config,
@@ -192,6 +185,26 @@ class TestModelConfigMeasurement(unittest.TestCase):
         }
 
         self.assertEqual(expected_objective_parameters, objective_parameters)
+
+    ###########################################################################
+    # Generator Testing
+    ###########################################################################
+    def test_get_objectives(self):
+        """
+        Test that the objectives generator is working (end-to-end)
+        """
+
+        # Not checking for correctness in this test - this just makes sure we don't
+        # take any exceptions/assertions
+        expected_trials = (
+            self._optuna_obj_gen._determine_maximum_number_of_configs_to_search()
+        )
+
+        for count, objectives in enumerate(self._optuna_obj_gen.get_objectives()):
+            self._optuna_obj_gen.set_measurement(self._baseline_rcm)
+
+        # +1 is needed because enumerate starts counting from 0
+        self.assertEqual(expected_trials, count + 1)
 
 
 if __name__ == "__main__":

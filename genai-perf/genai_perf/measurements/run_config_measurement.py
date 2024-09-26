@@ -232,7 +232,7 @@ class RunConfigMeasurement:
     def set_constraints(self, constraints: RunConstraints) -> None:
         self._constraints = constraints
 
-    def add_model_config_measurement(
+    def add_perf_metrics(
         self,
         model_name: ModelName,
         perf_metrics: PerfRecords,

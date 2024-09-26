@@ -27,14 +27,13 @@
 from typing import Union
 
 import pytest
-from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
 from genai_perf.record.types.gpu_utilization import GPUUtilization
 from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
 from genai_perf.record.types.perf_throughput import PerfThroughput
-from genai_perf.types import GpuId
+from genai_perf.types import GpuId, PerfRecords
 
 
 def ns_to_sec(ns: int) -> Union[int, float]:
@@ -52,11 +51,9 @@ def check_statistics(s1: Statistics, s2: Statistics) -> None:
 
 
 ###########################################################################
-# MCM Constructor
+# Perf Metrics Constructor
 ###########################################################################
-def create_model_config_measurement(
-    throughput: int, latency: int
-) -> ModelConfigMeasurement:
+def create_perf_metrics(throughput: int, latency: int) -> PerfRecords:
     throughput_record = PerfThroughput(throughput)
     latency_record = PerfLatencyP99(latency)
 
@@ -65,7 +62,7 @@ def create_model_config_measurement(
         PerfLatencyP99.tag: latency_record,
     }
 
-    return ModelConfigMeasurement(perf_metrics)
+    return perf_metrics
 
 
 ###########################################################################

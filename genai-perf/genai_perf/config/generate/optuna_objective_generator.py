@@ -68,9 +68,7 @@ class OptunaObjectiveGenerator:
         self._baseline_measurement = baseline_measurement
         self._measurement: Optional[RunConfigMeasurement] = None
 
-        self._best_score: Optional[float] = (
-            OptunaObjectiveGeneratorDefaults.BASELINE_SCORE
-        )
+        self._best_score: float = OptunaObjectiveGeneratorDefaults.BASELINE_SCORE
         self._best_trial_number: Optional[int] = None
 
         self._sampler = optuna.samplers.TPESampler(seed=self._seed)
@@ -155,13 +153,13 @@ class OptunaObjectiveGenerator:
         self._measurement = measurement
 
     def _set_best_measurement(self, score: float = 0, trial_number: int = 0) -> None:
-        if self._best_score is None or score > self._best_score:
+        if not self._best_trial_number or score > self._best_score:
             self._best_score = score
             self._best_trial_number = trial_number
 
     def _calculate_score(self) -> float:
         if self._measurement:
-            score = self._measurement.get_score(self._baseline_measurement)
+            score = self._measurement.get_score(self._measurement)
         else:
             score = OptunaObjectiveGeneratorDefaults.NO_MEASUREMENT_SCORE
 
