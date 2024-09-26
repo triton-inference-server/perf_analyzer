@@ -25,14 +25,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from copy import deepcopy
-from typing import Dict
+from typing import Any, Dict
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
-    EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 
@@ -43,7 +41,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
         generic_dataset: Dict,
         config: InputsConfig,
     ) -> Dict:
-        pa_json = deepcopy(EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT)
+        pa_json: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
             token_ids = config.tokenizer.encode(entry["text_input"])

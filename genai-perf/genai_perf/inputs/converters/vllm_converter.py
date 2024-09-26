@@ -26,86 +26,47 @@
 
 import json
 import random
-from copy import deepcopy
-from typing import Dict, List
+from typing import Any, Dict
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    EMPTY_JSON_IN_VLLM_PA_FORMAT,
-)
+from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class VLLMConverter(BaseConverter):
-    def convert(
-        self,
-        generic_dataset: Dict,
-        config: InputsConfig,
-    ) -> Dict:
-        (
-            system_role_headers,
-            user_role_headers,
-            text_input_headers,
-        ) = self._determine_json_feature_roles(generic_dataset)
 
-        pa_json = self._populate_vllm_output_json(
-            generic_dataset,
-            system_role_headers,
-            user_role_headers,
-            text_input_headers,
-            config,
-        )
+    _CONTENT_NAMES = [
+        "text_input",
+        # OPENORCA
+        "system_prompt",
+        "question",
+        # CNN DAILYMAIL
+        "article",
+    ]
 
-        return pa_json
-
-    def _populate_vllm_output_json(
-        self,
-        generic_dataset: Dict,
-        system_role_headers: List[str],
-        user_role_headers: List[str],
-        text_input_headers: List[str],
-        config: InputsConfig,
-    ) -> Dict:
-        pa_json = deepcopy(EMPTY_JSON_IN_VLLM_PA_FORMAT)
+    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+        """
+        Construct a request body using the endpoint specific request format.
+        """
+        request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
-            iter_model_name = self._select_model_name(config, index)
-            pa_json["data"].append({"text_input": [""]})
+            model_name = self._select_model_name(config, index)
+            text_input = self._construct_text_payload(entry)
 
-            for header, content in entry.items():
-                new_text_input = self._create_new_text_input(
-                    header,
-                    system_role_headers,
-                    user_role_headers,
-                    text_input_headers,
-                    content,
-                )
+            payload = {
+                "model": model_name,
+                "text_input": text_input,
+                "exclude_input_in_output": [True],  # default
+            }
+            self._add_request_params(payload, config)
+            request_body["data"].append(payload)
 
-                pa_json = self._add_new_text_input_to_json(
-                    pa_json, index, new_text_input
-                )
+        return request_body
 
-            pa_json = self._add_optional_tags_to_vllm_json(
-                pa_json,
-                index,
-                config,
-                iter_model_name,
-            )
-
-        return pa_json
-
-    def _add_optional_tags_to_vllm_json(
-        self,
-        pa_json: Dict,
-        index: int,
-        config: InputsConfig,
-        model_name: str = "",
-    ) -> Dict:
-        row = pa_json["data"][index]
-        row["model"] = model_name
+    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
         if config.add_stream:
-            row["stream"] = [True]
+            payload["stream"] = [True]
         if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             number_of_tokens = str(
                 int(
@@ -124,10 +85,6 @@ class VLLMConverter(BaseConverter):
             if config.output_tokens_deterministic:
                 sampling_parameters["min_tokens"] = number_of_tokens
             sampling_parameters_str = json.dumps(sampling_parameters)
-            row["sampling_parameters"] = [sampling_parameters_str]
+            payload["sampling_parameters"] = [sampling_parameters_str]
         for key, value in config.extra_inputs.items():
-            row[key] = [value]
-        if "exclude_input_in_output" not in row:
-            row["exclude_input_in_output"] = [True]
-
-        return pa_json
+            payload[key] = [value]

@@ -25,15 +25,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    EMPTY_JSON_IN_OPENAI_PA_FORMAT,
-)
+from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
@@ -57,6 +53,34 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
         return pa_json
 
+    def _determine_json_feature_roles(
+        self, generic_dataset: Dict
+    ) -> Tuple[List[str], List[str], List[str]]:
+        SYSTEM_ROLE_LIST = ["system_prompt"]
+        USER_ROLE_LIST = ["question", "article"]
+        TEXT_INPUT_LIST = ["text_input"]
+
+        system_role_headers: List[str] = []
+        user_role_headers: List[str] = []
+        text_input_headers: List[str] = []
+
+        if "features" in generic_dataset.keys():
+            for feature in generic_dataset["features"]:
+                if feature in SYSTEM_ROLE_LIST:
+                    system_role_headers.append(feature)
+                if feature in USER_ROLE_LIST:
+                    user_role_headers.append(feature)
+                if feature in TEXT_INPUT_LIST:
+                    user_role_headers.append(feature)
+
+        assert (
+            system_role_headers is not None
+            or user_role_headers is not None
+            or text_input_headers is not None
+        )
+
+        return system_role_headers, user_role_headers, text_input_headers
+
     def _populate_openai_chat_completions_output_json(
         self,
         generic_dataset: Dict,
@@ -64,7 +88,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         user_role_headers: List[str],
         config: InputsConfig,
     ) -> Dict:
-        pa_json = deepcopy(EMPTY_JSON_IN_OPENAI_PA_FORMAT)
+        pa_json: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
             iter_model_name = self._select_model_name(config, index)
