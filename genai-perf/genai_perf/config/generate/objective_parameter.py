@@ -14,36 +14,26 @@
 
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, List, Optional, TypeAlias, Union
+from typing import Any, Dict, TypeAlias
 
-ParameterList: TypeAlias = List[Union[int, str]]
-
-
-class SearchUsage(Enum):
-    MODEL = auto()
-    RUNTIME = auto()
-    BUILD = auto()
+from genai_perf.config.generate.search_parameter import SearchUsage
 
 
-class SearchCategory(Enum):
+class ObjectiveCategory(Enum):
     INTEGER = auto()
     EXPONENTIAL = auto()
-    STR_LIST = auto()
-    INT_LIST = auto()
+    STR = auto()
+
+
+ObjectiveParameters: TypeAlias = Dict[str, "ObjectiveParameter"]
 
 
 @dataclass
-class SearchParameter:
+class ObjectiveParameter:
     """
-    A dataclass that holds information about a configuration's search parameter
+    A dataclass that holds information about a configuration's objective parameter
     """
 
     usage: SearchUsage
-    category: SearchCategory
-
-    # This is only applicable to the LIST categories
-    enumerated_list: Optional[List[Any]] = None
-
-    # These are only applicable to INTEGER and EXPONENTIAL categories
-    min_range: Optional[int] = None
-    max_range: Optional[int] = None
+    category: ObjectiveCategory
+    value: Any

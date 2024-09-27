@@ -15,9 +15,8 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, TypeAlias
 
-from .model_constraints import ConstraintName, ModelConstraints
-
-ModelName: TypeAlias = str
+from genai_perf.measurements.model_constraints import ModelConstraints
+from genai_perf.types import ConstraintName, ModelName
 
 
 @dataclass
