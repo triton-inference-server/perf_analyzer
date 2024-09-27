@@ -60,7 +60,7 @@ class TestRunConfigMeasurement(unittest.TestCase):
         }
 
         self.rcmA = RunConfigMeasurement(self.gpu_metricsA)
-        self.rcmA.add_model_config_measurement(
+        self.rcmA.add_perf_metrics(
             model_name="test_model", perf_metrics=self.perf_metricsA
         )
 
@@ -84,7 +84,7 @@ class TestRunConfigMeasurement(unittest.TestCase):
         }
 
         self.rcmB = RunConfigMeasurement(self.gpu_metricsB)
-        self.rcmB.add_model_config_measurement(
+        self.rcmB.add_perf_metrics(
             model_name="test_model", perf_metrics=self.perf_metricsB
         )
 
@@ -116,10 +116,10 @@ class TestRunConfigMeasurement(unittest.TestCase):
         }
 
         self.rcmMM = RunConfigMeasurement(self.gpu_metricsMM)
-        self.rcmMM.add_model_config_measurement(
+        self.rcmMM.add_perf_metrics(
             model_name="modelMM_0", perf_metrics=self.perf_metricsMM_0
         )
-        self.rcmMM.add_model_config_measurement(
+        self.rcmMM.add_perf_metrics(
             model_name="modelMM_1", perf_metrics=self.perf_metricsMM_1
         )
 
