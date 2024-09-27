@@ -289,6 +289,15 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
         )
 
 
+def _print_warnings(args: argparse.Namespace) -> None:
+    if args.tokenizer_trust_remote_code:
+        logger.warning(
+            "--tokenizer-trust-remote-code is enabled. "
+            "Custom tokenizer code can be executed. "
+            "This should only be used with repositories you trust."
+        )
+
+
 def _check_server_metrics_url(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
@@ -947,6 +956,7 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
+        _print_warnings(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
         args = _check_compare_args(parser, args)
     else:

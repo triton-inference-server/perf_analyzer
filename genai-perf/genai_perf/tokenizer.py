@@ -36,7 +36,7 @@ class Tokenizer:
     A small wrapper class around Huggingface Tokenizer
     """
 
-    def __init__(self, name: str, trust_model_code: bool, revision: str) -> None:
+    def __init__(self, name: str, trust_remote_code: bool, revision: str) -> None:
         """
         Initialize by downloading the tokenizer from Huggingface.co
         """
@@ -46,7 +46,7 @@ class Tokenizer:
                 io.StringIO()
             ) as stdout, contextlib.redirect_stderr(io.StringIO()) as stderr:
                 tokenizer = AutoTokenizer.from_pretrained(
-                    name, trust_remote_code=False, revision="main"
+                    name, trust_remote_code=trust_remote_code, revision=revision
                 )
         except Exception as e:
             raise GenAIPerfException(e)
@@ -76,10 +76,10 @@ class Tokenizer:
 
 def get_tokenizer(
     tokenizer_model: str,
-    trust_model_code: bool = False,
+    trust_remote_code: bool = False,
     tokenizer_revision: str = DEFAULT_TOKENIZER_REVISION,
 ) -> Tokenizer:
     """
     Return tokenizer for the given model name
     """
-    return Tokenizer(tokenizer_model, trust_model_code, tokenizer_revision)
+    return Tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
