@@ -15,11 +15,7 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Tuple, TypeAlias, Union
 
-ConstraintName: TypeAlias = str
-ConstraintValue: TypeAlias = Union[float, int]
-
-Constraint: TypeAlias = Tuple[ConstraintName, ConstraintValue]
-Constraints: TypeAlias = Dict[ConstraintName, ConstraintValue]
+from genai_perf.types import ConstraintName, Constraints
 
 
 @dataclass

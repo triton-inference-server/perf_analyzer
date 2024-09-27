@@ -12,32 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import total_ordering
 from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias, Union
 
+import genai_perf.logging as logging
 from genai_perf.measurements.model_config_measurement import (
     MetricObjectives,
     ModelConfigMeasurement,
-    PerfRecords,
+    ModelConfigMeasurements,
 )
-from genai_perf.measurements.model_constraints import ConstraintName, ConstraintValue
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.gpu_record import GPURecord
 from genai_perf.record.record import Record
+from genai_perf.types import (
+    ConstraintName,
+    ConstraintValue,
+    GpuId,
+    GpuRecords,
+    ModelName,
+    ModelWeights,
+    PerfRecords,
+)
 
 logger = logging.getLogger(__name__)
 
-ModelName: TypeAlias = str
-ModelWeights: TypeAlias = Dict[ModelName, Union[int, float]]
-ModelConfigMeasurements: TypeAlias = Dict[ModelName, ModelConfigMeasurement]
-
-GpuId: TypeAlias = str
-TelemetryRecords: TypeAlias = Dict[str, GPURecord]
-GpuRecords: TypeAlias = Dict[GpuId, TelemetryRecords]
 
 WeightedMcmScores: TypeAlias = Dict[ModelName, float]
 WeightedRcmScore: TypeAlias = float
@@ -231,7 +232,7 @@ class RunConfigMeasurement:
     def set_constraints(self, constraints: RunConstraints) -> None:
         self._constraints = constraints
 
-    def add_model_config_measurement(
+    def add_perf_metrics(
         self,
         model_name: ModelName,
         perf_metrics: PerfRecords,
@@ -315,6 +316,16 @@ class RunConfigMeasurement:
     ###########################################################################
     # Comparison Methods
     ###########################################################################
+    def get_score(self, other: "RunConfigMeasurement") -> float:
+        """
+        Compares the measurements and returns a score.
+        The larger the positive value the better self is,
+        the larger the negative value the better other is
+        """
+        score = self._compare_measurements(other, return_score=True)
+
+        return score
+
     def is_better_than(self, other: "RunConfigMeasurement") -> bool:
         return (
             self._compare_measurements(other)
@@ -339,18 +350,13 @@ class RunConfigMeasurement:
             == RunConfigMeasurementDefaults.EQUALIVILENT
         )
 
-    def _compare_measurements(self, other: "RunConfigMeasurement") -> int:
+    def _compare_measurements(
+        self, other: "RunConfigMeasurement", return_score: bool = False
+    ) -> Union[int, float]:
         """
         Compares two RunConfigMeasurements based on each
         ModelConfigs weighted metric objectives and the
         ModelConfigs weighted value within the RunConfigMeasurement
-
-        Returns
-        -------
-        float
-           Positive value if other is better
-           Negative value is self is better
-           Zero if they are equal
         """
         # Step 1: for each model determine the weighted score
         weighted_mcm_scores = self._calculate_weighted_mcm_scores(other)
@@ -360,6 +366,10 @@ class RunConfigMeasurement:
         weighted_combined_score = self._calculate_weighted_rcm_and_mcm_score(
             weighted_rcm_score, weighted_mcm_scores
         )
+
+        # Step 2.5: if only the score is wanted stop here
+        if return_score:
+            return weighted_combined_score
 
         # Step 3: Determine which RCM is better
         if (

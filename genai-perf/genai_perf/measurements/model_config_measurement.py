@@ -20,11 +20,17 @@ from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias
 
 from genai_perf.record.record import Record
+from genai_perf.types import MetricObjectives, ModelName, PerfRecords
 
-PerfRecords: TypeAlias = Dict[str, Record]
-MetricObjectives: TypeAlias = Dict[str, float]
+###########################################################################
+# Typing
+###########################################################################
+ModelConfigMeasurements: TypeAlias = Dict[ModelName, "ModelConfigMeasurement"]
 
 
+###########################################################################
+# Defaults
+###########################################################################
 @dataclass(frozen=True)
 class ModelConfigMeasurementDefaults:
     METRIC_OBJECTIVE = {"perf_throughput": 1.0}
