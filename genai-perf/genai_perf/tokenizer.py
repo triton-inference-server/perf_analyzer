@@ -45,7 +45,6 @@ class Tokenizer:
             with contextlib.redirect_stdout(
                 io.StringIO()
             ) as stdout, contextlib.redirect_stderr(io.StringIO()) as stderr:
-                ## TODO: Set trust_remote_code and revision
                 tokenizer = AutoTokenizer.from_pretrained(
                     name, trust_remote_code=False, revision="main"
                 )
