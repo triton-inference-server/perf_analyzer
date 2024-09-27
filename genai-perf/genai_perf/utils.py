@@ -27,7 +27,7 @@
 import json
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 
 import genai_perf.logging as logging
 
@@ -74,9 +74,19 @@ def load_json(filepath: Path) -> Dict[str, Any]:
         return load_json_str(content)
 
 
-def load_json_str(json_str: str) -> Dict[str, Any]:
+def load_json_str(json_str: str, func: Callable = lambda x: x) -> Dict[str, Any]:
+    """
+    Deserializes JSON encoded string into Python object.
+
+    Args:
+      - json_str: string
+          JSON encoded string
+      - func: callable
+          A function that takes deserialized JSON object. This can be used to
+          run validation checks on the object. Defaults to identity function.
+    """
     try:
-        return json.loads(json_str)
+        return func(json.loads(json_str))
     except json.JSONDecodeError:
         snippet = json_str[:200] + ("..." if len(json_str) > 200 else "")
         logger.error("Failed to parse JSON string: '%s'", snippet)

@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
-import json
 import os
 import sys
 from enum import Enum, auto
@@ -412,6 +411,16 @@ def file_or_directory(path: str) -> Tuple[Path, PathType]:
         raise ValueError(f"'{path}' is not a valid file or directory")
 
 
+def positive_integer(value: str) -> int:
+    try:
+        int_value = int(value)
+        if int_value <= 0:
+            raise argparse.ArgumentTypeError("The value must be greater than zero.")
+    except ValueError:
+        raise argparse.ArgumentTypeError("The value must be an integer.")
+    return int_value
+
+
 ### Parsers ###
 
 
@@ -461,7 +470,7 @@ def _add_input_args(parser):
 
     input_group.add_argument(
         "--num-prompts",
-        type=int,
+        type=positive_integer,
         default=ic.DEFAULT_NUM_PROMPTS,
         required=False,
         help=f"The number of unique prompts to generate as stimulus.",

@@ -31,33 +31,22 @@ from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class OpenAIEmbeddingsConverter(BaseConverter):
-    def convert(
-        self,
-        generic_dataset: Dict,
-        config: InputsConfig,
-    ) -> Dict:
-        pa_json: Dict[str, Any] = {"data": []}
+
+    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+        request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
-            iter_model_name = self._select_model_name(config, index)
-            payload = entry.get("payload", {})
-            input_values = payload.get("input")
-
-            if input_values is None:
-                raise ValueError("Missing required fields 'input' in dataset entry")
-            if not isinstance(input_values, list):
-                raise ValueError(
-                    f"Required field 'input' must be a list (actual: {type(input_values)})"
-                )
+            model_name = self._select_model_name(config, index)
 
             payload = {
-                "input": input_values,
-                "model": iter_model_name,
+                "input": entry["input"],
+                "model": model_name,
             }
+            self._add_request_params(payload, config)
+            request_body["data"].append({"payload": [payload]})
 
-            for key, value in config.extra_inputs.items():
-                payload[key] = value
+        return request_body
 
-            pa_json["data"].append({"payload": [payload]})
-
-        return pa_json
+    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+        for key, value in config.extra_inputs.items():
+            payload[key] = value

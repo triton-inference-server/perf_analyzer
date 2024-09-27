@@ -47,9 +47,6 @@ class TensorRTLLMConverter(BaseConverter):
     ]
 
     def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
-        """
-        Construct a request body using the endpoint specific request format.
-        """
         request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):

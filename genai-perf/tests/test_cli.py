@@ -669,6 +669,28 @@ class TestCLIArguments:
                 "and contain '/metrics' in the path. The expected structure is: "
                 "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
             ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--num-prompts",
+                    "0",
+                ],
+                "The value must be greater than zero.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--num-prompts",
+                    "not_number",
+                ],
+                "The value must be an integer.",
+            ),
         ],
     )
     def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):

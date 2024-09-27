@@ -31,59 +31,40 @@ from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class RankingsConverter(BaseConverter):
-    def convert(
-        self,
-        generic_dataset: Dict,
-        config: InputsConfig,
-    ) -> Dict:
-        pa_json: Dict[str, Any] = {"data": []}
-        use_tei_format = self._contains_rankings_tei(config)
+
+    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+        request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
-            iter_model_name = self._select_model_name(config, index)
+            model_name = self._select_model_name(config, index)
 
-            payload = entry.get("payload", {})
-            query_values = payload.get("query")
-
-            if use_tei_format:
-                passage_values = payload.get("passages", [])
-                passage_values = [item.get("text", "") for item in passage_values]
-            else:
-                passage_values = payload.get("passages")
-
-            if query_values is None:
-                raise ValueError("Missing required fields 'query' in dataset entry")
-            if passage_values is None:
-                raise ValueError(
-                    f"Missing required fields '{'texts' if use_tei_format else 'passages'}' in dataset entry"
-                )
-            if not isinstance(passage_values, list):
-                raise ValueError(
-                    f"Required field '{'texts' if use_tei_format else 'passages'}' must be a list (actual: {type(passage_values)})"
-                )
-
-            if use_tei_format:
-                payload = {"query": query_values["text"], "texts": passage_values}
+            if self._is_rankings_tei(config):
+                payload = {
+                    "query": entry["query"]["text"],
+                    "texts": [p["text"] for p in entry["passages"]],
+                }
             else:
                 payload = {
-                    "query": query_values,
-                    "passages": passage_values,
-                    "model": iter_model_name,
+                    "query": entry["query"],
+                    "passages": entry["passages"],
+                    "model": model_name,
                 }
 
-            for key, value in config.extra_inputs.items():
-                if not (key == "rankings" and value == "tei"):
-                    payload[key] = value
+            self._add_request_params(payload, config)
+            request_body["data"].append({"payload": [payload]})
 
-            pa_json["data"].append({"payload": [payload]})
+        return request_body
 
-        return pa_json
-
-    def _contains_rankings_tei(self, config: InputsConfig) -> bool:
+    def _is_rankings_tei(self, config: InputsConfig) -> bool:
         """
         Check if user specified that they are using the Hugging Face
         Text Embeddings Interface for ranking models
         """
-        if config.extra_inputs and config.extra_inputs.get("rankings") == "tei":
+        if config.extra_inputs.get("rankings") == "tei":
             return True
         return False
+
+    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+        for key, value in config.extra_inputs.items():
+            if not (key == "rankings" and value == "tei"):
+                payload[key] = value

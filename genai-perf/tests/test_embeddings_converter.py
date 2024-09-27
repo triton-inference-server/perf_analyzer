@@ -24,74 +24,59 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.inputs.input_constants import (
-    ModelSelectionStrategy,
-    OutputFormat,
-    PromptSource,
-)
-from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.converters import OpenAIEmbeddingsConverter
+from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
-class TestInputsRankings:
+class TestEmbeddingsConverter:
 
-    def test_convert_generic_json_to_openai_rankings_format(self):
+    def test_convert_default(self):
         generic_dataset = {
             "rows": [
-                {
-                    "payload": {
-                        "query": {"text": "1"},
-                        "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
-                    }
-                }
+                {"input": ["text 1", "text 2"]},
+                {"input": ["text 3", "text 4"]},
             ]
         }
+
+        config = InputsConfig(
+            extra_inputs={},  # no extra inputs
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_EMBEDDINGS,
+        )
+
+        embedding_converter = OpenAIEmbeddingsConverter()
+        result = embedding_converter.convert(generic_dataset, config)
 
         expected_result = {
             "data": [
                 {
                     "payload": [
                         {
-                            "query": {"text": "1"},
-                            "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
+                            "input": ["text 1", "text 2"],
                             "model": "test_model",
                         }
                     ]
-                }
+                },
+                {
+                    "payload": [
+                        {
+                            "input": ["text 3", "text 4"],
+                            "model": "test_model",
+                        }
+                    ]
+                },
             ]
         }
 
-        inputs = Inputs(
-            InputsConfig(
-                input_type=PromptSource.SYNTHETIC,
-                extra_inputs={},
-                model_name=["test_model"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                output_format=OutputFormat.RANKINGS,
-            )
-        )
+        assert result == expected_result
 
-        result = inputs._convert_generic_json_to_output_format(
-            generic_dataset,
-        )
-
-        assert result is not None
-        assert "data" in result
-        assert len(result["data"]) == len(expected_result["data"])
-
-        for i, item in enumerate(expected_result["data"]):
-            assert "payload" in result["data"][i]
-            assert result["data"][i]["payload"] == item["payload"]
-
-    def test_convert_generic_json_to_openai_rankings_format_with_extra_inputs(self):
+    def test_convert_with_request_parameters(self):
         generic_dataset = {
             "rows": [
-                {
-                    "payload": {
-                        "query": {"text": "1"},
-                        "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
-                    }
-                }
+                {"input": ["text 1", "text 2"]},
+                {"input": ["text 3", "text 4"]},
             ]
         }
 
@@ -101,39 +86,41 @@ class TestInputsRankings:
             "additional_key": "additional_value",
         }
 
+        config = InputsConfig(
+            extra_inputs=extra_inputs,
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_EMBEDDINGS,
+        )
+
+        embedding_converter = OpenAIEmbeddingsConverter()
+        result = embedding_converter.convert(generic_dataset, config)
+
         expected_result = {
             "data": [
                 {
                     "payload": [
                         {
-                            "query": {"text": "1"},
-                            "passages": [{"text": "2"}, {"text": "3"}, {"text": "4"}],
+                            "input": ["text 1", "text 2"],
                             "model": "test_model",
                             "encoding_format": "base64",
                             "truncate": "END",
                             "additional_key": "additional_value",
                         }
                     ]
-                }
+                },
+                {
+                    "payload": [
+                        {
+                            "input": ["text 3", "text 4"],
+                            "model": "test_model",
+                            "encoding_format": "base64",
+                            "truncate": "END",
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
             ]
         }
 
-        inputs = Inputs(
-            InputsConfig(
-                extra_inputs=extra_inputs,
-                model_name=["test_model"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                output_format=OutputFormat.RANKINGS,
-            )
-        )
-        result = inputs._convert_generic_json_to_output_format(
-            generic_dataset,
-        )
-
-        assert result is not None
-        assert "data" in result
-        assert len(result["data"]) == len(expected_result["data"])
-
-        for i, item in enumerate(expected_result["data"]):
-            assert "payload" in result["data"][i]
-            assert result["data"][i]["payload"] == item["payload"]
+        assert result == expected_result
