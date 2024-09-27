@@ -34,6 +34,11 @@ logger = logging.getLogger(__name__)
 ParameterCombination: TypeAlias = Dict[str, Any]
 ParameterCombinations: TypeAlias = List[ParameterCombination]
 
+ModelParameterCombination: TypeAlias = Dict[ModelName, ParameterCombination]
+ModelParameterCombinations: TypeAlias = Dict[ModelName, ParameterCombinations]
+
+AllParameterCombinations: TypeAlias = List[ModelParameterCombination]
+
 
 class SweepObjectiveGenerator:
     """
@@ -66,9 +71,7 @@ class SweepObjectiveGenerator:
     ###########################################################################
     def _create_objectives(self) -> Generator[ModelObjectiveParameters, None, None]:
         # First create the dictionary of PER MODEL parameter combinations
-        model_all_search_parameter_combinations: Dict[
-            ModelName, ParameterCombinations
-        ] = {}
+        model_all_search_parameter_combinations: ModelParameterCombinations = {}
         for model_name in self._config.model_names:
             model_all_search_parameter_combinations[model_name] = (
                 self._create_list_of_model_search_parameter_combinations(model_name)
@@ -83,6 +86,13 @@ class SweepObjectiveGenerator:
 
         # Then iterate through the all model list to create a single set of
         # objectives (per model) to profile
+        yield from self._create_model_objective_parameters(
+            all_search_parameter_combinations
+        )
+
+    def _create_model_objective_parameters(
+        self, all_search_parameter_combinations: AllParameterCombinations
+    ) -> Generator[ModelObjectiveParameters, None, None]:
         model_objective_parameters: ModelObjectiveParameters = {}
         for all_search_parameter_combination in all_search_parameter_combinations:
             for (
@@ -128,8 +138,8 @@ class SweepObjectiveGenerator:
 
     def _create_list_of_all_search_parameter_combinations(
         self,
-        model_search_parameter_combinations: Dict[ModelName, ParameterCombinations],
-    ):
+        model_search_parameter_combinations: ModelParameterCombinations,
+    ) -> AllParameterCombinations:
         model_names, model_parameter_combinations = zip(
             *model_search_parameter_combinations.items()
         )
