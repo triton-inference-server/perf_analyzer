@@ -18,9 +18,9 @@ from math import log2
 from unittest.mock import patch
 
 from genai_perf.config.generate.search_parameters import (
-    ParameterCategory,
-    ParameterUsage,
+    SearchCategory,
     SearchParameters,
+    SearchUsage,
 )
 from genai_perf.config.input.config_command import (
     ConfigCommand,
@@ -32,22 +32,22 @@ from genai_perf.exceptions import GenAIPerfException
 
 class TestSearchParameters(unittest.TestCase):
     def setUp(self):
-        self.config = deepcopy(ConfigCommand())
+        self.config = deepcopy(ConfigCommand(model_names=["test_model"]))
 
         self.search_parameters = SearchParameters(config=self.config)
 
         self.search_parameters._add_search_parameter(
             name="concurrency",
-            usage=ParameterUsage.RUNTIME,
-            category=ParameterCategory.EXPONENTIAL,
+            usage=SearchUsage.RUNTIME,
+            category=SearchCategory.EXPONENTIAL,
             min_range=log2(RunConfigDefaults.MIN_CONCURRENCY),
             max_range=log2(RunConfigDefaults.MAX_CONCURRENCY),
         )
 
         self.search_parameters._add_search_parameter(
             name="size",
-            usage=ParameterUsage.BUILD,
-            category=ParameterCategory.STR_LIST,
+            usage=SearchUsage.BUILD,
+            category=SearchCategory.STR_LIST,
             enumerated_list=["FP8", "FP16", "FP32"],
         )
 
@@ -61,8 +61,8 @@ class TestSearchParameters(unittest.TestCase):
 
         parameter = self.search_parameters.get_parameter("concurrency")
 
-        self.assertEqual(ParameterUsage.RUNTIME, parameter.usage)
-        self.assertEqual(ParameterCategory.EXPONENTIAL, parameter.category)
+        self.assertEqual(SearchUsage.RUNTIME, parameter.usage)
+        self.assertEqual(SearchCategory.EXPONENTIAL, parameter.category)
         self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), parameter.min_range)
         self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), parameter.max_range)
 
@@ -72,11 +72,11 @@ class TestSearchParameters(unittest.TestCase):
         """
 
         self.assertEqual(
-            ParameterUsage.MODEL,
+            SearchUsage.MODEL,
             self.search_parameters.get_type("instance_count"),
         )
         self.assertEqual(
-            ParameterCategory.INTEGER,
+            SearchCategory.INTEGER,
             self.search_parameters.get_category("instance_count"),
         )
         self.assertEqual(
@@ -93,11 +93,11 @@ class TestSearchParameters(unittest.TestCase):
         """
 
         self.assertEqual(
-            ParameterUsage.BUILD,
+            SearchUsage.BUILD,
             self.search_parameters.get_type("size"),
         )
         self.assertEqual(
-            ParameterCategory.STR_LIST,
+            SearchCategory.STR_LIST,
             self.search_parameters.get_category("size"),
         )
         self.assertEqual(
@@ -111,24 +111,24 @@ class TestSearchParameters(unittest.TestCase):
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="concurrency",
-                usage=ParameterUsage.RUNTIME,
-                category=ParameterCategory.EXPONENTIAL,
+                usage=SearchUsage.RUNTIME,
+                category=SearchCategory.EXPONENTIAL,
                 max_range=10,
             )
 
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="concurrency",
-                usage=ParameterUsage.RUNTIME,
-                category=ParameterCategory.EXPONENTIAL,
+                usage=SearchUsage.RUNTIME,
+                category=SearchCategory.EXPONENTIAL,
                 min_range=0,
             )
 
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="concurrency",
-                usage=ParameterUsage.RUNTIME,
-                category=ParameterCategory.EXPONENTIAL,
+                usage=SearchUsage.RUNTIME,
+                category=SearchCategory.EXPONENTIAL,
                 min_range=10,
                 max_range=9,
             )
@@ -136,15 +136,15 @@ class TestSearchParameters(unittest.TestCase):
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="size",
-                usage=ParameterUsage.BUILD,
-                category=ParameterCategory.INT_LIST,
+                usage=SearchUsage.BUILD,
+                category=SearchCategory.INT_LIST,
             )
 
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="size",
-                usage=ParameterUsage.BUILD,
-                category=ParameterCategory.STR_LIST,
+                usage=SearchUsage.BUILD,
+                category=SearchCategory.STR_LIST,
                 enumerated_list=["FP8", "FP16", "FP32"],
                 min_range=0,
             )
@@ -152,8 +152,8 @@ class TestSearchParameters(unittest.TestCase):
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="size",
-                usage=ParameterUsage.BUILD,
-                category=ParameterCategory.STR_LIST,
+                usage=SearchUsage.BUILD,
+                category=SearchCategory.STR_LIST,
                 enumerated_list=["FP8", "FP16", "FP32"],
                 max_range=10,
             )
@@ -163,7 +163,7 @@ class TestSearchParameters(unittest.TestCase):
         Test that search parameters are correctly created in default optimize case
         """
 
-        config = deepcopy(ConfigCommand())
+        config = deepcopy(ConfigCommand(model_names=["test_model"]))
         search_parameters = SearchParameters(config)
 
         #######################################################################
@@ -173,8 +173,8 @@ class TestSearchParameters(unittest.TestCase):
         # Batch Size
         # =====================================================================
         model_batch_size = search_parameters.get_parameter("model_batch_size")
-        self.assertEqual(ParameterUsage.MODEL, model_batch_size.usage)
-        self.assertEqual(ParameterCategory.EXPONENTIAL, model_batch_size.category)
+        self.assertEqual(SearchUsage.MODEL, model_batch_size.usage)
+        self.assertEqual(SearchCategory.EXPONENTIAL, model_batch_size.category)
         self.assertEqual(
             log2(RunConfigDefaults.MIN_MODEL_BATCH_SIZE),
             model_batch_size.min_range,
@@ -187,8 +187,8 @@ class TestSearchParameters(unittest.TestCase):
         # Instance Count
         # =====================================================================
         instance_count = search_parameters.get_parameter("instance_count")
-        self.assertEqual(ParameterUsage.MODEL, instance_count.usage)
-        self.assertEqual(ParameterCategory.INTEGER, instance_count.category)
+        self.assertEqual(SearchUsage.MODEL, instance_count.usage)
+        self.assertEqual(SearchCategory.INTEGER, instance_count.category)
         self.assertEqual(RunConfigDefaults.MIN_INSTANCE_COUNT, instance_count.min_range)
         self.assertEqual(RunConfigDefaults.MAX_INSTANCE_COUNT, instance_count.max_range)
 
@@ -203,8 +203,8 @@ class TestSearchParameters(unittest.TestCase):
         # Batch size
         # =====================================================================
         runtime_batch_size = search_parameters.get_parameter("runtime_batch_size")
-        self.assertEqual(ParameterUsage.RUNTIME, runtime_batch_size.usage)
-        self.assertEqual(ParameterCategory.INT_LIST, runtime_batch_size.category)
+        self.assertEqual(SearchUsage.RUNTIME, runtime_batch_size.usage)
+        self.assertEqual(SearchCategory.INT_LIST, runtime_batch_size.category)
         self.assertEqual(
             RunConfigDefaults.PA_BATCH_SIZE, runtime_batch_size.enumerated_list
         )
@@ -224,14 +224,14 @@ class TestSearchParameters(unittest.TestCase):
         """
         Test that search parameters are correctly created when concurrency formula is disabled
         """
-        config = deepcopy(ConfigCommand())
+        config = deepcopy(ConfigCommand(model_names=["test_model"]))
         config.optimize.perf_analyzer.use_concurrency_formula = False
 
         search_parameters = SearchParameters(config)
 
         concurrency = search_parameters.get_parameter("concurrency")
-        self.assertEqual(ParameterUsage.RUNTIME, concurrency.usage)
-        self.assertEqual(ParameterCategory.EXPONENTIAL, concurrency.category)
+        self.assertEqual(SearchUsage.RUNTIME, concurrency.usage)
+        self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
         self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
         self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
 
@@ -239,14 +239,14 @@ class TestSearchParameters(unittest.TestCase):
         """
         Test that request rate is used when specified in config
         """
-        config = deepcopy(ConfigCommand())
+        config = deepcopy(ConfigCommand(model_names=["test_model"]))
         config.optimize.perf_analyzer.stimulus_type = "request_rate"
 
         search_parameters = SearchParameters(config)
 
         request_rate = search_parameters.get_parameter("request_rate")
-        self.assertEqual(ParameterUsage.RUNTIME, request_rate.usage)
-        self.assertEqual(ParameterCategory.EXPONENTIAL, request_rate.category)
+        self.assertEqual(SearchUsage.RUNTIME, request_rate.usage)
+        self.assertEqual(SearchCategory.EXPONENTIAL, request_rate.category)
         self.assertEqual(
             log2(RunConfigDefaults.MIN_REQUEST_RATE), request_rate.min_range
         )
@@ -342,8 +342,8 @@ class TestSearchParameters(unittest.TestCase):
     #     concurrency = analyzer._search_parameters["add_sub"].get_parameter(
     #         "concurrency"
     #     )
-    #     self.assertEqual(ParameterUsage.RUNTIME, concurrency.usage)
-    #     self.assertEqual(ParameterCategory.EXPONENTIAL, concurrency.category)
+    #     self.assertEqual(SearchUsage.RUNTIME, concurrency.usage)
+    #     self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
     #     self.assertEqual(
     #         log2(default.DEFAULT_RUN_CONFIG_MIN_CONCURRENCY), concurrency.min_range
     #     )
@@ -355,8 +355,8 @@ class TestSearchParameters(unittest.TestCase):
     #     instance_group = analyzer._search_parameters["add_sub"].get_parameter(
     #         "instance_group"
     #     )
-    #     self.assertEqual(ParameterUsage.MODEL, instance_group.usage)
-    #     self.assertEqual(ParameterCategory.INTEGER, instance_group.category)
+    #     self.assertEqual(SearchUsage.MODEL, instance_group.usage)
+    #     self.assertEqual(SearchCategory.INTEGER, instance_group.category)
     #     self.assertEqual(
     #         default.DEFAULT_RUN_CONFIG_MIN_INSTANCE_COUNT, instance_group.min_range
     #     )
@@ -384,8 +384,8 @@ class TestSearchParameters(unittest.TestCase):
     #     instance_group = analyzer._composing_search_parameters["sub"].get_parameter(
     #         "instance_group"
     #     )
-    #     self.assertEqual(ParameterUsage.MODEL, instance_group.usage)
-    #     self.assertEqual(ParameterCategory.INTEGER, instance_group.category)
+    #     self.assertEqual(SearchUsage.MODEL, instance_group.usage)
+    #     self.assertEqual(SearchCategory.INTEGER, instance_group.category)
     #     self.assertEqual(
     #         default.DEFAULT_RUN_CONFIG_MIN_INSTANCE_COUNT, instance_group.min_range
     #     )
