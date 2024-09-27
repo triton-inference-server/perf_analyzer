@@ -45,19 +45,17 @@ class FileInputRetriever:
     # TODO: match return type to retriever interface
     def retrieve_data(self) -> Dict[str, Any]:
         if self.config.output_format == OutputFormat.OPENAI_EMBEDDINGS:
-            return self._get_input_dataset_from_embeddings_file()
+            return self._read_embeddings_input_file()
         elif self.config.output_format == OutputFormat.RANKINGS:
             queries_filename = self.config.input_filename / "queries.jsonl"
             passages_filename = self.config.input_filename / "passages.jsonl"
-            return self._get_input_dataset_from_rankings_files(
-                queries_filename, passages_filename
-            )
+            return self._read_rankings_input_files(queries_filename, passages_filename)
         elif self.config.output_format == OutputFormat.IMAGE_RETRIEVAL:
             return self._get_input_dataset_from_file()
         else:
             return self._get_input_dataset_from_file()
 
-    def _get_input_dataset_from_embeddings_file(self) -> Dict[str, Any]:
+    def _read_embeddings_input_file(self) -> Dict[str, Any]:
         with open(self.config.input_filename, "r") as file:
             file_content = [load_json_str(line) for line in file]
 
@@ -74,25 +72,33 @@ class FileInputRetriever:
 
         for _ in range(self.config.num_prompts):
             sampled_texts = random.sample(texts, self.config.batch_size)
-            dataset_json["rows"].append({"row": {"payload": {"input": sampled_texts}}})
+            dataset_json["rows"].append({"row": {"input": sampled_texts}})
 
         return dataset_json
 
-    def _get_input_dataset_from_rankings_files(
+    def _read_rankings_input_files(
         self,
         queries_filename: Path,
         passages_filename: Path,
     ) -> Dict[str, Any]:
 
+        def __key_exists(line: Dict):
+            """Validation function that checks if 'text' key exists."""
+            if "text" not in line:
+                raise ValueError("Each data entry must have 'text' key name.")
+            return line
+
         with open(queries_filename, "r") as file:
-            queries_content = [load_json_str(line) for line in file]
-        queries_texts = [item for item in queries_content]
+            queries = [load_json_str(line, func=__key_exists) for line in file]
 
         with open(passages_filename, "r") as file:
-            passages_content = [load_json_str(line) for line in file]
-        passages_texts = [item for item in passages_content]
+            passages = [load_json_str(line, func=__key_exists) for line in file]
 
-        if self.config.batch_size > len(passages_texts):
+        if len(queries) < 1:
+            raise ValueError("Queries file must have at least one entry.")
+        if len(passages) < 1:
+            raise ValueError("Passages file must have at least one entry.")
+        if self.config.batch_size > len(passages):
             raise ValueError(
                 "Batch size cannot be larger than the number of available passages"
             )
@@ -102,12 +108,11 @@ class FileInputRetriever:
         dataset_json["rows"] = []
 
         for _ in range(self.config.num_prompts):
-            sampled_texts = random.sample(passages_texts, self.config.batch_size)
-            query_sample = random.choice(queries_texts)
-            entry_dict: Dict = {}
-            entry_dict["query"] = query_sample
-            entry_dict["passages"] = sampled_texts
-            dataset_json["rows"].append({"row": {"payload": entry_dict}})
+            data = {
+                "query": random.choice(queries),
+                "passages": random.sample(passages, self.config.batch_size),
+            }
+            dataset_json["rows"].append({"row": data})
         return dataset_json
 
     def _get_input_dataset_from_file(self) -> Dict[str, Any]:

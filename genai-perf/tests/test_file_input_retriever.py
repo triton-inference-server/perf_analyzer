@@ -36,6 +36,7 @@ from PIL import Image
 
 
 class TestFileInputRetriever:
+
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
         "builtins.open",
@@ -49,7 +50,7 @@ class TestFileInputRetriever:
             ]
         ),
     )
-    def test_get_input_dataset_from_embeddings_file(self, mock_file, mock_exists):
+    def test_read_embeddings_input_file(self, mock_file, mock_exists):
         batch_size = 3
         config = InputsConfig(
             input_filename=Path("embeddings.jsonl"),
@@ -57,14 +58,13 @@ class TestFileInputRetriever:
             num_prompts=100,
         )
         file_retriever = FileInputRetriever(config)
-        dataset = file_retriever._get_input_dataset_from_embeddings_file()
+        dataset = file_retriever._read_embeddings_input_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == 100
         for row in dataset["rows"]:
             assert "row" in row
-            assert "payload" in row["row"]
-            payload = row["row"]["payload"]
+            payload = row["row"]
             assert "input" in payload
             assert isinstance(payload["input"], list)
             assert len(payload["input"]) == batch_size
@@ -75,7 +75,7 @@ class TestFileInputRetriever:
             match="Batch size cannot be larger than the number of available texts",
         ):
             config.batch_size = 5
-            file_retriever._get_input_dataset_from_embeddings_file()
+            file_retriever._read_embeddings_input_file()
 
     def open_side_effects(self, filepath, *args, **kwargs):
         queries_content = "\n".join(
@@ -106,7 +106,7 @@ class TestFileInputRetriever:
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("builtins.open", mock_open_obj)
-    def test_get_input_dataset_from_rankings_file(self, mock_file):
+    def test_read_rankings_input_files(self, mock_file):
         queries_filename = Path("queries.jsonl")
         passages_filename = Path("passages.jsonl")
         batch_size = 2
@@ -115,7 +115,7 @@ class TestFileInputRetriever:
             num_prompts=100,
         )
         file_retriever = FileInputRetriever(config)
-        dataset = file_retriever._get_input_dataset_from_rankings_files(
+        dataset = file_retriever._read_rankings_input_files(
             queries_filename=queries_filename, passages_filename=passages_filename
         )
 
@@ -123,8 +123,7 @@ class TestFileInputRetriever:
         assert len(dataset["rows"]) == 100
         for row in dataset["rows"]:
             assert "row" in row
-            assert "payload" in row["row"]
-            payload = row["row"]["payload"]
+            payload = row["row"]
             assert "query" in payload
             assert "passages" in payload
             assert isinstance(payload["passages"], list)
@@ -136,8 +135,29 @@ class TestFileInputRetriever:
             match="Batch size cannot be larger than the number of available passages",
         ):
             config.batch_size = 5
-            file_retriever._get_input_dataset_from_rankings_files(
+            file_retriever._read_rankings_input_files(
                 queries_filename, passages_filename
+            )
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("builtins.open", new_callable=mock_open)
+    def test_read_rankings_input_files_wrong_key(self, mock_file, mock_exists):
+        queries = (
+            '{"random_key": "test query one"}\n'  # random/wrong key
+            '{"text": "text query two"}\n'
+        )
+        passages = '{"text": "test passage one"}\n' '{"text": "text passage two"}\n'
+
+        mock_file.side_effect = [
+            mock_open(read_data=queries).return_value,
+            mock_open(read_data=passages).return_value,
+        ]
+
+        file_retriever = FileInputRetriever(InputsConfig(num_prompts=3))
+        with pytest.raises(ValueError):
+            _ = file_retriever._read_rankings_input_files(
+                queries_filename=Path("queries.jsonl"),
+                passages_filename=Path("passages.jsonl"),
             )
 
     def test_get_input_file_without_file_existing(self):
