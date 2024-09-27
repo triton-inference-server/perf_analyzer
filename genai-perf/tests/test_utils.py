@@ -28,13 +28,18 @@ from typing import Union
 
 import pytest
 from genai_perf import utils
+from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.statistics import Statistics
+from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
+from genai_perf.record.types.gpu_utilization import GPUUtilization
+from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
+from genai_perf.record.types.perf_throughput import PerfThroughput
+from genai_perf.types import GpuId, PerfRecords
+
 
 ###########################################################
 # Library of utility functions for other unit test scripts.
 ###########################################################
-
-
 def ns_to_sec(ns: int) -> Union[int, float]:
     """Convert from nanosecond to second."""
     return ns / 1e9
@@ -47,6 +52,40 @@ def check_statistics(s1: Statistics, s2: Statistics) -> None:
         for stat_name, value in s1_dict[metric].items():
             if stat_name != "unit":
                 assert s2_dict[metric][stat_name] == pytest.approx(value)
+
+
+###########################################################################
+# Perf Metrics Constructor
+###########################################################################
+def create_perf_metrics(throughput: int, latency: int) -> PerfRecords:
+    throughput_record = PerfThroughput(throughput)
+    latency_record = PerfLatencyP99(latency)
+
+    perf_metrics = {
+        PerfThroughput.tag: throughput_record,
+        PerfLatencyP99.tag: latency_record,
+    }
+
+    return perf_metrics
+
+
+###########################################################################
+# RCM Constructor
+###########################################################################
+def create_run_config_measurement(
+    gpu_power: int, gpu_utilization: int, gpu_id: GpuId = "0"
+) -> RunConfigMeasurement:
+    gpu_power_record = GPUPowerUsage(gpu_power)
+    gpu_util_record = GPUUtilization(gpu_utilization)
+
+    gpu_metrics = {
+        gpu_id: {
+            GPUPowerUsage.tag: gpu_power_record,
+            GPUUtilization.tag: gpu_util_record,
+        }
+    }
+
+    return RunConfigMeasurement(gpu_metrics)
 
 
 class TestUtils:
