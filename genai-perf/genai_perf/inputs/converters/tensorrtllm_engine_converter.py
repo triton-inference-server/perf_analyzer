@@ -38,9 +38,6 @@ from genai_perf.inputs.inputs_config import InputsConfig
 class TensorRTLLMEngineConverter(BaseConverter):
 
     def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
-        """
-        Construct a request body using the endpoint specific request format.
-        """
         request_body: Dict[str, Any] = {"data": []}
 
         for _, entry in enumerate(generic_dataset["rows"]):

@@ -76,13 +76,13 @@ def load_json(filepath: Path) -> Dict[str, Any]:
 
 def load_json_str(json_str: str, func: Callable = lambda x: x) -> Dict[str, Any]:
     """
-    Deserealizes JSON encoded string into Python object.
+    Deserializes JSON encoded string into Python object.
 
     Args:
       - json_str: string
           JSON encoded string
       - func: callable
-          A function that takes deserealized JSON object. This can be used to
+          A function that takes deserialized JSON object. This can be used to
           run validation checks on the object. Defaults to identity function.
     """
     try:

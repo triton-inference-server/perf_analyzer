@@ -676,7 +676,18 @@ class TestCLIArguments:
                     "--num-prompts",
                     "0",
                 ],
-                "The --num-prompts option must be greater than zero.",
+                "The value must be greater than zero.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--num-prompts",
+                    "not_number",
+                ],
+                "The value must be an integer.",
             ),
         ],
     )
