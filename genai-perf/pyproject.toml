@@ -60,6 +60,7 @@ dependencies = [
   "pyyaml",
   "responses",
   "pillow",
+  "oputna==3.6.1",
 ]
 
 # CLI Entrypoint
