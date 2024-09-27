@@ -112,12 +112,8 @@ class TestSweepObjectiveGenerator(unittest.TestCase):
         Test that the objectives generator is working (end-to-end)
         """
 
-        for count, _ in enumerate(self._sweep_obj_gen.get_objectives()):
-            _  # Don't need to do anything but count the generator calls
-
-        self.assertEqual(
-            self._expected_all_search_parameter_combination_count, count + 1
-        )
+        count = len(list(self._sweep_obj_gen.get_objectives()))
+        self.assertEqual(self._expected_all_search_parameter_combination_count, count)
 
     if __name__ == "__main__":
         unittest.main()
