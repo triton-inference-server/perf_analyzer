@@ -11,18 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass
 from itertools import product
 from typing import Any, Dict, Generator, List, TypeAlias
 
 import genai_perf.logging as logging
-from genai_perf.config.generate.objective_parameter import (
-    ObjectiveParameter,
-    ObjectiveParameters,
-)
-from genai_perf.config.generate.search_parameter import SearchCategory, SearchParameter
-from genai_perf.config.generate.search_parameters import SearchParameters
-from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
+from genai_perf.config.generate.objective_parameter import ObjectiveParameter
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.types import ModelName, ModelObjectiveParameters, ModelSearchParameters
 
 logger = logging.getLogger(__name__)
