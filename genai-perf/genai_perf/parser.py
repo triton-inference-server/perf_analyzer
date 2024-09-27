@@ -753,6 +753,14 @@ def _add_other_args(parser):
         "or the filepath of the tokenizer.",
     )
     other_group.add_argument(
+        "--tokenizer-revision",
+        type=str,
+        default=DEFAULT_TOKENIZER_REVISION,
+        required=False,
+        help="The specific model version to use. It can be a branch name, "
+        "tag name, or commit ID.",
+    )
+    other_group.add_argument(
         "--tokenizer-trust-remote-code",
         action="store_true",
         required=False,
@@ -760,14 +768,6 @@ def _add_other_args(parser):
         "This carries security risks and should only be used "
         "for repositories you trust. This is only necessary for custom "
         "tokenizers stored in HuggingFace Hub. ",
-    )
-    other_group.add_argument(
-        "--tokenizer-revision",
-        type=str,
-        default=DEFAULT_TOKENIZER_REVISION,
-        required=False,
-        help="The specific model version to use. It can be a branch name, "
-        "tag name, or commit ID.",
     )
 
     other_group.add_argument(

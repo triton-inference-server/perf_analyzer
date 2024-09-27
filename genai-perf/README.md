@@ -522,16 +522,16 @@ The HuggingFace tokenizer to use to interpret token metrics from prompts and
 responses. The value can be the name of a tokenizer or the filepath of the
 tokenizer. (default: `hf-internal-testing/llama-tokenizer`)
 
+##### `--tokenizer-revision <str>`
+
+The specific tokenizer model version to use. It can be a branch
+name, tag name, or commit ID. (default: `main`)
+
 ##### `--tokenizer-trust-remote-code`
 
 Allow custom tokenizer to be downloaded and executed. This carries security
 risks and should only be used for repositories you trust. This is only
 necessary for custom tokenizers stored in HuggingFace Hub.  (default: `False`)
-
-##### `--tokenizer-revision <str>`
-
-The specific tokenizer model version to use. It can be a branch
-name, tag name, or commit ID. (default: `main`)
 
 ##### `-v`
 ##### `--verbose`
