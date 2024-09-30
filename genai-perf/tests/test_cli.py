@@ -241,6 +241,8 @@ class TestCLIArguments:
                 {"image_height_stddev": 456},
             ),
             (["--image-format", "png"], {"image_format": ImageFormat.PNG}),
+            (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
+            (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
             (["-v"], {"verbose": True}),
             (["--verbose"], {"verbose": True}),
             (["-u", "test_url"], {"u": "test_url"}),

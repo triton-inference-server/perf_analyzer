@@ -41,7 +41,7 @@ from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.telemetry_data import TelemetryDataCollector
-from genai_perf.tokenizer import DEFAULT_TOKENIZER
+from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
 
@@ -286,6 +286,15 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
             "It must use 'http' or 'https', have a valid domain and port, "
             "and contain '/metrics' in the path. The expected structure is: "
             "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
+        )
+
+
+def _print_warnings(args: argparse.Namespace) -> None:
+    if args.tokenizer_trust_remote_code:
+        logger.warning(
+            "--tokenizer-trust-remote-code is enabled. "
+            "Custom tokenizer code can be executed. "
+            "This should only be used with repositories you trust."
         )
 
 
@@ -732,9 +741,10 @@ def _add_output_args(parser):
         type=Path,
         default=Path("profile_export.json"),
         help="The path where the perf_analyzer profile export will be "
-        "generated. By default, the profile export will be to profile_export.json. "
-        "The genai-perf file will be exported to <profile_export_file>_genai_perf.csv. "
-        "For example, if the profile export file is profile_export.json, the genai-perf file will be "
+        "generated. By default, the profile export will be to "
+        "profile_export.json. The genai-perf file will be exported to "
+        "<profile_export_file>_genai_perf.csv. For example, if the profile "
+        "export file is profile_export.json, the genai-perf file will be "
         "exported to profile_export_genai_perf.csv.",
     )
 
@@ -747,8 +757,26 @@ def _add_other_args(parser):
         type=str,
         default=DEFAULT_TOKENIZER,
         required=False,
-        help="The HuggingFace tokenizer to use to interpret token metrics from prompts and responses. "
-        " The value can be the name of a tokenizer or the filepath of the tokenizer.",
+        help="The HuggingFace tokenizer to use to interpret token metrics "
+        "from prompts and responses. The value can be the name of a tokenizer "
+        "or the filepath of the tokenizer.",
+    )
+    other_group.add_argument(
+        "--tokenizer-revision",
+        type=str,
+        default=DEFAULT_TOKENIZER_REVISION,
+        required=False,
+        help="The specific model version to use. It can be a branch name, "
+        "tag name, or commit ID.",
+    )
+    other_group.add_argument(
+        "--tokenizer-trust-remote-code",
+        action="store_true",
+        required=False,
+        help="Allow custom tokenizer to be downloaded and executed. "
+        "This carries security risks and should only be used "
+        "for repositories you trust. This is only necessary for custom "
+        "tokenizers stored in HuggingFace Hub. ",
     )
 
     other_group.add_argument(
@@ -928,6 +956,7 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
+        _print_warnings(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
         args = _check_compare_args(parser, args)
     else:
