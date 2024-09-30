@@ -195,12 +195,10 @@ def run():
         args.func(args)
     else:
         create_artifacts_dirs(args)
-        tokenizer = (
-            get_tokenizer(
-                args.tokenizer,
-                args.tokenizer_trust_remote_code,
-                args.tokenizer_revision,
-            ),
+        tokenizer = get_tokenizer(
+            args.tokenizer,
+            args.tokenizer_trust_remote_code,
+            args.tokenizer_revision,
         )
         generate_inputs(config_options)
         telemetry_data_collector = create_telemetry_data_collector(args)
