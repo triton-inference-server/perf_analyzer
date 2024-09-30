@@ -243,6 +243,8 @@ class TestJsonExporter:
           "profile_export_file": "artifacts/gpt2_vllm-triton-vllm-concurrency1/profile_export.json",
           "artifact_dir": "artifacts/gpt2_vllm-triton-vllm-concurrency1",
           "tokenizer": "hf-internal-testing/llama-tokenizer",
+          "tokenizer_revision": "main",
+          "tokenizer_trust_remote_code": false,
           "verbose": false,
           "goodput": null,
           "subcommand": "profile",

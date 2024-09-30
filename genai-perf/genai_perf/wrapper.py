@@ -115,6 +115,8 @@ class Profiler:
             "synthetic_input_tokens_mean",
             "synthetic_input_tokens_stddev",
             "tokenizer",
+            "tokenizer_trust_remote_code",
+            "tokenizer_revision",
         ]
 
         utils.remove_file(args.profile_export_file)
