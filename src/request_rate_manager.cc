@@ -137,6 +137,11 @@ RequestRateManager::GenerateSchedule(
   } else {
     return;
   }
+  if (schedule.size() > 0) {
+    for (auto& value : schedule) {
+      value /= static_cast<float>(request_rate);
+    }
+  }
 
   auto worker_schedules =
       CreateWorkerSchedules(max_duration, distribution, schedule);
