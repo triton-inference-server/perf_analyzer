@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
 import random
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -281,9 +282,32 @@ class InputRetrieverFactory:
         dataset_json: Dict[str, Any] = {}
         dataset_json["features"] = [{"name": "text_input"}]
         dataset_json["rows"] = []
-        for _ in range(self.config.num_prompts):
+        prompt_desc = []
+        if self.config.schedule_file is not None:
+            with open(self.config.schedule_file, "r") as f:
+                for j, line in enumerate(f):
+                    if j == self.config.num_prompts:
+                        break
+                    prompt_desc.append(json.loads(line))
+            assert (
+                j == self.config.num_prompts
+            ), "not enough prompts in the schedule-file."
+        for i in range(self.config.num_prompts):
             row: Dict["str", Any] = {"row": {}}
-            synthetic_prompt = self._create_synthetic_prompt()
+            if prompt_desc:
+                synthetic_prompt = self._create_synthetic_prompt(
+                    self.config.tokenizer,
+                    prompt_desc[i]["input_length"],
+                    0,
+                    prompt_hash_list=prompt_desc[i].get("hash_ids", None),
+                    block_size=512,  # TODO Arg
+                )
+            else:
+                synthetic_prompt = self._create_synthetic_prompt(
+                    self.config.tokenizer,
+                    self.config.prompt_tokens_mean,
+                    self.config.prompt_tokens_stddev,
+                )
             row["row"]["text_input"] = synthetic_prompt
 
             if self.config.output_format == OutputFormat.OPENAI_VISION:
@@ -387,11 +411,20 @@ class InputRetrieverFactory:
         if "error" in dataset_json:
             raise GenAIPerfException(dataset_json["error"])
 
-    def _create_synthetic_prompt(self) -> str:
+    def _create_synthetic_prompt(
+        self,
+        tokenizer,
+        prompt_tokens_mean,
+        prompt_tokens_stddev,
+        prompt_hash_list=None,
+        block_size=None,
+    ) -> str:
         return SyntheticPromptGenerator.create_synthetic_prompt(
-            self.config.tokenizer,
-            self.config.prompt_tokens_mean,
-            self.config.prompt_tokens_stddev,
+            tokenizer,
+            prompt_tokens_mean,
+            prompt_tokens_stddev,
+            prompt_hash_list,
+            block_size,
         )
 
     def _create_synthetic_image(self) -> str:

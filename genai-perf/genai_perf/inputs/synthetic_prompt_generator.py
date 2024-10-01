@@ -17,18 +17,22 @@ import math
 import pathlib
 import random
 import re
-from typing import List
+from typing import Dict, List, Optional
 
 from genai_perf.tokenizer import Tokenizer
 
 
 class SyntheticPromptGenerator:
+    cache: Dict[int, str] = {}
+
     @classmethod
     def create_synthetic_prompt(
         cls,
         tokenizer: Tokenizer,
         prompt_tokens_mean: int = 550,
         prompt_tokens_stddev: int = 250,
+        prompt_hash_list: Optional[List[int]] = None,
+        block_size: Optional[int] = None,
     ) -> str:
         """
         Generate a prompt that randomly samples lines from
@@ -49,10 +53,26 @@ class SyntheticPromptGenerator:
         )
 
         farewell_lines = SyntheticPromptGenerator._create_farewell_lines()
-        prompt = SyntheticPromptGenerator._create_prompt_from_lines(
-            num_prompt_tokens, farewell_lines, tokenizer
-        )
+        if block_size is not None:
+            assert prompt_hash_list, "Need hash of prompt list to continue"
+            final_prompt = []
+            size_to_use = block_size
+            for j, hash_index in enumerate(prompt_hash_list):
+                if j == len(prompt_hash_list) - 1:
+                    size_to_use = prompt_tokens_mean - (j * block_size)
+                if hash_index not in cls.cache:
+                    prompt = SyntheticPromptGenerator._create_prompt_from_lines(
+                        size_to_use, farewell_lines, tokenizer
+                    )
+                    cls.cache[hash_index] = prompt
 
+                final_prompt.append(cls.cache[hash_index])
+            prompt = " ".join(final_prompt)
+
+        else:
+            prompt = SyntheticPromptGenerator._create_prompt_from_lines(
+                num_prompt_tokens, farewell_lines, tokenizer
+            )
         return prompt
 
     @classmethod

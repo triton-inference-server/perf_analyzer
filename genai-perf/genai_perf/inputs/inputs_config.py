@@ -26,7 +26,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from genai_perf.inputs.input_constants import (
     DEFAULT_IMAGE_HEIGHT_MEAN,
@@ -73,6 +73,9 @@ class InputsConfig:
 
     # The filename where the input data is available
     input_filename: Path = Path("")
+
+    # TODO
+    schedule_file: Optional[Path] = None
 
     # The compression format of the images.
     image_format: ImageFormat = ImageFormat.PNG

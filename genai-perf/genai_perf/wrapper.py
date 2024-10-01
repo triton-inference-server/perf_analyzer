@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
 import subprocess
 from argparse import Namespace
 from typing import List, Optional
@@ -61,6 +62,15 @@ class Profiler:
             cmd += ["--concurrency-range", f"{args.concurrency}"]
         elif args.request_rate:
             cmd += ["--request-rate-range", f"{args.request_rate}"]
+        if args.schedule_file is not None:
+            assert args.request_rate, "Must use request rate with fixed schedule"
+            timings = []
+            with open(args.schedule_file, "r") as f:
+                for j, line in enumerate(f):
+                    if j == args.num_prompts:
+                        break
+                    timings.append(float(json.loads(line)["timestamp"]) / 1000)
+            cmd += ["--schedule", ",".join(map(str, timings))]
         return cmd
 
     @staticmethod

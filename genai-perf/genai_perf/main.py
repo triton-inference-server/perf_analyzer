@@ -68,6 +68,11 @@ def create_config_options(args: Namespace) -> InputsConfig:
     else:
         input_filename = Path(".")
 
+    if args.schedule_file:
+        schedule_file = Path(args.schedule_file)
+    else:
+        schedule_file = None
+
     try:
         extra_input_dict = parser.get_extra_inputs_as_dict(args)
     except ValueError as e:
@@ -80,6 +85,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
         input_filename=input_filename,
+        schedule_file=schedule_file,
         starting_index=DEFAULT_STARTING_INDEX,
         length=args.num_prompts,
         prompt_tokens_mean=args.synthetic_input_tokens_mean,
