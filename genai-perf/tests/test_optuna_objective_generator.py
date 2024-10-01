@@ -28,7 +28,7 @@ from genai_perf.config.input.config_command import ConfigCommand
 from tests.test_utils import create_perf_metrics, create_run_config_measurement
 
 
-class TestModelConfigMeasurement(unittest.TestCase):
+class TestOptunaObjectiveGenerator(unittest.TestCase):
     ###########################################################################
     # Setup & Teardown
     ###########################################################################

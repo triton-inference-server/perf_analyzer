@@ -47,3 +47,20 @@ class SearchParameter:
     # These are only applicable to INTEGER and EXPONENTIAL categories
     min_range: Optional[int] = None
     max_range: Optional[int] = None
+
+    def get_list(self) -> List[Any]:
+        """
+        Returns the list of all possible parameter values
+        """
+        if (
+            self.category == SearchCategory.STR_LIST
+            or self.category == SearchCategory.INT_LIST
+        ):
+            return self.enumerated_list  # type: ignore
+        elif (
+            self.category == SearchCategory.INTEGER
+            or self.category == SearchCategory.EXPONENTIAL
+        ):
+            return [value for value in range(self.min_range, self.max_range + 1)]  # type: ignore
+
+        assert True, f"{self.category} is not a known SearchCategory"
