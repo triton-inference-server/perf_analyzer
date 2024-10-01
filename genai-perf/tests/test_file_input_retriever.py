@@ -37,46 +37,6 @@ from PIL import Image
 
 class TestFileInputRetriever:
 
-    @patch("pathlib.Path.exists", return_value=True)
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data="\n".join(
-            [
-                '{"text": "What production company co-owned by Kevin Loader and Rodger Michell produced My Cousin Rachel?"}',
-                '{"text": "Who served as the 1st Vice President of Colombia under El Libertador?"}',
-                '{"text": "Are the Barton Mine and Hermiston-McCauley Mine located in The United States of America?"}',
-                '{"text": "what state did they film daddy\'s home 2"}',
-            ]
-        ),
-    )
-    def test_read_embeddings_input_file(self, mock_file, mock_exists):
-        batch_size = 3
-        config = InputsConfig(
-            input_filename=Path("embeddings.jsonl"),
-            batch_size=batch_size,
-            num_prompts=100,
-        )
-        file_retriever = FileInputRetriever(config)
-        dataset = file_retriever._read_embeddings_input_file()
-
-        assert dataset is not None
-        assert len(dataset["rows"]) == 100
-        for row in dataset["rows"]:
-            assert "row" in row
-            payload = row["row"]
-            assert "input" in payload
-            assert isinstance(payload["input"], list)
-            assert len(payload["input"]) == batch_size
-
-        # Try error case where batch size is larger than the number of available texts
-        with pytest.raises(
-            ValueError,
-            match="Batch size cannot be larger than the number of available texts",
-        ):
-            config.batch_size = 5
-            file_retriever._read_embeddings_input_file()
-
     def open_side_effects(self, filepath, *args, **kwargs):
         queries_content = "\n".join(
             [

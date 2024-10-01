@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Dict, List
+from typing import Dict, List, Union, cast
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
@@ -52,6 +52,20 @@ class BaseConverter:
                 f"Model selection strategy '{config.model_selection_strategy}' is unsupported"
             )
 
+    def _construct_text_payload_batch_agnostic(
+        self, batch_size: int, input_data: Union[Dict, List]
+    ) -> Union[str, List]:
+        """
+        Construct text payload content for non-chat based LLM converters.
+        Allow batched and unbatched input data.
+        """
+        if batch_size == 1:
+            input_data = cast(Dict, input_data)
+            return self._construct_text_payload(input_data)
+        else:
+            input_data = cast(List, input_data)
+            return self._construct_texts_payload(input_data)
+
     def _construct_text_payload(self, input_data: Dict) -> str:
         """
         Construct text payload content for non-chat based LLM converters.
@@ -60,3 +74,10 @@ class BaseConverter:
         """
         contents = [v for k, v in input_data.items() if k in self._CONTENT_NAMES]
         return " ".join(contents)
+
+    def _construct_texts_payload(self, input_data: List) -> List:
+        """
+        Construct batched text payload content for non-chat based LLM converters.
+        """
+        contents = [item["text_input"] for item in input_data]
+        return contents
