@@ -273,3 +273,62 @@ class TestOpenAIChatCompletionsConverter:
         }
 
         assert result == expected_result
+
+    def test_convert_multi_modal_batched(self) -> None:
+        """
+        Test batched multi-modal format of OpenAI Chat API for Image Retrieval
+        """
+        generic_dataset = {
+            "features": ["text_input"],
+            "rows": [
+                [
+                    {"image": "test_image_1"},
+                    {"image": "test_image_2"},
+                ],
+            ],
+        }
+
+        config = InputsConfig(
+            extra_inputs={},  # no extra inputs
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.IMAGE_RETRIEVAL,
+            add_stream=True,
+        )
+
+        chat_converter = OpenAIChatCompletionsConverter()
+        result = chat_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "model": "test_model",
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": [
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": "test_image_1",
+                                            },
+                                        },
+                                        {
+                                            "type": "image_url",
+                                            "image_url": {
+                                                "url": "test_image_2",
+                                            },
+                                        },
+                                    ],
+                                }
+                            ],
+                            "stream": True,
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
