@@ -104,6 +104,7 @@ class Profiler:
             "prompt_source",
             "random_seed",
             "request_rate",
+            "schedule_file",
             "server_metrics_url",
             # The 'streaming' passed in to this script is to determine if the
             # LLM response should be streaming. That is different than the
