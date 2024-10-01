@@ -478,8 +478,8 @@ def _add_input_args(parser):
         default=None,
         required=False,
         help="The input file containing the prompts to use for profiling. "
-        "Each line should be a JSON object with a 'text_input' field in JSONL format. "
-        'Example: {"text_input": "Your prompt here"}'
+        "Each line should be a JSON object with a 'text' field in JSONL format. "
+        'Example: {"text": "Your prompt here"}'
         "For the rankings endpoint-type, a directory should be passed in instead with "
         'a "queries.jsonl" file and a "passages.jsonl" file with the same format.',
     )

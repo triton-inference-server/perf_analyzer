@@ -110,7 +110,7 @@ class FileInputRetriever:
             )
 
         dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "text_input"}]
+        dataset_json["features"] = [{"name": "text"}]
         dataset_json["rows"] = []
 
         if (
@@ -120,7 +120,7 @@ class FileInputRetriever:
             for prompt, image in zip(prompts, images):
                 content = {}
                 if prompt is not None:
-                    content["text_input"] = prompt
+                    content["text"] = prompt
                 if image is not None:
                     content["image"] = image
                 dataset_json["rows"].append({"row": content})
@@ -146,7 +146,7 @@ class FileInputRetriever:
                     if i < num_sampled_images:
                         content["image"] = sampled_images[i]
                     if i < num_sampled_texts:
-                        content["text_input"] = sampled_texts[i]
+                        content["text"] = sampled_texts[i]
 
                     content_array.append(content)
 
@@ -176,8 +176,8 @@ class FileInputRetriever:
                 if line.strip():
                     data = load_json_str(line)
                     # None if not provided
-                    prompt = data.get("text_input")
-                    prompt_alt = data.get("text")
+                    prompt = data.get("text")
+                    prompt_alt = data.get("text_input")
                     if prompt and prompt_alt:
                         raise ValueError(
                             "Each data entry must have only one of 'text_input' or 'text' key name."

@@ -33,21 +33,21 @@ from genai_perf.inputs.inputs_config import InputsConfig
 class OpenAIEmbeddingsConverter(BaseConverter):
 
     _CONTENT_NAMES = [
-        "text_input",
+        "text",
     ]
 
     def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
         request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
-            text_input = self._construct_text_payload_batch_agnostic(
+            text = self._construct_text_payload_batch_agnostic(
                 config.batch_size_text, entry
             )
             model_name = self._select_model_name(config, index)
 
             payload = {
                 "model": model_name,
-                "input": text_input,
+                "input": text,
             }
             self._add_request_params(payload, config)
             request_body["data"].append({"payload": [payload]})

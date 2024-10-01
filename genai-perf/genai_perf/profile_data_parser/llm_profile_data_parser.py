@@ -230,7 +230,7 @@ class LLMProfileDataParser(ProfileDataParser):
     def _get_input_token_count(self, req_inputs: dict) -> int:
         """Deserialize the request input and return tokenized inputs."""
         if self._service_kind == "triton":
-            input_text = req_inputs["text_input"]
+            input_text = req_inputs["text"]
         elif self._service_kind == "triton_c_api":
             return len(req_inputs["input_ids"])  # no tokenizer required
         elif self._service_kind == "openai":

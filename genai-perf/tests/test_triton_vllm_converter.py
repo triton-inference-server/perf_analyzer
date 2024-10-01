@@ -34,8 +34,8 @@ class TestVLLMConverter:
     def test_convert_default(self):
         generic_dataset = {
             "rows": [
-                {"text_input": "text input one"},
-                {"text_input": "text input two"},
+                {"text": "text input one"},
+                {"text": "text input two"},
             ]
         }
 
@@ -69,8 +69,8 @@ class TestVLLMConverter:
     def test_convert_with_request_parameters(self):
         generic_dataset = {
             "rows": [
-                {"text_input": "text input one"},
-                {"text_input": "text input two"},
+                {"text": "text input one"},
+                {"text": "text input two"},
             ]
         }
 
@@ -120,8 +120,8 @@ class TestVLLMConverter:
     def test_convert_with_sampling_parameters(self):
         generic_dataset = {
             "rows": [
-                {"text_input": "text input one"},
-                {"text_input": "text input two"},
+                {"text": "text input one"},
+                {"text": "text input two"},
             ]
         }
 

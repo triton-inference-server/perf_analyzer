@@ -67,7 +67,7 @@ class TestLLMProfileDataParser:
                 "requests": [
                     {
                         "timestamp": 1,
-                        "request_inputs": {"text_input": "This is test"},
+                        "request_inputs": {"text": "This is test"},
                         "response_timestamps": [3, 5, 8],
                         "response_outputs": [
                             {"text_output": "I"},
@@ -77,7 +77,7 @@ class TestLLMProfileDataParser:
                     },
                     {
                         "timestamp": 2,
-                        "request_inputs": {"text_input": "This is test too"},
+                        "request_inputs": {"text": "This is test too"},
                         "response_timestamps": [4, 7, 11],
                         "response_outputs": [
                             {"text_output": "I"},
@@ -95,7 +95,7 @@ class TestLLMProfileDataParser:
                 "requests": [
                     {
                         "timestamp": 5,
-                        "request_inputs": {"text_input": "This is test"},
+                        "request_inputs": {"text": "This is test"},
                         "response_timestamps": [7, 8, 13, 18],
                         "response_outputs": [
                             {"text_output": "cat"},
@@ -106,7 +106,7 @@ class TestLLMProfileDataParser:
                     },
                     {
                         "timestamp": 3,
-                        "request_inputs": {"text_input": "This is test too"},
+                        "request_inputs": {"text": "This is test too"},
                         "response_timestamps": [6, 8, 11],
                         "response_outputs": [
                             {"text_output": "it's"},

@@ -79,5 +79,5 @@ class BaseConverter:
         """
         Construct batched text payload content for non-chat based LLM converters.
         """
-        contents = [item["text_input"] for item in input_data]
+        contents = [item["text"] for item in input_data]
         return contents

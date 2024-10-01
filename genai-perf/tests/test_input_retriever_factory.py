@@ -162,12 +162,12 @@ class TestInputRetrieverFactory:
 
             if output_format == OutputFormat.OPENAI_VISION:
                 assert row == {
-                    "text_input": "This is test prompt",
+                    "text": "This is test prompt",
                     "image": "test_image_base64",
                 }
             else:
                 assert row == {
-                    "text_input": "This is test prompt",
+                    "text": "This is test prompt",
                 }
 
     @responses.activate

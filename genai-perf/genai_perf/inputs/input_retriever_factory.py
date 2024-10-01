@@ -148,12 +148,12 @@ class InputRetrieverFactory:
 
     def _get_input_dataset_from_synthetic(self) -> Dict[str, Any]:
         dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "text_input"}]
+        dataset_json["features"] = [{"name": "text"}]
         dataset_json["rows"] = []
         for _ in range(self.config.num_prompts):
             row: Dict["str", Any] = {"row": {}}
             synthetic_prompt = self._create_synthetic_prompt()
-            row["row"]["text_input"] = synthetic_prompt
+            row["row"]["text"] = synthetic_prompt
 
             if self.config.output_format == OutputFormat.OPENAI_VISION:
                 synthetic_image = self._create_synthetic_image()
