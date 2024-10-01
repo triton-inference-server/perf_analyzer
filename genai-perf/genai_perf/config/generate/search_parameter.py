@@ -62,5 +62,5 @@ class SearchParameter:
             or self.category == SearchCategory.EXPONENTIAL
         ):
             return [value for value in range(self.min_range, self.max_range + 1)]  # type: ignore
-        else:
-            return []
+
+        assert True, f"{self.category} is not a known SearchCategory"
