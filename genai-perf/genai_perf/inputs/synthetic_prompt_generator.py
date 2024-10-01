@@ -130,9 +130,10 @@ class SyntheticPromptGenerator:
         prompt += final_line
 
         # Final tweaks
-        diff = requested_prompt_tokens - get_token_length(prompt)
-        for _ in range(diff):
-            prompt = "hi " + prompt
+        for _ in range(2):
+            diff = requested_prompt_tokens - get_token_length(prompt)
+            for _ in range(diff):
+                prompt = "hi " + prompt
 
         return prompt
 
