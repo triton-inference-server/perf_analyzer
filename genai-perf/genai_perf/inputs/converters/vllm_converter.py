@@ -53,7 +53,7 @@ class VLLMConverter(BaseConverter):
 
             payload = {
                 "model": model_name,
-                "text_input": text_input,
+                "text_input": [text_input],
                 "exclude_input_in_output": [True],  # default
             }
             self._add_request_params(payload, config)
