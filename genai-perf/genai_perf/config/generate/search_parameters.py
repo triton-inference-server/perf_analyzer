@@ -114,8 +114,8 @@ class SearchParameters:
             max=max_range,
         )
 
-    def get_list(self, name: str) -> Optional[List[Any]]:
-        return self._search_parameters[name].enumerated_list
+    def get_list(self, name: str) -> List[Any]:
+        return self._search_parameters[name].get_list()
 
     ###########################################################################
     # Search Parameters
