@@ -61,12 +61,15 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         at __init__
         """
         perf_analyzer_config = PerfAnalyzerConfig(
-            self._config, self._objective_parameters
+            config=self._config,
+            model_objective_parameters=self._objective_parameters,
+            model_name="test_model",
         )
 
         expected_config_options = ConfigPerfAnalyzer()
         expected_parameters = {"runtime_batch_size": 1, "concurrency": 64}
 
+        self.assertEqual("test_model", perf_analyzer_config._model_name)
         self.assertEqual(expected_config_options, perf_analyzer_config._config)
         self.assertEqual(expected_parameters, perf_analyzer_config._parameters)
 

@@ -37,3 +37,14 @@ class ObjectiveParameter:
     usage: SearchUsage
     category: ObjectiveCategory
     value: Any
+
+    def get_value_based_on_category(self) -> Any:
+        if (
+            self.category == ObjectiveCategory.INTEGER
+            or self.category == ObjectiveCategory.STR
+        ):
+            return self.value
+        elif self.category == ObjectiveCategory.EXPONENTIAL:
+            return 2**self.value
+
+        assert True, f"{self.category} is not a known ObjectiveCategory"

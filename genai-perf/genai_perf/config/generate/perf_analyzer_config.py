@@ -17,6 +17,7 @@ from typing import Any, Dict
 from genai_perf.config.generate.objective_parameter import ObjectiveCategory
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigPerfAnalyzer
+from genai_perf.types import ModelName
 
 
 class PerfAnalyzerConfig:
@@ -32,7 +33,9 @@ class PerfAnalyzerConfig:
         self,
         config: ConfigCommand,
         model_objective_parameters: ModelObjectiveParameters,
+        model_name: ModelName,
     ):
+        self._model_name = model_name
         self._set_options_based_on_config(config)
         self._set_options_based_on_objective(model_objective_parameters)
 
@@ -43,14 +46,7 @@ class PerfAnalyzerConfig:
         self, model_objective_parameters: ModelObjectiveParameters
     ) -> None:
         self._parameters: Dict[str, Any] = {}
-        foo = model_objective_parameters.values()
         for objective in model_objective_parameters.values():
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME:
-                    if (
-                        parameter.category == ObjectiveCategory.INTEGER
-                        or parameter.category == ObjectiveCategory.STR
-                    ):
-                        self._parameters[name] = parameter.value
-                    elif parameter.category == ObjectiveCategory.EXPONENTIAL:
-                        self._parameters[name] = 2**parameter.value
+                    self._parameters[name] = parameter.get_value_based_on_category()
