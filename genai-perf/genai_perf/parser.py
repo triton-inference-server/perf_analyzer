@@ -458,6 +458,14 @@ def _add_input_args(parser):
         help="Fixed Schedule TODO",
     )
 
+    prompt_source_group.add_argument(
+        "--block-size",
+        type=int,
+        default=512,
+        required=False,
+        help="Fixed Schedule TODO",
+    )
+
     input_group.add_argument(
         "--num-prompts",
         type=int,

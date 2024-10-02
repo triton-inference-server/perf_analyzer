@@ -300,7 +300,7 @@ class InputRetrieverFactory:
                     prompt_desc[i]["input_length"],
                     0,
                     prompt_hash_list=prompt_desc[i].get("hash_ids", None),
-                    block_size=512,  # TODO Arg
+                    block_size=self.config.block_size,
                 )
             else:
                 synthetic_prompt = self._create_synthetic_prompt(

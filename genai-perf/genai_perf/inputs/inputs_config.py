@@ -77,6 +77,9 @@ class InputsConfig:
     # TODO
     schedule_file: Optional[Path] = None
 
+    # TODO
+    block_size: int = 512
+
     # The compression format of the images.
     image_format: ImageFormat = ImageFormat.PNG
 

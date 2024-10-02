@@ -86,6 +86,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         model_selection_strategy=args.model_selection_strategy,
         input_filename=input_filename,
         schedule_file=schedule_file,
+        block_size=args.block_size,
         starting_index=DEFAULT_STARTING_INDEX,
         length=args.num_prompts,
         prompt_tokens_mean=args.synthetic_input_tokens_mean,
