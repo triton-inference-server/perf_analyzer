@@ -155,7 +155,7 @@ class TestFileInputRetriever:
         new_callable=mock_open,
         read_data='{"text": "single prompt"}\n',
     )
-    def test_get_input_file_with_deprecated_text(self, mock_file, mock_exists):
+    def test_get_input_file_with_deprecated_text_field(self, mock_file, mock_exists):
         expected_prompts = ["single prompt"]
         file_retriever = FileInputRetriever(
             InputsConfig(
