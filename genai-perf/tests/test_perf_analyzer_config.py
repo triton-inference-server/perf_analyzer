@@ -49,6 +49,12 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             }
         }
 
+        self._default_perf_analyzer_config = PerfAnalyzerConfig(
+            config=self._config,
+            model_objective_parameters=self._objective_parameters,
+            model_name="test_model",
+        )
+
     def tearDown(self):
         patch.stopall()
 
@@ -60,18 +66,40 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         Test that we capture the config and objective parameters correctly
         at __init__
         """
-        perf_analyzer_config = PerfAnalyzerConfig(
-            config=self._config,
-            model_objective_parameters=self._objective_parameters,
-            model_name="test_model",
-        )
-
         expected_config_options = ConfigPerfAnalyzer()
         expected_parameters = {"runtime_batch_size": 1, "concurrency": 64}
 
-        self.assertEqual("test_model", perf_analyzer_config._model_name)
-        self.assertEqual(expected_config_options, perf_analyzer_config._config)
-        self.assertEqual(expected_parameters, perf_analyzer_config._parameters)
+        self.assertEqual("test_model", self._default_perf_analyzer_config._model_name)
+        self.assertEqual(
+            expected_config_options, self._default_perf_analyzer_config._config
+        )
+        self.assertEqual(
+            expected_parameters, self._default_perf_analyzer_config._parameters
+        )
+
+    ###########################################################################
+    # Test CLI String Creation
+    ###########################################################################
+    def test_default_cli_string_creation(self):
+        """
+        Test that the default CLI string is created correctly
+        """
+        expected_cli_string = " ".join(
+            [
+                self._config.perf_analzyer.path,
+                "-model-name",
+                "test_model",
+                "--stability-percentage",
+                str(self._config.perf_analzyer.stability_threshold),
+                "batch-size",
+                "1",
+                "concurrency-range",
+                "64",
+            ]
+        )
+        cli_string = self._default_perf_analyzer_config.create_cli_string()
+
+        self.assertEqual(expected_cli_string, cli_string)
 
 
 if __name__ == "__main__":

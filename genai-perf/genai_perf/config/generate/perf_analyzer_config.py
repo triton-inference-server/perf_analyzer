@@ -16,8 +16,8 @@ from typing import Any, Dict
 
 from genai_perf.config.generate.objective_parameter import ObjectiveCategory
 from genai_perf.config.generate.search_parameter import SearchUsage
-from genai_perf.config.input.config_command import ConfigPerfAnalyzer
-from genai_perf.types import ModelName
+from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
+from genai_perf.types import ModelName, ModelObjectiveParameters
 
 
 class PerfAnalyzerConfig:
@@ -25,9 +25,6 @@ class PerfAnalyzerConfig:
     Contains the all the methods necessary for handling calls
     to PerfAnalzyer
     """
-
-    from genai_perf.config.input.config_command import ConfigCommand
-    from genai_perf.types import ModelObjectiveParameters
 
     def __init__(
         self,
@@ -50,3 +47,30 @@ class PerfAnalyzerConfig:
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME:
                     self._parameters[name] = parameter.get_value_based_on_category()
+
+    def create_cli_string(self) -> str:
+        # Required args - from config
+        cli_args = [
+            self._config.path,
+            "-model-name",
+            self._model_name,
+            "--stability-percentage",
+            str(self._config.stability_threshold),
+        ]
+
+        # Parameter args
+        for name, value in self._parameters.items():
+            cli_args.append(self._convert_objective_to_cli_option(name))
+            cli_args.append(str(value))
+
+        cli_string = " ".join(cli_args)
+        return cli_string
+
+    def _convert_objective_to_cli_option(self, objective_name: str) -> str:
+        obj_to_cli_dict = {
+            "runtime_batch_size": "batch-size",
+            "concurrency": "concurrency-range",
+            "request-rate": "request-rate-range",
+        }
+
+        return obj_to_cli_dict[objective_name]
