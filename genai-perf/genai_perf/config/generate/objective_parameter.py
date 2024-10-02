@@ -48,3 +48,4 @@ class ObjectiveParameter:
             return 2**self.value
 
         assert True, f"{self.category} is not a known ObjectiveCategory"
+        return None

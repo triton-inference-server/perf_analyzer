@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import unittest
-from copy import deepcopy
 from unittest.mock import MagicMock, patch
 
 from genai_perf.config.generate.objective_parameter import (
@@ -21,7 +20,7 @@ from genai_perf.config.generate.objective_parameter import (
     ObjectiveParameter,
 )
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.generate.search_parameters import SearchParameters, SearchUsage
+from genai_perf.config.generate.search_parameters import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
 
 

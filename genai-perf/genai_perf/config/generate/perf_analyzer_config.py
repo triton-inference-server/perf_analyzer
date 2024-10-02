@@ -14,7 +14,6 @@
 
 from typing import Any, Dict, List
 
-from genai_perf.config.generate.objective_parameter import ObjectiveCategory
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
 from genai_perf.types import ModelName, ModelObjectiveParameters
