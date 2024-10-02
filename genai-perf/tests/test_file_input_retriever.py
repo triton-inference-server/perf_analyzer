@@ -153,6 +153,28 @@ class TestFileInputRetriever:
     @patch(
         "builtins.open",
         new_callable=mock_open,
+        read_data='{"text": "single prompt"}\n',
+    )
+    def test_get_input_file_with_deprecated_text(self, mock_file, mock_exists):
+        expected_prompts = ["single prompt"]
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                model_name=["test_model_A"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                input_filename=Path("prompt.txt"),
+            )
+        )
+        dataset = file_retriever._get_input_dataset_from_file()
+
+        assert dataset is not None
+        assert len(dataset["rows"]) == len(expected_prompts)
+        for i, prompt in enumerate(expected_prompts):
+            assert dataset["rows"][i]["row"]["text_input"] == prompt
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
         read_data='{"text_input": "prompt1"}\n{"text_input": "prompt2"}\n{"text_input": "prompt3"}\n',
     )
     def test_get_input_file_with_multiple_prompts(self, mock_file, mock_exists):

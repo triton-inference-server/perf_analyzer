@@ -157,9 +157,16 @@ class FileInputRetriever:
         with open(self.config.input_filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
+                    data = load_json_str(line)
                     # None if not provided
-                    prompt = load_json_str(line).get("text_input")
-                    image = load_json_str(line).get("image")
+                    prompt = data.get("text_input")
+                    prompt_alt = data.get("text")
+                    if prompt and prompt_alt:
+                        raise ValueError(
+                            "Each data entry must have only one of 'text_input' or 'text' key name."
+                        )
+                    prompt = prompt if prompt else prompt_alt
+                    image = data.get("image")
                     prompts.append(prompt.strip() if prompt else prompt)
                     images.append(image.strip() if image else image)
         return prompts, images
