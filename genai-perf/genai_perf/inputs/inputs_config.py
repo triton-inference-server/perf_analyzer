@@ -62,8 +62,11 @@ class InputsConfig:
     # If true, adds a steam field to each payload
     add_stream: bool = False
 
-    # The number of inputs per request (currently only used for the embeddings, image retrieval, and rankings endpoints)
-    batch_size: int = 1
+    # The number of image inputs per request (currently only used for the image retrieval endpoint)
+    batch_size_images: int = 1
+
+    # The number of text inputs per request (currently only used for the embeddings and rankings endpoints)
+    batch_size_text: int = 1
 
     # The name of the dataset
     dataset_name: str = ""

@@ -82,7 +82,7 @@ genai-perf profile \
     --input-file rankings_jsonl/ \
     -u localhost:8080 \
     --extra-inputs rankings:tei \
-    --batch-size 2
+    --batch-size-text 2
 ```
 
 This command specifies the use of Hugging Face's ranking API with `--endpoint rerank` and `--extra-inputs rankings:tei`.

@@ -73,7 +73,7 @@ class FileInputRetriever:
             raise ValueError("Queries file must have at least one entry.")
         if len(passages) < 1:
             raise ValueError("Passages file must have at least one entry.")
-        if self.config.batch_size > len(passages):
+        if self.config.batch_size_text > len(passages):
             raise ValueError(
                 "Batch size cannot be larger than the number of available passages"
             )
@@ -85,7 +85,7 @@ class FileInputRetriever:
         for _ in range(self.config.num_prompts):
             data = {
                 "query": random.choice(queries),
-                "passages": random.sample(passages, self.config.batch_size),
+                "passages": random.sample(passages, self.config.batch_size_text),
             }
             dataset_json["rows"].append({"row": data})
         return dataset_json
@@ -100,15 +100,23 @@ class FileInputRetriever:
         """
         self._verify_file()
         prompts, images = self._get_prompts_from_input_file()
-        if self.config.batch_size > len(prompts):
+        if self.config.batch_size_images > len(images):
             raise ValueError(
-                "Batch size cannot be larger than the number of available texts"
+                "Batch size for images cannot be larger than the number of available images"
             )
+        if self.config.batch_size_text > len(prompts):
+            raise ValueError(
+                "Batch size for texts cannot be larger than the number of available texts"
+            )
+
         dataset_json: Dict[str, Any] = {}
         dataset_json["features"] = [{"name": "text_input"}]
         dataset_json["rows"] = []
 
-        if self.config.batch_size == DEFAULT_BATCH_SIZE:
+        if (
+            self.config.batch_size_text == DEFAULT_BATCH_SIZE
+            and self.config.batch_size_images == DEFAULT_BATCH_SIZE
+        ):
             for prompt, image in zip(prompts, images):
                 content = {}
                 if prompt is not None:
@@ -119,20 +127,29 @@ class FileInputRetriever:
         else:
             for _ in range(self.config.num_prompts):
                 content_array = []
-                sampled_indices = random.sample(
-                    range(len(prompts)), self.config.batch_size
+                sampled_image_indices = random.sample(
+                    range(len(prompts)), self.config.batch_size_images
                 )
-                sampled_texts_images = [
-                    (prompts[i], images[i]) for i in sampled_indices
-                ]
+                sampled_text_indices = random.sample(
+                    range(len(prompts)), self.config.batch_size_text
+                )
 
-                for prompt, image in sampled_texts_images:
+                sampled_images = [images[i] for i in sampled_image_indices]
+                sampled_texts = [prompts[i] for i in sampled_text_indices]
+
+                max_samples = max(len(sampled_texts), len(sampled_images))
+                num_sampled_images = len(sampled_images)
+                num_sampled_texts = len(sampled_texts)
+
+                for i in range(max_samples):
                     content = {}
-                    if prompt is not None:
-                        content["text_input"] = prompt
-                    if image is not None:
-                        content["image"] = image
+                    if i < num_sampled_images:
+                        content["image"] = sampled_images[i]
+                    if i < num_sampled_texts:
+                        content["text_input"] = sampled_texts[i]
+
                     content_array.append(content)
+
                 dataset_json["rows"].append({"row": content_array})
 
         return dataset_json

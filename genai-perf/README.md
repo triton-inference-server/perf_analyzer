@@ -315,8 +315,8 @@ For [Large Language Models](docs/tutorial.md), there is no batch size (i.e.
 batch size is always `1`). Each request includes the inputs for one individual
 inference. Other modes such as the [embeddings](docs/embeddings.md) and
 [rankings](docs/rankings.md) endpoints support client-side batching, where
-`--batch-size N` means that each request sent will include the inputs for `N`
-separate inferences, allowing them to be processed together.
+`--batch-size-text N` means that each request sent will include the inputs for
+`N` separate inferences, allowing them to be processed together.
 
 </br>
 
@@ -405,11 +405,19 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 
 ##### `-b <int>`
 ##### `--batch-size <int>`
+##### `--batch-size-text <int>`
 
-The batch size of the requests GenAI-Perf should send.
+The text batch size of the requests GenAI-Perf should send.
 This is currently only supported with the
-[embeddings](docs/embeddings.md), image_retrieval, and
+[embeddings](docs/embeddings.md) and
 [rankings](docs/rankings.md) endpoint types.
+(default: `1`)
+
+##### `--batch-size-images <int>`
+
+The image batch size of the requests GenAI-Perf should send.
+This is currently only supported with the
+image retrieval endpoint type.
 (default: `1`)
 
 ##### `--extra-inputs <str>`

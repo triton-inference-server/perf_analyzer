@@ -109,7 +109,7 @@ class TestInputsImageRetrieval:
                 input_type=PromptSource.FILE,
                 output_format=OutputFormat.IMAGE_RETRIEVAL,
                 input_filename=Path("dummy.jsonl"),
-                batch_size=2,
+                batch_size_images=2,
                 num_prompts=1,
                 model_name=["test_model"],
             )

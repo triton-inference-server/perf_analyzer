@@ -87,7 +87,7 @@ class TestEmbeddingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            batch_size=2,
+            batch_size_text=2,
         )
 
         embedding_converter = OpenAIEmbeddingsConverter()

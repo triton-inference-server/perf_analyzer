@@ -80,14 +80,25 @@ class TestCLIArguments:
             ),
             (
                 [
-                    "--batch-size",
+                    "--batch-size-text",
                     "5",
                     "--endpoint-type",
                     "embeddings",
                     "--service-kind",
                     "openai",
                 ],
-                {"batch_size": 5},
+                {"batch_size_text": 5},
+            ),
+            (
+                [
+                    "--batch-size-images",
+                    "5",
+                    "--endpoint-type",
+                    "image_retrieval",
+                    "--service-kind",
+                    "openai",
+                ],
+                {"batch_size_images": 5},
             ),
             (
                 [
@@ -98,7 +109,7 @@ class TestCLIArguments:
                     "--service-kind",
                     "openai",
                 ],
-                {"batch_size": 5},
+                {"batch_size_text": 5},
             ),
             (["--concurrency", "3"], {"concurrency": 3}),
             (
@@ -564,10 +575,21 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--batch-size",
+                    "--batch-size-text",
                     "10",
                 ],
-                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types",
+                "The --batch-size-text option is currently only supported with the embeddings and rankings endpoint types",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--batch-size-images",
+                    "10",
+                ],
+                "The --batch-size-images option is currently only supported with the image retrieval endpoint type",
             ),
             (
                 [
