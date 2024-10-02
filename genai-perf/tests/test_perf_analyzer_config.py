@@ -87,19 +87,73 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         expected_cli_string = " ".join(
             [
                 self._config.perf_analzyer.path,
-                "-model-name",
+                "--model-name",
                 "test_model",
                 "--stability-percentage",
                 str(self._config.perf_analzyer.stability_threshold),
-                "batch-size",
+                "--batch-size",
                 "1",
-                "concurrency-range",
+                "--concurrency-range",
                 "64",
             ]
         )
         cli_string = self._default_perf_analyzer_config.create_cli_string()
 
         self.assertEqual(expected_cli_string, cli_string)
+
+    ###########################################################################
+    # Test Representation
+    ###########################################################################
+    def test_default_representation(self):
+        """
+        Test that the representation is created correctly in the default case
+        """
+        expected_representation = " ".join(
+            [
+                "--model-name",
+                "test_model",
+                "--stability-percentage",
+                str(self._config.perf_analzyer.stability_threshold),
+                "--batch-size",
+                "1",
+                "--concurrency-range",
+                "64",
+            ]
+        )
+        representation = self._default_perf_analyzer_config.representation()
+
+        self.assertEqual(expected_representation, representation)
+
+    @patch(
+        "genai_perf.config.generate.perf_analyzer_config.PerfAnalyzerConfig.create_cli_string",
+        MagicMock(
+            return_value=" ".join(
+                [
+                    "perf_analyzer",
+                    "--url",
+                    "url_string",
+                    "--metrics-url",
+                    "url_string",
+                    "--latency-report-file",
+                    "file_string",
+                    "--measurement-request-count",
+                    "mrc_string",
+                    "--verbose",
+                    "--extra-verbose",
+                    "--verbose-csv",
+                ]
+            )
+        ),
+    )
+    def test_with_removal_representation(self):
+        """
+        Test that the representation is created correctly when every
+        possible value that should be removed is added
+        """
+        representation = self._default_perf_analyzer_config.representation()
+
+        expected_representation = ""
+        self.assertEqual(expected_representation, representation)
 
 
 if __name__ == "__main__":
