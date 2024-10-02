@@ -60,8 +60,6 @@ class PerfAnalyzerConfig:
         cli_args = self._create_required_args()
         cli_args += self._create_parameter_args()
 
-        # Parameter args
-
         cli_string = " ".join(cli_args)
         return cli_string
 
