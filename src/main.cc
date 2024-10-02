@@ -1,4 +1,4 @@
-// Copyright 2020-2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -24,6 +24,10 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#ifdef TRITON_ENABLE_PERF_ANALYZER_C_API
+#include "client_backend/triton_c_api/triton_loader.h"
+#endif  // TRITON_ENABLE_PERF_ANALYZER_C_API
+
 #include "perf_analyzer.h"
 #include "perf_analyzer_exception.h"
 
@@ -32,6 +36,7 @@ namespace pa = triton::perfanalyzer;
 int
 main(int argc, char* argv[])
 {
+  int exit_code = 0;
   try {
     triton::perfanalyzer::CLParser clp;
     pa::PAParamsPtr params = clp.Parse(argc, argv);
@@ -41,8 +46,16 @@ main(int argc, char* argv[])
   }
   catch (pa::PerfAnalyzerException& e) {
     std::cerr << e.what() << std::endl;
-    return e.GetError();
+    exit_code = e.GetError();
   }
 
-  return 0;
+
+#ifdef TRITON_ENABLE_PERF_ANALYZER_C_API
+  // destruct static variable before end of program as underlying libraries may
+  // use resources in their destruction that won't exist anymore if static
+  // variable is destructed at the end of process rather than here explicitly
+  pa::clientbackend::tritoncapi::TritonLoader::GetSingleton()->Delete();
+#endif  // TRITON_ENABLE_PERF_ANALYZER_C_API
+
+  return exit_code;
 }
