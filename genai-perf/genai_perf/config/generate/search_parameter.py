@@ -63,4 +63,4 @@ class SearchParameter:
         ):
             return [value for value in range(self.min_range, self.max_range + 1)]  # type: ignore
 
-        assert True, f"{self.category} is not a known SearchCategory"
+        raise ValueError(f"{self.category} is not a known SearchCategory")

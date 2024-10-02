@@ -47,5 +47,4 @@ class ObjectiveParameter:
         elif self.category == ObjectiveCategory.EXPONENTIAL:
             return 2**self.value
 
-        assert True, f"{self.category} is not a known ObjectiveCategory"
-        return None
+        raise ValueError(f"{self.category} is not a known ObjectiveCategory")
