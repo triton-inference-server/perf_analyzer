@@ -1931,9 +1931,6 @@ CLParser::VerifyOptions()
 
   if (params_->warmup_request_count != 0) {
     if (params_->using_concurrency_range) {
-      if (params_->warmup_request_count < params_->concurrency_range.start) {
-        Usage("--warmup-request-count can not be less than concurrency");
-      }
       if (params_->concurrency_range.start < params_->concurrency_range.end) {
         Usage(
             "--warmup-request-count not supported with multiple concurrency "
@@ -1941,10 +1938,6 @@ CLParser::VerifyOptions()
       }
     }
     if (params_->using_request_rate_range) {
-      if (params_->warmup_request_count <
-          static_cast<int>(params_->request_rate_range[0])) {
-        Usage("--warmup-request-count can not be less than request rate");
-      }
       if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
           params_->request_rate_range[SEARCH_RANGE::kEND]) {
         Usage(
