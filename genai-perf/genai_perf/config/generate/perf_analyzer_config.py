@@ -16,13 +16,14 @@ from typing import Any, Dict, List
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.types import ModelName, ModelObjectiveParameters
 
 
 class PerfAnalyzerConfig:
     """
-    Contains the all the methods necessary for handling calls
-    to PerfAnalzyer
+    Contains all the methods necessary for handling calls
+    to PerfAnalyzer
     """
 
     def __init__(
@@ -39,7 +40,7 @@ class PerfAnalyzerConfig:
     # Set Options Methods
     ###########################################################################
     def _set_options_based_on_config(self, config: ConfigCommand) -> None:
-        self._config: ConfigPerfAnalyzer = config.perf_analzyer
+        self._config: ConfigPerfAnalyzer = config.perf_analyzer
 
     def _set_options_based_on_objective(
         self, model_objective_parameters: ModelObjectiveParameters
@@ -90,7 +91,10 @@ class PerfAnalyzerConfig:
             "request-rate": "--request-rate-range",
         }
 
-        return obj_to_cli_dict[objective_name]
+        try:
+            return obj_to_cli_dict[objective_name]
+        except:
+            raise GenAIPerfException(f"{objective_name} not found")
 
     ###########################################################################
     # Representation Methods
@@ -140,7 +144,7 @@ class PerfAnalyzerConfig:
             if with_arg:
                 cli_str_tokens.pop(removal_index)
         except ValueError:
-            # Ignore ValueError exception
+            # ignore exception if the option doesn't exist in the cli_string
             pass
 
         return " ".join(cli_str_tokens)

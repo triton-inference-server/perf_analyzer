@@ -85,11 +85,11 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         """
         expected_cli_string = " ".join(
             [
-                self._config.perf_analzyer.path,
+                self._config.perf_analyzer.path,
                 "--model-name",
                 "test_model",
                 "--stability-percentage",
-                str(self._config.perf_analzyer.stability_threshold),
+                str(self._config.perf_analyzer.stability_threshold),
                 "--batch-size",
                 "1",
                 "--concurrency-range",
@@ -112,7 +112,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 "--model-name",
                 "test_model",
                 "--stability-percentage",
-                str(self._config.perf_analzyer.stability_threshold),
+                str(self._config.perf_analyzer.stability_threshold),
                 "--batch-size",
                 "1",
                 "--concurrency-range",

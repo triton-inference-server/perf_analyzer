@@ -155,7 +155,7 @@ class ConfigPerfAnalyzer:
 class ConfigCommand:
     model_names: List[ModelName]
     optimize: ConfigOptimize = ConfigOptimize()
-    perf_analzyer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
+    perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
 
     def get_max(self, config_value: ConfigRangeOrList) -> int:
         if type(config_value) is list:

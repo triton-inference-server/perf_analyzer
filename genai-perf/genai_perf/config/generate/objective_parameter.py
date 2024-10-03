@@ -17,6 +17,7 @@ from enum import Enum, auto
 from typing import Any, Dict, TypeAlias
 
 from genai_perf.config.generate.search_parameter import SearchUsage
+from genai_perf.exceptions import GenAIPerfException
 
 
 class ObjectiveCategory(Enum):
@@ -47,4 +48,4 @@ class ObjectiveParameter:
         elif self.category == ObjectiveCategory.EXPONENTIAL:
             return 2**self.value
 
-        raise ValueError(f"{self.category} is not a known ObjectiveCategory")
+        raise GenAIPerfException(f"{self.category} is not a known ObjectiveCategory")
