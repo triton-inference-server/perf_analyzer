@@ -413,7 +413,7 @@ This is currently only supported with the
 [rankings](docs/rankings.md) endpoint types.
 (default: `1`)
 
-##### `--batch-size-images <int>`
+##### `--batch-size-image <int>`
 
 The image batch size of the requests GenAI-Perf should send.
 This is currently only supported with the

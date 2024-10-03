@@ -99,7 +99,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
             args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
         ),
         extra_inputs=extra_input_dict,
-        batch_size_images=args.batch_size_images,
+        batch_size_image=args.batch_size_image,
         batch_size_text=args.batch_size_text,
         output_dir=args.artifact_dir,
     )

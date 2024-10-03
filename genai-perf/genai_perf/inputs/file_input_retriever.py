@@ -100,7 +100,7 @@ class FileInputRetriever:
         """
         self._verify_file()
         prompts, images = self._get_prompts_from_input_file()
-        if self.config.batch_size_images > len(images):
+        if self.config.batch_size_image > len(images):
             raise ValueError(
                 "Batch size for images cannot be larger than the number of available images"
             )
@@ -115,7 +115,7 @@ class FileInputRetriever:
 
         if (
             self.config.batch_size_text == DEFAULT_BATCH_SIZE
-            and self.config.batch_size_images == DEFAULT_BATCH_SIZE
+            and self.config.batch_size_image == DEFAULT_BATCH_SIZE
         ):
             for prompt, image in zip(prompts, images):
                 content = {}
@@ -128,7 +128,7 @@ class FileInputRetriever:
             for _ in range(self.config.num_prompts):
                 content_array = []
                 sampled_image_indices = random.sample(
-                    range(len(prompts)), self.config.batch_size_images
+                    range(len(prompts)), self.config.batch_size_image
                 )
                 sampled_text_indices = random.sample(
                     range(len(prompts)), self.config.batch_size_text

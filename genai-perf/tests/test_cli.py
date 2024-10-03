@@ -91,14 +91,14 @@ class TestCLIArguments:
             ),
             (
                 [
-                    "--batch-size-images",
+                    "--batch-size-image",
                     "5",
                     "--endpoint-type",
                     "image_retrieval",
                     "--service-kind",
                     "openai",
                 ],
-                {"batch_size_images": 5},
+                {"batch_size_image": 5},
             ),
             (
                 [
@@ -586,10 +586,10 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--batch-size-images",
+                    "--batch-size-image",
                     "10",
                 ],
-                "The --batch-size-images option is currently only supported with the image retrieval endpoint type",
+                "The --batch-size-image option is currently only supported with the image retrieval endpoint type",
             ),
             (
                 [

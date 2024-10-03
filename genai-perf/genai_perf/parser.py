@@ -220,9 +220,9 @@ def _check_conditional_args_embeddings_rankings(
                 "The --batch-size-text option is currently only supported "
                 "with the embeddings and rankings endpoint types."
             )
-        if args.batch_size_images != ic.DEFAULT_BATCH_SIZE:
+        if args.batch_size_image != ic.DEFAULT_BATCH_SIZE:
             parser.error(
-                "The --batch-size-images option is currently only supported "
+                "The --batch-size-image option is currently only supported "
                 "with the image retrieval endpoint type."
             )
 
@@ -434,7 +434,7 @@ def _add_input_args(parser):
     input_group = parser.add_argument_group("Input")
 
     input_group.add_argument(
-        "--batch-size-images",
+        "--batch-size-image",
         type=int,
         default=ic.DEFAULT_BATCH_SIZE,
         required=False,
