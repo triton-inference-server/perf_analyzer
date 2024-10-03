@@ -64,7 +64,7 @@ class BaseConverter:
             return self._construct_text_payload(input_data)
         else:
             input_data = cast(List, input_data)
-            return self._construct_texts_payload(input_data)
+            return self._construct_batched_text_payload(input_data)
 
     def _construct_text_payload(self, input_data: Dict) -> str:
         """
@@ -75,7 +75,7 @@ class BaseConverter:
         contents = [v for k, v in input_data.items() if k in self._CONTENT_NAMES]
         return " ".join(contents)
 
-    def _construct_texts_payload(self, input_data: List) -> List:
+    def _construct_batched_text_payload(self, input_data: List) -> List:
         """
         Construct batched text payload content for non-chat based LLM converters.
         """
