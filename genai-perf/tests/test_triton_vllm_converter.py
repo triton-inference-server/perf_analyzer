@@ -53,12 +53,12 @@ class TestVLLMConverter:
             "data": [
                 {
                     "model": "test_model",
-                    "text_input": "text input one",
+                    "text_input": ["text input one"],
                     "exclude_input_in_output": [True],
                 },
                 {
                     "model": "test_model",
-                    "text_input": "text input two",
+                    "text_input": ["text input two"],
                     "exclude_input_in_output": [True],
                 },
             ]
@@ -96,7 +96,7 @@ class TestVLLMConverter:
             "data": [
                 {
                     "model": "test_model",
-                    "text_input": "text input one",
+                    "text_input": ["text input one"],
                     "exclude_input_in_output": [False],
                     "ignore_eos": [True],
                     "max_tokens": [1234],
@@ -105,7 +105,7 @@ class TestVLLMConverter:
                 },
                 {
                     "model": "test_model",
-                    "text_input": "text input two",
+                    "text_input": ["text input two"],
                     "exclude_input_in_output": [False],
                     "ignore_eos": [True],
                     "max_tokens": [1234],
@@ -141,7 +141,7 @@ class TestVLLMConverter:
             "data": [
                 {
                     "model": "test_model",
-                    "text_input": "text input one",
+                    "text_input": ["text input one"],
                     "exclude_input_in_output": [True],
                     "sampling_parameters": [
                         '{"max_tokens": "1234", "min_tokens": "1234"}'
@@ -149,7 +149,7 @@ class TestVLLMConverter:
                 },
                 {
                     "model": "test_model",
-                    "text_input": "text input two",
+                    "text_input": ["text input two"],
                     "exclude_input_in_output": [True],
                     "sampling_parameters": [
                         '{"max_tokens": "1234", "min_tokens": "1234"}'
