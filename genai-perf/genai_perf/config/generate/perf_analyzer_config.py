@@ -135,16 +135,15 @@ class PerfAnalyzerConfig:
     def _remove_option_from_cli_string(
         self, option_to_remove: str, cli_string: str, with_arg: bool
     ) -> str:
+        if option_to_remove not in cli_string:
+            return cli_string
+
         cli_str_tokens = cli_string.split(" ")
 
-        try:
-            removal_index = cli_str_tokens.index(option_to_remove)
-            cli_str_tokens.pop(removal_index)
+        removal_index = cli_str_tokens.index(option_to_remove)
+        cli_str_tokens.pop(removal_index)
 
-            if with_arg:
-                cli_str_tokens.pop(removal_index)
-        except ValueError:
-            # ignore exception if the option doesn't exist in the cli_string
-            pass
+        if with_arg:
+            cli_str_tokens.pop(removal_index)
 
         return " ".join(cli_str_tokens)
