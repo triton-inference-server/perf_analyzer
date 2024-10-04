@@ -87,6 +87,13 @@ class Inputs:
                     f"{self.config.output_format.to_lowercase()} only supports "
                     "a file as input source."
                 )
+        elif self.config.output_format == OutputFormat.OPENAI_VISION:
+            # (TMA-1990) support VLM input from public dataset
+            if self.config.input_type == PromptSource.DATASET:
+                raise GenAIPerfException(
+                    f"{OutputFormat.OPENAI_VISION.to_lowercase()} currently "
+                    "does not support dataset as input."
+                )
 
     def _check_for_dataset_name_if_input_type_is_url(self) -> None:
         if (

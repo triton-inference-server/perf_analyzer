@@ -37,46 +37,6 @@ from PIL import Image
 
 class TestFileInputRetriever:
 
-    @patch("pathlib.Path.exists", return_value=True)
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data="\n".join(
-            [
-                '{"text": "What production company co-owned by Kevin Loader and Rodger Michell produced My Cousin Rachel?"}',
-                '{"text": "Who served as the 1st Vice President of Colombia under El Libertador?"}',
-                '{"text": "Are the Barton Mine and Hermiston-McCauley Mine located in The United States of America?"}',
-                '{"text": "what state did they film daddy\'s home 2"}',
-            ]
-        ),
-    )
-    def test_read_embeddings_input_file(self, mock_file, mock_exists):
-        batch_size = 3
-        config = InputsConfig(
-            input_filename=Path("embeddings.jsonl"),
-            batch_size=batch_size,
-            num_prompts=100,
-        )
-        file_retriever = FileInputRetriever(config)
-        dataset = file_retriever._read_embeddings_input_file()
-
-        assert dataset is not None
-        assert len(dataset["rows"]) == 100
-        for row in dataset["rows"]:
-            assert "row" in row
-            payload = row["row"]
-            assert "input" in payload
-            assert isinstance(payload["input"], list)
-            assert len(payload["input"]) == batch_size
-
-        # Try error case where batch size is larger than the number of available texts
-        with pytest.raises(
-            ValueError,
-            match="Batch size cannot be larger than the number of available texts",
-        ):
-            config.batch_size = 5
-            file_retriever._read_embeddings_input_file()
-
     def open_side_effects(self, filepath, *args, **kwargs):
         queries_content = "\n".join(
             [
@@ -174,6 +134,28 @@ class TestFileInputRetriever:
         read_data='{"text_input": "single prompt"}\n',
     )
     def test_get_input_file_with_single_prompt(self, mock_file, mock_exists):
+        expected_prompts = ["single prompt"]
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                model_name=["test_model_A"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                input_filename=Path("prompt.txt"),
+            )
+        )
+        dataset = file_retriever._get_input_dataset_from_file()
+
+        assert dataset is not None
+        assert len(dataset["rows"]) == len(expected_prompts)
+        for i, prompt in enumerate(expected_prompts):
+            assert dataset["rows"][i]["row"]["text_input"] == prompt
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='{"text": "single prompt"}\n',
+    )
+    def test_get_input_file_with_deprecated_text_field(self, mock_file, mock_exists):
         expected_prompts = ["single prompt"]
         file_retriever = FileInputRetriever(
             InputsConfig(
