@@ -29,14 +29,16 @@ from typing import Any, Dict, List
 import requests
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.file_input_retriever import FileInputRetriever
 from genai_perf.inputs.input_constants import OutputFormat, PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.synthetic_image_generator import (
+from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
+from genai_perf.inputs.retrievers.synthetic_image_generator import (
     ImageFormat,
     SyntheticImageGenerator,
 )
-from genai_perf.inputs.synthetic_prompt_generator import SyntheticPromptGenerator
+from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
+    SyntheticPromptGenerator,
+)
 from PIL import Image
 from requests import Response
 

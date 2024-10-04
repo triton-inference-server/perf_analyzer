@@ -19,9 +19,9 @@ import responses
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.input_retriever_factory import InputRetrieverFactory
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 
 

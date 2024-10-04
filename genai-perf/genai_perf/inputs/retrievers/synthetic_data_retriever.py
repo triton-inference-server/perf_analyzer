@@ -28,8 +28,12 @@
 from typing import Any, Dict, List
 
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.synthetic_image_generator import SyntheticImageGenerator
-from genai_perf.inputs.synthetic_prompt_generator import SyntheticPromptGenerator
+from genai_perf.inputs.retrievers.synthetic_image_generator import (
+    SyntheticImageGenerator,
+)
+from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
+    SyntheticPromptGenerator,
+)
 
 
 class SyntheticDataRetriever:

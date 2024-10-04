@@ -29,9 +29,9 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.inputs.file_input_retriever import FileInputRetriever
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
 from PIL import Image
 
 

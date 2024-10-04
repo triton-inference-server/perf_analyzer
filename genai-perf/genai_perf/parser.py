@@ -36,7 +36,7 @@ import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_COMPARE_DIR
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.telemetry_data import TelemetryDataCollector

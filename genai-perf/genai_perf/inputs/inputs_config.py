@@ -45,7 +45,7 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, Tokenizer, get_tokenizer
 
 

@@ -17,7 +17,7 @@ from unittest.mock import patch
 import pytest
 from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.synthetic_data_retriever import SyntheticDataRetriever
+from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
 
 
 class TestSyntheticDataRetriever:
