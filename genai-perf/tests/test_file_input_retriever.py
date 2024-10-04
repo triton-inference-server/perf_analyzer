@@ -69,9 +69,9 @@ class TestFileInputRetriever:
     def test_read_rankings_input_files(self, mock_file):
         queries_filename = Path("queries.jsonl")
         passages_filename = Path("passages.jsonl")
-        batch_size = 2
+        batch_size_text = 2
         config = InputsConfig(
-            batch_size=batch_size,
+            batch_size_text=batch_size_text,
             num_prompts=100,
         )
         file_retriever = FileInputRetriever(config)
@@ -87,14 +87,14 @@ class TestFileInputRetriever:
             assert "query" in payload
             assert "passages" in payload
             assert isinstance(payload["passages"], list)
-            assert len(payload["passages"]) == batch_size
+            assert len(payload["passages"]) == batch_size_text
 
         # Try error case where batch size is larger than the number of available texts
         with pytest.raises(
             ValueError,
             match="Batch size cannot be larger than the number of available passages",
         ):
-            config.batch_size = 5
+            config.batch_size_text = 5
             file_retriever._read_rankings_input_files(
                 queries_filename, passages_filename
             )
