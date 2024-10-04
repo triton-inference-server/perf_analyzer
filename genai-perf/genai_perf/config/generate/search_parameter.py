@@ -16,6 +16,8 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, List, Optional, TypeAlias, Union
 
+from genai_perf.exceptions import GenAIPerfException
+
 ParameterList: TypeAlias = List[Union[int, str]]
 
 
@@ -63,4 +65,4 @@ class SearchParameter:
         ):
             return [value for value in range(self.min_range, self.max_range + 1)]  # type: ignore
 
-        assert True, f"{self.category} is not a known SearchCategory"
+        raise GenAIPerfException(f"{self.category} is not a known SearchCategory")

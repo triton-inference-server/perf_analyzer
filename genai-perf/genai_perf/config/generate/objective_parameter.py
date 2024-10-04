@@ -17,6 +17,7 @@ from enum import Enum, auto
 from typing import Any, Dict, TypeAlias
 
 from genai_perf.config.generate.search_parameter import SearchUsage
+from genai_perf.exceptions import GenAIPerfException
 
 
 class ObjectiveCategory(Enum):
@@ -37,3 +38,14 @@ class ObjectiveParameter:
     usage: SearchUsage
     category: ObjectiveCategory
     value: Any
+
+    def get_value_based_on_category(self) -> Any:
+        if (
+            self.category == ObjectiveCategory.INTEGER
+            or self.category == ObjectiveCategory.STR
+        ):
+            return self.value
+        elif self.category == ObjectiveCategory.EXPONENTIAL:
+            return 2**self.value
+
+        raise GenAIPerfException(f"{self.category} is not a known ObjectiveCategory")
