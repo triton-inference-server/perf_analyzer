@@ -61,6 +61,15 @@ class RunConfigDefaults:
     MAX_REQUEST_RATE = 8192
     USE_CONCURRENCY_FORMULA = True
 
+    # Perf Analyzer Defaults
+    PA_PATH = "perf_analyzer"
+    TIMEOUT_THRESHOLD = 600
+    MAX_CPU_UTILIZATION = 80.0
+    OUTPUT_LOGGING = False
+    OUTPUT_PATH = "./logs"
+    MAX_AUTO_ADJUSTS = 10
+    STABILITY_THRESHOLD = 99.9
+
 
 # TODO: OPTIMIZE
 # These are placeholder dataclasses until the real Command Parser is written
@@ -86,7 +95,7 @@ class ConfigModelConfig:
 
 
 @dataclass
-class ConfigPerfAnalyzer:
+class ConfigOptimizePerfAnalyzer:
     stimulus_type: str = default_field(RunConfigDefaults.STIMULUS_TYPE)
     batch_size: ConfigRangeOrList = default_field(RunConfigDefaults.PA_BATCH_SIZE)
     concurrency: ConfigRangeOrList = default_field(
@@ -121,7 +130,7 @@ class ConfigOptimize:
     early_exit_threshold: int = default_field(RunConfigDefaults.EARLY_EXIT_THRESHOLD)
 
     model_config: ConfigModelConfig = ConfigModelConfig()
-    perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
+    perf_analyzer: ConfigOptimizePerfAnalyzer = ConfigOptimizePerfAnalyzer()
 
     def is_request_rate_specified(self) -> bool:
         return self.perf_analyzer.is_request_rate_specified()
@@ -132,9 +141,21 @@ class ConfigOptimize:
 
 
 @dataclass
+class ConfigPerfAnalyzer:
+    path: str = default_field(RunConfigDefaults.PA_PATH)
+    timeout_threshold: int = default_field(RunConfigDefaults.TIMEOUT_THRESHOLD)
+    max_cpu_utilization: float = default_field(RunConfigDefaults.MAX_CPU_UTILIZATION)
+    output_logging: bool = default_field(RunConfigDefaults.OUTPUT_LOGGING)
+    output_path: str = default_field(RunConfigDefaults.OUTPUT_PATH)
+    max_auto_adjusts: int = default_field(RunConfigDefaults.MAX_AUTO_ADJUSTS)
+    stability_threshold: float = default_field(RunConfigDefaults.STABILITY_THRESHOLD)
+
+
+@dataclass
 class ConfigCommand:
     model_names: List[ModelName]
     optimize: ConfigOptimize = ConfigOptimize()
+    perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
 
     def get_max(self, config_value: ConfigRangeOrList) -> int:
         if type(config_value) is list:
