@@ -105,9 +105,7 @@ You can also build Perf Analyzer [from source](../docs/install.md#build-from-sou
 ### Install GenAI-Perf from source
 
 ```bash
-git clone https://github.com/triton-inference-server/perf_analyzer.git && cd perf_analyzer
-
-pip install -e genai-perf
+pip install git+https://github.com/triton-inference-server/perf_analyzer.git#subdirectory=genai-perf
 ```
 
 </details>
