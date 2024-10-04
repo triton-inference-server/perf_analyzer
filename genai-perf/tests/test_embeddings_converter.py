@@ -33,10 +33,11 @@ class TestEmbeddingsConverter:
 
     def test_convert_default(self):
         generic_dataset = {
+            "features": ["text_input"],
             "rows": [
-                {"input": ["text 1", "text 2"]},
-                {"input": ["text 3", "text 4"]},
-            ]
+                {"text_input": "text_1"},
+                {"text_input": "text_2"},
+            ],
         }
 
         config = InputsConfig(
@@ -54,7 +55,7 @@ class TestEmbeddingsConverter:
                 {
                     "payload": [
                         {
-                            "input": ["text 1", "text 2"],
+                            "input": "text_1",
                             "model": "test_model",
                         }
                     ]
@@ -62,7 +63,50 @@ class TestEmbeddingsConverter:
                 {
                     "payload": [
                         {
-                            "input": ["text 3", "text 4"],
+                            "input": "text_2",
+                            "model": "test_model",
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_batched(self):
+        generic_dataset = {
+            "features": ["text_input"],
+            "rows": [
+                [{"text_input": "text_1"}, {"text_input": "text_2"}],
+                [{"text_input": "text_3"}, {"text_input": "text_4"}],
+            ],
+        }
+
+        config = InputsConfig(
+            extra_inputs={},  # no extra inputs
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            batch_size=2,
+        )
+
+        embedding_converter = OpenAIEmbeddingsConverter()
+        result = embedding_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "input": ["text_1", "text_2"],
+                            "model": "test_model",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "input": ["text_3", "text_4"],
                             "model": "test_model",
                         }
                     ]
@@ -74,10 +118,11 @@ class TestEmbeddingsConverter:
 
     def test_convert_with_request_parameters(self):
         generic_dataset = {
+            "features": ["text_input"],
             "rows": [
-                {"input": ["text 1", "text 2"]},
-                {"input": ["text 3", "text 4"]},
-            ]
+                {"text_input": "text_1"},
+                {"text_input": "text_2"},
+            ],
         }
 
         extra_inputs = {
@@ -101,7 +146,7 @@ class TestEmbeddingsConverter:
                 {
                     "payload": [
                         {
-                            "input": ["text 1", "text 2"],
+                            "input": "text_1",
                             "model": "test_model",
                             "encoding_format": "base64",
                             "truncate": "END",
@@ -112,7 +157,7 @@ class TestEmbeddingsConverter:
                 {
                     "payload": [
                         {
-                            "input": ["text 3", "text 4"],
+                            "input": "text_2",
                             "model": "test_model",
                             "encoding_format": "base64",
                             "truncate": "END",

@@ -38,7 +38,7 @@ that are widely used across the industry.
 
 - [Profile GPT2 running on Triton + TensorRT-LLM Backend](#tensorrt-llm)
 - [Profile GPT2 running on Triton + vLLM Backend](#triton-vllm)
-- [Profile GPT2 running on OpenAI Chat Completions API-Compatible Server](#openai-chat)
+- [Profile Zephyr-7B-Beta running on OpenAI Chat Completions API-Compatible Server](#openai-chat)
 - [Profile GPT2 running on OpenAI Completions API-Compatible Server](#openai-completions)
 
 </br>

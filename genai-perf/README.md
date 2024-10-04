@@ -74,7 +74,7 @@ The easiest way to install GenAI-Perf is through
 Install the latest release using the following command:
 
 ```bash
-export RELEASE="24.08"
+export RELEASE="24.09"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -105,9 +105,7 @@ You can also build Perf Analyzer [from source](../docs/install.md#build-from-sou
 ### Install GenAI-Perf from source
 
 ```bash
-git clone https://github.com/triton-inference-server/perf_analyzer.git && cd perf_analyzer
-
-pip install -e genai-perf
+pip install git+https://github.com/triton-inference-server/perf_analyzer.git#subdirectory=genai-perf
 ```
 
 </details>
@@ -140,7 +138,7 @@ docker run -ti \
     --shm-size=1g --ulimit memlock=-1 \
     -v /tmp:/tmp \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.08-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:24.09-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
@@ -521,6 +519,17 @@ export file is `profile_export.json`, the genai-perf file will be exported to
 The HuggingFace tokenizer to use to interpret token metrics from prompts and
 responses. The value can be the name of a tokenizer or the filepath of the
 tokenizer. (default: `hf-internal-testing/llama-tokenizer`)
+
+##### `--tokenizer-revision <str>`
+
+The specific tokenizer model version to use. It can be a branch
+name, tag name, or commit ID. (default: `main`)
+
+##### `--tokenizer-trust-remote-code`
+
+Allow custom tokenizer to be downloaded and executed. This carries security
+risks and should only be used for repositories you trust. This is only
+necessary for custom tokenizers stored in HuggingFace Hub.  (default: `False`)
 
 ##### `-v`
 ##### `--verbose`

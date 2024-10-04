@@ -78,12 +78,6 @@ class InputRetrieverFactory:
             )
         else:
             if self.config.input_type == PromptSource.DATASET:
-                # (TMA-1990) support VLM input from public dataset
-                if self.config.output_format == OutputFormat.OPENAI_VISION:
-                    raise GenAIPerfException(
-                        f"{OutputFormat.OPENAI_VISION.to_lowercase()} currently "
-                        "does not support dataset as input."
-                    )
                 dataset = self._get_input_dataset_from_url()
                 generic_dataset_json = self._convert_input_url_dataset_to_generic_json(
                     dataset

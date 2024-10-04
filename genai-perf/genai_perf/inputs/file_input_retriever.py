@@ -44,37 +44,12 @@ class FileInputRetriever:
 
     # TODO: match return type to retriever interface
     def retrieve_data(self) -> Dict[str, Any]:
-        if self.config.output_format == OutputFormat.OPENAI_EMBEDDINGS:
-            return self._read_embeddings_input_file()
-        elif self.config.output_format == OutputFormat.RANKINGS:
+        if self.config.output_format == OutputFormat.RANKINGS:
             queries_filename = self.config.input_filename / "queries.jsonl"
             passages_filename = self.config.input_filename / "passages.jsonl"
             return self._read_rankings_input_files(queries_filename, passages_filename)
-        elif self.config.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            return self._get_input_dataset_from_file()
         else:
             return self._get_input_dataset_from_file()
-
-    def _read_embeddings_input_file(self) -> Dict[str, Any]:
-        with open(self.config.input_filename, "r") as file:
-            file_content = [load_json_str(line) for line in file]
-
-        texts = [item["text"] for item in file_content]
-
-        if self.config.batch_size > len(texts):
-            raise ValueError(
-                "Batch size cannot be larger than the number of available texts"
-            )
-
-        dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "input"}]
-        dataset_json["rows"] = []
-
-        for _ in range(self.config.num_prompts):
-            sampled_texts = random.sample(texts, self.config.batch_size)
-            dataset_json["rows"].append({"row": {"input": sampled_texts}})
-
-        return dataset_json
 
     def _read_rankings_input_files(
         self,
@@ -182,9 +157,16 @@ class FileInputRetriever:
         with open(self.config.input_filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
+                    data = load_json_str(line)
                     # None if not provided
-                    prompt = load_json_str(line).get("text_input")
-                    image = load_json_str(line).get("image")
+                    prompt = data.get("text_input")
+                    prompt_alt = data.get("text")
+                    if prompt and prompt_alt:
+                        raise ValueError(
+                            "Each data entry must have only one of 'text_input' or 'text' key name."
+                        )
+                    prompt = prompt if prompt else prompt_alt
+                    image = data.get("image")
                     prompts.append(prompt.strip() if prompt else prompt)
                     images.append(image.strip() if image else image)
         return prompts, images

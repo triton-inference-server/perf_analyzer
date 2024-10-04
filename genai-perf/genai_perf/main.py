@@ -95,7 +95,9 @@ def create_config_options(args: Namespace) -> InputsConfig:
         random_seed=args.random_seed,
         num_prompts=args.num_prompts,
         add_stream=args.streaming,
-        tokenizer=get_tokenizer(args.tokenizer),
+        tokenizer=get_tokenizer(
+            args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
+        ),
         extra_inputs=extra_input_dict,
         batch_size=args.batch_size,
         output_dir=args.artifact_dir,
@@ -193,7 +195,11 @@ def run():
         args.func(args)
     else:
         create_artifacts_dirs(args)
-        tokenizer = get_tokenizer(args.tokenizer)
+        tokenizer = get_tokenizer(
+            args.tokenizer,
+            args.tokenizer_trust_remote_code,
+            args.tokenizer_revision,
+        )
         generate_inputs(config_options)
         telemetry_data_collector = create_telemetry_data_collector(args)
         args.func(args, extra_args, telemetry_data_collector)

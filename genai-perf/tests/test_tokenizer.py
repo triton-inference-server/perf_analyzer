@@ -26,7 +26,11 @@
 
 import pytest
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from genai_perf.tokenizer import (
+    DEFAULT_TOKENIZER,
+    DEFAULT_TOKENIZER_REVISION,
+    get_tokenizer,
+)
 
 
 class TestTokenizer:
@@ -37,6 +41,16 @@ class TestTokenizer:
     def test_non_default_tokenizer(self):
         tokenizer_model = "gpt2"
         get_tokenizer(tokenizer_model)
+
+    def test_default_tokenizer_all_args(self):
+        tokenizer_model = DEFAULT_TOKENIZER
+        get_tokenizer(tokenizer_model, False, DEFAULT_TOKENIZER_REVISION)
+
+    def test_non_default_tokenizer_all_args(self):
+        tokenizer_model = "gpt2"
+        get_tokenizer(
+            tokenizer_model, False, "11c5a3d5811f50298f278a704980280950aedb10"
+        )
 
     def test_bad_tokenizer(self):
         with pytest.raises(GenAIPerfException):
