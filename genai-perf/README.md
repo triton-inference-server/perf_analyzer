@@ -400,9 +400,9 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 ##### `--batch-size <int>`
 ##### `--batch-size-text <int>`
 
-The batch size of the requests GenAI-Perf should send.
+The text batch size of the requests GenAI-Perf should send.
 This is currently only supported with the
-[embeddings](docs/embeddings.md), image_retrieval, and
+[embeddings](docs/embeddings.md), and
 [rankings](docs/rankings.md) endpoint types.
 (default: `1`)
 
