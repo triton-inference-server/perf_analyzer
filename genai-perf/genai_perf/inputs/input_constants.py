@@ -35,7 +35,6 @@ class ModelSelectionStrategy(Enum):
 
 class PromptSource(Enum):
     SYNTHETIC = auto()
-    DATASET = auto()
     FILE = auto()
 
 
@@ -60,15 +59,6 @@ class OutputFormat(Enum):
 DEFAULT_INPUT_DATA_JSON = "inputs.json"
 DEFAULT_RANDOM_SEED = 0
 
-
-####################
-# URL Constants
-####################
-CNN_DAILY_MAIL = "cnn_dailymail"
-OPEN_ORCA = "openorca"
-OPEN_ORCA_URL = "https://datasets-server.huggingface.co/rows?dataset=Open-Orca%2FOpenOrca&config=default&split=train"
-CNN_DAILYMAIL_URL = "https://datasets-server.huggingface.co/rows?dataset=cnn_dailymail&config=1.0.0&split=train"
-dataset_url_map = {OPEN_ORCA: OPEN_ORCA_URL, CNN_DAILY_MAIL: CNN_DAILYMAIL_URL}
 
 ###########################
 # Default Prompt Parameters

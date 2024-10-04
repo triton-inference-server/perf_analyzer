@@ -62,7 +62,6 @@ class Inputs:
 
     def _check_for_valid_args(self) -> None:
         self._check_for_supported_input_type()
-        self._check_for_dataset_name_if_input_type_is_url()
         self._check_for_tokenzier_if_input_type_is_synthetic()
         self._check_for_valid_starting_index()
         self._check_for_valid_length()
@@ -87,22 +86,6 @@ class Inputs:
                     f"{self.config.output_format.to_lowercase()} only supports "
                     "a file as input source."
                 )
-        elif self.config.output_format == OutputFormat.OPENAI_VISION:
-            # (TMA-1990) support VLM input from public dataset
-            if self.config.input_type == PromptSource.DATASET:
-                raise GenAIPerfException(
-                    f"{OutputFormat.OPENAI_VISION.to_lowercase()} currently "
-                    "does not support dataset as input."
-                )
-
-    def _check_for_dataset_name_if_input_type_is_url(self) -> None:
-        if (
-            self.config.input_type == PromptSource.DATASET
-            and not self.config.dataset_name
-        ):
-            raise GenAIPerfException(
-                "Input type is dataset, but dataset_name is not specified."
-            )
 
     def _check_for_tokenzier_if_input_type_is_synthetic(self) -> None:
         if (

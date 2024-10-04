@@ -378,10 +378,7 @@ def parse_goodput(values):
 
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
-    if args.input_dataset:
-        args.prompt_source = ic.PromptSource.DATASET
-        logger.debug(f"Input source is the following dataset: {args.input_dataset}")
-    elif args.input_file:
+    if args.input_file:
         args.prompt_source = ic.PromptSource.FILE
         if args.endpoint_type == "rankings":
             logger.debug(
@@ -462,17 +459,7 @@ def _add_input_args(parser):
         "Alternatively, a string representing a json formatted dict can be provided.",
     )
 
-    prompt_source_group = input_group.add_mutually_exclusive_group(required=False)
-    prompt_source_group.add_argument(
-        "--input-dataset",
-        type=str.lower,
-        default=None,
-        choices=[ic.OPEN_ORCA, ic.CNN_DAILY_MAIL],
-        required=False,
-        help="The HuggingFace dataset to use for prompts.",
-    )
-
-    prompt_source_group.add_argument(
+    input_group.add_argument(
         "--input-file",
         type=file_or_directory,
         default=None,
