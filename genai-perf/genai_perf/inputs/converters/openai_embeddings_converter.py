@@ -41,7 +41,7 @@ class OpenAIEmbeddingsConverter(BaseConverter):
 
         for index, entry in enumerate(generic_dataset["rows"]):
             text_input = self._construct_text_payload_batch_agnostic(
-                config.batch_size, entry
+                config.batch_size_text, entry
             )
             model_name = self._select_model_name(config, index)
 

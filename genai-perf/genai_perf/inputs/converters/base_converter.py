@@ -53,13 +53,13 @@ class BaseConverter:
             )
 
     def _construct_text_payload_batch_agnostic(
-        self, batch_size: int, input_data: Union[Dict, List]
+        self, batch_size_text: int, input_data: Union[Dict, List]
     ) -> Union[str, List]:
         """
         Construct text payload content for non-chat based LLM converters.
         Allow batched and unbatched input data.
         """
-        if batch_size == 1:
+        if batch_size_text == 1:
             input_data = cast(Dict, input_data)
             return self._construct_text_payload(input_data)
         else:

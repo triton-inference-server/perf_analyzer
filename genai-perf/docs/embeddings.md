@@ -64,7 +64,7 @@ genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
     --endpoint-type embeddings \
-    --batch-size 2 \
+    --batch-size-text 2 \
     --input-file embeddings.jsonl
 ```
 
@@ -75,7 +75,7 @@ genai-perf profile \
 * `--endpoint-type embeddings` is to specify that the sent requests should be
   formatted to follow the [embeddings
   API](https://platform.openai.com/docs/api-reference/embeddings/create)
-* `--batch-size 2` is to specify that each request will contain the inputs for 2
+* `--batch-size-text 2` is to specify that each request will contain the inputs for 2
   individual inferences, making a batch size of 2
 * `--input-file embeddings.jsonl` is to specify the input data to be used for
   inferencing

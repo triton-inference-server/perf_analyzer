@@ -215,9 +215,15 @@ def _check_conditional_args_embeddings_rankings(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
     else:
-        if args.batch_size != ic.DEFAULT_BATCH_SIZE:
+        if args.batch_size_text != ic.DEFAULT_BATCH_SIZE:
             parser.error(
-                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types."
+                "The --batch-size-text option is currently only supported "
+                "with the embeddings and rankings endpoint types."
+            )
+        if args.batch_size_image != ic.DEFAULT_BATCH_SIZE:
+            parser.error(
+                "The --batch-size-image option is currently only supported "
+                "with the image retrieval endpoint type."
             )
 
     if args.input_file:
@@ -428,14 +434,24 @@ def _add_input_args(parser):
     input_group = parser.add_argument_group("Input")
 
     input_group.add_argument(
+        "--batch-size-image",
+        type=int,
+        default=ic.DEFAULT_BATCH_SIZE,
+        required=False,
+        help=f"The image batch size of the requests GenAI-Perf should send. "
+        "This is currently supported with the image retrieval endpoint type.",
+    )
+
+    input_group.add_argument(
+        "--batch-size-text",
         "--batch-size",
         "-b",
         type=int,
         default=ic.DEFAULT_BATCH_SIZE,
         required=False,
-        help=f"The batch size of the requests GenAI-Perf should send. "
-        "This is currently only supported with the embeddings, rankings, and "
-        "image_retrieval endpoint types.",
+        help=f"The text batch size of the requests GenAI-Perf should send. "
+        "This is currently supported with the embeddings and rankings "
+        "endpoint types.",
     )
 
     input_group.add_argument(
