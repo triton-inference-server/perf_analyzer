@@ -44,9 +44,10 @@ class OpenAIChatCompletionsConverter(BaseConverter):
             if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
                 content = entry["text_input"]
             else:
+                # Treat single batch and multi-batch entries the same way
                 entries = entry if isinstance(entry, list) else [entry]
-                for entry in entries:
-                    content += self._add_multi_modal_content(entry)
+                for _entry in entries:
+                    content += self._add_multi_modal_content(_entry)
 
             payload = {
                 "model": model_name,
