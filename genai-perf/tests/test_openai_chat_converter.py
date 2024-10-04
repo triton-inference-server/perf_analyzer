@@ -152,7 +152,7 @@ class TestOpenAIChatCompletionsConverter:
         assert result == expected_result
 
     @pytest.mark.parametrize(
-        "rows, first_content, second_content",
+        "rows, output_format, first_content, second_content",
         [
             # both text and image
             (
@@ -160,6 +160,7 @@ class TestOpenAIChatCompletionsConverter:
                     {"text_input": "test input one", "image": "test_image_1"},
                     {"text_input": "test input two", "image": "test_image_2"},
                 ],
+                OutputFormat.OPENAI_VISION,
                 [
                     {
                         "type": "text",
@@ -191,6 +192,7 @@ class TestOpenAIChatCompletionsConverter:
                     {"image": "test_image_1"},
                     {"image": "test_image_2"},
                 ],
+                OutputFormat.IMAGE_RETRIEVAL,
                 [
                     {
                         "type": "image_url",
@@ -208,18 +210,11 @@ class TestOpenAIChatCompletionsConverter:
                     },
                 ],
             ),
-            # text only
-            (
-                [
-                    {"text_input": "test input one"},
-                    {"text_input": "test input two"},
-                ],
-                "test input one",
-                "test input two",
-            ),
         ],
     )
-    def test_convert_multi_modal(self, rows, first_content, second_content) -> None:
+    def test_convert_multi_modal(
+        self, rows, output_format, first_content, second_content
+    ) -> None:
         """
         Test multi-modal format of OpenAI Chat API
         """
@@ -232,7 +227,7 @@ class TestOpenAIChatCompletionsConverter:
             extra_inputs={},  # no extra inputs
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
+            output_format=output_format,
             add_stream=True,
         )
 
