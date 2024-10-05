@@ -182,6 +182,7 @@ HttpClient::SetSSLCurlOptions(CURL* curl_handle)
 void
 HttpClient::Send(CURL* handle, std::unique_ptr<HttpRequest>&& request)
 {
+  PrintCurlCommand(handle, std::move(request));
   {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -198,6 +199,50 @@ HttpClient::Send(CURL* handle, std::unique_ptr<HttpRequest>&& request)
     }
   }
   curl_multi_wakeup(multi_handle_);
+}
+
+void
+HttpClient::PrintCurlCommand(
+    CURL* handle, std::unique_ptr<HttpRequest>&& request)
+{
+  if (verbose_) {
+    std::string curl_command = "curl";
+
+    char* url = nullptr;
+    curl_easy_getinfo(handle, CURLINFO_EFFECTIVE_URL, &url);
+    if (url) {
+      curl_command += " \"" + std::string(url) + "\"";
+    }
+
+    if (request->header_list_ != nullptr) {
+      struct curl_slist* header = request->header_list_;
+      while (header != nullptr) {
+        curl_command += " -H \"" + std::string(header->data) + "\"";
+        header = header->next;
+      }
+    }
+
+    if (!request->GetDataBuffers().empty()) {
+      curl_command += " -d '";
+      for (const auto& buffer : request->GetDataBuffers()) {
+        curl_command +=
+            std::string(reinterpret_cast<char*>(buffer.first), buffer.second);
+      }
+      curl_command += "'";
+    }
+
+    if (!ssl_options_.ca_info.empty()) {
+      curl_command += " --cacert \"" + ssl_options_.ca_info + "\"";
+    }
+    if (!ssl_options_.cert.empty()) {
+      curl_command += " --cert \"" + ssl_options_.cert + "\"";
+    }
+    if (!ssl_options_.key.empty()) {
+      curl_command += " --key \"" + ssl_options_.key + "\"";
+    }
+
+    std::cout << "cURL Command: " << curl_command << std::endl;
+  }
 }
 
 void

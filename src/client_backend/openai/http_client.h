@@ -118,6 +118,11 @@ class HttpRequest {
   // be valid during the transfer and can be freed once transfer is completed.
   struct curl_slist* header_list_{nullptr};
 
+  const std::deque<std::pair<uint8_t*, size_t>>& GetDataBuffers() const
+  {
+    return data_buffers_;
+  }
+
  protected:
   const bool verbose_{false};
 
@@ -142,7 +147,8 @@ class HttpClient {
   // Note that this function does not block
   void Send(CURL* handle, std::unique_ptr<HttpRequest>&& request);
 
- protected:
+  void PrintCurlCommand(CURL* handle, std::unique_ptr<HttpRequest>&& request);
+
   void AsyncTransfer();
 
   bool exiting_{false};
