@@ -49,6 +49,7 @@ class OutputFormat(Enum):
     TENSORRTLLM = auto()
     VLLM = auto()
     TENSORRTLLM_ENGINE = auto()
+    TENSORRTLLM_BACKEND = auto()
 
     def to_lowercase(self):
         return self.name.lower()

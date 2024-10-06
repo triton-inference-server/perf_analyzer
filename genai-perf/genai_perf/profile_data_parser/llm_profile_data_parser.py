@@ -229,10 +229,13 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _get_input_token_count(self, req_inputs: dict) -> int:
         """Deserialize the request input and return tokenized inputs."""
-        if self._service_kind == "triton":
-            input_text = req_inputs["text_input"]
-        elif self._service_kind == "triton_c_api":
+        if (
+            self._service_kind == "triton_c_api"
+            or self._response_format == ResponseFormat.TENSORRTLLM_BACKEND
+        ):
             return len(req_inputs["input_ids"])  # no tokenizer required
+        elif self._service_kind == "triton":
+            input_text = req_inputs["text_input"]
         elif self._service_kind == "openai":
             input_text = self._get_openai_input_text(req_inputs)
         else:
@@ -259,11 +262,14 @@ class LLMProfileDataParser(ProfileDataParser):
         self, res_outputs: List[Dict]
     ) -> Tuple[List[int], int]:
         """Return response-level token counts and total token count."""
-        if self._service_kind == "triton":
-            output_texts = self._get_triton_output_tokens(res_outputs)
-        elif self._service_kind == "triton_c_api":
+        if (
+            self._service_kind == "triton_c_api"
+            or self._response_format == ResponseFormat.TENSORRTLLM_BACKEND
+        ):
             # No tokenizer is need to get the token counts.
             return self._get_tensorrtllm_engine_token_counts(res_outputs)
+        elif self._service_kind == "triton":
+            output_texts = self._get_triton_output_tokens(res_outputs)
         elif self._service_kind == "openai":
             output_texts = self._get_openai_output_tokens(res_outputs)
         else:

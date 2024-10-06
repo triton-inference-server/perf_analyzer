@@ -46,6 +46,7 @@ class OutputFormatConverterFactory:
             OutputFormat.RANKINGS: RankingsConverter,
             OutputFormat.VLLM: VLLMConverter,
             OutputFormat.TENSORRTLLM: TensorRTLLMConverter,
+            OutputFormat.TENSORRTLLM_BACKEND: TensorRTLLMEngineConverter,
             OutputFormat.TENSORRTLLM_ENGINE: TensorRTLLMEngineConverter,
         }
         if output_format not in converters:
