@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from math import log2
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from genai_perf.config.generate.objective_parameter import ObjectiveCategory
 from genai_perf.config.generate.search_parameter import (
@@ -22,7 +22,7 @@ from genai_perf.config.generate.search_parameter import (
     SearchParameter,
     SearchUsage,
 )
-from genai_perf.config.input.config_command import ConfigAnalyze, ConfigOptimize, Range
+from genai_perf.config.input.config_command import ConfigOptimize, Range
 from genai_perf.exceptions import GenAIPerfException
 
 
