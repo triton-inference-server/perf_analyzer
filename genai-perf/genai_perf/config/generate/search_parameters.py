@@ -46,9 +46,9 @@ class SearchParameters:
         "instance_count",
         "max_queue_delay",
     ]
-    runtime_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
+    runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
 
-    all_parameters = model_parameters + runtime_parameters
+    all_parameters = model_parameters + runtime_pa_parameters
 
     def __init__(
         self,
@@ -295,8 +295,8 @@ class SearchParameters:
     def _determine_parameter_usage(self, name: str) -> SearchUsage:
         if name in SearchParameters.model_parameters:
             usage = SearchUsage.MODEL
-        elif name in SearchParameters.runtime_parameters:
-            usage = SearchUsage.RUNTIME
+        elif name in SearchParameters.runtime_pa_parameters:
+            usage = SearchUsage.RUNTIME_PA
         else:
             raise (GenAIPerfException(f"SearchUsage not found for {name}"))
 

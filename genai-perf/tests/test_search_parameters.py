@@ -38,7 +38,7 @@ class TestSearchParameters(unittest.TestCase):
 
         self.search_parameters._add_search_parameter(
             name="concurrency",
-            usage=SearchUsage.RUNTIME,
+            usage=SearchUsage.RUNTIME_PA,
             category=SearchCategory.EXPONENTIAL,
             min_range=log2(RunConfigDefaults.MIN_CONCURRENCY),
             max_range=log2(RunConfigDefaults.MAX_CONCURRENCY),
@@ -61,7 +61,7 @@ class TestSearchParameters(unittest.TestCase):
 
         parameter = self.search_parameters.get_parameter("concurrency")
 
-        self.assertEqual(SearchUsage.RUNTIME, parameter.usage)
+        self.assertEqual(SearchUsage.RUNTIME_PA, parameter.usage)
         self.assertEqual(SearchCategory.EXPONENTIAL, parameter.category)
         self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), parameter.min_range)
         self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), parameter.max_range)
@@ -111,7 +111,7 @@ class TestSearchParameters(unittest.TestCase):
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="concurrency",
-                usage=SearchUsage.RUNTIME,
+                usage=SearchUsage.RUNTIME_PA,
                 category=SearchCategory.EXPONENTIAL,
                 max_range=10,
             )
@@ -119,7 +119,7 @@ class TestSearchParameters(unittest.TestCase):
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="concurrency",
-                usage=SearchUsage.RUNTIME,
+                usage=SearchUsage.RUNTIME_PA,
                 category=SearchCategory.EXPONENTIAL,
                 min_range=0,
             )
@@ -127,7 +127,7 @@ class TestSearchParameters(unittest.TestCase):
         with self.assertRaises(GenAIPerfException):
             self.search_parameters._add_search_parameter(
                 name="concurrency",
-                usage=SearchUsage.RUNTIME,
+                usage=SearchUsage.RUNTIME_PA,
                 category=SearchCategory.EXPONENTIAL,
                 min_range=10,
                 max_range=9,
@@ -203,7 +203,7 @@ class TestSearchParameters(unittest.TestCase):
         # Batch size
         # =====================================================================
         runtime_batch_size = search_parameters.get_parameter("runtime_batch_size")
-        self.assertEqual(SearchUsage.RUNTIME, runtime_batch_size.usage)
+        self.assertEqual(SearchUsage.RUNTIME_PA, runtime_batch_size.usage)
         self.assertEqual(SearchCategory.INT_LIST, runtime_batch_size.category)
         self.assertEqual(
             RunConfigDefaults.PA_BATCH_SIZE, runtime_batch_size.enumerated_list
@@ -230,7 +230,7 @@ class TestSearchParameters(unittest.TestCase):
         search_parameters = SearchParameters(config)
 
         concurrency = search_parameters.get_parameter("concurrency")
-        self.assertEqual(SearchUsage.RUNTIME, concurrency.usage)
+        self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
         self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
         self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
         self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
@@ -245,7 +245,7 @@ class TestSearchParameters(unittest.TestCase):
         search_parameters = SearchParameters(config)
 
         request_rate = search_parameters.get_parameter("request_rate")
-        self.assertEqual(SearchUsage.RUNTIME, request_rate.usage)
+        self.assertEqual(SearchUsage.RUNTIME_PA, request_rate.usage)
         self.assertEqual(SearchCategory.EXPONENTIAL, request_rate.category)
         self.assertEqual(
             log2(RunConfigDefaults.MIN_REQUEST_RATE), request_rate.min_range
@@ -342,7 +342,7 @@ class TestSearchParameters(unittest.TestCase):
     #     concurrency = analyzer._search_parameters["add_sub"].get_parameter(
     #         "concurrency"
     #     )
-    #     self.assertEqual(SearchUsage.RUNTIME, concurrency.usage)
+    #     self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
     #     self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
     #     self.assertEqual(
     #         log2(default.DEFAULT_RUN_CONFIG_MIN_CONCURRENCY), concurrency.min_range
