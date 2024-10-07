@@ -34,10 +34,10 @@ class TestOpenAIChatCompletionsConverter:
 
     def test_convert_default(self):
         generic_dataset = {
-            "features": ["text_input"],
+            "features": ["text"],
             "rows": [
-                {"text_input": "text input one"},
-                {"text_input": "text input two"},
+                {"text": "text input one"},
+                {"text": "text input two"},
             ],
         }
 
@@ -86,10 +86,10 @@ class TestOpenAIChatCompletionsConverter:
 
     def test_convert_with_request_parameters(self):
         generic_dataset = {
-            "features": ["text_input"],
+            "features": ["text"],
             "rows": [
-                {"text_input": "text input one"},
-                {"text_input": "text input two"},
+                {"text": "text input one"},
+                {"text": "text input two"},
             ],
         }
 
@@ -157,8 +157,8 @@ class TestOpenAIChatCompletionsConverter:
             # both text and image
             (
                 [
-                    {"text_input": "test input one", "image": "test_image_1"},
-                    {"text_input": "test input two", "image": "test_image_2"},
+                    {"text": "test input one", "image": "test_image_1"},
+                    {"text": "test input two", "image": "test_image_2"},
                 ],
                 OutputFormat.OPENAI_VISION,
                 [
@@ -219,7 +219,7 @@ class TestOpenAIChatCompletionsConverter:
         Test multi-modal format of OpenAI Chat API
         """
         generic_dataset = {
-            "features": ["text_input"],
+            "features": ["text"],
             "rows": rows,
         }
 
@@ -274,7 +274,7 @@ class TestOpenAIChatCompletionsConverter:
         Test batched multi-modal format of OpenAI Chat API for Image Retrieval
         """
         generic_dataset = {
-            "features": ["text_input"],
+            "features": ["text"],
             "rows": [
                 [
                     {"image": "test_image_1"},
