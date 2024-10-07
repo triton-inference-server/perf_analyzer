@@ -24,92 +24,8 @@ from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.synthetic_image_generator import ImageFormat
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 
-mocked_openorca_data = {
-    "features": [
-        {"feature_idx": 0, "name": "id", "type": {"dtype": "string", "_type": "Value"}},
-        {
-            "feature_idx": 1,
-            "name": "system_prompt",
-            "type": {"dtype": "string", "_type": "Value"},
-        },
-        {
-            "feature_idx": 2,
-            "name": "question",
-            "type": {"dtype": "string", "_type": "Value"},
-        },
-        {
-            "feature_idx": 3,
-            "name": "response",
-            "type": {"dtype": "string", "_type": "Value"},
-        },
-    ],
-    "rows": [
-        {
-            "row_idx": 0,
-            "row": {
-                "id": "niv.242684",
-                "system_prompt": "",
-                "question": "You will be given a definition of a task first, then some input of the task.\\nThis task is about using the specified sentence and converting the sentence to Resource Description Framework (RDF) triplets of the form (subject, predicate object). The RDF triplets generated must be such that the triplets accurately capture the structure and semantics of the input sentence. The input is a sentence and the output is a list of triplets of the form [subject, predicate, object] that capture the relationships present in the sentence. When a sentence has more than 1 RDF triplet possible, the output must contain all of them.\\n\\nAFC Ajax (amateurs)'s ground is Sportpark De Toekomst where Ajax Youth Academy also play.\\nOutput:",
-                "response": '[\\n  ["AFC Ajax (amateurs)", "has ground", "Sportpark De Toekomst"],\\n  ["Ajax Youth Academy", "plays at", "Sportpark De Toekomst"]\\n]',
-            },
-            "truncated_cells": [],
-        }
-    ],
-    "num_rows_total": 2914896,
-    "num_rows_per_page": 100,
-    "partial": True,
-}
-
-TEST_LENGTH = 1
-
 
 class TestInputRetrieverFactory:
-
-    @pytest.fixture
-    def default_configured_url(self):
-        input_retriever_factory = InputRetrieverFactory(
-            InputsConfig(
-                starting_index=ic.DEFAULT_STARTING_INDEX,
-                length=ic.DEFAULT_LENGTH,
-            )
-        )
-        default_configured_url = input_retriever_factory._create_configured_url(
-            ic.OPEN_ORCA_URL,
-        )
-
-        yield default_configured_url
-
-    def test_create_configured_url(self):
-        """
-        Test that we are appending and configuring the URL correctly
-        """
-        input_retriever_factory = InputRetrieverFactory(
-            InputsConfig(
-                starting_index=ic.DEFAULT_STARTING_INDEX,
-                length=ic.DEFAULT_LENGTH,
-            )
-        )
-
-        expected_configured_url = (
-            "http://test-url.com"
-            + f"&offset={ic.DEFAULT_STARTING_INDEX}"
-            + f"&length={ic.DEFAULT_LENGTH}"
-        )
-        configured_url = input_retriever_factory._create_configured_url(
-            "http://test-url.com"
-        )
-
-        assert configured_url == expected_configured_url
-
-    def test_download_dataset_illegal_url(self):
-        """
-        Test for exception when URL is bad
-        """
-        input_retriever_factory = InputRetrieverFactory(InputsConfig())
-        with pytest.raises(GenAIPerfException):
-            _ = input_retriever_factory._download_dataset(
-                "https://bad-url.zzz",
-            )
 
     @patch(
         "genai_perf.inputs.input_retriever_factory.InputRetrieverFactory._create_synthetic_prompt",
@@ -169,27 +85,3 @@ class TestInputRetrieverFactory:
                 assert row == {
                     "text": "This is test prompt",
                 }
-
-    @responses.activate
-    def test_inputs_with_defaults(self, default_configured_url):
-        """
-        Test that default options work
-        """
-        responses.add(
-            responses.GET,
-            f"{default_configured_url}",
-            json=mocked_openorca_data,
-            status=200,
-        )
-        input_retriever_factory = InputRetrieverFactory(InputsConfig())
-        dataset = input_retriever_factory._download_dataset(
-            default_configured_url,
-        )
-        dataset_json = (
-            input_retriever_factory._convert_input_url_dataset_to_generic_json(
-                dataset=dataset
-            )
-        )
-
-        assert dataset_json is not None
-        assert len(dataset_json["rows"]) == TEST_LENGTH

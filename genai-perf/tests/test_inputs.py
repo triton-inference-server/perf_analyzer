@@ -39,19 +39,6 @@ class TestInputs:
     def default_tokenizer(self):
         yield tokenizer.get_tokenizer(tokenizer.DEFAULT_TOKENIZER)
 
-    def test_input_type_url_no_dataset_name(self):
-        """
-        Test for exception when input type is URL and no dataset name
-        """
-        inputs = Inputs(
-            InputsConfig(
-                input_type=PromptSource.DATASET,
-                dataset_name="",
-            )
-        )
-        with pytest.raises(GenAIPerfException):
-            _ = inputs._check_for_dataset_name_if_input_type_is_url()
-
     def test_input_type_synthetic_no_tokenizer(self):
         """
         Test for exception when input type is SYNTHETIC and no tokenizer
@@ -97,24 +84,6 @@ class TestInputs:
         inputs.config.length = -1
         with pytest.raises(GenAIPerfException):
             _ = inputs._check_for_valid_length()
-
-    def test_inputs_error_in_server_response(self):
-        """
-        Test for exception when length is out of range
-        """
-
-        inputs = Inputs(
-            InputsConfig(
-                input_type=PromptSource.DATASET,
-                dataset_name=ic.OPEN_ORCA,
-                output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
-                starting_index=ic.DEFAULT_STARTING_INDEX,
-                length=int(ic.DEFAULT_LENGTH * 100),
-            )
-        )
-
-        with pytest.raises(GenAIPerfException):
-            _ = inputs.create_inputs()
 
     # TODO (TPA-114) Refactor LLM inputs and testing
     # def test_inputs_with_non_default_length(self):

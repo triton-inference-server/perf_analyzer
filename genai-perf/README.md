@@ -38,8 +38,8 @@ For large language models (LLMs), GenAI-Perf provides metrics such as
 For a full list of metrics please see the [Metrics section](#metrics).
 
 Users specify a model name, an inference server URL, the type of inputs to use
-(synthetic or from dataset), and the type of load to generate (number of
-concurrent requests, request rate).
+(synthetic or from a dataset defined via a file), and the type of load to generate
+(number of concurrent requests, request rate).
 
 GenAI-Perf generates the specified load, measures the performance of the
 inference server and reports the metrics in a simple table as console output.
@@ -270,10 +270,7 @@ MODEL INPUTS
 ## Model Inputs
 
 GenAI-Perf supports model input prompts from either synthetically generated
-inputs, or from the HuggingFace
-[OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca) or
-[CNN_DailyMail](https://huggingface.co/datasets/cnn_dailymail) datasets. This is
-specified using the `--input-dataset` CLI option.
+inputs, or from a dataset defined via a file.
 
 When the dataset is synthetic, you can specify the following options:
 * `--num-prompts <int>`: The number of unique prompts to generate as stimulus, >= 1.
@@ -282,12 +279,6 @@ When the dataset is synthetic, you can specify the following options:
 * `--synthetic-input-tokens-stddev <int>`: The standard deviation of number of
   tokens in the generated prompts when using synthetic data, >= 0.
 * `--random-seed <int>`: The seed used to generate random values, >= 0.
-
-When the dataset is coming from HuggingFace, you can specify the following
-options:
-* `--input-dataset {openorca,cnn_dailymail}`: HuggingFace dataset to use for
-  benchmarking.
-* `--num-prompts <int>`: The number of unique prompts to generate as stimulus, >= 1.
 
 When the dataset is coming from a file, you can specify the following
 options:
@@ -409,7 +400,7 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 
 The text batch size of the requests GenAI-Perf should send.
 This is currently only supported with the
-[embeddings](docs/embeddings.md) and
+[embeddings](docs/embeddings.md), and
 [rankings](docs/rankings.md) endpoint types.
 (default: `1`)
 
@@ -426,11 +417,6 @@ Provide additional inputs to include with every request. You can repeat this
 flag for multiple inputs. Inputs should be in an input_name:value format.
 Alternatively, a string representing a json formatted dict can be provided.
 (default: `None`)
-
-##### `--input-dataset {openorca,cnn_dailymail}`
-
-The HuggingFace dataset to use for prompts.
-(default: `openorca`)
 
 ##### `--input-file <path>`
 
