@@ -1790,6 +1790,8 @@ CLParser::ParseCommandLine(int argc, char** argv)
 
   // When the request-count feature is enabled, override the measurement mode to
   // be count windows with a window size of the requested count
+  // When the request-count feature is enabled, override the measurement mode to
+  // be count windows with a window size of the requested count
   if (params_->request_count) {
     params_->measurement_mode = MeasurementMode::COUNT_WINDOWS;
     params_->measurement_request_count = params_->request_count;
@@ -2088,6 +2090,7 @@ CLParser::VerifyOptions()
     if (params_->protocol != cb::ProtocolType::GRPC) {
       Usage(
           "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
+          "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
     } else if (params_->streaming) {
       Usage("perf_analyzer does not support streaming for TensorFlow Serving.");
     } else if (params_->async) {
@@ -2223,5 +2226,6 @@ CLParser::VerifyOptions()
     }
   }
 }
+
 
 }}  // namespace triton::perfanalyzer
