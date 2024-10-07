@@ -15,6 +15,7 @@
 import random
 
 import pytest
+from genai_perf.inputs.converters import *
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.output_format_converter_factory import (
@@ -23,6 +24,52 @@ from genai_perf.inputs.output_format_converter_factory import (
 
 
 class TestOutputFormatConverter:
+
+    @pytest.mark.parametrize(
+        "format, expected_converter",
+        [
+            (
+                OutputFormat.OPENAI_CHAT_COMPLETIONS,
+                OpenAIChatCompletionsConverter,
+            ),
+            (
+                OutputFormat.OPENAI_COMPLETIONS,
+                OpenAICompletionsConverter,
+            ),
+            (
+                OutputFormat.OPENAI_EMBEDDINGS,
+                OpenAIEmbeddingsConverter,
+            ),
+            (
+                OutputFormat.IMAGE_RETRIEVAL,
+                OpenAIChatCompletionsConverter,
+            ),
+            (
+                OutputFormat.OPENAI_VISION,
+                OpenAIChatCompletionsConverter,
+            ),
+            (
+                OutputFormat.RANKINGS,
+                RankingsConverter,
+            ),
+            (
+                OutputFormat.VLLM,
+                VLLMConverter,
+            ),
+            (
+                OutputFormat.TENSORRTLLM,
+                TensorRTLLMConverter,
+            ),
+            (
+                OutputFormat.TENSORRTLLM_ENGINE,
+                TensorRTLLMEngineConverter,
+            ),
+        ],
+    )
+    def test_create(self, format, expected_converter):
+        converter = OutputFormatConverterFactory.create(format)
+        assert isinstance(converter, expected_converter)
+
     @pytest.mark.parametrize(
         "seed, model_name_list, index,model_selection_strategy,expected_model",
         [
