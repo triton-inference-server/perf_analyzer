@@ -70,6 +70,21 @@ class RunConfigDefaults:
     MAX_AUTO_ADJUSTS = 10
     STABILITY_THRESHOLD = 99.9
 
+    # GAP Input Defaults
+    DATASET = "openorca"
+    FILE = None
+    NUM_PROMPTS = 100
+    SEED = 0
+
+    # GAP Input Synthetic Tokens Defaults
+    INPUT_MEAN = -1
+    INPUT_STDDEV = 0
+
+    # GAP Output Token Defaults
+    OUTPUT_MEAN = -1
+    DETERMINISTIC = False
+    OUTPUT_STDDEV = 0
+
 
 # TODO: OPTIMIZE
 # These are placeholder dataclasses until the real Command Parser is written
@@ -152,10 +167,34 @@ class ConfigPerfAnalyzer:
 
 
 @dataclass
+class ConfigSyntheticTokens:
+    mean: int = default_field(RunConfigDefaults.INPUT_MEAN)
+    stddev: int = default_field(RunConfigDefaults.INPUT_STDDEV)
+
+
+@dataclass
+class ConfigInput:
+    dataset: str = default_field(RunConfigDefaults.DATASET)
+    file: str = default_field(RunConfigDefaults.FILE)
+    num_prompts: int = default_field(RunConfigDefaults.NUM_PROMPTS)
+    seed: int = default_field(RunConfigDefaults.SEED)
+    synthetic_tokens: ConfigSyntheticTokens = ConfigSyntheticTokens()
+
+
+@dataclass
+class ConfigOutputTokens:
+    mean: int = default_field(RunConfigDefaults.OUTPUT_MEAN)
+    deterministic: bool = default_field(RunConfigDefaults.DETERMINISTIC)
+    stddev: int = default_field(RunConfigDefaults.OUTPUT_STDDEV)
+
+
+@dataclass
 class ConfigCommand:
     model_names: List[ModelName]
     optimize: ConfigOptimize = ConfigOptimize()
     perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
+    input: ConfigInput = ConfigInput()
+    output_tokens: ConfigOutputTokens = ConfigOutputTokens()
 
     def get_max(self, config_value: ConfigRangeOrList) -> int:
         if type(config_value) is list:
