@@ -89,15 +89,15 @@ class RequestRateManager : public LoadManager {
   static cb::Error Create(
       const bool async, const bool streaming,
       const uint64_t measurement_window_ms, const size_t max_trials,
-      Distribution request_distribution, const std::vector<float>& schedule,
-      const int32_t batch_size, const size_t max_threads,
-      const uint32_t num_of_sequences,
+      Distribution request_distribution, const int32_t batch_size,
+      const size_t max_threads, const uint32_t num_of_sequences,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
       const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager,
       const std::unordered_map<std::string, cb::RequestParameter>&
-          request_parameters);
+          request_parameters,
+      const std::vector<float>& schedule);
 
   /// Performs warmup for benchmarking by sending a fixed number of requests
   /// according to the specified request rate
@@ -119,14 +119,15 @@ class RequestRateManager : public LoadManager {
  protected:
   RequestRateManager(
       const bool async, const bool streaming, Distribution request_distribution,
-      const std::vector<float>& schedule, const int32_t batch_size,
-      const uint64_t measurement_window_ms, const size_t max_trials,
-      const size_t max_threads, const uint32_t num_of_sequences,
+      const int32_t batch_size, const uint64_t measurement_window_ms,
+      const size_t max_trials, const size_t max_threads,
+      const uint32_t num_of_sequences,
       const SharedMemoryType shared_memory_type, const size_t output_shm_size,
       const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       const std::unordered_map<std::string, cb::RequestParameter>&
-          request_parameters);
+          request_parameters,
+      const std::vector<float>& schedule);
 
   void InitManagerFinalize() override;
 

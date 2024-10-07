@@ -36,7 +36,8 @@
 
 #include "perf_analyzer_exception.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton {
+namespace perfanalyzer {
 namespace triton { namespace perfanalyzer {
 
 PAParamsPtr
@@ -2092,94 +2093,104 @@ CLParser::VerifyOptions()
           "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
           "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
     } else if (params_->streaming) {
-      Usage("perf_analyzer does not support streaming for TensorFlow Serving.");
+          Usage(
+              "perf_analyzer does not support streaming for TensorFlow "
+              "Serving.");
     } else if (params_->async) {
-      Usage("perf_analyzer does not support async API for TensorFlow Serving.");
+          Usage(
+              "perf_analyzer does not support async API for TensorFlow "
+              "Serving.");
     } else if (!params_->using_batch_size) {
-      params_->batch_size = 0;
+          params_->batch_size = 0;
     }
   } else if (params_->kind == cb::TORCHSERVE) {
     if (params_->user_data.empty()) {
-      Usage(
-          "--input-data should be provided with a json file with "
-          "input data for torchserve.");
+          Usage(
+              "--input-data should be provided with a json file with "
+              "input data for torchserve.");
     }
   }
 
   if (params_->kind == cb::BackendKind::TRITON_C_API) {
     if (params_->triton_server_path.empty()) {
-      Usage(
-          "--triton-server-path should not be empty when using "
-          "service-kind=triton_c_api.");
+          Usage(
+              "--triton-server-path should not be empty when using "
+              "service-kind=triton_c_api.");
     }
-  if (params_->kind == cb::BackendKind::TRITON_C_API) {
-    if (params_->triton_server_path.empty()) {
-      Usage(
-          "--triton-server-path should not be empty when using "
-          "service-kind=triton_c_api.");
-    }
+    if (params_->kind == cb::BackendKind::TRITON_C_API) {
+          if (params_->triton_server_path.empty()) {
+            Usage(
+                "--triton-server-path should not be empty when using "
+                "service-kind=triton_c_api.");
+          }
 
-    if (params_->model_repository_path.empty()) {
-      Usage(
-          "--model-repository should not be empty when using "
-          "service-kind=triton_c_api.");
-    }
-    if (params_->model_repository_path.empty()) {
-      Usage(
-          "--model-repository should not be empty when using "
-          "service-kind=triton_c_api.");
-    }
+          if (params_->model_repository_path.empty()) {
+            Usage(
+                "--model-repository should not be empty when using "
+                "service-kind=triton_c_api.");
+          }
+          if (params_->model_repository_path.empty()) {
+            Usage(
+                "--model-repository should not be empty when using "
+                "service-kind=triton_c_api.");
+          }
 
-    // Decoupled models run via Triton C API do not support shared memory
-    if (params_->async && params_->streaming &&
-        params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
-      Usage(
-          "Cannot use --shared-memory=system or --shared-memory=cuda with "
-          "--service-kind=triton_c_api and --async and --streaming.");
-    }
-    // Decoupled models run via Triton C API do not support shared memory
-    if (params_->async && params_->streaming &&
-        params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
-      Usage(
-          "Cannot use --shared-memory=system or --shared-memory=cuda with "
-          "--service-kind=triton_c_api and --async and --streaming.");
-    }
+          // Decoupled models run via Triton C API do not support shared memory
+          if (params_->async && params_->streaming &&
+              params_->shared_memory_type !=
+                  SharedMemoryType::NO_SHARED_MEMORY) {
+            Usage(
+                "Cannot use --shared-memory=system or --shared-memory=cuda "
+                "with "
+                "--service-kind=triton_c_api and --async and --streaming.");
+          }
+          // Decoupled models run via Triton C API do not support shared memory
+          if (params_->async && params_->streaming &&
+              params_->shared_memory_type !=
+                  SharedMemoryType::NO_SHARED_MEMORY) {
+            Usage(
+                "Cannot use --shared-memory=system or --shared-memory=cuda "
+                "with "
+                "--service-kind=triton_c_api and --async and --streaming.");
+          }
 
-    params_->protocol = cb::ProtocolType::UNKNOWN;
-  }
+          params_->protocol = cb::ProtocolType::UNKNOWN;
+    }
     params_->protocol = cb::ProtocolType::UNKNOWN;
   }
 
   if (params_->kind == cb::BackendKind::OPENAI) {
     if (params_->user_data.empty()) {
-      Usage("Must supply --input-data for OpenAI service kind.");
+          Usage("Must supply --input-data for OpenAI service kind.");
     }
     if (params_->endpoint.empty()) {
-      Usage(
-          "Must supply --endpoint for OpenAI service kind. For example, "
-          "\"v1/chat/completions\".");
+          Usage(
+              "Must supply --endpoint for OpenAI service kind. For example, "
+              "\"v1/chat/completions\".");
     }
     if (!params_->async) {
-      Usage("Only async mode is currently supported for OpenAI service-kind");
+          Usage(
+              "Only async mode is currently supported for OpenAI service-kind");
     }
     if (params_->batch_size != 1) {
-      Usage("Batching is not currently supported with OpenAI service-kind");
+          Usage("Batching is not currently supported with OpenAI service-kind");
     }
   }
   if (params_->kind == cb::BackendKind::OPENAI) {
     if (params_->user_data.empty()) {
-      Usage("Must supply --input-data for OpenAI service kind.");
+          Usage("Must supply --input-data for OpenAI service kind.");
     }
     if (params_->endpoint.empty()) {
-      Usage(
-          "Must supply --endpoint for OpenAI service kind. For example, "
-          "\"v1/chat/completions\".");
+          Usage(
+              "Must supply --endpoint for OpenAI service kind. For example, "
+              "\"v1/chat/completions\".");
     }
     if (!params_->async) {
-      Usage("Only async mode is currently supported for OpenAI service-kind");
+          Usage(
+              "Only async mode is currently supported for OpenAI service-kind");
     }
     if (params_->batch_size != 1) {
-      Usage("Batching is not currently supported with OpenAI service-kind");
+          Usage("Batching is not currently supported with OpenAI service-kind");
     }
   }
 
@@ -2221,8 +2232,8 @@ CLParser::VerifyOptions()
     //
     size_t colon_pos = params_->url.find(':');
     if (colon_pos != std::string::npos) {
-      params_->metrics_url =
-          params_->url.substr(0, colon_pos) + ":8002/metrics";
+          params_->metrics_url =
+              params_->url.substr(0, colon_pos) + ":8002/metrics";
     }
   }
 }

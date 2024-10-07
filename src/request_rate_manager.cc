@@ -39,21 +39,21 @@ cb::Error
 RequestRateManager::Create(
     const bool async, const bool streaming,
     const uint64_t measurement_window_ms, const size_t max_trials,
-    Distribution request_distribution, const std::vector<float>& schedule,
-    const int32_t batch_size, const size_t max_threads,
-    const uint32_t num_of_sequences, const SharedMemoryType shared_memory_type,
-    const size_t output_shm_size, const bool serial_sequences,
-    const std::shared_ptr<ModelParser>& parser,
+    Distribution request_distribution, const int32_t batch_size,
+    const size_t max_threads, const uint32_t num_of_sequences,
+    const SharedMemoryType shared_memory_type, const size_t output_shm_size,
+    const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory,
     std::unique_ptr<LoadManager>* manager,
     const std::unordered_map<std::string, cb::RequestParameter>&
-        request_parameters)
+        request_parameters,
+    const std::vector<float>& schedule)
 {
   std::unique_ptr<RequestRateManager> local_manager(new RequestRateManager(
-      async, streaming, request_distribution, schedule, batch_size,
-      measurement_window_ms, max_trials, max_threads, num_of_sequences,
-      shared_memory_type, output_shm_size, serial_sequences, parser, factory,
-      request_parameters));
+      async, streaming, request_distribution, batch_size, measurement_window_ms,
+      max_trials, max_threads, num_of_sequences, shared_memory_type,
+      output_shm_size, serial_sequences, parser, factory, request_parameters,
+      schedule));
 
   *manager = std::move(local_manager);
 
@@ -62,14 +62,15 @@ RequestRateManager::Create(
 
 RequestRateManager::RequestRateManager(
     const bool async, const bool streaming, Distribution request_distribution,
-    const std::vector<float>& schedule, int32_t batch_size,
-    const uint64_t measurement_window_ms, const size_t max_trials,
-    const size_t max_threads, const uint32_t num_of_sequences,
-    const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-    const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
+    int32_t batch_size, const uint64_t measurement_window_ms,
+    const size_t max_trials, const size_t max_threads,
+    const uint32_t num_of_sequences, const SharedMemoryType shared_memory_type,
+    const size_t output_shm_size, const bool serial_sequences,
+    const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory,
     const std::unordered_map<std::string, cb::RequestParameter>&
-        request_parameters)
+        request_parameters,
+    const std::vector<float>& schedule)
     : LoadManager(
           async, streaming, batch_size, max_threads, shared_memory_type,
           output_shm_size, parser, factory, request_parameters),
