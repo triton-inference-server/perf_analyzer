@@ -17,7 +17,6 @@ from unittest.mock import patch
 import pytest
 import responses
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.input_retriever_factory import InputRetrieverFactory
@@ -28,11 +27,11 @@ from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 class TestInputRetrieverFactory:
 
     @patch(
-        "genai_perf.inputs.input_retriever_factory.InputRetrieverFactory._create_synthetic_prompt",
+        "genai_perf.inputs.retrievers.input_retriever_factory.InputRetrieverFactory._create_synthetic_prompt",
         return_value="This is test prompt",
     )
     @patch(
-        "genai_perf.inputs.input_retriever_factory.InputRetrieverFactory._create_synthetic_image",
+        "genai_perf.inputs.retrievers.input_retriever_factory.InputRetrieverFactory._create_synthetic_image",
         return_value="test_image_base64",
     )
     @pytest.mark.parametrize(

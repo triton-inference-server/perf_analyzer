@@ -23,7 +23,7 @@ from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataR
 class TestSyntheticDataRetriever:
 
     @patch(
-        "genai_perf.inputs.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
     @pytest.mark.parametrize(
@@ -51,11 +51,11 @@ class TestSyntheticDataRetriever:
         ]
 
     @patch(
-        "genai_perf.inputs.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
     @patch(
-        "genai_perf.inputs.synthetic_data_retriever.SyntheticImageGenerator.create_synthetic_image",
+        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticImageGenerator.create_synthetic_image",
         return_value="data:image/jpeg;base64,test_base64_encoding",
     )
     def test_synthetic_text_and_image(self, mock_prompt, mock_image):
