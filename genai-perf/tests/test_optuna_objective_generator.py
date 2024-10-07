@@ -24,7 +24,7 @@ from genai_perf.config.generate.optuna_objective_generator import (
     OptunaObjectiveGenerator,
 )
 from genai_perf.config.generate.search_parameters import SearchParameters, SearchUsage
-from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
 from tests.test_utils import create_perf_metrics, create_run_config_measurement
 
 
@@ -34,7 +34,9 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
     ###########################################################################
     def setUp(self):
         self._config = ConfigCommand(model_names=["test_model"])
-        self._model_search_parameters = {"test_model": SearchParameters(self._config)}
+        self._model_search_parameters = {
+            "test_model": SearchParameters(self._config.optimize)
+        }
 
         self._perf_metrics = create_perf_metrics(throughput=1000, latency=50)
         self._baseline_rcm = create_run_config_measurement(
@@ -148,6 +150,7 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
                 "model_batch_size": 4,
                 "runtime_batch_size": 1,
                 "instance_count": 2,
+                "num_prompts": 100,
                 "concurrency": 6,
             }
         }
@@ -173,7 +176,14 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
                     SearchUsage.MODEL, ObjectiveCategory.EXPONENTIAL, 4
                 ),
                 "runtime_batch_size": ObjectiveParameter(
-                    SearchUsage.RUNTIME_PA, ObjectiveCategory.INTEGER, 1
+                    SearchUsage.RUNTIME_PA,
+                    ObjectiveCategory.INTEGER,
+                    RunConfigDefaults.PA_BATCH_SIZE,
+                ),
+                "num_prompts": ObjectiveParameter(
+                    SearchUsage.RUNTIME_GAP,
+                    ObjectiveCategory.INTEGER,
+                    RunConfigDefaults.NUM_PROMPTS,
                 ),
                 "instance_count": ObjectiveParameter(
                     SearchUsage.MODEL, ObjectiveCategory.INTEGER, 2

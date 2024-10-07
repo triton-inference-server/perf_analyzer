@@ -14,7 +14,7 @@
 
 from copy import copy
 from dataclasses import dataclass, field
-from typing import List, Optional, TypeAlias, Union
+from typing import Dict, List, Optional, TypeAlias, Union
 
 from genai_perf.types import ModelName
 
@@ -30,6 +30,7 @@ class Range:
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
+AnalyzeParameter: TypeAlias = Dict[str, ConfigRangeOrList]
 
 
 # TODO: OPTIMIZE
@@ -54,12 +55,15 @@ class RunConfigDefaults:
 
     # Optimize: PA Defaults
     STIMULUS_TYPE = "concurrency"
-    PA_BATCH_SIZE = [1]
+    PA_BATCH_SIZE = 1
     MIN_CONCURRENCY = 1
     MAX_CONCURRENCY = 1024
     MIN_REQUEST_RATE = 16
     MAX_REQUEST_RATE = 8192
     USE_CONCURRENCY_FORMULA = True
+
+    # Analyze Defaults
+    SWEEP = {"concurrency": Range(min=MIN_CONCURRENCY, max=MAX_CONCURRENCY)}
 
     # Perf Analyzer Defaults
     PA_PATH = "perf_analyzer"
@@ -112,7 +116,7 @@ class ConfigModelConfig:
 @dataclass
 class ConfigOptimizePerfAnalyzer:
     stimulus_type: str = default_field(RunConfigDefaults.STIMULUS_TYPE)
-    batch_size: ConfigRangeOrList = default_field(RunConfigDefaults.PA_BATCH_SIZE)
+    batch_size: ConfigRangeOrList = default_field([RunConfigDefaults.PA_BATCH_SIZE])
     concurrency: ConfigRangeOrList = default_field(
         Range(
             min=RunConfigDefaults.MIN_CONCURRENCY, max=RunConfigDefaults.MAX_CONCURRENCY
@@ -135,6 +139,11 @@ class ConfigOptimizePerfAnalyzer:
 
 
 @dataclass
+class ConfigOptimizeGenAIPerf:
+    num_prompts: ConfigRangeOrList = default_field([RunConfigDefaults.NUM_PROMPTS])
+
+
+@dataclass
 class ConfigOptimize:
     objective: str = default_field(RunConfigDefaults.OBJECTIVE)
     constraint: Optional[str] = default_field(RunConfigDefaults.CONSTRAINT)
@@ -146,6 +155,7 @@ class ConfigOptimize:
 
     model_config: ConfigModelConfig = ConfigModelConfig()
     perf_analyzer: ConfigOptimizePerfAnalyzer = ConfigOptimizePerfAnalyzer()
+    genai_perf: ConfigOptimizeGenAIPerf = ConfigOptimizeGenAIPerf()
 
     def is_request_rate_specified(self) -> bool:
         return self.perf_analyzer.is_request_rate_specified()
@@ -153,6 +163,11 @@ class ConfigOptimize:
     def is_set_by_user(self, field: str) -> bool:
         # FIXME: OPTIMIZE - we have no way of knowing this until a real config class is created
         return False
+
+
+@dataclass
+class ConfigAnalyze:
+    sweep_parameters: AnalyzeParameter = default_field(RunConfigDefaults.SWEEP)
 
 
 @dataclass
@@ -192,6 +207,7 @@ class ConfigOutputTokens:
 class ConfigCommand:
     model_names: List[ModelName]
     optimize: ConfigOptimize = ConfigOptimize()
+    analyze: ConfigAnalyze = ConfigAnalyze()
     perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
     input: ConfigInput = ConfigInput()
     output_tokens: ConfigOutputTokens = ConfigOutputTokens()

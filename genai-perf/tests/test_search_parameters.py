@@ -34,7 +34,7 @@ class TestSearchParameters(unittest.TestCase):
     def setUp(self):
         self.config = deepcopy(ConfigCommand(model_names=["test_model"]))
 
-        self.search_parameters = SearchParameters(config=self.config)
+        self.search_parameters = SearchParameters(config=self.config.optimize)
 
         self.search_parameters._add_search_parameter(
             name="concurrency",
@@ -164,7 +164,7 @@ class TestSearchParameters(unittest.TestCase):
         """
 
         config = deepcopy(ConfigCommand(model_names=["test_model"]))
-        search_parameters = SearchParameters(config)
+        search_parameters = SearchParameters(self.config.optimize)
 
         #######################################################################
         # Model Config
@@ -206,7 +206,7 @@ class TestSearchParameters(unittest.TestCase):
         self.assertEqual(SearchUsage.RUNTIME_PA, runtime_batch_size.usage)
         self.assertEqual(SearchCategory.INT_LIST, runtime_batch_size.category)
         self.assertEqual(
-            RunConfigDefaults.PA_BATCH_SIZE, runtime_batch_size.enumerated_list
+            [RunConfigDefaults.PA_BATCH_SIZE], runtime_batch_size.enumerated_list
         )
 
         # Concurrency - this is not set because use_concurrency_formula is True
@@ -227,7 +227,7 @@ class TestSearchParameters(unittest.TestCase):
         config = deepcopy(ConfigCommand(model_names=["test_model"]))
         config.optimize.perf_analyzer.use_concurrency_formula = False
 
-        search_parameters = SearchParameters(config)
+        search_parameters = SearchParameters(config.optimize)
 
         concurrency = search_parameters.get_parameter("concurrency")
         self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
@@ -242,7 +242,7 @@ class TestSearchParameters(unittest.TestCase):
         config = deepcopy(ConfigCommand(model_names=["test_model"]))
         config.optimize.perf_analyzer.stimulus_type = "request_rate"
 
-        search_parameters = SearchParameters(config)
+        search_parameters = SearchParameters(config.optimize)
 
         request_rate = search_parameters.get_parameter("request_rate")
         self.assertEqual(SearchUsage.RUNTIME_PA, request_rate.usage)
@@ -293,105 +293,6 @@ class TestSearchParameters(unittest.TestCase):
 
         # model_batch_size (8) * instance count (5) * concurrency (11) * size (3)
         self.assertEqual(8 * 5 * 11 * 3, total_num_of_possible_configurations)
-
-    # TODO: OPTIMIZE:
-    # This will be enabled once BLS support is added
-    #
-    # def test_search_parameter_creation_bls_default(self):
-    #     """
-    #     Test that search parameters are correctly created in default BLS optuna case
-    #     """
-
-    #     args = [
-    #         "model-analyzer",
-    #         "profile",
-    #         "--model-repository",
-    #         "cli-repository",
-    #         "-f",
-    #         "path-to-config-file",
-    #         "--run-config-search-mode",
-    #         "optuna",
-    #     ]
-
-    #     yaml_content = """
-    #     profile_models: add_sub
-    #     bls_composing_models: add,sub
-    #     """
-
-    #     config = TestConfig()._evaluate_config(args=args, yaml_content=yaml_content)
-
-    #     analyzer = Analyzer(config, MagicMock(), MagicMock(), MagicMock())
-
-    #     mock_model_config = MockModelConfig()
-    #     mock_model_config.start()
-    #     analyzer._populate_search_parameters(MagicMock(), MagicMock())
-    #     analyzer._populate_composing_search_parameters(MagicMock(), MagicMock())
-    #     mock_model_config.stop()
-
-    #     # ADD_SUB
-    #     # =====================================================================
-    #     # The top level model of a BLS does not search max batch size (always 1)
-
-    #     # max_batch_size
-    #     max_batch_size = analyzer._search_parameters["add_sub"].get_parameter(
-    #         "max_batch_size"
-    #     )
-    #     self.assertIsNone(max_batch_size)
-
-    #     # concurrency
-    #     concurrency = analyzer._search_parameters["add_sub"].get_parameter(
-    #         "concurrency"
-    #     )
-    #     self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
-    #     self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
-    #     self.assertEqual(
-    #         log2(default.DEFAULT_RUN_CONFIG_MIN_CONCURRENCY), concurrency.min_range
-    #     )
-    #     self.assertEqual(
-    #         log2(default.DEFAULT_RUN_CONFIG_MAX_CONCURRENCY), concurrency.max_range
-    #     )
-
-    #     # instance_group
-    #     instance_group = analyzer._search_parameters["add_sub"].get_parameter(
-    #         "instance_group"
-    #     )
-    #     self.assertEqual(SearchUsage.MODEL, instance_group.usage)
-    #     self.assertEqual(SearchCategory.INTEGER, instance_group.category)
-    #     self.assertEqual(
-    #         default.DEFAULT_RUN_CONFIG_MIN_INSTANCE_COUNT, instance_group.min_range
-    #     )
-    #     self.assertEqual(
-    #         default.DEFAULT_RUN_CONFIG_MAX_INSTANCE_COUNT, instance_group.max_range
-    #     )
-
-    #     # ADD/SUB (composing models)
-    #     # =====================================================================
-    #     # Composing models do not search concurrency and has no max batch size
-
-    #     # max_batch_size
-    #     max_batch_size = analyzer._composing_search_parameters["add"].get_parameter(
-    #         "max_batch_size"
-    #     )
-    #     self.assertIsNone(max_batch_size)
-
-    #     # concurrency
-    #     concurrency = analyzer._composing_search_parameters["sub"].get_parameter(
-    #         "concurrency"
-    #     )
-    #     self.assertIsNone(concurrency)
-
-    #     # instance_group
-    #     instance_group = analyzer._composing_search_parameters["sub"].get_parameter(
-    #         "instance_group"
-    #     )
-    #     self.assertEqual(SearchUsage.MODEL, instance_group.usage)
-    #     self.assertEqual(SearchCategory.INTEGER, instance_group.category)
-    #     self.assertEqual(
-    #         default.DEFAULT_RUN_CONFIG_MIN_INSTANCE_COUNT, instance_group.min_range
-    #     )
-    #     self.assertEqual(
-    #         default.DEFAULT_RUN_CONFIG_MAX_INSTANCE_COUNT, instance_group.max_range
-    #     )
 
 
 if __name__ == "__main__":
