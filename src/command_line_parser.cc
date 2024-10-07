@@ -1767,8 +1767,8 @@ CLParser::ParseCommandLine(int argc, char** argv)
     params_->search_mode = SearchMode::NONE;
   }
 
-  // When the request-count feature is enabled, override the measurement mode
-  // to be count windows with a window size of the requested count
+  // When the request-count feature is enabled, override the measurement mode to
+  // be count windows with a window size of the requested count
   if (params_->request_count) {
     params_->measurement_mode = MeasurementMode::COUNT_WINDOWS;
     params_->measurement_request_count = params_->request_count;
@@ -1817,8 +1817,7 @@ CLParser::VerifyOptions()
   if (params_->percentile != -1 &&
       (params_->percentile > 99 || params_->percentile < 1)) {
     Usage(
-        "Failed to parse --percentile. The value must be -1 for not "
-        "reporting "
+        "Failed to parse --percentile. The value must be -1 for not reporting "
         "or in range (0, 100).");
   }
   if (params_->zero_input && !params_->user_data.empty()) {
@@ -1847,8 +1846,7 @@ CLParser::VerifyOptions()
       params_->using_custom_intervals};
   if (std::count(load_modes.begin(), load_modes.end(), true) > 1) {
     Usage(
-        "Cannot specify more then one inference load mode. Please choose "
-        "only "
+        "Cannot specify more then one inference load mode. Please choose only "
         "one of the following modes: --concurrency-range, "
         "--periodic-concurrency-range, --request-rate-range, or "
         "--request-intervals.");
@@ -1856,8 +1854,7 @@ CLParser::VerifyOptions()
 
   if (params_->is_using_periodic_concurrency_mode && !params_->streaming) {
     Usage(
-        "The --periodic-concurrency-range option requires bi-directional "
-        "gRPC "
+        "The --periodic-concurrency-range option requires bi-directional gRPC "
         "streaming.");
   }
 
@@ -1965,8 +1962,7 @@ CLParser::VerifyOptions()
       if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
           params_->request_rate_range[SEARCH_RANGE::kEND]) {
         Usage(
-            "request-count not supported with multiple request-rate values "
-            "in "
+            "request-count not supported with multiple request-rate values in "
             "one run");
       }
     }
@@ -1975,8 +1971,7 @@ CLParser::VerifyOptions()
   if (params_->kind == cb::TENSORFLOW_SERVING) {
     if (params_->protocol != cb::ProtocolType::GRPC) {
       Usage(
-          "perf_analyzer supports only grpc protocol for TensorFlow "
-          "Serving.");
+          "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
     } else if (params_->streaming) {
       Usage("perf_analyzer does not support streaming for TensorFlow Serving.");
     } else if (params_->async) {
@@ -2043,8 +2038,7 @@ CLParser::VerifyOptions()
   if (params_->metrics_url_specified &&
       params_->should_collect_metrics == false) {
     Usage(
-        "Must specify --collect-metrics when using the --metrics-url "
-        "option.");
+        "Must specify --collect-metrics when using the --metrics-url option.");
   }
 
   if (params_->metrics_interval_ms_specified &&
@@ -2065,4 +2059,5 @@ CLParser::VerifyOptions()
     }
   }
 }
+
 }}  // namespace triton::perfanalyzer
