@@ -134,8 +134,8 @@ class SearchParameters:
             self._populate_model_config_parameters()
             self._populate_perf_analyzer_parameters()
             self._populate_genai_perf_parameters()
-        # else:
-        #     self._populate_analyze_parameters()
+        else:
+            self._populate_analyze_parameters()
 
     ###########################################################################
     # Perf Analyzer Parameters
@@ -272,6 +272,29 @@ class SearchParameters:
                 parameter_min_value=self._config.model_config.max_queue_delay.min,
                 parameter_max_value=self._config.model_config.max_queue_delay.max,
             )
+
+    ###########################################################################
+    # Analyze Parameters
+    ###########################################################################
+    def _populate_analyze_parameters(self) -> None:
+        for name, value in self._config.sweep_parameters.items():  # type: ignore
+            if isinstance(value, list):
+                category = (
+                    SearchCategory.STR_LIST
+                    if isinstance(value[0], str)
+                    else SearchCategory.INT_LIST
+                )
+                self._populate_list_parameter(
+                    parameter_name=name,
+                    parameter_list=value,
+                    parameter_category=category,
+                )
+            elif isinstance(value, Range):
+                self._populate_range_parameter(
+                    parameter_name=name,
+                    parameter_min_value=value.min,
+                    parameter_max_value=value.max,
+                )
 
     ###########################################################################
     # Populate Methods

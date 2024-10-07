@@ -294,6 +294,52 @@ class TestSearchParameters(unittest.TestCase):
         # model_batch_size (8) * instance count (5) * concurrency (11) * size (3)
         self.assertEqual(8 * 5 * 11 * 3, total_num_of_possible_configurations)
 
+    #######################################################################
+    # Test Analyze Configs
+    #######################################################################
+    def test_default_analyze_config(self):
+        """
+        Test that search parameters are created correctly when calling
+        default analyze subcommand
+        """
+        search_parameters = SearchParameters(config=self.config.analyze)
+
+        concurrency = search_parameters.get_parameter("concurrency")
+        self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
+        self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
+        self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
+        self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
+
+    def test_custom_analyze_config(self):
+        """
+        Test that search parameters are created correctly when calling
+        default analyze subcommand
+        """
+        config = deepcopy(self.config.analyze)
+        config.sweep_parameters = {
+            "num_prompts": [10, 50, 100],
+            "request_rate": Range(
+                min=RunConfigDefaults.MIN_REQUEST_RATE,
+                max=RunConfigDefaults.MAX_REQUEST_RATE,
+            ),
+        }
+        search_parameters = SearchParameters(config=config)
+
+        num_prompts = search_parameters.get_parameter("num_prompts")
+        self.assertEqual(SearchUsage.RUNTIME_GAP, num_prompts.usage)
+        self.assertEqual(SearchCategory.INT_LIST, num_prompts.category)
+        self.assertEqual([10, 50, 100], num_prompts.enumerated_list)
+
+        request_rate = search_parameters.get_parameter("request_rate")
+        self.assertEqual(SearchUsage.RUNTIME_PA, request_rate.usage)
+        self.assertEqual(SearchCategory.EXPONENTIAL, request_rate.category)
+        self.assertEqual(
+            log2(RunConfigDefaults.MIN_REQUEST_RATE), request_rate.min_range
+        )
+        self.assertEqual(
+            log2(RunConfigDefaults.MAX_REQUEST_RATE), request_rate.max_range
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
