@@ -68,9 +68,6 @@ class InputsConfig:
     # The number of text inputs per request (currently only used for the embeddings and rankings endpoints)
     batch_size_text: int = 1
 
-    # The name of the dataset
-    dataset_name: str = ""
-
     # If provided, append these inputs to every request
     extra_inputs: Dict = field(default_factory=dict)
 

@@ -185,7 +185,6 @@ class TestCLIArguments:
                     ]
                 },
             ),
-            (["--input-dataset", "openorca"], {"input_dataset": "openorca"}),
             (["--measurement-interval", "100"], {"measurement_interval": 100}),
             (
                 ["--model-selection-strategy", "random"],
@@ -829,7 +828,6 @@ class TestCLIArguments:
         "args, expected_prompt_source",
         [
             ([], PromptSource.SYNTHETIC),
-            (["--input-dataset", "openorca"], PromptSource.DATASET),
             (["--input-file", "prompt.txt"], PromptSource.FILE),
             (
                 ["--input-file", "prompt.txt", "--synthetic-input-tokens-mean", "10"],
@@ -848,33 +846,6 @@ class TestCLIArguments:
         args, _ = parser.parse_args()
 
         assert args.prompt_source == expected_prompt_source
-
-    def test_prompt_source_assertions(self, monkeypatch, mocker, capsys):
-        _ = mocker.patch("builtins.open", mocker.mock_open(read_data="data"))
-        _ = mocker.patch("os.path.isfile", return_value=True)
-        _ = mocker.patch("os.path.isdir", return_value=True)
-        args = [
-            "genai-perf",
-            "profile",
-            "--model",
-            "test_model",
-            "--input-dataset",
-            "openorca",
-            "--input-file",
-            "prompt.txt",
-        ]
-        monkeypatch.setattr("sys.argv", args)
-
-        expected_output = (
-            "argument --input-file: not allowed with argument --input-dataset"
-        )
-
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
-
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
 
     @pytest.mark.parametrize(
         "args",
