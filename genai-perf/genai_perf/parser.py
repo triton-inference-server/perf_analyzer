@@ -459,6 +459,22 @@ def _add_input_args(parser):
         'a "queries.jsonl" file and a "passages.jsonl" file with the same format.',
     )
 
+    prompt_source_group.add_argument(
+        "--schedule-file",
+        type=str,
+        default=None,
+        required=False,
+        help="Fixed Schedule TODO",
+    )
+
+    prompt_source_group.add_argument(
+        "--block-size",
+        type=int,
+        default=512,
+        required=False,
+        help="Fixed Schedule TODO",
+    )
+
     input_group.add_argument(
         "--num-prompts",
         type=int,

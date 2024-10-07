@@ -138,6 +138,13 @@ RequestRateManager::GenerateSchedule(
   } else {
     return;
   }
+  std::vector<float> scaled_schedule;
+  scaled_schedule.reserve(schedule.size());
+  if (schedule.size() > 0) {
+    for (const auto& value : schedule) {
+      scaled_schedule.push_back(value / static_cast<float>(request_rate));
+    }
+  }
 
   std::vector<float> scaled_schedule;
   scaled_schedule.reserve(schedule.size());
