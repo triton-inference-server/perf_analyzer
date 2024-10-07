@@ -30,11 +30,7 @@ import requests
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.file_input_retriever import FileInputRetriever
-from genai_perf.inputs.input_constants import (
-    OutputFormat,
-    PromptSource,
-    dataset_url_map,
-)
+from genai_perf.inputs.input_constants import OutputFormat, PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.synthetic_image_generator import (
     ImageFormat,
@@ -77,12 +73,7 @@ class InputRetrieverFactory:
                 )
             )
         else:
-            if self.config.input_type == PromptSource.DATASET:
-                dataset = self._get_input_dataset_from_url()
-                generic_dataset_json = self._convert_input_url_dataset_to_generic_json(
-                    dataset
-                )
-            elif self.config.input_type == PromptSource.SYNTHETIC:
+            if self.config.input_type == PromptSource.SYNTHETIC:
                 synthetic_dataset = self._get_input_dataset_from_synthetic()
                 generic_dataset_json = (
                     self._convert_input_synthetic_or_file_dataset_to_generic_json(
@@ -127,13 +118,6 @@ class InputRetrieverFactory:
                     row["row"]["image"] = payload
 
         return input_file_dataset
-
-    def _get_input_dataset_from_url(self) -> Response:
-        url = self._resolve_url()
-        configured_url = self._create_configured_url(url)
-        dataset = self._download_dataset(configured_url)
-
-        return dataset
 
     def _convert_input_url_dataset_to_generic_json(self, dataset: Response) -> Dict:
         dataset_json = dataset.json()
@@ -211,26 +195,6 @@ class InputRetrieverFactory:
         payload = f"data:image/{img.format.lower()};base64,{img_base64}"
         return payload
 
-    def _resolve_url(self) -> str:
-        if self.config.dataset_name in dataset_url_map:
-            return dataset_url_map[self.config.dataset_name]
-        else:
-            raise GenAIPerfException(
-                f"{self.config.dataset_name} does not have a corresponding URL in the dataset_url_map."
-            )
-
-    def _create_configured_url(self, url: str) -> str:
-        starting_index_str = str(self.config.starting_index)
-        length_str = str(self.config.length)
-        configured_url = url + f"&offset={starting_index_str}&length={length_str}"
-
-        return configured_url
-
-    def _download_dataset(self, configured_url: str) -> Response:
-        dataset = self._query_server(configured_url)
-
-        return dataset
-
     def _check_for_error_in_json_of_dataset(self, dataset_json: Dict) -> None:
         if "error" in dataset_json:
             raise GenAIPerfException(dataset_json["error"])
@@ -250,20 +214,3 @@ class InputRetrieverFactory:
             image_height_stddev=self.config.image_height_stddev,
             image_format=self.config.image_format,
         )
-
-    def _query_server(self, configured_url: str) -> Response:
-        try:
-            response = requests.get(configured_url)
-        except Exception as e:
-            error_message = self._create_error_message(e)
-            raise GenAIPerfException(error_message)
-
-        return response
-
-    def _create_error_message(self, exception: Exception) -> str:
-        url_str = exception.args[0].args[0]
-        url_start = url_str.find("'")
-        url_end = url_str.find("'", url_start + 1) + 1
-        error_message = f"Invalid URL: {url_str[url_start:url_end]}"
-
-        return error_message
