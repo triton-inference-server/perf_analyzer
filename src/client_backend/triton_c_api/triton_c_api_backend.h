@@ -77,8 +77,6 @@ class TritonCApiClientBackend : public ClientBackend {
       const std::string& model_repository_path, const bool verbose,
       std::unique_ptr<ClientBackend>* client_backend);
 
-  ~TritonCApiClientBackend() { triton_loader_->Delete(); }
-
   /// See ClientBackend::ServerExtensions()
   Error ServerExtensions(std::set<std::string>* server_extensions) override;
 

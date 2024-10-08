@@ -89,8 +89,16 @@ ConcurrencyManager::PerformWarmup(
   if (warmup_request_count == 0) {
     return cb::Error::Success;
   }
-  RETURN_IF_ERROR(
-      ChangeConcurrencyLevel(concurrent_request_count, warmup_request_count));
+  size_t warmup_concurrent_request_count{concurrent_request_count};
+  if (warmup_concurrent_request_count > warmup_request_count) {
+    std::cerr << "WARNING: The number of concurrent requests exceeds the "
+                 "warmup request count. Adjusting warmup concurrency to match "
+                 "the warmup request count."
+              << std::endl;
+    warmup_concurrent_request_count = warmup_request_count;
+  }
+  RETURN_IF_ERROR(ChangeConcurrencyLevel(
+      warmup_concurrent_request_count, warmup_request_count));
   WaitForWarmupAndCleanup();
   return cb::Error::Success;
 }

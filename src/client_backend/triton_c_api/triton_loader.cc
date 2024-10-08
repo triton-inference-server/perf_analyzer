@@ -1363,8 +1363,11 @@ TritonLoader::GetSingleton()
 
 TritonLoader::~TritonLoader()
 {
-  TRITONSERVER_Error* allocator_err = response_allocator_delete_fn_(allocator_);
-  FAIL_IF_TRITONSERVER_ERROR(allocator_err, "deleting response allocator");
+  if (response_allocator_delete_fn_) {
+    TRITONSERVER_Error* allocator_err =
+        response_allocator_delete_fn_(allocator_);
+    FAIL_IF_TRITONSERVER_ERROR(allocator_err, "deleting response allocator");
+  }
 
   FAIL_IF_ERR(Delete(), "dereferencing server instance...");
   FAIL_IF_ERR(CloseLibraryHandle(dlhandle_), "error on closing triton loader");
