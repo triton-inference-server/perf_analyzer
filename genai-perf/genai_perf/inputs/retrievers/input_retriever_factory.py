@@ -26,7 +26,6 @@
 
 from typing import Any, Dict, List
 
-import requests
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import OutputFormat, PromptSource
