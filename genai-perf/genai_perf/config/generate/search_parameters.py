@@ -22,7 +22,7 @@ from genai_perf.config.generate.search_parameter import (
     SearchParameter,
     SearchUsage,
 )
-from genai_perf.config.input.config_command import ConfigCommand, Range
+from genai_perf.config.input.config_command import ConfigOptimize, Range, Subcommand
 from genai_perf.exceptions import GenAIPerfException
 
 
@@ -39,25 +39,36 @@ class SearchParameters:
         "concurrency",
         "request_rate",
     ]
-    linear_range_parameters = ["instance_count"]
+
+    linear_range_parameters = ["instance_count", "num_prompts"]
 
     model_parameters = [
         "model_batch_size",
         "instance_count",
         "max_queue_delay",
     ]
-    runtime_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
 
-    all_parameters = model_parameters + runtime_parameters
+    runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
+
+    runtime_gap_parameters = [
+        "num_prompts",
+    ]
+
+    all_parameters = model_parameters + runtime_pa_parameters + runtime_gap_parameters
 
     def __init__(
         self,
-        config: ConfigCommand,
+        config: ConfigOptimize,
         is_bls_model: bool = False,
         is_ensemble_model: bool = False,
         is_composing_model: bool = False,
     ):
-        self._config = config.optimize
+        self._config = config
+        self._subcommand = (
+            Subcommand.OPTIMIZE
+            if isinstance(config, ConfigOptimize)
+            else Subcommand.ANALYZE
+        )
 
         # TODO: OPTIMIZE
         # self._supports_model_batch_size = model.supports_batching()
@@ -121,8 +132,12 @@ class SearchParameters:
     # Search Parameters
     ###########################################################################
     def _populate_search_parameters(self) -> None:
-        self._populate_perf_analyzer_parameters()
-        self._populate_model_config_parameters()
+        if self._subcommand == Subcommand.OPTIMIZE:
+            self._populate_model_config_parameters()
+            self._populate_perf_analyzer_parameters()
+            self._populate_genai_perf_parameters()
+        else:
+            self._populate_analyze_parameters()
 
     ###########################################################################
     # Perf Analyzer Parameters
@@ -178,6 +193,26 @@ class SearchParameters:
                 parameter_name="request_rate",
                 parameter_min_value=self._config.perf_analyzer.request_rate.min,
                 parameter_max_value=self._config.perf_analyzer.request_rate.max,
+            )
+
+    ###########################################################################
+    # GenAI Perf Parameters
+    ###########################################################################
+    def _populate_genai_perf_parameters(self) -> None:
+        self._populate_genai_perf_num_prompts()
+
+    def _populate_genai_perf_num_prompts(self) -> None:
+        if isinstance(self._config.genai_perf.num_prompts, list):
+            self._populate_list_parameter(
+                parameter_name="num_prompts",
+                parameter_list=list(self._config.genai_perf.num_prompts),
+                parameter_category=SearchCategory.INT_LIST,
+            )
+        elif isinstance(self._config.genai_perf.num_prompts, Range):
+            self._populate_range_parameter(
+                parameter_name="num_prompts",
+                parameter_min_value=self._config.genai_perf.num_prompts.min,
+                parameter_max_value=self._config.genai_perf.num_prompts.max,
             )
 
     ###########################################################################
@@ -241,6 +276,29 @@ class SearchParameters:
             )
 
     ###########################################################################
+    # Analyze Parameters
+    ###########################################################################
+    def _populate_analyze_parameters(self) -> None:
+        for name, value in self._config.sweep_parameters.items():  # type: ignore
+            if isinstance(value, list):
+                category = (
+                    SearchCategory.STR_LIST
+                    if isinstance(value[0], str)
+                    else SearchCategory.INT_LIST
+                )
+                self._populate_list_parameter(
+                    parameter_name=name,
+                    parameter_list=value,
+                    parameter_category=category,
+                )
+            elif isinstance(value, Range):
+                self._populate_range_parameter(
+                    parameter_name=name,
+                    parameter_min_value=value.min,
+                    parameter_max_value=value.max,
+                )
+
+    ###########################################################################
     # Populate Methods
     ###########################################################################
     def _populate_list_parameter(
@@ -295,8 +353,10 @@ class SearchParameters:
     def _determine_parameter_usage(self, name: str) -> SearchUsage:
         if name in SearchParameters.model_parameters:
             usage = SearchUsage.MODEL
-        elif name in SearchParameters.runtime_parameters:
-            usage = SearchUsage.RUNTIME
+        elif name in SearchParameters.runtime_pa_parameters:
+            usage = SearchUsage.RUNTIME_PA
+        elif name in SearchParameters.runtime_gap_parameters:
+            usage = SearchUsage.RUNTIME_GAP
         else:
             raise (GenAIPerfException(f"SearchUsage not found for {name}"))
 

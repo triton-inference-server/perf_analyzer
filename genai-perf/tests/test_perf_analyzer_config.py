@@ -37,13 +37,13 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                     SearchUsage.MODEL, ObjectiveCategory.EXPONENTIAL, 4
                 ),
                 "runtime_batch_size": ObjectiveParameter(
-                    SearchUsage.RUNTIME, ObjectiveCategory.INTEGER, 1
+                    SearchUsage.RUNTIME_PA, ObjectiveCategory.INTEGER, 1
                 ),
                 "instance_count": ObjectiveParameter(
                     SearchUsage.MODEL, ObjectiveCategory.INTEGER, 2
                 ),
                 "concurrency": ObjectiveParameter(
-                    SearchUsage.RUNTIME, ObjectiveCategory.EXPONENTIAL, 6
+                    SearchUsage.RUNTIME_PA, ObjectiveCategory.EXPONENTIAL, 6
                 ),
             }
         }
