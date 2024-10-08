@@ -36,7 +36,7 @@ from genai_perf.inputs.inputs_config import InputsConfig
 class VLLMConverter(BaseConverter):
 
     _CONTENT_NAMES = [
-        "text_input",
+        "text",
         # OPENORCA
         "system_prompt",
         "question",
@@ -49,11 +49,11 @@ class VLLMConverter(BaseConverter):
 
         for index, entry in enumerate(generic_dataset["rows"]):
             model_name = self._select_model_name(config, index)
-            text_input = self._construct_text_payload(entry)
+            text = self._construct_text_payload(entry)
 
             payload = {
                 "model": model_name,
-                "text_input": [text_input],
+                "text_input": [text],
                 "exclude_input_in_output": [True],  # default
             }
             self._add_request_params(payload, config)

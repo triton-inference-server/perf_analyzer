@@ -42,7 +42,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
             content: Any = []
             if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
-                content = entry["text_input"]
+                content = entry["text"]
             else:
                 # Treat single batch and multi-batch entries the same way
                 entries = entry if isinstance(entry, list) else [entry]
@@ -66,11 +66,11 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
     def _add_multi_modal_content(self, entry: Dict) -> List[Dict]:
         content = []
-        if "text_input" in entry:
+        if "text" in entry:
             content.append(
                 {
                     "type": "text",
-                    "text": entry["text_input"],
+                    "text": entry["text"],
                 }
             )
         if "image" in entry:

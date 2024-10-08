@@ -131,7 +131,7 @@ class TestFileInputRetriever:
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data='{"text_input": "single prompt"}\n',
+        read_data='{"text": "single prompt"}\n',
     )
     def test_get_input_file_with_single_prompt(self, mock_file, mock_exists):
         expected_prompts = ["single prompt"]
@@ -147,7 +147,7 @@ class TestFileInputRetriever:
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_prompts)
         for i, prompt in enumerate(expected_prompts):
-            assert dataset["rows"][i]["row"]["text_input"] == prompt
+            assert dataset["rows"][i]["row"]["text"] == prompt
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
@@ -169,13 +169,13 @@ class TestFileInputRetriever:
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_prompts)
         for i, prompt in enumerate(expected_prompts):
-            assert dataset["rows"][i]["row"]["text_input"] == prompt
+            assert dataset["rows"][i]["row"]["text"] == prompt
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data='{"text_input": "prompt1"}\n{"text_input": "prompt2"}\n{"text_input": "prompt3"}\n',
+        read_data='{"text": "prompt1"}\n{"text": "prompt2"}\n{"text": "prompt3"}\n',
     )
     def test_get_input_file_with_multiple_prompts(self, mock_file, mock_exists):
         expected_prompts = ["prompt1", "prompt2", "prompt3"]
@@ -191,7 +191,7 @@ class TestFileInputRetriever:
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_prompts)
         for i, prompt in enumerate(expected_prompts):
-            assert dataset["rows"][i]["row"]["text_input"] == prompt
+            assert dataset["rows"][i]["row"]["text"] == prompt
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
@@ -199,9 +199,9 @@ class TestFileInputRetriever:
         "builtins.open",
         new_callable=mock_open,
         read_data=(
-            '{"text_input": "prompt1", "image": "image1.png"}\n'
-            '{"text_input": "prompt2", "image": "image2.png"}\n'
-            '{"text_input": "prompt3", "image": "image3.png"}\n'
+            '{"text": "prompt1", "image": "image1.png"}\n'
+            '{"text": "prompt2", "image": "image2.png"}\n'
+            '{"text": "prompt3", "image": "image3.png"}\n'
         ),
     )
     def test_get_input_file_with_multi_modal_data(
@@ -214,16 +214,16 @@ class TestFileInputRetriever:
                 input_filename=Path("prompt.txt"),
             )
         )
-        Data = namedtuple("Data", ["text_input", "image"])
+        Data = namedtuple("Data", ["text", "image"])
         expected_data = [
-            Data(text_input="prompt1", image="image1.png"),
-            Data(text_input="prompt2", image="image2.png"),
-            Data(text_input="prompt3", image="image3.png"),
+            Data(text="prompt1", image="image1.png"),
+            Data(text="prompt2", image="image2.png"),
+            Data(text="prompt3", image="image3.png"),
         ]
         dataset = file_retriever._get_input_dataset_from_file()
 
         assert dataset is not None
         assert len(dataset["rows"]) == len(expected_data)
         for i, data in enumerate(expected_data):
-            assert dataset["rows"][i]["row"]["text_input"] == data.text_input
+            assert dataset["rows"][i]["row"]["text"] == data.text
             assert dataset["rows"][i]["row"]["image"] == data.image

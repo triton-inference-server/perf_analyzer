@@ -94,18 +94,18 @@ Example output:
 To create a sample embeddings input file, use the following command:
 
 ```bash
-echo '{"text_input": "What was the first car ever driven?"}
-{"text_input": "Who served as the 5th President of the United States of America?"}
-{"text_input": "Is the Sydney Opera House located in Australia?"}
-{"text_input": "In what state did they film Shrek 2?"}' > embeddings.jsonl
+echo '{"text": "What was the first car ever driven?"}
+{"text": "Who served as the 5th President of the United States of America?"}
+{"text": "Is the Sydney Opera House located in Australia?"}
+{"text": "In what state did they film Shrek 2?"}' > embeddings.jsonl
 ```
 
 This will generate a file named embeddings.jsonl with the following content:
 ```jsonl
-{"text_input": "What was the first car ever driven?"}
-{"text_input": "Who served as the 5th President of the United States of America?"}
-{"text_input": "Is the Sydney Opera House located in Australia?"}
-{"text_input": "In what state did they film Shrek 2?"}
+{"text": "What was the first car ever driven?"}
+{"text": "Who served as the 5th President of the United States of America?"}
+{"text": "Is the Sydney Opera House located in Australia?"}
+{"text": "In what state did they film Shrek 2?"}
 ```
 
 #### Start an OpenAI Embeddings-Compatible Server

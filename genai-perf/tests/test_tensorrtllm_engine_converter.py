@@ -40,8 +40,8 @@ class TestTensorRTLLMEngineConverter:
 
         generic_dataset = {
             "rows": [
-                {"text_input": "text input one"},
-                {"text_input": "text input two"},
+                {"text": "text input one"},
+                {"text": "text input two"},
             ]
         }
 
@@ -82,8 +82,8 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_with_request_parameters(self):
         generic_dataset = {
             "rows": [
-                {"text_input": "text input one"},
-                {"text_input": "text input two"},
+                {"text": "text input one"},
+                {"text": "text input two"},
             ]
         }
 

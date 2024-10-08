@@ -39,7 +39,7 @@ class OpenAICompletionsConverter(BaseConverter):
     # for each dataset. This is because a dataset can be used differently depending
     # on the endpoint (e.g. chat vs non-chat).
     _CONTENT_NAMES = [
-        "text_input",
+        "text",
         # OPENORCA
         "system_prompt",
         "question",
