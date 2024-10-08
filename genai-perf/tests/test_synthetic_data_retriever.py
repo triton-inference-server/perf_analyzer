@@ -45,9 +45,9 @@ class TestSyntheticDataRetriever:
 
         assert len(dataset) == 3
         assert dataset == [
-            {"text_input": "test prompt"},
-            {"text_input": "test prompt"},
-            {"text_input": "test prompt"},
+            {"text": "test prompt"},
+            {"text": "test prompt"},
+            {"text": "test prompt"},
         ]
 
     @patch(
@@ -69,15 +69,15 @@ class TestSyntheticDataRetriever:
         assert len(dataset) == 3
         assert dataset == [
             {
-                "text_input": "test prompt",
+                "text": "test prompt",
                 "image": "data:image/jpeg;base64,test_base64_encoding",
             },
             {
-                "text_input": "test prompt",
+                "text": "test prompt",
                 "image": "data:image/jpeg;base64,test_base64_encoding",
             },
             {
-                "text_input": "test prompt",
+                "text": "test prompt",
                 "image": "data:image/jpeg;base64,test_base64_encoding",
             },
         ]

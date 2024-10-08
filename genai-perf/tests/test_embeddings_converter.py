@@ -33,10 +33,10 @@ class TestEmbeddingsConverter:
 
     def test_convert_default(self):
         generic_dataset = {
-            "features": ["text_input"],
+            "features": ["text"],
             "rows": [
-                {"text_input": "text_1"},
-                {"text_input": "text_2"},
+                {"text": "text_1"},
+                {"text": "text_2"},
             ],
         }
 
@@ -75,10 +75,10 @@ class TestEmbeddingsConverter:
 
     def test_convert_batched(self):
         generic_dataset = {
-            "features": ["text_input"],
+            "features": ["text"],
             "rows": [
-                [{"text_input": "text_1"}, {"text_input": "text_2"}],
-                [{"text_input": "text_3"}, {"text_input": "text_4"}],
+                [{"text": "text_1"}, {"text": "text_2"}],
+                [{"text": "text_3"}, {"text": "text_4"}],
             ],
         }
 
@@ -118,10 +118,10 @@ class TestEmbeddingsConverter:
 
     def test_convert_with_request_parameters(self):
         generic_dataset = {
-            "features": ["text_input"],
+            "features": ["text"],
             "rows": [
-                {"text_input": "text_1"},
-                {"text_input": "text_2"},
+                {"text": "text_1"},
+                {"text": "text_2"},
             ],
         }
 

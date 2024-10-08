@@ -48,7 +48,7 @@ class SyntheticDataRetriever:
                 self.config.prompt_tokens_mean,
                 self.config.prompt_tokens_stddev,
             )
-            data = {"text_input": prompt}
+            data = {"text": prompt}
 
             if self.config.output_format == OutputFormat.OPENAI_VISION:
                 image = SyntheticImageGenerator.create_synthetic_image(

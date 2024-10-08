@@ -41,7 +41,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
         request_body: Dict[str, Any] = {"data": []}
 
         for _, entry in enumerate(generic_dataset["rows"]):
-            token_ids = config.tokenizer.encode(entry["text_input"])
+            token_ids = config.tokenizer.encode(entry["text"])
             payload = {
                 "input_ids": {
                     "content": token_ids,

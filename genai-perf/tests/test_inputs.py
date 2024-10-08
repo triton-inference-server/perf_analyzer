@@ -448,8 +448,8 @@ class TestInputs:
                 # generic_json
                 {
                     "rows": [
-                        {"text_input": "test input one"},
-                        {"text_input": "test input two"},
+                        {"text": "test input one"},
+                        {"text": "test input two"},
                     ]
                 },
                 False,
@@ -481,8 +481,8 @@ class TestInputs:
                 # generic_json
                 {
                     "rows": [
-                        {"text_input": "test input one"},
-                        {"text_input": "test input two"},
+                        {"text": "test input one"},
+                        {"text": "test input two"},
                     ]
                 },
                 True,
