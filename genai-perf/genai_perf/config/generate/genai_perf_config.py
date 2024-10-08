@@ -13,17 +13,14 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import (
     ConfigCommand,
     ConfigInput,
     ConfigOutputTokens,
-    ConfigSyntheticTokens,
 )
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.types import ModelName, ModelObjectiveParameters
+from genai_perf.types import ModelObjectiveParameters
 
 
 @dataclass

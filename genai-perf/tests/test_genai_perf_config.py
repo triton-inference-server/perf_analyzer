@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.objective_parameter import (
@@ -25,7 +25,6 @@ from genai_perf.config.input.config_command import (
     ConfigCommand,
     ConfigInput,
     ConfigOutputTokens,
-    RunConfigDefaults,
 )
 
 
