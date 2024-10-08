@@ -22,7 +22,7 @@ from genai_perf.config.generate.search_parameter import (
     SearchParameter,
     SearchUsage,
 )
-from genai_perf.config.input.config_command import ConfigOptimize, Range
+from genai_perf.config.input.config_command import ConfigOptimize, Range, Subcommand
 from genai_perf.exceptions import GenAIPerfException
 
 
@@ -65,7 +65,9 @@ class SearchParameters:
     ):
         self._config = config
         self._subcommand = (
-            "optimize" if isinstance(config, ConfigOptimize) else "analyze"
+            Subcommand.OPTIMIZE
+            if isinstance(config, ConfigOptimize)
+            else Subcommand.ANALYZE
         )
 
         # TODO: OPTIMIZE
@@ -130,7 +132,7 @@ class SearchParameters:
     # Search Parameters
     ###########################################################################
     def _populate_search_parameters(self) -> None:
-        if self._subcommand == "optimize":
+        if self._subcommand == Subcommand.OPTIMIZE:
             self._populate_model_config_parameters()
             self._populate_perf_analyzer_parameters()
             self._populate_genai_perf_parameters()

@@ -14,9 +14,15 @@
 
 from copy import copy
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import Dict, List, Optional, TypeAlias, Union
 
 from genai_perf.types import ModelName
+
+
+class Subcommand(Enum):
+    ANALYZE = auto()
+    OPTIMIZE = auto()
 
 
 def default_field(obj):
