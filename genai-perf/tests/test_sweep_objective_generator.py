@@ -28,8 +28,8 @@ class TestSweepObjectiveGenerator(unittest.TestCase):
     def setUp(self):
         self._config = ConfigCommand(model_names=["test_modelA", "test_modelB"])
         self._model_search_parameters = {
-            "test_modelA": SearchParameters(self._config),
-            "test_modelB": SearchParameters(self._config),
+            "test_modelA": SearchParameters(self._config.optimize),
+            "test_modelB": SearchParameters(self._config.optimize),
         }
 
         self._sweep_obj_gen = SweepObjectiveGenerator(
