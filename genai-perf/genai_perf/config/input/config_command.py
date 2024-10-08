@@ -14,9 +14,15 @@
 
 from copy import copy
 from dataclasses import dataclass, field
-from typing import List, Optional, TypeAlias, Union
+from enum import Enum, auto
+from typing import Dict, List, Optional, TypeAlias, Union
 
 from genai_perf.types import ModelName
+
+
+class Subcommand(Enum):
+    ANALYZE = auto()
+    OPTIMIZE = auto()
 
 
 def default_field(obj):
@@ -30,6 +36,7 @@ class Range:
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
+AnalyzeParameter: TypeAlias = Dict[str, ConfigRangeOrList]
 
 
 # TODO: OPTIMIZE
@@ -54,12 +61,15 @@ class RunConfigDefaults:
 
     # Optimize: PA Defaults
     STIMULUS_TYPE = "concurrency"
-    PA_BATCH_SIZE = [1]
+    PA_BATCH_SIZE = 1
     MIN_CONCURRENCY = 1
     MAX_CONCURRENCY = 1024
     MIN_REQUEST_RATE = 16
     MAX_REQUEST_RATE = 8192
     USE_CONCURRENCY_FORMULA = True
+
+    # Analyze Defaults
+    SWEEP = {"concurrency": Range(min=MIN_CONCURRENCY, max=MAX_CONCURRENCY)}
 
     # Perf Analyzer Defaults
     PA_PATH = "perf_analyzer"
@@ -69,6 +79,21 @@ class RunConfigDefaults:
     OUTPUT_PATH = "./logs"
     MAX_AUTO_ADJUSTS = 10
     STABILITY_THRESHOLD = 99.9
+
+    # GAP Input Defaults
+    DATASET = "openorca"
+    FILE = None
+    NUM_PROMPTS = 100
+    SEED = 0
+
+    # GAP Input Synthetic Tokens Defaults
+    INPUT_MEAN = -1
+    INPUT_STDDEV = 0
+
+    # GAP Output Token Defaults
+    OUTPUT_MEAN = -1
+    DETERMINISTIC = False
+    OUTPUT_STDDEV = 0
 
 
 # TODO: OPTIMIZE
@@ -97,7 +122,7 @@ class ConfigModelConfig:
 @dataclass
 class ConfigOptimizePerfAnalyzer:
     stimulus_type: str = default_field(RunConfigDefaults.STIMULUS_TYPE)
-    batch_size: ConfigRangeOrList = default_field(RunConfigDefaults.PA_BATCH_SIZE)
+    batch_size: ConfigRangeOrList = default_field([RunConfigDefaults.PA_BATCH_SIZE])
     concurrency: ConfigRangeOrList = default_field(
         Range(
             min=RunConfigDefaults.MIN_CONCURRENCY, max=RunConfigDefaults.MAX_CONCURRENCY
@@ -120,6 +145,11 @@ class ConfigOptimizePerfAnalyzer:
 
 
 @dataclass
+class ConfigOptimizeGenAIPerf:
+    num_prompts: ConfigRangeOrList = default_field([RunConfigDefaults.NUM_PROMPTS])
+
+
+@dataclass
 class ConfigOptimize:
     objective: str = default_field(RunConfigDefaults.OBJECTIVE)
     constraint: Optional[str] = default_field(RunConfigDefaults.CONSTRAINT)
@@ -131,6 +161,7 @@ class ConfigOptimize:
 
     model_config: ConfigModelConfig = ConfigModelConfig()
     perf_analyzer: ConfigOptimizePerfAnalyzer = ConfigOptimizePerfAnalyzer()
+    genai_perf: ConfigOptimizeGenAIPerf = ConfigOptimizeGenAIPerf()
 
     def is_request_rate_specified(self) -> bool:
         return self.perf_analyzer.is_request_rate_specified()
@@ -138,6 +169,11 @@ class ConfigOptimize:
     def is_set_by_user(self, field: str) -> bool:
         # FIXME: OPTIMIZE - we have no way of knowing this until a real config class is created
         return False
+
+
+@dataclass
+class ConfigAnalyze:
+    sweep_parameters: AnalyzeParameter = default_field(RunConfigDefaults.SWEEP)
 
 
 @dataclass
@@ -152,10 +188,35 @@ class ConfigPerfAnalyzer:
 
 
 @dataclass
+class ConfigSyntheticTokens:
+    mean: int = default_field(RunConfigDefaults.INPUT_MEAN)
+    stddev: int = default_field(RunConfigDefaults.INPUT_STDDEV)
+
+
+@dataclass
+class ConfigInput:
+    dataset: str = default_field(RunConfigDefaults.DATASET)
+    file: str = default_field(RunConfigDefaults.FILE)
+    num_prompts: int = default_field(RunConfigDefaults.NUM_PROMPTS)
+    seed: int = default_field(RunConfigDefaults.SEED)
+    synthetic_tokens: ConfigSyntheticTokens = ConfigSyntheticTokens()
+
+
+@dataclass
+class ConfigOutputTokens:
+    mean: int = default_field(RunConfigDefaults.OUTPUT_MEAN)
+    deterministic: bool = default_field(RunConfigDefaults.DETERMINISTIC)
+    stddev: int = default_field(RunConfigDefaults.OUTPUT_STDDEV)
+
+
+@dataclass
 class ConfigCommand:
     model_names: List[ModelName]
     optimize: ConfigOptimize = ConfigOptimize()
+    analyze: ConfigAnalyze = ConfigAnalyze()
     perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
+    input: ConfigInput = ConfigInput()
+    output_tokens: ConfigOutputTokens = ConfigOutputTokens()
 
     def get_max(self, config_value: ConfigRangeOrList) -> int:
         if type(config_value) is list:
