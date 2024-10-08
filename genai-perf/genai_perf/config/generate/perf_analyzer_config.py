@@ -48,7 +48,7 @@ class PerfAnalyzerConfig:
         self._parameters: Dict[str, Any] = {}
         for objective in model_objective_parameters.values():
             for name, parameter in objective.items():
-                if parameter.usage == SearchUsage.RUNTIME:
+                if parameter.usage == SearchUsage.RUNTIME_PA:
                     self._parameters[name] = parameter.get_value_based_on_category()
 
     ###########################################################################

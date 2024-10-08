@@ -23,7 +23,8 @@ ParameterList: TypeAlias = List[Union[int, str]]
 
 class SearchUsage(Enum):
     MODEL = auto()
-    RUNTIME = auto()
+    RUNTIME_PA = auto()
+    RUNTIME_GAP = auto()
     BUILD = auto()
 
 
