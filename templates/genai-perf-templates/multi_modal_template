@@ -86,9 +86,9 @@ the filepath to the image to send.
 For instance, an example of input file would look something as following:
 ```bash
 // input.jsonl
-{"text_input": "What is in this image?", "image": "path/to/image1.png"}
-{"text_input": "What is the color of the dog?", "image": "path/to/image2.jpeg"}
-{"text_input": "Describe the scene in the picture.", "image": "path/to/image3.png"}
+{"text": "What is in this image?", "image": "path/to/image1.png"}
+{"text": "What is the color of the dog?", "image": "path/to/image2.jpeg"}
+{"text": "Describe the scene in the picture.", "image": "path/to/image3.png"}
 ...
 ```
 

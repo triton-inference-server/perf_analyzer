@@ -25,62 +25,46 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from copy import deepcopy
-from typing import Dict
+from typing import Any, Dict
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
-    EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
-    def convert(
-        self,
-        generic_dataset: Dict,
-        config: InputsConfig,
-    ) -> Dict:
-        pa_json = deepcopy(EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT)
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            token_ids = config.tokenizer.encode(entry["text_input"])
-            pa_json["data"].append(
-                {
-                    "input_ids": {
-                        "content": token_ids,
-                        "shape": [len(token_ids)],
-                    },
-                    "input_lengths": [len(token_ids)],
-                    "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
-                }
-            )
+    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+        request_body: Dict[str, Any] = {"data": []}
 
-            pa_json = self._add_optional_tags_to_trtllm_engine_json(
-                pa_json, index, config
-            )
-        return pa_json
+        for _, entry in enumerate(generic_dataset["rows"]):
+            token_ids = config.tokenizer.encode(entry["text"])
+            payload = {
+                "input_ids": {
+                    "content": token_ids,
+                    "shape": [len(token_ids)],
+                },
+                "input_lengths": [len(token_ids)],
+                "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+            }
+            self._add_request_params(payload, config)
+            request_body["data"].append(payload)
 
-    def _add_optional_tags_to_trtllm_engine_json(
-        self,
-        pa_json: Dict,
-        index: int,
-        config,
-    ) -> Dict:
-        row = pa_json["data"][index]
+        return request_body
+
+    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
         if config.add_stream:
-            row["streaming"] = [True]
+            payload["streaming"] = [True]
         if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             num_tokens = int(
                 random.gauss(config.output_tokens_mean, config.output_tokens_stddev)
             )
-            row["request_output_len"] = [num_tokens]
+            payload["request_output_len"] = [num_tokens]
             if config.output_tokens_deterministic:
-                row["min_length"] = [num_tokens]
+                payload["min_length"] = [num_tokens]
 
         for key, value in config.extra_inputs.items():
-            row[key] = [value]
-
-        return pa_json
+            payload[key] = [value]

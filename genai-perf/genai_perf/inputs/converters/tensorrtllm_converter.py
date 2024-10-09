@@ -25,114 +25,53 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from copy import deepcopy
-from typing import Dict, List
+from typing import Any, Dict
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
-    EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 
 
 class TensorRTLLMConverter(BaseConverter):
-    def convert(
-        self,
-        generic_dataset: Dict,
-        config: InputsConfig,
-    ) -> Dict:
-        (
-            system_role_headers,
-            user_role_headers,
-            text_input_headers,
-        ) = self._determine_json_feature_roles(generic_dataset)
 
-        pa_json = self._populate_trtllm_output_json(
-            generic_dataset,
-            system_role_headers,
-            user_role_headers,
-            text_input_headers,
-            config,
-        )
+    _CONTENT_NAMES = [
+        "text",
+        # OPENORCA
+        "system_prompt",
+        "question",
+        # CNN DAILYMAIL
+        "article",
+    ]
 
-        return pa_json
-
-    def _populate_trtllm_output_json(
-        self,
-        generic_dataset: Dict,
-        system_role_headers: List[str],
-        user_role_headers: List[str],
-        text_input_headers: List[str],
-        config,
-    ) -> Dict:
-        pa_json = deepcopy(EMPTY_JSON_IN_TENSORRTLLM_PA_FORMAT)
-        default_max_tokens = (
-            "max_tokens" not in config.extra_inputs
-            or config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN
-        )
+    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+        request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
-            iter_model_name = self._select_model_name(config, index)
-            pa_json["data"].append({"text_input": [""]})
+            model_name = self._select_model_name(config, index)
+            text = self._construct_text_payload(entry)
 
-            for header, content in entry.items():
-                new_text_input = self._create_new_text_input(
-                    header,
-                    system_role_headers,
-                    user_role_headers,
-                    text_input_headers,
-                    content,
-                )
+            payload = {
+                "model": model_name,
+                "text_input": text,
+                "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],  # default
+            }
+            self._add_request_params(payload, config)
+            request_body["data"].append(payload)
 
-                pa_json = self._add_new_text_input_to_json(
-                    pa_json, index, new_text_input
-                )
+        return request_body
 
-            pa_json = self._add_required_tags_to_trtllm_json(
-                pa_json, index, default_max_tokens
-            )
-            pa_json = self._add_optional_tags_to_trtllm_json(
-                pa_json,
-                index,
-                config,
-                iter_model_name,
-            )
-
-        return pa_json
-
-    def _add_required_tags_to_trtllm_json(
-        self,
-        pa_json: Dict,
-        index: int,
-        default_max_tokens: bool,
-    ) -> Dict:
-        row = pa_json["data"][index]
-        if default_max_tokens:
-            row["max_tokens"] = [DEFAULT_TENSORRTLLM_MAX_TOKENS]
-
-        return pa_json
-
-    def _add_optional_tags_to_trtllm_json(
-        self,
-        pa_json: Dict,
-        index: int,
-        config,
-        model_name: str = "",
-    ) -> Dict:
-        row = pa_json["data"][index]
-        row["model"] = model_name
+    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
         if config.add_stream:
-            row["stream"] = [True]
+            payload["stream"] = [True]
         if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             number_of_tokens = int(
                 random.gauss(config.output_tokens_mean, config.output_tokens_stddev)
             )
             if config.output_tokens_deterministic:
-                row["min_length"] = [number_of_tokens]
-            row["max_tokens"] = [number_of_tokens]
+                payload["min_length"] = [number_of_tokens]
+            payload["max_tokens"] = [number_of_tokens]
         for key, value in config.extra_inputs.items():
-            row[key] = [value]
-
-        return pa_json
+            payload[key] = [value]

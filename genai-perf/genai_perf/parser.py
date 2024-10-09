@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
-import json
 import os
 import sys
 from enum import Enum, auto
@@ -37,7 +36,7 @@ import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_COMPARE_DIR
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.telemetry_data import TelemetryDataCollector
@@ -216,9 +215,15 @@ def _check_conditional_args_embeddings_rankings(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
     else:
-        if args.batch_size != ic.DEFAULT_BATCH_SIZE:
+        if args.batch_size_text != ic.DEFAULT_BATCH_SIZE:
             parser.error(
-                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types."
+                "The --batch-size-text option is currently only supported "
+                "with the embeddings and rankings endpoint types."
+            )
+        if args.batch_size_image != ic.DEFAULT_BATCH_SIZE:
+            parser.error(
+                "The --batch-size-image option is currently only supported "
+                "with the image retrieval endpoint type."
             )
 
     if args.input_file:
@@ -373,10 +378,7 @@ def parse_goodput(values):
 
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
-    if args.input_dataset:
-        args.prompt_source = ic.PromptSource.DATASET
-        logger.debug(f"Input source is the following dataset: {args.input_dataset}")
-    elif args.input_file:
+    if args.input_file:
         args.prompt_source = ic.PromptSource.FILE
         if args.endpoint_type == "rankings":
             logger.debug(
@@ -412,6 +414,16 @@ def file_or_directory(path: str) -> Tuple[Path, PathType]:
         raise ValueError(f"'{path}' is not a valid file or directory")
 
 
+def positive_integer(value: str) -> int:
+    try:
+        int_value = int(value)
+        if int_value <= 0:
+            raise argparse.ArgumentTypeError("The value must be greater than zero.")
+    except ValueError:
+        raise argparse.ArgumentTypeError("The value must be an integer.")
+    return int_value
+
+
 ### Parsers ###
 
 
@@ -419,14 +431,24 @@ def _add_input_args(parser):
     input_group = parser.add_argument_group("Input")
 
     input_group.add_argument(
+        "--batch-size-image",
+        type=int,
+        default=ic.DEFAULT_BATCH_SIZE,
+        required=False,
+        help=f"The image batch size of the requests GenAI-Perf should send. "
+        "This is currently supported with the image retrieval endpoint type.",
+    )
+
+    input_group.add_argument(
+        "--batch-size-text",
         "--batch-size",
         "-b",
         type=int,
         default=ic.DEFAULT_BATCH_SIZE,
         required=False,
-        help=f"The batch size of the requests GenAI-Perf should send. "
-        "This is currently only supported with the embeddings, rankings, and "
-        "image_retrieval endpoint types.",
+        help=f"The text batch size of the requests GenAI-Perf should send. "
+        "This is currently supported with the embeddings and rankings "
+        "endpoint types.",
     )
 
     input_group.add_argument(
@@ -437,31 +459,21 @@ def _add_input_args(parser):
         "Alternatively, a string representing a json formatted dict can be provided.",
     )
 
-    prompt_source_group = input_group.add_mutually_exclusive_group(required=False)
-    prompt_source_group.add_argument(
-        "--input-dataset",
-        type=str.lower,
-        default=None,
-        choices=[ic.OPEN_ORCA, ic.CNN_DAILY_MAIL],
-        required=False,
-        help="The HuggingFace dataset to use for prompts.",
-    )
-
-    prompt_source_group.add_argument(
+    input_group.add_argument(
         "--input-file",
         type=file_or_directory,
         default=None,
         required=False,
         help="The input file containing the prompts to use for profiling. "
-        "Each line should be a JSON object with a 'text_input' field in JSONL format. "
-        'Example: {"text_input": "Your prompt here"}'
+        "Each line should be a JSON object with a 'text' field in JSONL format. "
+        'Example: {"text": "Your prompt here"}'
         "For the rankings endpoint-type, a directory should be passed in instead with "
         'a "queries.jsonl" file and a "passages.jsonl" file with the same format.',
     )
 
     input_group.add_argument(
         "--num-prompts",
-        type=int,
+        type=positive_integer,
         default=ic.DEFAULT_NUM_PROMPTS,
         required=False,
         help=f"The number of unique prompts to generate as stimulus.",

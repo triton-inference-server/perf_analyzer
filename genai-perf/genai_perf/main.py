@@ -76,7 +76,6 @@ def create_config_options(args: Namespace) -> InputsConfig:
     return InputsConfig(
         input_type=args.prompt_source,
         output_format=args.output_format,
-        dataset_name=args.input_dataset,
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
         input_filename=input_filename,
@@ -99,7 +98,8 @@ def create_config_options(args: Namespace) -> InputsConfig:
             args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
         ),
         extra_inputs=extra_input_dict,
-        batch_size=args.batch_size,
+        batch_size_image=args.batch_size_image,
+        batch_size_text=args.batch_size_text,
         output_dir=args.artifact_dir,
     )
 

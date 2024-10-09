@@ -19,6 +19,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.converters.output_format_converter_factory import (
+    OutputFormatConverterFactory,
+)
 from genai_perf.inputs.input_constants import (
     DEFAULT_INPUT_DATA_JSON,
     MINIMUM_LENGTH,
@@ -26,11 +29,8 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.input_retriever_factory import InputRetrieverFactory
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.output_format_converter_factory import (
-    OutputFormatConverterFactory,
-)
+from genai_perf.inputs.retrievers.input_retriever_factory import InputRetrieverFactory
 
 
 class Inputs:
@@ -61,16 +61,10 @@ class Inputs:
         return json_in_pa_format
 
     def _check_for_valid_args(self) -> None:
-        self._check_for_dataset_name_if_input_type_is_url()
+        self._check_for_supported_input_type()
         self._check_for_tokenzier_if_input_type_is_synthetic()
         self._check_for_valid_starting_index()
         self._check_for_valid_length()
-
-    def _verify_file(self) -> None:
-        if not self.config.input_filename.exists():
-            raise FileNotFoundError(
-                f"The file '{self.config.input_filename}' does not exist."
-            )
 
     def _convert_generic_json_to_output_format(self, generic_dataset) -> Dict:
         converter = OutputFormatConverterFactory.create(self.config.output_format)
@@ -81,14 +75,17 @@ class Inputs:
         with open(str(filename), "w") as f:
             f.write(json.dumps(json_in_pa_format, indent=2))
 
-    def _check_for_dataset_name_if_input_type_is_url(self) -> None:
-        if (
-            self.config.input_type == PromptSource.DATASET
-            and not self.config.dataset_name
-        ):
-            raise GenAIPerfException(
-                "Input type is dataset, but dataset_name is not specified."
-            )
+    def _check_for_supported_input_type(self) -> None:
+        if self.config.output_format in [
+            OutputFormat.OPENAI_EMBEDDINGS,
+            OutputFormat.RANKINGS,
+            OutputFormat.IMAGE_RETRIEVAL,
+        ]:
+            if self.config.input_type != PromptSource.FILE:
+                raise GenAIPerfException(
+                    f"{self.config.output_format.to_lowercase()} only supports "
+                    "a file as input source."
+                )
 
     def _check_for_tokenzier_if_input_type_is_synthetic(self) -> None:
         if (
