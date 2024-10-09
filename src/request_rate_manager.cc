@@ -46,12 +46,14 @@ RequestRateManager::Create(
     const std::shared_ptr<cb::ClientBackendFactory>& factory,
     std::unique_ptr<LoadManager>* manager,
     const std::unordered_map<std::string, cb::RequestParameter>&
-        request_parameters)
+        request_parameters,
+    const std::vector<float>& schedule)
 {
   std::unique_ptr<RequestRateManager> local_manager(new RequestRateManager(
       async, streaming, request_distribution, batch_size, measurement_window_ms,
       max_trials, max_threads, num_of_sequences, shared_memory_type,
-      output_shm_size, serial_sequences, parser, factory, request_parameters));
+      output_shm_size, serial_sequences, parser, factory, request_parameters,
+      schedule));
 
   *manager = std::move(local_manager);
 
@@ -67,12 +69,14 @@ RequestRateManager::RequestRateManager(
     const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory,
     const std::unordered_map<std::string, cb::RequestParameter>&
-        request_parameters)
+        request_parameters,
+    const std::vector<float>& schedule)
     : LoadManager(
           async, streaming, batch_size, max_threads, shared_memory_type,
           output_shm_size, parser, factory, request_parameters),
-      request_distribution_(request_distribution), execute_(false),
-      num_of_sequences_(num_of_sequences), serial_sequences_(serial_sequences)
+      request_distribution_(request_distribution), schedule_(schedule),
+      execute_(false), num_of_sequences_(num_of_sequences),
+      serial_sequences_(serial_sequences)
 {
   gen_duration_.reset(new std::chrono::nanoseconds(
       max_trials * measurement_window_ms * NANOS_PER_MILLIS));
@@ -107,14 +111,15 @@ RequestRateManager::ChangeRequestRate(
   PauseWorkers();
   ConfigureThreads(request_count);
   // Can safely update the schedule
-  GenerateSchedule(request_rate);
+  GenerateSchedule(request_rate, schedule_);
   ResumeWorkers();
 
   return cb::Error::Success;
 }
 
 void
-RequestRateManager::GenerateSchedule(const double request_rate)
+RequestRateManager::GenerateSchedule(
+    const double request_rate, const std::vector<float>& schedule)
 {
   std::chrono::nanoseconds max_duration;
   std::function<std::chrono::nanoseconds(std::mt19937&)> distribution;
@@ -134,14 +139,24 @@ RequestRateManager::GenerateSchedule(const double request_rate)
     return;
   }
 
-  auto worker_schedules = CreateWorkerSchedules(max_duration, distribution);
+  std::vector<float> scaled_schedule;
+  scaled_schedule.reserve(schedule.size());
+  if (schedule.size() > 0) {
+    for (const auto& value : schedule) {
+      scaled_schedule.push_back(value / static_cast<float>(request_rate));
+    }
+  }
+
+  auto worker_schedules =
+      CreateWorkerSchedules(max_duration, distribution, scaled_schedule);
   GiveSchedulesToWorkers(worker_schedules);
 }
 
 std::vector<RateSchedulePtr_t>
 RequestRateManager::CreateWorkerSchedules(
     std::chrono::nanoseconds max_duration,
-    std::function<std::chrono::nanoseconds(std::mt19937&)> distribution)
+    std::function<std::chrono::nanoseconds(std::mt19937&)> distribution,
+    const std::vector<float>& schedule)
 {
   std::mt19937 schedule_rng;
 
@@ -156,13 +171,23 @@ RequestRateManager::CreateWorkerSchedules(
 
   // Generate schedule until we hit max_duration, but also make sure that all
   // worker schedules follow the thread id distribution
-  //
-  while (next_timestamp < max_duration ||
-         thread_id_index % thread_ids.size() != 0) {
-    next_timestamp = next_timestamp + distribution(schedule_rng);
-    worker_index = thread_ids[thread_id_index];
-    thread_id_index = ++thread_id_index % thread_ids.size();
-    worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
+  // Maybe divide by
+  if (schedule.size() > 0) {
+    for (const float& val : schedule) {
+      next_timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::duration<float>(val));
+      worker_index = thread_ids[thread_id_index];
+      thread_id_index = ++thread_id_index % thread_ids.size();
+      worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
+    }
+  } else {
+    while (next_timestamp < max_duration ||
+           thread_id_index % thread_ids.size() != 0) {
+      next_timestamp = next_timestamp + distribution(schedule_rng);
+      worker_index = thread_ids[thread_id_index];
+      thread_id_index = ++thread_id_index % thread_ids.size();
+      worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
+    }
   }
 
   SetScheduleDurations(worker_schedules);
