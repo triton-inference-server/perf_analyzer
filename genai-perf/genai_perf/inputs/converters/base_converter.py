@@ -25,18 +25,19 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Dict, List, Union, cast
+from typing import Dict, List, Union
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class BaseConverter:
 
     _CONTENT_NAMES: List[str]
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict:
         """
         Construct a request body using the endpoint specific request format.
         """
@@ -53,31 +54,27 @@ class BaseConverter:
             )
 
     def _construct_text_payload_batch_agnostic(
-        self, batch_size_text: int, input_data: Union[Dict, List]
+        self, batch_size_text: int, input_data: List
     ) -> Union[str, List]:
         """
         Construct text payload content for non-chat based LLM converters.
         Allow batched and unbatched input data.
         """
         if batch_size_text == 1:
-            input_data = cast(Dict, input_data)
             return self._construct_text_payload(input_data)
         else:
-            input_data = cast(List, input_data)
             return self._construct_batched_text_payload(input_data)
 
-    def _construct_text_payload(self, input_data: Dict) -> str:
+    def _construct_text_payload(self, input_data: List[str]) -> str:
         """
         Construct text payload content for non-chat based LLM converters.
         Since there are no roles or turns in non-chat LLM endpoints, all the
         (pre-defined) text contents are concatenated into a single text prompt.
         """
-        contents = [v for k, v in input_data.items() if k in self._CONTENT_NAMES]
-        return " ".join(contents)
+        return " ".join(input_data)
 
-    def _construct_batched_text_payload(self, input_data: List) -> List:
+    def _construct_batched_text_payload(self, input_data: List[str]) -> List:
         """
         Construct batched text payload content for non-chat based LLM converters.
         """
-        contents = [item["text"] for item in input_data]
-        return contents
+        return input_data

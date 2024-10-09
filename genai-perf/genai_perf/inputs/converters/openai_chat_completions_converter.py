@@ -30,55 +30,54 @@ from typing import Any, Dict, List
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 
 
 class OpenAIChatCompletionsConverter(BaseConverter):
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict:
         request_body: Dict[str, Any] = {"data": []}
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            model_name = self._select_model_name(config, index)
+        for file_data in generic_dataset.files_data.values():
+            for index, row in enumerate(file_data.rows):
+                model_name = self._select_model_name(config, index)
 
-            content: Any = []
-            if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
-                content = entry["text"]
-            else:
-                # Treat single batch and multi-batch entries the same way
-                entries = entry if isinstance(entry, list) else [entry]
-                for _entry in entries:
-                    content += self._add_multi_modal_content(_entry)
+                content: Any = []
+                if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
+                    content = row.texts[0]
+                else:
+                    content += self._add_multi_modal_content(content)
 
-            payload = {
-                "model": model_name,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": content,
-                    }
-                ],
-            }
+                payload = {
+                    "model": model_name,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": content,
+                        }
+                    ],
+                }
 
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+                self._add_request_params(payload, config)
+                request_body["data"].append({"payload": [payload]})
 
         return request_body
 
-    def _add_multi_modal_content(self, entry: Dict) -> List[Dict]:
+    def _add_multi_modal_content(self, entry: DataRow) -> List[Dict]:
         content = []
-        if "text" in entry:
+        for text in entry.texts:
             content.append(
                 {
                     "type": "text",
-                    "text": entry["text"],
+                    "text": text,
                 }
             )
-        if "image" in entry:
+        for image in entry.images:
             content.append(
                 {
                     "type": "image_url",
                     "image_url": {
-                        "url": entry["image"],
+                        "url": image,
                     },
                 }
             )

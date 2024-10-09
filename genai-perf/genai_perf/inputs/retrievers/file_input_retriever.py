@@ -28,10 +28,14 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import random
+from pathlib import Path
+from typing import List, Tuple
+
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, FileData, GenericDataset
 from genai_perf.utils import load_json_str
-
 
 class FileInputRetriever:
     """
@@ -42,20 +46,25 @@ class FileInputRetriever:
     def __init__(self, config: InputsConfig) -> None:
         self.config = config
 
-    # TODO: match return type to retriever interface
-    def retrieve_data(self) -> Dict[str, Any]:
+    def retrieve_data(self) -> GenericDataset:
         if self.config.output_format == OutputFormat.RANKINGS:
             queries_filename = self.config.input_filename / "queries.jsonl"
             passages_filename = self.config.input_filename / "passages.jsonl"
             return self._read_rankings_input_files(queries_filename, passages_filename)
         else:
-            return self._get_input_dataset_from_file()
+            #TODO: Add multi-file case
+            file_data = self._get_input_dataset_from_file(self.config.input_filename)
+            generic_dataset = GenericDataset()
+            generic_dataset.set_file_data(file_data)
+            return generic_dataset
 
     def _read_rankings_input_files(
         self,
         queries_filename: Path,
         passages_filename: Path,
-    ) -> Dict[str, Any]:
+    ) -> GenericDataset:
+        
+        # TODO: Fix rankings retrieval
 
         def __key_exists(line: Dict):
             """Validation function that checks if 'text' key exists."""
@@ -90,7 +99,7 @@ class FileInputRetriever:
             dataset_json["rows"].append({"row": data})
         return dataset_json
 
-    def _get_input_dataset_from_file(self) -> Dict[str, Any]:
+    def _get_input_dataset_from_file(self, filename: Path) -> FileData:
         """
         Returns
         -------
@@ -108,53 +117,25 @@ class FileInputRetriever:
             raise ValueError(
                 "Batch size for texts cannot be larger than the number of available texts"
             )
-
-        dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "text"}]
-        dataset_json["rows"] = []
+        
+        data_rows: List[DataRow] = []
 
         if (
             self.config.batch_size_text == DEFAULT_BATCH_SIZE
             and self.config.batch_size_image == DEFAULT_BATCH_SIZE
         ):
             for prompt, image in zip(prompts, images):
-                content = {}
-                if prompt is not None:
-                    content["text"] = prompt
-                if image is not None:
-                    content["image"] = image
-                dataset_json["rows"].append({"row": content})
+                data_rows.append(DataRow(texts=[prompt], images=[image]))
         else:
             for _ in range(self.config.num_prompts):
-                content_array = []
-                sampled_image_indices = random.sample(
-                    range(len(prompts)), self.config.batch_size_image
-                )
-                sampled_text_indices = random.sample(
-                    range(len(prompts)), self.config.batch_size_text
-                )
+                sampled_images = random.sample(images, self.config.batch_size_image)
+                sampled_texts = random.sample(prompts, self.config.batch_size_text)
+                data_rows.append(DataRow(texts=sampled_texts, images=sampled_images))
 
-                sampled_images = [images[i] for i in sampled_image_indices]
-                sampled_texts = [prompts[i] for i in sampled_text_indices]
-
-                max_samples = max(len(sampled_texts), len(sampled_images))
-                num_sampled_images = len(sampled_images)
-                num_sampled_texts = len(sampled_texts)
-
-                for i in range(max_samples):
-                    content = {}
-                    if i < num_sampled_images:
-                        content["image"] = sampled_images[i]
-                    if i < num_sampled_texts:
-                        content["text"] = sampled_texts[i]
-
-                    content_array.append(content)
-
-                dataset_json["rows"].append({"row": content_array})
-
-        return dataset_json
+        return FileData(str(filename), data_rows)
 
     def _verify_file(self) -> None:
+        #TODO: Verify directory OR file
         if not self.config.input_filename.exists():
             raise FileNotFoundError(
                 f"The file '{self.config.input_filename}' does not exist."

@@ -45,7 +45,7 @@ class Inputs:
 
         random.seed(self.config.random_seed)
 
-    def create_inputs(self) -> Dict:
+    def create_inputs(self) -> None:
         """
         Given an input type, input format, and output type. Output a string of LLM Inputs
         (in a JSON dictionary) to a file.
@@ -58,7 +58,6 @@ class Inputs:
             generic_dataset_json,
         )
         self._write_json_to_file(json_in_pa_format)
-        return json_in_pa_format
 
     def _check_for_valid_args(self) -> None:
         self._check_for_supported_input_type()

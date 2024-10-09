@@ -31,6 +31,8 @@ from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import OutputFormat, PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
 from genai_perf.inputs.retrievers.synthetic_image_generator import (
     ImageFormat,
     SyntheticImageGenerator,
@@ -46,7 +48,7 @@ class InputRetrieverFactory:
     def __init__(self, config: InputsConfig):
         self.config = config
 
-    def get_input_data(self) -> Dict:
+    def get_input_data(self) -> GenericDataset:
         """
         Retrieve and convert the dataset based on the input type.
 
@@ -56,6 +58,7 @@ class InputRetrieverFactory:
             The generic dataset JSON
         """
 
+        input_data: GenericDataset = None
         if self.config.output_format in [
             OutputFormat.OPENAI_EMBEDDINGS,
             OutputFormat.RANKINGS,
@@ -68,57 +71,36 @@ class InputRetrieverFactory:
             if self.config.output_format == OutputFormat.IMAGE_RETRIEVAL:
                 input_data = self._encode_images_in_input_dataset(input_data)
 
-            generic_dataset_json = (
-                self._convert_input_synthetic_or_file_dataset_to_generic_json(
-                    input_data
-                )
-            )
         else:
             if self.config.input_type == PromptSource.SYNTHETIC:
-                synthetic_dataset = self._get_input_dataset_from_synthetic()
-                generic_dataset_json = (
-                    self._convert_input_synthetic_or_file_dataset_to_generic_json(
-                        synthetic_dataset
-                    )
-                )
+                synthetic_retriever = SyntheticDataRetriever(self.config)
+                synthetic_dataset = synthetic_retriever.retrieve_data()
+                # synthetic_dataset = self._get_input_dataset_from_synthetic()
             elif self.config.input_type == PromptSource.FILE:
                 # TODO: remove once the factory fully integrates retrievers
                 file_retriever = FileInputRetriever(self.config)
                 input_data = file_retriever.retrieve_data()
-
-                input_file_dataset = self._encode_images_in_input_dataset(input_data)
-                generic_dataset_json = (
-                    self._convert_input_synthetic_or_file_dataset_to_generic_json(
-                        input_file_dataset
-                    )
-                )
+                self._encode_images_in_input_dataset(input_data)
             else:
                 raise GenAIPerfException("Input source is not recognized.")
 
-        return generic_dataset_json
+        return input_data
 
     def _convert_input_synthetic_or_file_dataset_to_generic_json(
         self, dataset: Dict
     ) -> Dict[str, List[Dict]]:
+        raise GenAIPerfException("STOP")
         generic_dataset_json = self._convert_dataset_to_generic_input_json(dataset)
 
         return generic_dataset_json
 
-    def _encode_images_in_input_dataset(self, input_file_dataset: Dict) -> Dict:
-        for row in input_file_dataset["rows"]:
-            if isinstance(row["row"], list):
-                for content in row["row"]:
-                    filename = content.get("image")
-                    if filename:
-                        payload = self._encode_image(filename)
-                        content["image"] = payload
-            else:
-                filename = row["row"].get("image")
-                if filename:
-                    payload = self._encode_image(filename)
-                    row["row"]["image"] = payload
-
-        return input_file_dataset
+    def _encode_images_in_input_dataset(self, input_file_dataset: GenericDataset):
+        for file_data in input_file_dataset.files_data.values():
+            for row in file_data.rows:
+                for i, image in enumerate(row.images):
+                    if image is not None:
+                        payload = self._encode_image(image)
+                        row.images[i] = payload
 
     def _convert_input_url_dataset_to_generic_json(self, dataset: Response) -> Dict:
         dataset_json = dataset.json()
