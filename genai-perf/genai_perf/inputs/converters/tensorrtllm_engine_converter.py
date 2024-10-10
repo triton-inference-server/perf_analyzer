@@ -33,11 +33,12 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict:
         request_body: Dict[str, Any] = {"data": []}
 
         for _, entry in enumerate(generic_dataset["rows"]):
