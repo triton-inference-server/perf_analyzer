@@ -50,8 +50,8 @@ class FileInputRetriever:
         else:
             #TODO: Add multi-file case
             file_data = self._get_input_dataset_from_file(self.config.input_filename)
-            generic_dataset = GenericDataset()
-            generic_dataset.set_file_data(file_data)
+            files_data = {file_data.filename: file_data}
+            generic_dataset = GenericDataset(files_data)
             return generic_dataset
 
     def _read_rankings_input_files(

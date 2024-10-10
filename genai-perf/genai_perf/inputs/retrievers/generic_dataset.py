@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from typing import Dict, List, TypeAlias
+from dataclasses import dataclass
 
 Filename: TypeAlias = str
 TypeOfData: TypeAlias = str
@@ -32,7 +33,7 @@ ListOfData: TypeAlias = List[str]
 DataRowDict: TypeAlias = Dict[TypeOfData, ListOfData]
 GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 
-
+@dataclass
 class DataRow:
     def __init__(self, texts: List[str], images: List[str]):
         self.texts = texts
@@ -44,11 +45,10 @@ class DataRow:
         """
         return {"texts": self.texts, "images": self.images}
 
-
+@dataclass
 class FileData:
-    def __init__(self, filename: str, rows: List[DataRow]):
-        self.filename = filename
-        self.rows = rows
+    filename: str
+    rows: List[DataRow]
 
     def to_dict(self) -> Dict[Filename, List[DataRowDict]]:
         """
@@ -63,18 +63,9 @@ class FileData:
         """
         return {self.filename: [row.to_dict() for row in self.rows]}
 
-
+@dataclass
 class GenericDataset:
-    def __init__(self):
-        self.files_data: Dict[str, FileData] = {}
-
-    def set_file_data(self, file_data: FileData):
-        self.files_data[file_data.filename] = file_data
-
-    def set_dataset(self, filename, texts, images):
-        data_row = DataRow(texts, images)
-        files_data = FileData(filename, [data_row])
-        self.set_file_data(files_data)
+    files_data: Dict[str, FileData]
 
     def to_dict(self) -> GenericDatasetDict:
         """

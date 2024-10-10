@@ -89,7 +89,6 @@ class InputRetrieverFactory:
     def _convert_input_synthetic_or_file_dataset_to_generic_json(
         self, dataset: Dict
     ) -> Dict[str, List[Dict]]:
-        raise GenAIPerfException("STOP")
         generic_dataset_json = self._convert_dataset_to_generic_input_json(dataset)
 
         return generic_dataset_json
