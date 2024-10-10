@@ -25,9 +25,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from typing import Any, Dict, List
+from typing import List
 
 from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 from genai_perf.inputs.retrievers.synthetic_image_generator import (
     SyntheticImageGenerator,
 )
@@ -44,15 +49,16 @@ class SyntheticDataRetriever:
     def __init__(self, config):
         self.config = config
 
-    def retrieve_data(self) -> List[Dict[str, Any]]:
-        synthetic_dataset = []
+    def retrieve_data(self) -> GenericDataset:
+        data_rows: List[DataRow] = []
         for _ in range(self.config.num_prompts):
+            row = DataRow(texts=[], images=[])
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
                 self.config.tokenizer,
                 self.config.prompt_tokens_mean,
                 self.config.prompt_tokens_stddev,
             )
-            data = {"text": prompt}
+            row.texts.append(prompt)
 
             if self.config.output_format == OutputFormat.OPENAI_VISION:
                 image = SyntheticImageGenerator.create_synthetic_image(
@@ -62,7 +68,9 @@ class SyntheticDataRetriever:
                     image_height_stddev=self.config.image_height_stddev,
                     image_format=self.config.image_format,
                 )
-                data["image"] = image
+                row.images.append(image)
+            data_rows.append(row)
+        file_data = FileData("synthetic_dataset", data_rows)
+        synthetic_dataset = GenericDataset(file_data)
 
-            synthetic_dataset.append(data)
         return synthetic_dataset
