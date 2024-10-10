@@ -69,9 +69,6 @@ class InputRetrieverFactory:
             if self.config.input_type == PromptSource.SYNTHETIC:
                 synthetic_retriever = SyntheticDataRetriever(self.config)
                 input_data = synthetic_retriever.retrieve_data()
-                print(type(input_data))
-                print(input_data.to_dict())
-                # synthetic_dataset = self._get_input_dataset_from_synthetic()
             elif self.config.input_type == PromptSource.FILE:
                 # TODO: remove once the factory fully integrates retrievers
                 file_retriever = FileInputRetriever(self.config)

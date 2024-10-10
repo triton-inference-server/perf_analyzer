@@ -70,7 +70,8 @@ class SyntheticDataRetriever:
                 )
                 row.images.append(image)
             data_rows.append(row)
-        file_data = FileData("synthetic_dataset", data_rows)
-        synthetic_dataset = GenericDataset(file_data)
+        file_name = "synthetic_dataset"
+        file_data = FileData(file_name, data_rows)
+        synthetic_dataset = GenericDataset({file_name: file_data})
 
         return synthetic_dataset
