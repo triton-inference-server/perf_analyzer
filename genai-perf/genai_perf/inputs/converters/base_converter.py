@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
@@ -37,7 +37,7 @@ class BaseConverter:
 
     _CONTENT_NAMES: List[str]
 
-    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict:
+    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         """
         Construct a request body using the endpoint specific request format.
         """

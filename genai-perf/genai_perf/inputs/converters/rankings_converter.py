@@ -33,7 +33,7 @@ from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 class RankingsConverter(BaseConverter):
 
-    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict:
+    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
