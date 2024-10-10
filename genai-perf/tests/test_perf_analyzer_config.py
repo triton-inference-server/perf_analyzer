@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -22,6 +23,7 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameters import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
+from genai_perf.utils import checkpoint_encoder
 
 
 class TestPerfAnalyzerConfig(unittest.TestCase):
@@ -153,6 +155,37 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
 
         expected_representation = ""
         self.assertEqual(expected_representation, representation)
+
+    ###########################################################################
+    # Checkpoint Tests
+    ###########################################################################
+    def test_checkpoint_methods(self):
+        """
+        Checks to ensure checkpoint methods work as intended
+        """
+        pa_config_json = json.dumps(
+            self._default_perf_analyzer_config, default=checkpoint_encoder
+        )
+
+        pa_config_from_checkpoint = PerfAnalyzerConfig.read_from_checkpoint(
+            json.loads(pa_config_json)
+        )
+
+        self.assertEqual(
+            pa_config_from_checkpoint._model_name,
+            self._default_perf_analyzer_config._model_name,
+        )
+        self.assertEqual(
+            pa_config_from_checkpoint._config,
+            self._default_perf_analyzer_config._config,
+        )
+        self.assertEqual(
+            pa_config_from_checkpoint._parameters,
+            self._default_perf_analyzer_config._parameters,
+        )
+
+        # Catchall in case something new is added
+        self.assertEqual(pa_config_from_checkpoint, self._default_perf_analyzer_config)
 
 
 if __name__ == "__main__":
