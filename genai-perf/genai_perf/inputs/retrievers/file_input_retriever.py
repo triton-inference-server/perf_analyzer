@@ -28,10 +28,6 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-import random
-from pathlib import Path
-from typing import List, Tuple
-
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, FileData, GenericDataset

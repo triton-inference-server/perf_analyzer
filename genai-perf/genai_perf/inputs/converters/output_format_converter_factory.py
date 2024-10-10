@@ -27,7 +27,6 @@
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import *
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class OutputFormatConverterFactory:
