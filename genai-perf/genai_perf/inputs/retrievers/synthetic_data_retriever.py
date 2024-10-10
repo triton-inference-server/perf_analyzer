@@ -24,36 +24,45 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict
 
-from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
+from typing import Any, Dict, List
+
+from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import (
+    SyntheticImageGenerator,
+)
+from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
+    SyntheticPromptGenerator,
+)
 
 
-class OpenAIEmbeddingsConverter(BaseConverter):
+class SyntheticDataRetriever:
+    """
+    A data retriever class that handles generation of synthetic data.
+    """
 
-    _CONTENT_NAMES = [
-        "text",
-    ]
+    def __init__(self, config):
+        self.config = config
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
-        request_body: Dict[str, Any] = {"data": []}
-
-        for index, entry in enumerate(generic_dataset["rows"]):
-            text = self._construct_text_payload_batch_agnostic(
-                config.batch_size_text, entry
+    def retrieve_data(self) -> List[Dict[str, Any]]:
+        synthetic_dataset = []
+        for _ in range(self.config.num_prompts):
+            prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                self.config.tokenizer,
+                self.config.prompt_tokens_mean,
+                self.config.prompt_tokens_stddev,
             )
-            model_name = self._select_model_name(config, index)
+            data = {"text": prompt}
 
-            payload = {
-                "model": model_name,
-                "input": text,
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+            if self.config.output_format == OutputFormat.OPENAI_VISION:
+                image = SyntheticImageGenerator.create_synthetic_image(
+                    image_width_mean=self.config.image_width_mean,
+                    image_width_stddev=self.config.image_width_stddev,
+                    image_height_mean=self.config.image_height_mean,
+                    image_height_stddev=self.config.image_height_stddev,
+                    image_format=self.config.image_format,
+                )
+                data["image"] = image
 
-        return request_body
-
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
-            payload[key] = value
+            synthetic_dataset.append(data)
+        return synthetic_dataset

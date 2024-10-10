@@ -45,7 +45,7 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, Tokenizer, get_tokenizer
 
 
@@ -62,11 +62,11 @@ class InputsConfig:
     # If true, adds a steam field to each payload
     add_stream: bool = False
 
-    # The number of inputs per request (currently only used for the embeddings, image retrieval, and rankings endpoints)
-    batch_size: int = 1
+    # The number of image inputs per request (currently only used for the image retrieval endpoint)
+    batch_size_image: int = 1
 
-    # The name of the dataset
-    dataset_name: str = ""
+    # The number of text inputs per request (currently only used for the embeddings and rankings endpoints)
+    batch_size_text: int = 1
 
     # If provided, append these inputs to every request
     extra_inputs: Dict = field(default_factory=dict)

@@ -90,7 +90,7 @@ docker run -it --net=host --rm --gpus=all \
 Run GenAI-Perf from the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="24.08"
+export RELEASE="24.09"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -149,7 +149,7 @@ docker run \
 Run GenAI-Perf from the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="24.08"
+export RELEASE="24.09"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -207,7 +207,7 @@ docker run \
 Run GenAI-Perf from the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="24.08"
+export RELEASE="24.09"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 

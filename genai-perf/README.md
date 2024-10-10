@@ -38,8 +38,8 @@ For large language models (LLMs), GenAI-Perf provides metrics such as
 For a full list of metrics please see the [Metrics section](#metrics).
 
 Users specify a model name, an inference server URL, the type of inputs to use
-(synthetic or from dataset), and the type of load to generate (number of
-concurrent requests, request rate).
+(synthetic or from a dataset defined via a file), and the type of load to generate
+(number of concurrent requests, request rate).
 
 GenAI-Perf generates the specified load, measures the performance of the
 inference server and reports the metrics in a simple table as console output.
@@ -74,7 +74,7 @@ The easiest way to install GenAI-Perf is through
 Install the latest release using the following command:
 
 ```bash
-export RELEASE="24.08"
+export RELEASE="24.09"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -105,9 +105,7 @@ You can also build Perf Analyzer [from source](../docs/install.md#build-from-sou
 ### Install GenAI-Perf from source
 
 ```bash
-git clone https://github.com/triton-inference-server/perf_analyzer.git && cd perf_analyzer
-
-pip install -e genai-perf
+pip install git+https://github.com/triton-inference-server/perf_analyzer.git#subdirectory=genai-perf
 ```
 
 </details>
@@ -140,7 +138,7 @@ docker run -ti \
     --shm-size=1g --ulimit memlock=-1 \
     -v /tmp:/tmp \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.08-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:24.09-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
@@ -272,10 +270,7 @@ MODEL INPUTS
 ## Model Inputs
 
 GenAI-Perf supports model input prompts from either synthetically generated
-inputs, or from the HuggingFace
-[OpenOrca](https://huggingface.co/datasets/Open-Orca/OpenOrca) or
-[CNN_DailyMail](https://huggingface.co/datasets/cnn_dailymail) datasets. This is
-specified using the `--input-dataset` CLI option.
+inputs, or from a dataset defined via a file.
 
 When the dataset is synthetic, you can specify the following options:
 * `--num-prompts <int>`: The number of unique prompts to generate as stimulus, >= 1.
@@ -284,12 +279,6 @@ When the dataset is synthetic, you can specify the following options:
 * `--synthetic-input-tokens-stddev <int>`: The standard deviation of number of
   tokens in the generated prompts when using synthetic data, >= 0.
 * `--random-seed <int>`: The seed used to generate random values, >= 0.
-
-When the dataset is coming from HuggingFace, you can specify the following
-options:
-* `--input-dataset {openorca,cnn_dailymail}`: HuggingFace dataset to use for
-  benchmarking.
-* `--num-prompts <int>`: The number of unique prompts to generate as stimulus, >= 1.
 
 When the dataset is coming from a file, you can specify the following
 options:
@@ -317,8 +306,8 @@ For [Large Language Models](docs/tutorial.md), there is no batch size (i.e.
 batch size is always `1`). Each request includes the inputs for one individual
 inference. Other modes such as the [embeddings](docs/embeddings.md) and
 [rankings](docs/rankings.md) endpoints support client-side batching, where
-`--batch-size N` means that each request sent will include the inputs for `N`
-separate inferences, allowing them to be processed together.
+`--batch-size-text N` means that each request sent will include the inputs for
+`N` separate inferences, allowing them to be processed together.
 
 </br>
 
@@ -407,11 +396,19 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 
 ##### `-b <int>`
 ##### `--batch-size <int>`
+##### `--batch-size-text <int>`
 
-The batch size of the requests GenAI-Perf should send.
+The text batch size of the requests GenAI-Perf should send.
 This is currently only supported with the
-[embeddings](docs/embeddings.md), image_retrieval, and
+[embeddings](docs/embeddings.md), and
 [rankings](docs/rankings.md) endpoint types.
+(default: `1`)
+
+##### `--batch-size-image <int>`
+
+The image batch size of the requests GenAI-Perf should send.
+This is currently only supported with the
+image retrieval endpoint type.
 (default: `1`)
 
 ##### `--extra-inputs <str>`
@@ -421,16 +418,11 @@ flag for multiple inputs. Inputs should be in an input_name:value format.
 Alternatively, a string representing a json formatted dict can be provided.
 (default: `None`)
 
-##### `--input-dataset {openorca,cnn_dailymail}`
-
-The HuggingFace dataset to use for prompts.
-(default: `openorca`)
-
 ##### `--input-file <path>`
 
 The input file containing the prompts to use for profiling.
-Each line should be a JSON object with a 'text_input' field in JSONL format.
-Example: {\"text_input\": \"Your prompt here\"}"
+Each line should be a JSON object with a 'text' field in JSONL format.
+Example: {\"text\": \"Your prompt here\"}"
 
 ##### `--num-prompts <int>`
 
@@ -521,6 +513,17 @@ export file is `profile_export.json`, the genai-perf file will be exported to
 The HuggingFace tokenizer to use to interpret token metrics from prompts and
 responses. The value can be the name of a tokenizer or the filepath of the
 tokenizer. (default: `hf-internal-testing/llama-tokenizer`)
+
+##### `--tokenizer-revision <str>`
+
+The specific tokenizer model version to use. It can be a branch
+name, tag name, or commit ID. (default: `main`)
+
+##### `--tokenizer-trust-remote-code`
+
+Allow custom tokenizer to be downloaded and executed. This carries security
+risks and should only be used for repositories you trust. This is only
+necessary for custom tokenizers stored in HuggingFace Hub.  (default: `False`)
 
 ##### `-v`
 ##### `--verbose`

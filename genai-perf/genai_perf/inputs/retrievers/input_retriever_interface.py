@@ -24,36 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict
 
-from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
+from typing import Protocol
 
 
-class OpenAIEmbeddingsConverter(BaseConverter):
-
-    _CONTENT_NAMES = [
-        "text",
-    ]
-
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
-        request_body: Dict[str, Any] = {"data": []}
-
-        for index, entry in enumerate(generic_dataset["rows"]):
-            text = self._construct_text_payload_batch_agnostic(
-                config.batch_size_text, entry
-            )
-            model_name = self._select_model_name(config, index)
-
-            payload = {
-                "model": model_name,
-                "input": text,
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
-
-        return request_body
-
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
-            payload[key] = value
+class InputRetriever(Protocol):
+    def retrieve_data(self):
+        pass

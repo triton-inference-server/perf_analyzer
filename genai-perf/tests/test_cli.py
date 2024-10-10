@@ -35,7 +35,7 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.parser import PathType
 
 
@@ -80,14 +80,25 @@ class TestCLIArguments:
             ),
             (
                 [
-                    "--batch-size",
+                    "--batch-size-text",
                     "5",
                     "--endpoint-type",
                     "embeddings",
                     "--service-kind",
                     "openai",
                 ],
-                {"batch_size": 5},
+                {"batch_size_text": 5},
+            ),
+            (
+                [
+                    "--batch-size-image",
+                    "5",
+                    "--endpoint-type",
+                    "image_retrieval",
+                    "--service-kind",
+                    "openai",
+                ],
+                {"batch_size_image": 5},
             ),
             (
                 [
@@ -98,7 +109,7 @@ class TestCLIArguments:
                     "--service-kind",
                     "openai",
                 ],
-                {"batch_size": 5},
+                {"batch_size_text": 5},
             ),
             (["--concurrency", "3"], {"concurrency": 3}),
             (
@@ -174,7 +185,6 @@ class TestCLIArguments:
                     ]
                 },
             ),
-            (["--input-dataset", "openorca"], {"input_dataset": "openorca"}),
             (["--measurement-interval", "100"], {"measurement_interval": 100}),
             (
                 ["--model-selection-strategy", "random"],
@@ -241,6 +251,8 @@ class TestCLIArguments:
                 {"image_height_stddev": 456},
             ),
             (["--image-format", "png"], {"image_format": ImageFormat.PNG}),
+            (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
+            (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
             (["-v"], {"verbose": True}),
             (["--verbose"], {"verbose": True}),
             (["-u", "test_url"], {"u": "test_url"}),
@@ -562,10 +574,21 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--batch-size",
+                    "--batch-size-text",
                     "10",
                 ],
-                "The --batch-size option is currently only supported with the embeddings, rankings, and image_retrieval endpoint types",
+                "The --batch-size-text option is currently only supported with the embeddings and rankings endpoint types",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--batch-size-image",
+                    "10",
+                ],
+                "The --batch-size-image option is currently only supported with the image retrieval endpoint type",
             ),
             (
                 [
@@ -666,6 +689,28 @@ class TestCLIArguments:
                 "It must use 'http' or 'https', have a valid domain and port, "
                 "and contain '/metrics' in the path. The expected structure is: "
                 "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--num-prompts",
+                    "0",
+                ],
+                "The value must be greater than zero.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--num-prompts",
+                    "not_number",
+                ],
+                "The value must be an integer.",
             ),
         ],
     )
@@ -783,7 +828,6 @@ class TestCLIArguments:
         "args, expected_prompt_source",
         [
             ([], PromptSource.SYNTHETIC),
-            (["--input-dataset", "openorca"], PromptSource.DATASET),
             (["--input-file", "prompt.txt"], PromptSource.FILE),
             (
                 ["--input-file", "prompt.txt", "--synthetic-input-tokens-mean", "10"],
@@ -802,33 +846,6 @@ class TestCLIArguments:
         args, _ = parser.parse_args()
 
         assert args.prompt_source == expected_prompt_source
-
-    def test_prompt_source_assertions(self, monkeypatch, mocker, capsys):
-        _ = mocker.patch("builtins.open", mocker.mock_open(read_data="data"))
-        _ = mocker.patch("os.path.isfile", return_value=True)
-        _ = mocker.patch("os.path.isdir", return_value=True)
-        args = [
-            "genai-perf",
-            "profile",
-            "--model",
-            "test_model",
-            "--input-dataset",
-            "openorca",
-            "--input-file",
-            "prompt.txt",
-        ]
-        monkeypatch.setattr("sys.argv", args)
-
-        expected_output = (
-            "argument --input-file: not allowed with argument --input-dataset"
-        )
-
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
-
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
 
     @pytest.mark.parametrize(
         "args",
