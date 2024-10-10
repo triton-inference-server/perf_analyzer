@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, Dict, List
 
 from genai_perf.config.generate.search_parameter import SearchUsage
@@ -20,6 +22,7 @@ from genai_perf.exceptions import GenAIPerfException
 from genai_perf.types import ModelName, ModelObjectiveParameters
 
 
+@dataclass
 class PerfAnalyzerConfig:
     """
     Contains all the methods necessary for handling calls
@@ -147,3 +150,35 @@ class PerfAnalyzerConfig:
             cli_str_tokens.pop(removal_index)
 
         return " ".join(cli_str_tokens)
+
+    ###########################################################################
+    # Checkpoint Methods
+    ###########################################################################
+    def write_to_checkpoint(self) -> Dict[str, Any]:
+        """
+        Converts the class data into a dictionary that can be written to
+        the checkpoint file
+        """
+        pa_config_dict = deepcopy(self.__dict__)
+
+        return pa_config_dict
+
+    @classmethod
+    def read_from_checkpoint(
+        cls, perf_analyzer_config_dict: Dict[str, Any]
+    ) -> "PerfAnalyzerConfig":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of a PerfAnalyzerConfig
+        """
+        perf_analyzer_config = PerfAnalyzerConfig(
+            model_name=perf_analyzer_config_dict["_model_name"],
+            config=ConfigCommand([""]),
+            model_objective_parameters={},
+        )
+        perf_analyzer_config._config = ConfigPerfAnalyzer(
+            **perf_analyzer_config_dict["_config"]
+        )
+        perf_analyzer_config._parameters = perf_analyzer_config_dict["_parameters"]
+
+        return perf_analyzer_config
