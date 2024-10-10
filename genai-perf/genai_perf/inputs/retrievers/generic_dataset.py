@@ -35,9 +35,8 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 
 @dataclass
 class DataRow:
-    def __init__(self, texts: List[str], images: List[str]):
-        self.texts = texts
-        self.images = images
+    texts: List[str]
+    images: List[str]
 
     def to_dict(self) -> DataRowDict:
         """
