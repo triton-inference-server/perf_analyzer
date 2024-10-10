@@ -71,14 +71,14 @@ target_include_directories(
 
 target_link_libraries(
     triton-c-api-backend-library
-    PUBLIC grpcclient_static
+    PUBLIC ${TRITON_GRPC_STATIC_LIB}
     PUBLIC gRPC::grpc++
     PUBLIC gRPC::grpc
 )
 
 target_link_libraries(
     triton-c-api-backend-library
-    PUBLIC httpclient_static
+    PUBLIC ${TRITON_HTTP_STATIC_LIB}
     PUBLIC triton-core-serverapi   # from repo-core
 )
 

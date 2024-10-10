@@ -56,7 +56,7 @@ target_include_directories(
 target_link_libraries(
   ts-client-backend-library
   PUBLIC CURL::libcurl
-  PUBLIC httpclient_static
+  PUBLIC ${TRITON_HTTP_STATIC_LIB}
 )
 
 if(${TRITON_ENABLE_GPU})

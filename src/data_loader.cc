@@ -26,7 +26,14 @@
 
 #include "data_loader.h"
 
+#ifdef TRITON_RHEL_BUILD
+#define BUFFERSIZE BUFSIZ
 #include <b64/decode.h>
+#undef BUFFERSIZE
+#else
+#include <b64/decode.h>
+#endif
+
 #include <rapidjson/filereadstream.h>
 
 #include <fstream>
