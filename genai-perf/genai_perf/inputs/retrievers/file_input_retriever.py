@@ -28,7 +28,7 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE, OutputFormat
+from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, FileData, GenericDataset
 from genai_perf.utils import load_json_str
@@ -43,57 +43,19 @@ class FileInputRetriever:
         self.config = config
 
     def retrieve_data(self) -> GenericDataset:
-        if self.config.output_format == OutputFormat.RANKINGS:
-            queries_filename = self.config.input_filename / "queries.jsonl"
-            passages_filename = self.config.input_filename / "passages.jsonl"
-            return self._read_rankings_input_files(queries_filename, passages_filename)
+        files_data: Dict[str, FileData] = {}
+        if self.config.input_filename.is_dir():
+            jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
+            if not jsonl_files:
+                raise ValueError(f"No JSONL files found in directory '{self.config.input_filename}'.")
+            for file in jsonl_files:
+                file_data = self._get_input_dataset_from_file(file)
+                files_data[file.stem] = file_data
         else:
-            #TODO: Add multi-file case
             file_data = self._get_input_dataset_from_file(self.config.input_filename)
             files_data = {file_data.filename: file_data}
-            generic_dataset = GenericDataset(files_data)
-            return generic_dataset
-
-    def _read_rankings_input_files(
-        self,
-        queries_filename: Path,
-        passages_filename: Path,
-    ) -> GenericDataset:
         
-        # TODO: Fix rankings retrieval
-
-        def __key_exists(line: Dict):
-            """Validation function that checks if 'text' key exists."""
-            if "text" not in line:
-                raise ValueError("Each data entry must have 'text' key name.")
-            return line
-
-        with open(queries_filename, "r") as file:
-            queries = [load_json_str(line, func=__key_exists) for line in file]
-
-        with open(passages_filename, "r") as file:
-            passages = [load_json_str(line, func=__key_exists) for line in file]
-
-        if len(queries) < 1:
-            raise ValueError("Queries file must have at least one entry.")
-        if len(passages) < 1:
-            raise ValueError("Passages file must have at least one entry.")
-        if self.config.batch_size_text > len(passages):
-            raise ValueError(
-                "Batch size cannot be larger than the number of available passages"
-            )
-
-        dataset_json: Dict[str, Any] = {}
-        dataset_json["features"] = [{"name": "input"}]
-        dataset_json["rows"] = []
-
-        for _ in range(self.config.num_prompts):
-            data = {
-                "query": random.choice(queries),
-                "passages": random.sample(passages, self.config.batch_size_text),
-            }
-            dataset_json["rows"].append({"row": data})
-        return dataset_json
+        return GenericDataset(files_data)
 
     def _get_input_dataset_from_file(self, filename: Path) -> FileData:
         """
@@ -103,8 +65,8 @@ class FileInputRetriever:
             The dataset in the required format with the prompts and/or images
             read from the file.
         """
-        self._verify_file()
-        prompts, images = self._get_prompts_from_input_file()
+        self._verify_file(filename)
+        prompts, images = self._get_prompts_from_input_file(filename)
         if self.config.batch_size_image > len(images):
             raise ValueError(
                 "Batch size for images cannot be larger than the number of available images"
@@ -130,14 +92,13 @@ class FileInputRetriever:
 
         return FileData(str(filename), data_rows)
 
-    def _verify_file(self) -> None:
-        #TODO: Verify directory OR file
-        if not self.config.input_filename.exists():
+    def _verify_file(self, filename: Path) -> None:
+        if not filename.exists():
             raise FileNotFoundError(
-                f"The file '{self.config.input_filename}' does not exist."
+                f"The file '{filename}' does not exist."
             )
 
-    def _get_prompts_from_input_file(self) -> Tuple[List[str], List[str]]:
+    def _get_prompts_from_input_file(self, filename: Path) -> Tuple[List[str], List[str]]:
         """
         Reads the input prompts from a JSONL file and returns a list of prompts.
 
@@ -148,7 +109,7 @@ class FileInputRetriever:
         """
         prompts = []
         images = []
-        with open(self.config.input_filename, mode="r", newline=None) as file:
+        with open(filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
                     data = load_json_str(line)
