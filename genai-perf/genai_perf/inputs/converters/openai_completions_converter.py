@@ -30,6 +30,7 @@ from typing import Any, Dict
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class OpenAICompletionsConverter(BaseConverter):
@@ -47,21 +48,22 @@ class OpenAICompletionsConverter(BaseConverter):
         "article",
     ]
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict:
         request_body: Dict[str, Any] = {"data": []}
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            model_name = self._select_model_name(config, index)
-            prompt = self._construct_text_payload(entry)
+        for file_data in generic_dataset.files_data.values():
+            for index, row in enumerate(file_data.rows):
+                model_name = self._select_model_name(config, index)
+                prompt = self._construct_text_payload(row.texts)
 
-            payload = {
-                "model": model_name,
-                "prompt": prompt,
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+                payload = {
+                    "model": model_name,
+                    "prompt": prompt,
+                }
+                self._add_request_params(payload, config)
+                request_body["data"].append({"payload": [payload]})
 
-        return request_body
+            return request_body
 
     def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
         if config.add_stream:

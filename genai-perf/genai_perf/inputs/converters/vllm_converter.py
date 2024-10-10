@@ -31,6 +31,7 @@ from typing import Any, Dict
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class VLLMConverter(BaseConverter):
@@ -44,7 +45,7 @@ class VLLMConverter(BaseConverter):
         "article",
     ]
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict:
         request_body: Dict[str, Any] = {"data": []}
 
         for index, entry in enumerate(generic_dataset["rows"]):
