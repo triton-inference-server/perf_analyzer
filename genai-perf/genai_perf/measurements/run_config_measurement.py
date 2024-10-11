@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import total_ordering
 from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias, Union
