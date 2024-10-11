@@ -22,13 +22,11 @@ from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.record import Record
 from genai_perf.types import (
-    GpuMetricObjectives,
     GpuRecords,
     MetricObjectives,
     ModelName,
     ModelWeights,
     PerfMetricName,
-    PerfMetricObjectives,
     PerfRecords,
     RunConfigName,
 )
