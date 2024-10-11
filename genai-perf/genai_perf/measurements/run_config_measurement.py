@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import total_ordering
 from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias, Union
@@ -51,7 +51,7 @@ WeightedRcmScore: TypeAlias = float
 class RunConfigMeasurementDefaults:
     MODEL_WEIGHTING = 1
 
-    METRIC_OBJECTIVE = {}  # type: ignore
+    METRIC_OBJECTIVE = None
 
     SELF_IS_BETTER = 1
     OTHER_IS_BETTER = -1
@@ -82,7 +82,9 @@ class RunConfigMeasurement:
             this is a valid measurement
         """
         self._gpu_metrics = gpu_metrics
-        self._gpu_metric_objectives = RunConfigMeasurementDefaults.METRIC_OBJECTIVE
+        self._gpu_metric_objectives: Optional[GpuMetricObjectives] = (
+            RunConfigMeasurementDefaults.METRIC_OBJECTIVE
+        )
 
         # Since this is not stored in the checkpoint it is optional, and
         # can be later set by an accessor method
@@ -215,6 +217,7 @@ class RunConfigMeasurement:
         for model_name in gpu_metric_objectives.keys():
             assert model_name in self._model_weights.keys()
 
+        self._gpu_metric_objectives = {}
         for model_name, model_gpu_metric_objectives in gpu_metric_objectives.items():
             self._gpu_metric_objectives[model_name] = {
                 objective: (value / sum(model_gpu_metric_objectives.values()))

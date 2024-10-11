@@ -85,7 +85,7 @@ class TestResults(unittest.TestCase):
         Check to ensure that constraints work
         """
 
-        # Power ranges from 510 -> 590, this will make the first 5 pass
+        # GPU Power ranges from 510 -> 590, this will make the first 5 pass
         model_constraints = ModelConstraints({GPUPowerUsage.tag: 550})
         run_constraints = RunConstraints({"test_model": model_constraints})
         self._results.set_constraints(run_constraints)
