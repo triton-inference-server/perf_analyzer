@@ -62,7 +62,7 @@ class Results:
     def get_results_passing_constraints(self) -> "Results":
         passing_results = Results()
         for run_config in self.run_configs:
-            if run_config.measurement.is_passing_constraints():
+            if run_config.is_passing_constraints():
                 passing_results.add_run_config(run_config)
 
         return passing_results
@@ -70,7 +70,7 @@ class Results:
     def get_results_failing_constraints(self) -> "Results":
         failing_results = Results()
         for run_config in self.run_configs:
-            if not run_config.measurement.is_passing_constraints():
+            if not run_config.is_passing_constraints():
                 failing_results.add_run_config(run_config)
 
         return failing_results

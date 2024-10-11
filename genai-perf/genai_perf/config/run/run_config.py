@@ -157,6 +157,12 @@ class RunConfig:
         self.measurement.add_perf_metrics(model_name, perf_metrics)
 
     ###########################################################################
+    # Constraint Methods
+    ###########################################################################
+    def is_passing_constraints(self) -> bool:
+        return self.measurement.is_passing_constraints()
+
+    ###########################################################################
     # Comparison Methods
     ###########################################################################
     def __lt__(self, other: "RunConfig") -> bool:
