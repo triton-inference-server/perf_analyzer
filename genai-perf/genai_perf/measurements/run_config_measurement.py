@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional, TypeAlias, Union
 
 import genai_perf.logging as logging
 from genai_perf.measurements.model_config_measurement import (
-    MetricObjectives,
     ModelConfigMeasurement,
     ModelConfigMeasurements,
 )
@@ -31,10 +30,13 @@ from genai_perf.types import (
     ConstraintName,
     ConstraintValue,
     GpuId,
+    GpuMetricObjectives,
     GpuRecords,
+    MetricObjectives,
     ModelName,
     ModelWeights,
     PerfMetricName,
+    PerfMetricObjectives,
     PerfRecords,
 )
 
@@ -205,7 +207,7 @@ class RunConfigMeasurement:
         }
 
     def set_gpu_metric_objectives(
-        self, gpu_metric_objectives: Dict[ModelName, MetricObjectives]
+        self, gpu_metric_objectives: GpuMetricObjectives
     ) -> None:
         """
         Sets the metric weighting for all GPU metric based measurements
@@ -220,7 +222,7 @@ class RunConfigMeasurement:
             }
 
     def set_perf_metric_objectives(
-        self, perf_metric_objectives: Dict[ModelName, MetricObjectives]
+        self, perf_metric_objectives: PerfMetricObjectives
     ) -> None:
         """
         Sets the metric weighting for all perf metric based measurements
