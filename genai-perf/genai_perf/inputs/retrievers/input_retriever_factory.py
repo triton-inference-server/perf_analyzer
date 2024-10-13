@@ -54,7 +54,6 @@ class InputRetrieverFactory:
 
         input_data: GenericDataset = None
         if self.config.output_format in [
-            OutputFormat.OPENAI_EMBEDDINGS,
             OutputFormat.RANKINGS,
             OutputFormat.IMAGE_RETRIEVAL,
         ]:
