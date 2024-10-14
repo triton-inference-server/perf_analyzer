@@ -135,6 +135,8 @@ def _check_conditional_args(
     """
 
     # Endpoint and output format checks
+    # TODO: Replace this with a more robust solution.
+    # Currently, a new endpoint would need to add support here.
     if args.service_kind == "openai":
         if args.endpoint_type is None:
             parser.error(
@@ -191,53 +193,17 @@ def _check_conditional_args(
                 "with the Triton and TensorRT-LLM Engine service-kind."
             )
 
-    _check_conditional_args_embeddings_rankings(parser, args)
-
-    return args
-
-
-def _check_conditional_args_embeddings_rankings(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-):
-
     if args.output_format in [
         ic.OutputFormat.OPENAI_EMBEDDINGS,
         ic.OutputFormat.RANKINGS,
         ic.OutputFormat.IMAGE_RETRIEVAL,
     ]:
-        if args.streaming:
-            parser.error(
-                f"The --streaming option is not supported with the {args.endpoint_type} endpoint type."
-            )
-
         if args.generate_plots:
             parser.error(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
-    else:
-        if args.batch_size_text != ic.DEFAULT_BATCH_SIZE:
-            parser.error(
-                "The --batch-size-text option is currently only supported "
-                "with the embeddings and rankings endpoint types."
-            )
-        if args.batch_size_image != ic.DEFAULT_BATCH_SIZE:
-            parser.error(
-                "The --batch-size-image option is currently only supported "
-                "with the image retrieval endpoint type."
-            )
 
-    if args.input_file:
-        _, path_type = args.input_file
-        if args.output_format != ic.OutputFormat.RANKINGS:
-            if path_type == "directory":
-                parser.error(
-                    "A directory is only currently supported for the rankings endpoint type."
-                )
-        else:
-            if path_type == PathType.FILE:
-                parser.error(
-                    "The rankings endpoint-type requires a directory value for the --input-file flag."
-                )
+    return args
 
 
 def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
@@ -380,15 +346,9 @@ def parse_goodput(values):
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
     if args.input_file:
         args.prompt_source = ic.PromptSource.FILE
-        if args.endpoint_type == "rankings":
-            logger.debug(
-                f"Input source is the following directory: {args.input_file[0]}"
-            )
-        else:
-            logger.debug(f"Input source is the following file: {args.input_file[0]}")
+        logger.debug(f"Input source is the following path: {args.input_file[0]}")
     else:
         args.prompt_source = ic.PromptSource.SYNTHETIC
-        logger.debug("Input source is synthetic data")
     return args
 
 

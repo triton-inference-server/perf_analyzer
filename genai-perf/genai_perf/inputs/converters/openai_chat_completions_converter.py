@@ -28,12 +28,30 @@ import random
 from typing import Any, Dict, List
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat
+from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat, PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
-
+from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 
 class OpenAIChatCompletionsConverter(BaseConverter):
+
+    def check_config(self, config: InputsConfig) -> None:
+        if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            if config.add_stream:
+                raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase}.")
+            # TODO: Confirm that this is required. This may work with synthetic now.
+            if config.input_type != PromptSource.FILE:
+                raise GenAIPerfException(
+                    f"{config.output_format.to_lowercase()} only supports "
+                    "a file as input source."
+                )
+        else:
+            if config.batch_size_image != DEFAULT_BATCH_SIZE:
+                raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase}.")
+        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase}.")
+
 
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
