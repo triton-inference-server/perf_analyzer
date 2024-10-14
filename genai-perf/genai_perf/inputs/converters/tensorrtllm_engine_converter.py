@@ -41,18 +41,19 @@ class TensorRTLLMEngineConverter(BaseConverter):
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
-        for _, entry in enumerate(generic_dataset["rows"]):
-            token_ids = config.tokenizer.encode(entry["text"])
-            payload = {
-                "input_ids": {
-                    "content": token_ids,
-                    "shape": [len(token_ids)],
-                },
-                "input_lengths": [len(token_ids)],
-                "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append(payload)
+        for file_data in generic_dataset.files_data.values():
+            for row in file_data.rows:
+                token_ids = config.tokenizer.encode(row.texts[0])
+                payload = {
+                    "input_ids": {
+                        "content": token_ids,
+                        "shape": [len(token_ids)],
+                    },
+                    "input_lengths": [len(token_ids)],
+                    "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                }
+                self._add_request_params(payload, config)
+                request_body["data"].append(payload)
 
         return request_body
 

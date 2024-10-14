@@ -24,10 +24,17 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from typing import Dict, List
+from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
-from typing import Protocol
 
+class BaseInputRetriever:
+    def __init__(self, config: InputsConfig):
+        self.config = config
 
-class InputRetriever(Protocol):
-    def retrieve_data(self):
-        pass
+    def retrieve_data(self) -> GenericDataset:
+        """
+        Method to retrieve data as a GenericDataset.
+        """
+        raise NotImplementedError("This method should be implemented by subclasses.")
