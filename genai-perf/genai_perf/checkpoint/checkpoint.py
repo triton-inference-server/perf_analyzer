@@ -12,11 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import os
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.run.results import Results
+from genai_perf.exceptions import GenAIPerfException
+from genai_perf.types import CheckpointObject, CheckpointObjects
 
 
+@dataclass(frozen=True)
+class CheckpointDefaults:
+    FILENAME = "checkpoint.json"
+
+
+@dataclass
 class Checkpoint:
     """
     Contains the methods necessary for reading and writing GenAI-Perf
@@ -24,15 +36,62 @@ class Checkpoint:
     Analyze) can resume or continue (ex: running Analyze then Visualize)
     """
 
-    def __init__(self, config: ConfigCommand):
-        pass
+    config: ConfigCommand
+
+    # Every top-level class that needs to store state is passed in
+    results: Results
+
+    def __post_init__(self):
+        self._read_from_checkpoint()
 
     ###########################################################################
     # Read/Write Methods
     ###########################################################################
     def write_to_checkpoint(self) -> None:
-        pass
+        state_dict = {"Results": json.dumps(self.results, default=checkpoint_encoder)}
 
-    # @classmethod
-    # def read_from_checkpoint(cls) -> Dict[str, Any]:
-    #     pass
+        checkpoint_filename = self._create_checkpoint_filename()
+        with open(checkpoint_filename, "w") as checkpoint_file:
+            json.dump(state_dict, checkpoint_file)
+
+    def _read_from_checkpoint(self) -> None:
+        checkpoint_filename = self._create_checkpoint_filename()
+
+        if os.path.isfile(checkpoint_filename):
+            self.checkpoint_exists = True
+            try:
+                with open(checkpoint_filename, "r") as checkpoint_file:
+                    checkpoint_json = json.load(checkpoint_file)
+                    self._state = {}
+                    self._state["Results"] = Results.read_from_checkpoint(
+                        json.loads(checkpoint_json["Results"])
+                    )
+            except EOFError:
+                raise (
+                    GenAIPerfException(
+                        f"Checkpoint file {checkpoint_file} is"
+                        " empty or corrupted. Delete it and rerun GAP"
+                    )
+                )
+        else:
+            self.checkpoint_exists = False
+            self._state = {}
+
+    def _create_checkpoint_filename(self) -> str:
+        checkpoint_filename = os.path.join(
+            self.config.checkpoint_directory, CheckpointDefaults.FILENAME
+        )
+
+        return checkpoint_filename
+
+
+###########################################################################
+# Encoder
+###########################################################################
+def checkpoint_encoder(obj):
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8")
+    elif hasattr(obj, "write_to_checkpoint"):
+        return obj.write_to_checkpoint()
+    else:
+        return obj.__dict__

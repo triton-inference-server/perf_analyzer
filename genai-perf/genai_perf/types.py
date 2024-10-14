@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, Tuple, TypeAlias, Union
+from typing import Any, Dict, Tuple, TypeAlias, Union
 
 # NOTE: Any classes used must be declared as "<class_name>" and use `#type: ignore`
 # this is to prevent circular import issues, while still allowing us to keep any
@@ -59,3 +59,9 @@ PerfMetricObjectives: TypeAlias = Dict[ModelName, MetricObjectives]
 # Run Config
 ###########################################################################
 RunConfigName: TypeAlias = str
+
+###########################################################################
+# Checkpoint
+###########################################################################
+CheckpointObject: TypeAlias = Dict[str, Any]
+CheckpointObjects: TypeAlias = Dict[str, CheckpointObject]
