@@ -33,10 +33,6 @@ from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 class OpenAIEmbeddingsConverter(BaseConverter):
 
-    _CONTENT_NAMES = [
-        "text",
-    ]
-
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 

@@ -38,15 +38,6 @@ from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 class TensorRTLLMConverter(BaseConverter):
 
-    _CONTENT_NAMES = [
-        "text",
-        # OPENORCA
-        "system_prompt",
-        "question",
-        # CNN DAILYMAIL
-        "article",
-    ]
-
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
