@@ -40,8 +40,8 @@ class Inputs:
 
     def __init__(self, config: InputsConfig):
         self.config = config
-        if self.config.extra_inputs is None:
-            self.config.extra_inputs = {}
+        self.converter = OutputFormatConverterFactory.create(self.config.output_format)
+        self.converter.check_config(self.config)
 
         random.seed(self.config.random_seed)
 
@@ -65,8 +65,7 @@ class Inputs:
         self._check_for_valid_length()
 
     def _convert_generic_dataset_to_output_format(self, generic_dataset) -> Dict:
-        converter = OutputFormatConverterFactory.create(self.config.output_format)
-        return converter.convert(generic_dataset, self.config)
+        return self.converter.convert(generic_dataset, self.config)
 
     def _write_json_to_file(self, json_in_pa_format: Dict) -> None:
         filename = self.config.output_dir / DEFAULT_INPUT_DATA_JSON
