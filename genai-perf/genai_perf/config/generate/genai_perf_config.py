@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import deepcopy
 from dataclasses import dataclass
+from typing import Any, Dict
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import (
     ConfigCommand,
     ConfigInput,
     ConfigOutputTokens,
+    ConfigSyntheticTokens,
 )
 from genai_perf.types import ModelObjectiveParameters
 
@@ -56,3 +59,37 @@ class GenAIPerfConfig:
                         self.input.__setattr__(
                             name, parameter.get_value_based_on_category()
                         )
+
+    ###########################################################################
+    # Checkpoint Methods
+    ###########################################################################
+    def write_to_checkpoint(self) -> Dict[str, Any]:
+        """
+        Converts the class data into a dictionary that can be written to
+        the checkpoint file
+        """
+        genai_perf_config_dict = deepcopy(self.__dict__)
+
+        return genai_perf_config_dict
+
+    @classmethod
+    def read_from_checkpoint(
+        cls, genai_perf_config_dict: Dict[str, Any]
+    ) -> "GenAIPerfConfig":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of a GenAIPerfConfig
+        """
+        genai_perf_config = GenAIPerfConfig(
+            config=ConfigCommand([""]),
+            model_objective_parameters={},
+        )
+        genai_perf_config.input = ConfigInput(**genai_perf_config_dict["input"])
+        genai_perf_config.input.synthetic_tokens = ConfigSyntheticTokens(
+            **genai_perf_config_dict["input"]["synthetic_tokens"]
+        )
+        genai_perf_config.output_tokens = ConfigOutputTokens(
+            **genai_perf_config_dict["output_tokens"]
+        )
+
+        return genai_perf_config

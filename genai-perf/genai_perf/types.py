@@ -37,6 +37,7 @@ GpuId: TypeAlias = str
 TelemetryRecords: TypeAlias = Dict[str, "GPURecord"]  # type: ignore
 GpuRecords: TypeAlias = Dict[GpuId, TelemetryRecords]
 PerfRecords: TypeAlias = Dict[str, "Record"]  # type: ignore
+PerfMetricName: TypeAlias = str
 
 ###########################################################################
 # Constraints
@@ -51,3 +52,8 @@ Constraints: TypeAlias = Dict[ConstraintName, ConstraintValue]
 # Objectives
 ###########################################################################
 MetricObjectives: TypeAlias = Dict[str, float]
+
+###########################################################################
+# Run Config
+###########################################################################
+RunConfigName: TypeAlias = str

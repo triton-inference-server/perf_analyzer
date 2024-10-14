@@ -20,7 +20,7 @@ from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias
 
 from genai_perf.record.record import Record
-from genai_perf.types import MetricObjectives, ModelName, PerfRecords
+from genai_perf.types import MetricObjectives, ModelName, PerfMetricName, PerfRecords
 
 ###########################################################################
 # Typing
@@ -66,10 +66,10 @@ class ModelConfigMeasurement:
     def get_perf_metrics(self) -> PerfRecords:
         return self._perf_metrics
 
-    def get_perf_metric(self, name: str) -> Optional[Record]:
+    def get_perf_metric(self, name: PerfMetricName) -> Optional[Record]:
         return self._perf_metrics[name] if name in self._perf_metrics else None
 
-    def get_perf_metric_value(self, name: str, return_value: int = 0) -> Any:
+    def get_perf_metric_value(self, name: PerfMetricName, return_value: int = 0) -> Any:
         metric = self.get_perf_metric(name)
         return metric.value() if metric else return_value
 
