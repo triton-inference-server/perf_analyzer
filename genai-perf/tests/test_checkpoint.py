@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 from genai_perf.checkpoint.checkpoint import Checkpoint
 from genai_perf.config.input.config_command import ConfigCommand
@@ -61,6 +62,7 @@ class TestCheckpoint(unittest.TestCase):
         # Then write and read back the Results
         self._checkpoint.write_to_checkpoint()
         self._checkpoint._read_from_checkpoint()
+        os.remove(self._checkpoint._create_checkpoint_filename())
 
         self.assertEqual(self._results, self._checkpoint._state["Results"])
 
