@@ -41,9 +41,9 @@ class TensorRTLLMConverter(BaseConverter):
 
     def check_config(self, config: InputsConfig) -> None:
         if config.batch_size_image != DEFAULT_BATCH_SIZE:
-            raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase}.")
+            raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}.")
         if config.batch_size_text != DEFAULT_BATCH_SIZE:
-            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase}.")
+            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}.")
     
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}

@@ -36,14 +36,7 @@ class RankingsConverter(BaseConverter):
 
     def check_config(self, config: InputsConfig) -> None:
         if config.add_stream:
-            raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase}.")
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
-            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase}.")
-        if config.input_type != "file":
-            raise GenAIPerfException(
-                f"{config.output_format.to_lowercase()} only supports "
-                "a file as input source."
-            )
+            raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase()}.")
     
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         provided_filenames = list(generic_dataset.files_data.keys())
