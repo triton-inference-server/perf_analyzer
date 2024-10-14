@@ -29,10 +29,22 @@ from typing import Any, Dict
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-
+from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 
 class RankingsConverter(BaseConverter):
 
+    def check_config(self, config: InputsConfig) -> None:
+        if config.add_stream:
+            raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase}.")
+        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase}.")
+        if config.input_type != "file":
+            raise GenAIPerfException(
+                f"{config.output_format.to_lowercase()} only supports "
+                "a file as input source."
+            )
+    
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         provided_filenames = list(generic_dataset.files_data.keys())
         if "queries" not in provided_filenames or "passages" not in provided_filenames:

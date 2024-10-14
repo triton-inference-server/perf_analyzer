@@ -60,7 +60,6 @@ class Inputs:
         self._write_json_to_file(json_in_pa_format)
 
     def _check_for_valid_args(self) -> None:
-        self._check_for_supported_input_type()
         self._check_for_tokenzier_if_input_type_is_synthetic()
         self._check_for_valid_starting_index()
         self._check_for_valid_length()
@@ -73,17 +72,6 @@ class Inputs:
         filename = self.config.output_dir / DEFAULT_INPUT_DATA_JSON
         with open(str(filename), "w") as f:
             f.write(json.dumps(json_in_pa_format, indent=2))
-
-    def _check_for_supported_input_type(self) -> None:
-        if self.config.output_format in [
-            OutputFormat.RANKINGS,
-            OutputFormat.IMAGE_RETRIEVAL,
-        ]:
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{self.config.output_format.to_lowercase()} only supports "
-                    "a file as input source."
-                )
 
     def _check_for_tokenzier_if_input_type_is_synthetic(self) -> None:
         if (

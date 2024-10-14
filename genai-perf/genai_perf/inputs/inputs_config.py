@@ -62,10 +62,10 @@ class InputsConfig:
     # If true, adds a steam field to each payload
     add_stream: bool = False
 
-    # The number of image inputs per request (currently only used for the image retrieval endpoint)
+    # The number of image inputs per request
     batch_size_image: int = 1
 
-    # The number of text inputs per request (currently only used for the embeddings and rankings endpoints)
+    # The number of text inputs per request
     batch_size_text: int = 1
 
     # If provided, append these inputs to every request
