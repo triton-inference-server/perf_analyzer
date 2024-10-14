@@ -28,10 +28,14 @@ import random
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from genai_perf import utils
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, FileData, GenericDataset
 from genai_perf.utils import load_json_str
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from PIL import Image
 
 class FileInputRetriever:
     """
@@ -121,7 +125,28 @@ class FileInputRetriever:
                             "Each data entry must have only one of 'text_input' or 'text' key name."
                         )
                     prompt = prompt if prompt else prompt_alt
-                    image = data.get("image")
                     prompts.append(prompt.strip() if prompt else prompt)
-                    images.append(image.strip() if image else image)
+                    image = data.get("image")
+                    if image is not None:
+                        image = self._encode_image(image.strip())
+                        images.append(image)
         return prompts, images
+
+    def _encode_image(self, filename: str) -> str:
+        img = Image.open(filename)
+        if img is None:
+            raise GenAIPerfException(f"Failed to open image '{filename}'.")
+        if img.format is None:
+            raise GenAIPerfException(
+                f"Failed to determine image format of '{filename}'."
+            )
+
+        if img.format.lower() not in utils.get_enum_names(ImageFormat):
+            raise GenAIPerfException(
+                f"Unsupported image format '{img.format}' of "
+                f"the image '{filename}'."
+            )
+
+        img_base64 = utils.encode_image(img, img.format)
+        payload = f"data:image/{img.format.lower()};base64,{img_base64}"
+        return payload
