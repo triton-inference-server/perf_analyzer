@@ -47,5 +47,5 @@ class InputRetrieverFactory:
         input_type = config.input_type
         if input_type not in retrievers:
             raise GenAIPerfException(f"Input source '{input_type}' is not recognized.")
-        retriever_class = retrievers[input_type]()
-        return retriever_class(config)
+        return retrievers[input_type](config)
+        

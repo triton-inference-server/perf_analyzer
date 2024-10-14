@@ -62,11 +62,6 @@ def create_artifacts_dirs(args: Namespace) -> None:
 
 
 def create_config_options(args: Namespace) -> InputsConfig:
-    if args.input_file:
-        filepath, _ = args.input_file
-        input_filename = Path(filepath)
-    else:
-        input_filename = Path(".")
 
     try:
         extra_input_dict = parser.get_extra_inputs_as_dict(args)
@@ -78,7 +73,8 @@ def create_config_options(args: Namespace) -> InputsConfig:
         output_format=args.output_format,
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
-        input_filename=input_filename,
+        input_filename=args.input_file,
+        synthetic_input_filenames=args.synthetic_input_files,
         starting_index=DEFAULT_STARTING_INDEX,
         length=args.num_prompts,
         prompt_tokens_mean=args.synthetic_input_tokens_mean,

@@ -40,7 +40,7 @@ from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
-
+from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
 
 class SyntheticDataRetriever(BaseInputRetriever):
     """
@@ -48,29 +48,36 @@ class SyntheticDataRetriever(BaseInputRetriever):
     """
 
     def retrieve_data(self) -> GenericDataset:
-        data_rows: List[DataRow] = []
-        for _ in range(self.config.num_prompts):
-            row = DataRow(texts=[], images=[])
-            prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                self.config.tokenizer,
-                self.config.prompt_tokens_mean,
-                self.config.prompt_tokens_stddev,
-            )
-            for _ in range(self.config.batch_size_text):
-                row.texts.append(prompt)
+        files = self.config.synthetic_input_filenames or [DEFAULT_SYNTHETIC_FILENAME]
+        synthetic_dataset = GenericDataset(files_data={})
 
-            for _ in range(self.config.batch_size_image):
-                image = SyntheticImageGenerator.create_synthetic_image(
-                        image_width_mean=self.config.image_width_mean,
-                        image_width_stddev=self.config.image_width_stddev,
-                        image_height_mean=self.config.image_height_mean,
-                        image_height_stddev=self.config.image_height_stddev,
-                        image_format=self.config.image_format,
-                    )
-                row.images.append(image)
-            data_rows.append(row)
-        file_name = "synthetic_dataset"
-        file_data = FileData(file_name, data_rows)
-        synthetic_dataset = GenericDataset({file_name: file_data})
+        for file in files:
+            data_rows: List[DataRow] = []
+
+            for _ in range(self.config.num_prompts):
+                row = DataRow(texts=[], images=[])
+                prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                    self.config.tokenizer,
+                    self.config.prompt_tokens_mean,
+                    self.config.prompt_tokens_stddev,
+                )
+                for _ in range(self.config.batch_size_text):
+                    row.texts.append(prompt)
+
+                for _ in range(self.config.batch_size_image):
+                    image = SyntheticImageGenerator.create_synthetic_image(
+                            image_width_mean=self.config.image_width_mean,
+                            image_width_stddev=self.config.image_width_stddev,
+                            image_height_mean=self.config.image_height_mean,
+                            image_height_stddev=self.config.image_height_stddev,
+                            image_format=self.config.image_format,
+                        )
+                    row.images.append(image)
+
+                data_rows.append(row)
+
+            file_data = FileData(file, data_rows)
+            
+            synthetic_dataset.files_data[file] = file_data
 
         return synthetic_dataset

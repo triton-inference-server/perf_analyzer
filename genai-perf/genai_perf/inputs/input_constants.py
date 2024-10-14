@@ -58,6 +58,7 @@ class OutputFormat(Enum):
 ###########################
 DEFAULT_INPUT_DATA_JSON = "inputs.json"
 DEFAULT_RANDOM_SEED = 0
+DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
 
 
 ###########################
