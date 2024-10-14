@@ -26,7 +26,7 @@
 
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
@@ -35,18 +35,26 @@ from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, FileData, GenericDataset
 from genai_perf.utils import load_json_str
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from PIL import Image
 
-class FileInputRetriever:
+class FileInputRetriever(BaseInputRetriever):
     """
     A input retriever class that handles input data provided by the user through
     file and directories.
     """
 
-    def __init__(self, config: InputsConfig) -> None:
-        self.config = config
 
     def retrieve_data(self) -> GenericDataset:
+        """
+        Retrieves the dataset from a file or directory.
+
+        Returns
+        -------
+        GenericDataset
+            The dataset containing file data.
+        """
+
         files_data: Dict[str, FileData] = {}
         if self.config.input_filename.is_dir():
             jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
@@ -63,6 +71,13 @@ class FileInputRetriever:
 
     def _get_input_dataset_from_file(self, filename: Path) -> FileData:
         """
+        Retrieves the dataset from a specific JSONL file.
+
+        Args
+        ----------
+        filename : Path
+            The path of the file to process.
+        
         Returns
         -------
         Dict
@@ -97,6 +112,19 @@ class FileInputRetriever:
         return FileData(str(filename), data_rows)
 
     def _verify_file(self, filename: Path) -> None:
+        """
+        Verifies that the file exists.
+
+        Args
+        ----------
+        filename : Path
+            The file path to verify.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file does not exist.
+        """
         if not filename.exists():
             raise FileNotFoundError(
                 f"The file '{filename}' does not exist."
@@ -106,6 +134,11 @@ class FileInputRetriever:
         """
         Reads the input prompts from a JSONL file and returns a list of prompts.
 
+        Args
+        ----------
+        filename : Path
+            The file path from which to read the prompts.
+            
         Returns
         -------
         Tuple[List[str], List[str]]
@@ -133,8 +166,23 @@ class FileInputRetriever:
         return prompts, images
 
     def _encode_image(self, filename: str) -> str:
-        img = Image.open(filename)
-        if img is None:
+        """
+        Encodes the image file from a given filepath to
+        the base64 format of the image.
+
+        Args
+        ----------
+        filename : str
+            The file path of the image to encode.
+
+        Returns
+        -------
+        str
+            The base64-encoded image string.
+        """
+        try:
+            img = Image.open(filename)
+        except FileNotFoundError:
             raise GenAIPerfException(f"Failed to open image '{filename}'.")
         if img.format is None:
             raise GenAIPerfException(

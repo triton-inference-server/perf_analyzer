@@ -51,11 +51,11 @@ class Inputs:
         (in a JSON dictionary) to a file.
         """
         self._check_for_valid_args()
-        input_retriever = InputRetrieverFactory(self.config)
-        generic_dataset_json = input_retriever.get_input_data()
+        input_retriever = InputRetrieverFactory.create(self.config)
+        generic_dataset = input_retriever.retrieve_data()
 
-        json_in_pa_format = self._convert_generic_json_to_output_format(
-            generic_dataset_json,
+        json_in_pa_format = self._convert_generic_dataset_to_output_format(
+            generic_dataset,
         )
         self._write_json_to_file(json_in_pa_format)
 
@@ -65,7 +65,7 @@ class Inputs:
         self._check_for_valid_starting_index()
         self._check_for_valid_length()
 
-    def _convert_generic_json_to_output_format(self, generic_dataset) -> Dict:
+    def _convert_generic_dataset_to_output_format(self, generic_dataset) -> Dict:
         converter = OutputFormatConverterFactory.create(self.config.output_format)
         return converter.convert(generic_dataset, self.config)
 

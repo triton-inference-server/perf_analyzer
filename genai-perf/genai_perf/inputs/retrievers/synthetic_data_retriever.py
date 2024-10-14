@@ -39,15 +39,13 @@ from genai_perf.inputs.retrievers.synthetic_image_generator import (
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
+from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 
 
-class SyntheticDataRetriever:
+class SyntheticDataRetriever(BaseInputRetriever):
     """
     A data retriever class that handles generation of synthetic data.
     """
-
-    def __init__(self, config):
-        self.config: InputsConfig = config
 
     def retrieve_data(self) -> GenericDataset:
         data_rows: List[DataRow] = []

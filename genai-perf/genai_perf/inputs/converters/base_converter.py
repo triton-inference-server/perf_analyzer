@@ -41,7 +41,7 @@ class BaseConverter:
         """
         Construct a request body using the endpoint specific request format.
         """
-        raise NotImplementedError
+        raise NotImplementedError("This method should be implemented by subclasses.")
 
     def _select_model_name(self, config: InputsConfig, index: int) -> str:
         if config.model_selection_strategy == ModelSelectionStrategy.ROUND_ROBIN:
