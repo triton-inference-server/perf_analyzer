@@ -34,6 +34,7 @@ from genai_perf.types import (
     GpuRecords,
     ModelName,
     ModelWeights,
+    PerfMetricName,
     PerfRecords,
 )
 
@@ -145,7 +146,7 @@ class RunConfigMeasurement:
             return None
 
     def get_model_perf_metric(
-        self, model_name: ModelName, perf_metric_name: str
+        self, model_name: ModelName, perf_metric_name: PerfMetricName
     ) -> Optional[Record]:
         if model_name in self._model_config_measurements:
             return self._model_config_measurements[model_name].get_perf_metric(
@@ -155,7 +156,10 @@ class RunConfigMeasurement:
             return None
 
     def get_model_perf_metric_value(
-        self, model_name: ModelName, perf_metric_name: str, return_value: int = 0
+        self,
+        model_name: ModelName,
+        perf_metric_name: PerfMetricName,
+        return_value: int = 0,
     ) -> Any:
         if model_name in self._model_config_measurements:
             return self._model_config_measurements[model_name].get_perf_metric_value(
@@ -166,7 +170,7 @@ class RunConfigMeasurement:
 
     def get_weighted_perf_metric_values(
         self,
-        perf_metric_name: str,
+        perf_metric_name: PerfMetricName,
         return_value: int = 0,
     ) -> Dict[ModelName, Any]:
         """
