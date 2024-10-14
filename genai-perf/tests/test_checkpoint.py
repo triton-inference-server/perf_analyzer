@@ -14,7 +14,7 @@
 
 import os
 import unittest
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
 
 from genai_perf.checkpoint.checkpoint import Checkpoint
 from genai_perf.config.input.config_command import ConfigCommand
