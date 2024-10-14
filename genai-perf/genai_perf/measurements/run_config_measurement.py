@@ -27,6 +27,7 @@ from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.gpu_record import GPURecord
 from genai_perf.record.record import Record
 from genai_perf.types import (
+    CheckpointObject,
     ConstraintName,
     ConstraintValue,
     GpuId,
@@ -257,7 +258,7 @@ class RunConfigMeasurement:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> Dict[str, Any]:
+    def write_to_checkpoint(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -272,7 +273,7 @@ class RunConfigMeasurement:
         return rcm_dict
 
     @classmethod
-    def read_from_checkpoint(cls, rcm_dict: Dict[str, Any]) -> "RunConfigMeasurement":
+    def read_from_checkpoint(cls, rcm_dict: CheckpointObject) -> "RunConfigMeasurement":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
         a new instance of a RCM

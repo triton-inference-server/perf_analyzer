@@ -23,7 +23,7 @@ from genai_perf.config.input.config_command import (
     ConfigOutputTokens,
     ConfigSyntheticTokens,
 )
-from genai_perf.types import ModelObjectiveParameters
+from genai_perf.types import CheckpointObject, ModelObjectiveParameters
 
 
 @dataclass
@@ -63,7 +63,7 @@ class GenAIPerfConfig:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> Dict[str, Any]:
+    def write_to_checkpoint(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -74,7 +74,7 @@ class GenAIPerfConfig:
 
     @classmethod
     def read_from_checkpoint(
-        cls, genai_perf_config_dict: Dict[str, Any]
+        cls, genai_perf_config_dict: CheckpointObject
     ) -> "GenAIPerfConfig":
         """
         Takes the checkpoint's representation of the class and creates (and populates)

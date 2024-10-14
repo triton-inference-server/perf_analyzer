@@ -20,7 +20,13 @@ from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias
 
 from genai_perf.record.record import Record
-from genai_perf.types import MetricObjectives, ModelName, PerfMetricName, PerfRecords
+from genai_perf.types import (
+    CheckpointObject,
+    MetricObjectives,
+    ModelName,
+    PerfMetricName,
+    PerfRecords,
+)
 
 ###########################################################################
 # Typing
@@ -96,7 +102,7 @@ class ModelConfigMeasurement:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> Dict[str, Any]:
+    def write_to_checkpoint(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -110,7 +116,9 @@ class ModelConfigMeasurement:
         return mcm_dict
 
     @classmethod
-    def read_from_checkpoint(cls, mcm_dict: Dict[str, Any]) -> "ModelConfigMeasurement":
+    def read_from_checkpoint(
+        cls, mcm_dict: CheckpointObject
+    ) -> "ModelConfigMeasurement":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
         a new instance of a MCM
