@@ -829,10 +829,11 @@ TritonInferResult::RequestStatus() const
 
 Error
 TritonInferResult::RawData(
-    const std::string& output_name, const uint8_t** buf,
-    size_t* byte_size) const
+    const std::string& output_name, std::vector<uint8_t>& buf) const
 {
-  RETURN_IF_TRITON_ERROR(result_->RawData(output_name, buf, byte_size));
+  uint8_t* buf_raw{};
+  RETURN_IF_TRITON_ERROR(result_->RawData(output_name, &buf_raw, byte_size));
+  buf.assign(buf_raw, buf_raw + byte_size);
   return Error::Success;
 }
 

@@ -203,7 +203,10 @@ InferContext::GetInputs()
       buf += 4;
       byte_size -= 4;
     }
-    input.emplace(request_input->Name(), RecordData(buf, byte_size, data_type));
+
+    std::vector<uint8_t> buf_vec(buf, buf + byte_size);
+
+    input.emplace(request_input->Name(), RecordData(std::move(buf_vec), data_type));
   }
   return input;
 }
@@ -214,19 +217,17 @@ InferContext::GetOutputs(const cb::InferResult& infer_result)
   RequestRecord::ResponseOutput output{};
   for (const auto& requested_output : infer_data_.outputs_) {
     std::string data_type{requested_output->Datatype()};
-    const uint8_t* buf{nullptr};
-    size_t byte_size{0};
-    infer_result.RawData(requested_output->Name(), &buf, &byte_size);
+    std::vector<uint8_t> buf{};
+    infer_result.RawData(requested_output->Name(), buf);
 
     // The first 4 bytes of BYTES data is a 32-bit integer to indicate the size
     // of the rest of the data (which we already know based on byte_size). It
     // should be ignored here, as it isn't part of the actual response
-    if (data_type == "BYTES" && byte_size >= 4) {
-      buf += 4;
-      byte_size -= 4;
+    if (data_type == "BYTES" && buf.size() >= 4) {
+      buf.erase(buf.begin(), buf.begin() + 4);
     }
     output.emplace(
-        requested_output->Name(), RecordData(buf, byte_size, data_type));
+        requested_output->Name(), RecordData(std::move(buf), data_type));
   }
   return output;
 }

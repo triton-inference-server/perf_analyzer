@@ -1041,6 +1041,9 @@ TritonLoader::GetOutputs(
             &byte_size, &memory_type, &memory_type_id, &userp),
         "inference_response_output_fn_ error");
 
+    // add deep copy
+    std::vector<uint8_t> v((uint8_t*)base, byte_size);
+
     outputs.emplace(
         name, ResponseOutput{
                   name, datatype, shape, dim_count, base, byte_size,

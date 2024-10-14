@@ -385,9 +385,9 @@ TritonCApiInferInput::SetSharedMemory(
 }
 
 Error
-TritonCApiInferInput::RawData(const uint8_t** buf, size_t* byte_size)
+TritonCApiInferInput::RawData(std::vector<uint8_t>& buf)
 {
-  RETURN_IF_TRITON_ERROR(input_->RawData(buf, byte_size));
+  RETURN_IF_TRITON_ERROR(input_->RawData(buf));
   return Error::Success;
 }
 
@@ -455,10 +455,9 @@ TritonCApiInferResult::RequestStatus() const
 
 Error
 TritonCApiInferResult::RawData(
-    const std::string& output_name, const uint8_t** buf,
-    size_t* byte_size) const
+    const std::string& output_name, std::vector<uint8_t>& buf) const
 {
-  RETURN_IF_TRITON_ERROR(result_->RawData(output_name, buf, byte_size));
+  RETURN_IF_TRITON_ERROR(result_->RawData(output_name, buf));
   return Error::Success;
 }
 

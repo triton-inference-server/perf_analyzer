@@ -74,8 +74,7 @@ class ChatCompletionResult : public InferResult {
   /// \return Error object indicating the success or failure of the
   /// request.
   Error RawData(
-      const std::string& output_name, const uint8_t** buf,
-      size_t* byte_size) const override
+      const std::string& output_name, std::vector<uint8_t>& buf) const override
   {
     // There is only a single output (and it has no defined name), so we can
     // disregard output_name
