@@ -26,7 +26,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from genai_perf.inputs.input_constants import (
     DEFAULT_IMAGE_HEIGHT_MEAN,
@@ -72,7 +72,10 @@ class InputsConfig:
     extra_inputs: Dict = field(default_factory=dict)
 
     # The filename where the input data is available
-    input_filename: Path = Path("")
+    input_filename: Optional[Path] = Path("")
+
+    # The filenames used for synthetic data generation
+    synthetic_input_filenames: Optional[List[str]] = field(default_factory=list)
 
     # The compression format of the images.
     image_format: ImageFormat = ImageFormat.PNG

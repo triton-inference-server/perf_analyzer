@@ -39,7 +39,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
     def check_config(self, config: InputsConfig) -> None:
         if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
             if config.add_stream:
-                raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase}.")
+                raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase()}.")
             # TODO: Confirm that this is required. This may work with synthetic now.
             if config.input_type != PromptSource.FILE:
                 raise GenAIPerfException(
@@ -48,9 +48,9 @@ class OpenAIChatCompletionsConverter(BaseConverter):
                 )
         else:
             if config.batch_size_image != DEFAULT_BATCH_SIZE:
-                raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase}.")
+                raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}.")
         if config.batch_size_text != DEFAULT_BATCH_SIZE:
-            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase}.")
+            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}.")
 
 
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:

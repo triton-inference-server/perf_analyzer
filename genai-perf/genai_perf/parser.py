@@ -344,9 +344,18 @@ def parse_goodput(values):
 
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
+
+    args.synthetic_input_files = None
+    
     if args.input_file:
-        args.prompt_source = ic.PromptSource.FILE
-        logger.debug(f"Input source is the following path: {args.input_file[0]}")
+        if str(args.input_file).startswith("synthetic:"):
+            args.prompt_source = ic.PromptSource.SYNTHETIC
+            synthetic_input_files_str = str(args.input_file).split(":", 1)[1]
+            args.synthetic_input_files = synthetic_input_files_str.split(",")
+            logger.debug(f"Input source is synthetic data: {args.synthetic_input_files}")
+        else:
+            args.prompt_source = ic.PromptSource.FILE
+            logger.debug(f"Input source is the following path: {args.input_file}")
     else:
         args.prompt_source = ic.PromptSource.SYNTHETIC
     return args
@@ -365,13 +374,15 @@ def _convert_str_to_enum_entry(args, option, enum):
 ### Types ###
 
 
-def file_or_directory(path: str) -> Tuple[Path, PathType]:
-    if os.path.isfile(path):
-        return (Path(path), PathType.FILE)
-    elif os.path.isdir(path):
-        return (Path(path), PathType.DIRECTORY)
+def file_or_directory(value: str) -> Path:
+    if value.startswith("synthetic:"):
+        return Path(value)
     else:
-        raise ValueError(f"'{path}' is not a valid file or directory")
+      path = Path(value)
+      if path.is_file() or path.is_dir:
+          return path
+          
+    raise ValueError(f"'{value}' is not a valid file or directory")
 
 
 def positive_integer(value: str) -> int:
@@ -424,11 +435,11 @@ def _add_input_args(parser):
         type=file_or_directory,
         default=None,
         required=False,
-        help="The input file containing the prompts to use for profiling. "
-        "Each line should be a JSON object with a 'text' field in JSONL format. "
-        'Example: {"text": "Your prompt here"}'
-        "For the rankings endpoint-type, a directory should be passed in instead with "
-        'a "queries.jsonl" file and a "passages.jsonl" file with the same format.',
+        help="The input file or directory containing the content to use for "
+        "profiling. To use synthetic files for a converter that needs "
+        "multiple files, prefix the path with 'synthetic:', followed by a "
+        "comma-separated list of filenames. The filenames should not have"
+        "extensions. For example, 'synthetic:queries,passages'.",
     )
 
     input_group.add_argument(

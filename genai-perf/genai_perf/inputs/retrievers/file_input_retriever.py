@@ -26,7 +26,7 @@
 
 import random
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import cast, Dict, List, Tuple
 
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
@@ -56,6 +56,7 @@ class FileInputRetriever(BaseInputRetriever):
         """
 
         files_data: Dict[str, FileData] = {}
+        self.config.input_filename = cast(Path, self.config.input_filename)
         if self.config.input_filename.is_dir():
             jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
             if not jsonl_files:
