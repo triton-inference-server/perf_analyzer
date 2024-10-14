@@ -34,14 +34,16 @@ from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class BaseConverter:
-
-    _CONTENT_NAMES: List[str]
+    """
+    Base class for all converters that take generic JSON payloads
+    and convert them to endpoint-specific payloads.
+    """
 
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         """
         Construct a request body using the endpoint specific request format.
         """
-        raise NotImplementedError
+        raise NotImplementedError("This method should be implemented by subclasses.")
 
     def _select_model_name(self, config: InputsConfig, index: int) -> str:
         if config.model_selection_strategy == ModelSelectionStrategy.ROUND_ROBIN:
@@ -52,29 +54,3 @@ class BaseConverter:
             raise GenAIPerfException(
                 f"Model selection strategy '{config.model_selection_strategy}' is unsupported"
             )
-
-    def _construct_text_payload_batch_agnostic(
-        self, batch_size_text: int, input_data: List
-    ) -> Union[str, List]:
-        """
-        Construct text payload content for non-chat based LLM converters.
-        Allow batched and unbatched input data.
-        """
-        if batch_size_text == 1:
-            return self._construct_text_payload(input_data)
-        else:
-            return self._construct_batched_text_payload(input_data)
-
-    def _construct_text_payload(self, input_data: List[str]) -> str:
-        """
-        Construct text payload content for non-chat based LLM converters.
-        Since there are no roles or turns in non-chat LLM endpoints, all the
-        (pre-defined) text contents are concatenated into a single text prompt.
-        """
-        return " ".join(input_data)
-
-    def _construct_batched_text_payload(self, input_data: List[str]) -> List:
-        """
-        Construct batched text payload content for non-chat based LLM converters.
-        """
-        return input_data

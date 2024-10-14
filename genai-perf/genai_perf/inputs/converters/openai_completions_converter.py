@@ -35,26 +35,13 @@ from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 class OpenAICompletionsConverter(BaseConverter):
 
-    # TODO (TPA-430): This works for great for synthetic and input file approaches
-    # but a bit tedious for dataset case as we need to specify the content names
-    # for each dataset. This is because a dataset can be used differently depending
-    # on the endpoint (e.g. chat vs non-chat).
-    _CONTENT_NAMES = [
-        "text",
-        # OPENORCA
-        "system_prompt",
-        "question",
-        # CNN DAILYMAIL
-        "article",
-    ]
-
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 model_name = self._select_model_name(config, index)
-                prompt = self._construct_text_payload(row.texts)
+                prompt = row.texts[0]
 
                 payload = {
                     "model": model_name,
@@ -63,7 +50,7 @@ class OpenAICompletionsConverter(BaseConverter):
                 self._add_request_params(payload, config)
                 request_body["data"].append({"payload": [payload]})
 
-            return request_body
+        return request_body
 
     def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
         if config.add_stream:

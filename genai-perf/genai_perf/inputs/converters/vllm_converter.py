@@ -36,29 +36,21 @@ from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 class VLLMConverter(BaseConverter):
 
-    _CONTENT_NAMES = [
-        "text",
-        # OPENORCA
-        "system_prompt",
-        "question",
-        # CNN DAILYMAIL
-        "article",
-    ]
-
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            model_name = self._select_model_name(config, index)
-            text = self._construct_text_payload(entry)
+        for file_data in generic_dataset.files_data.values():
+            for index, row in enumerate(file_data.rows):
+                model_name = self._select_model_name(config, index)
+                text = row.texts
 
-            payload = {
-                "model": model_name,
-                "text_input": [text],
-                "exclude_input_in_output": [True],  # default
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append(payload)
+                payload = {
+                    "model": model_name,
+                    "text_input": text,
+                    "exclude_input_in_output": [True],  # default
+                }
+                self._add_request_params(payload, config)
+                request_body["data"].append(payload)
 
         return request_body
 
