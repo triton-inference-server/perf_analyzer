@@ -11,7 +11,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import List
 
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_constraints import RunConstraints

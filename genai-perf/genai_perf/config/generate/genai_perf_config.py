@@ -14,7 +14,6 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import (
