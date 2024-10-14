@@ -76,7 +76,6 @@ class Inputs:
 
     def _check_for_supported_input_type(self) -> None:
         if self.config.output_format in [
-            OutputFormat.OPENAI_EMBEDDINGS,
             OutputFormat.RANKINGS,
             OutputFormat.IMAGE_RETRIEVAL,
         ]:

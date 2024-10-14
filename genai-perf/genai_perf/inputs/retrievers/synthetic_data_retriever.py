@@ -27,7 +27,7 @@
 
 from typing import List
 
-from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -47,7 +47,7 @@ class SyntheticDataRetriever:
     """
 
     def __init__(self, config):
-        self.config = config
+        self.config: InputsConfig = config
 
     def retrieve_data(self) -> GenericDataset:
         data_rows: List[DataRow] = []
@@ -58,16 +58,17 @@ class SyntheticDataRetriever:
                 self.config.prompt_tokens_mean,
                 self.config.prompt_tokens_stddev,
             )
-            row.texts.append(prompt)
+            for _ in range(self.config.batch_size_text):
+                row.texts.append(prompt)
 
-            if self.config.output_format == OutputFormat.OPENAI_VISION:
+            for _ in range(self.config.batch_size_image):
                 image = SyntheticImageGenerator.create_synthetic_image(
-                    image_width_mean=self.config.image_width_mean,
-                    image_width_stddev=self.config.image_width_stddev,
-                    image_height_mean=self.config.image_height_mean,
-                    image_height_stddev=self.config.image_height_stddev,
-                    image_format=self.config.image_format,
-                )
+                        image_width_mean=self.config.image_width_mean,
+                        image_width_stddev=self.config.image_width_stddev,
+                        image_height_mean=self.config.image_height_mean,
+                        image_height_stddev=self.config.image_height_stddev,
+                        image_format=self.config.image_format,
+                    )
                 row.images.append(image)
             data_rows.append(row)
         file_name = "synthetic_dataset"
