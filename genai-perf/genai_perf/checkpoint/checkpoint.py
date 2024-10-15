@@ -46,11 +46,11 @@ class Checkpoint:
     # Read/Write Methods
     ###########################################################################
     def write_to_checkpoint(self) -> None:
-        state_dict = {"Results": json.dumps(self.results, default=checkpoint_encoder)}
+        state_dict = {"Results": self.results.write_to_checkpoint()}
 
         checkpoint_filename = self._create_checkpoint_filename()
         with open(checkpoint_filename, "w") as checkpoint_file:
-            json.dump(state_dict, checkpoint_file)
+            json.dump(state_dict, checkpoint_file, default=checkpoint_encoder)
 
     def _read_from_checkpoint(self) -> None:
         checkpoint_filename = self._create_checkpoint_filename()
@@ -62,7 +62,7 @@ class Checkpoint:
                     checkpoint_json = json.load(checkpoint_file)
                     self._state = {}
                     self._state["Results"] = Results.read_from_checkpoint(
-                        json.loads(checkpoint_json["Results"])
+                        checkpoint_json["Results"]
                     )
             except EOFError:
                 raise (
