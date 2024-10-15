@@ -37,10 +37,7 @@ from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 class OpenAICompletionsConverter(BaseConverter):
 
     def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_image != DEFAULT_BATCH_SIZE:
-            raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}.")
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
-            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}.")
+        pass
 
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
@@ -48,7 +45,7 @@ class OpenAICompletionsConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 model_name = self._select_model_name(config, index)
-                prompt = row.texts[0]
+                prompt = row.texts
 
                 payload = {
                     "model": model_name,
