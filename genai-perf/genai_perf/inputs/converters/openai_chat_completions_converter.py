@@ -64,7 +64,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
                 if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
                     content = row.texts[0]
                 else:
-                    content += self._add_multi_modal_content(content)
+                    content += self._add_multi_modal_content(row)
 
                 payload = {
                     "model": model_name,
