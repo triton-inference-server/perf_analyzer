@@ -135,8 +135,6 @@ def _check_conditional_args(
     """
 
     # Endpoint and output format checks
-    # TODO: Replace this with a more robust solution.
-    # Currently, a new endpoint would need to add support here.
     if args.service_kind == "openai":
         if args.endpoint_type is None:
             parser.error(
@@ -438,8 +436,10 @@ def _add_input_args(parser):
         help="The input file or directory containing the content to use for "
         "profiling. To use synthetic files for a converter that needs "
         "multiple files, prefix the path with 'synthetic:', followed by a "
-        "comma-separated list of filenames. The filenames should not have"
-        "extensions. For example, 'synthetic:queries,passages'.",
+        "comma-separated list of filenames. The synthetic filenames should "
+        "not have extensions. For example, 'synthetic:queries,passages'. "
+        "Each line should be a JSON object with a 'text' or 'image' field "
+        "in JSONL format. Example: {\"text\": \"Your prompt here\"}",
     )
 
     input_group.add_argument(
