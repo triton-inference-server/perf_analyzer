@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat
@@ -40,7 +40,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
             if config.add_stream:
                 raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase()}.")
-        else:
+        elif config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS or config.output_format == OutputFormat.OPENAI_VISION:
             if config.batch_size_text != DEFAULT_BATCH_SIZE:
                 raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}.")
             if config.batch_size_image != DEFAULT_BATCH_SIZE:
@@ -52,30 +52,37 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                model_name = self._select_model_name(config, index)
-
-                content: Any = []
-                if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
-                    content = row.texts[0]
-                else:
-                    content += self._add_multi_modal_content(row)
-
-                payload = {
-                    "model": model_name,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": content,
-                        }
-                    ],
-                }
-
-                self._add_request_params(payload, config)
+                payload = self._create_payload(index, row, config)
                 request_body["data"].append({"payload": [payload]})
 
         return request_body
 
-    def _add_multi_modal_content(self, entry: DataRow) -> List[Dict]:
+    def _create_payload(self, index: int, row: DataRow, config: InputsConfig) -> Dict[Any, Any]:
+        model_name = self._select_model_name(config, index)
+
+        content: Union[str, List[Dict[Any, Any]]] = ""
+        if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
+            content = row.texts[0]
+        elif config.output_format == OutputFormat.OPENAI_VISION or config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            content = self._add_multi_modal_content(row)
+        else:
+            raise GenAIPerfException(f"Output format {config.output_format} is not supported")
+
+        payload = {
+            "model": model_name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": content,
+                }
+            ],
+        }
+
+        self._add_request_params(payload, config)
+        return payload
+
+    
+    def _add_multi_modal_content(self, entry: DataRow) -> List[Dict[Any, Any]]:
         content = []
         for text in entry.texts:
             content.append(

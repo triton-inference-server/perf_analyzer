@@ -58,18 +58,39 @@ class FileInputRetriever(BaseInputRetriever):
         files_data: Dict[str, FileData] = {}
         self.config.input_filename = cast(Path, self.config.input_filename)
         if self.config.input_filename.is_dir():
-            jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
-            if not jsonl_files:
-                raise ValueError(f"No JSONL files found in directory '{self.config.input_filename}'.")
-            for file in jsonl_files:
-                file_data = self._get_input_dataset_from_file(file)
-                files_data[file.stem] = file_data
+            files_data = self._get_input_datasets_from_dir()
         else:
             file_data = self._get_input_dataset_from_file(self.config.input_filename)
             files_data = {file_data.filename: file_data}
         
         return GenericDataset(files_data)
+    
+    def _get_input_datasets_from_dir(self) -> Dict[str, FileData]:
+        """
+        Retrieves the dataset from a directory containing multiple JSONL files.
 
+        Args
+        ----------
+        directory : Path
+            The directory path to process.
+        
+        Returns
+        -------
+        Dict[str, FileData]
+            The dataset in the required format with the content
+            read from the files.
+        """
+        self.config.input_filename = cast(Path, self.config.input_filename)
+        jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
+        if not jsonl_files:
+            raise ValueError(f"No JSONL files found in directory '{self.config.input_filename}'.")
+        
+        files_data: Dict[str, FileData] = {}
+        for file in jsonl_files:
+            file_data = self._get_input_dataset_from_file(file)
+            files_data[file.stem] = file_data
+        return files_data
+    
     def _get_input_dataset_from_file(self, filename: Path) -> FileData:
         """
         Retrieves the dataset from a specific JSONL file.
@@ -82,11 +103,11 @@ class FileInputRetriever(BaseInputRetriever):
         Returns
         -------
         Dict
-            The dataset in the required format with the prompts and/or images
+            The dataset in the required format with the content
             read from the file.
         """
         self._verify_file(filename)
-        prompts, images = self._get_prompts_from_input_file(filename)
+        prompts, images = self._get_content_from_input_file(filename)
         if self.config.batch_size_image > len(images):
             raise ValueError(
                 "Batch size for images cannot be larger than the number of available images"
@@ -131,14 +152,14 @@ class FileInputRetriever(BaseInputRetriever):
                 f"The file '{filename}' does not exist."
             )
 
-    def _get_prompts_from_input_file(self, filename: Path) -> Tuple[List[str], List[str]]:
+    def _get_content_from_input_file(self, filename: Path) -> Tuple[List[str], List[str]]:
         """
-        Reads the input prompts from a JSONL file and returns a list of prompts.
+        Reads the content from a JSONL file and returns lists of each content type.
 
         Args
         ----------
         filename : Path
-            The file path from which to read the prompts.
+            The file path from which to read the content.
             
         Returns
         -------

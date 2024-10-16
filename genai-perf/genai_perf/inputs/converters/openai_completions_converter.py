@@ -34,9 +34,6 @@ from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 class OpenAICompletionsConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        pass
-
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
