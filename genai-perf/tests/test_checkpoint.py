@@ -17,6 +17,8 @@ import unittest
 from unittest.mock import patch
 
 from genai_perf.checkpoint.checkpoint import Checkpoint
+from genai_perf.config.generate.search_parameters import SearchParameters
+from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.results import Results
 from tests.test_utils import create_run_config
@@ -27,17 +29,28 @@ class TestCheckpoint(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._results = Results()
+        self._config = ConfigCommand(model_names=["test_model"])
+        self._model_search_parameters = {
+            "test_model": SearchParameters(self._config.analyze)
+        }
 
-        for i in range(10):
-            run_config_name = "test_run_config_" + str(i)
+        self._sweep_obj_gen = SweepObjectiveGenerator(
+            self._config, self._model_search_parameters
+        )
+
+        self._results = Results()
+        for count, objective in enumerate(self._sweep_obj_gen.get_objectives()):
+            run_config_name = "test_model_run_config_" + str(count)
             run_config = create_run_config(
                 run_config_name=run_config_name,
+                model_objective_parameters=objective,
                 model_name="test_model",
-                gpu_power=500 + 10 * i,
-                gpu_utilization=50 - i,
-                throughput=300 - 10 * i,
-                latency=100 - 5 * i,
+                gpu_power=500 + 10 * count,
+                gpu_utilization=50 - count,
+                throughput=300 - 10 * count,
+                latency=100 - 5 * count,
+                input_seq_length=20 + 10 * count,
+                output_seq_length=50 + 5 * count,
             )
             self._results.add_run_config(run_config)
 

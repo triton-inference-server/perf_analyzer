@@ -93,6 +93,9 @@ class RunConfig:
     ###########################################################################
     # Get Accessor Methods
     ###########################################################################
+    def get_perf_analyzer_parameters(self) -> Dict[str, Any]:
+        return self.perf_analyzer_config.get_parameters()
+
     def get_all_gpu_metrics(self) -> GpuRecords:
         return self.measurement.get_all_gpu_metrics()
 

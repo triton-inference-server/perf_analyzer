@@ -55,6 +55,15 @@ class PerfAnalyzerConfig:
                     self._parameters[name] = parameter.get_value_based_on_category()
 
     ###########################################################################
+    # Get Accessor Methods
+    ###########################################################################
+    def get_parameters(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary of parameters and their values
+        """
+        return self._parameters
+
+    ###########################################################################
     # CLI String Creation Methods
     ###########################################################################
     def create_cli_string(self) -> str:
