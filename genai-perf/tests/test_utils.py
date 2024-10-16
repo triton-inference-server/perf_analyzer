@@ -27,6 +27,10 @@
 from typing import Union
 
 import pytest
+from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
@@ -82,3 +86,31 @@ def create_run_config_measurement(
     }
 
     return RunConfigMeasurement(gpu_metrics)
+
+
+###########################################################################
+# RunConfig Constructor
+###########################################################################
+def create_run_config(
+    run_config_name: str,
+    model_name: str = "test_model",
+    gpu_power: int = 0,
+    gpu_utilization: int = 0,
+    gpu_id: GpuId = "0",
+    throughput: int = 0,
+    latency: int = 0,
+) -> RunConfig:
+    config = ConfigCommand([model_name])
+    genai_perf_config = GenAIPerfConfig(config=config, model_objective_parameters={})
+    perf_analyzer_config = PerfAnalyzerConfig(
+        model_name=model_name, config=config, model_objective_parameters={}
+    )
+    rcm = create_run_config_measurement(gpu_power, gpu_utilization, gpu_id)
+    perf_metrics = create_perf_metrics(throughput, latency)
+    rcm.add_perf_metrics(model_name, perf_metrics)
+
+    run_config = RunConfig(
+        run_config_name, genai_perf_config, perf_analyzer_config, rcm
+    )
+
+    return run_config
