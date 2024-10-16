@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.results import Results
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.types import CheckpointObject
 
 
 @dataclass(frozen=True)
@@ -60,10 +61,12 @@ class Checkpoint:
             try:
                 with open(checkpoint_filename, "r") as checkpoint_file:
                     checkpoint_json = json.load(checkpoint_file)
-                    self._state = {}
-                    self._state["Results"] = Results.read_from_checkpoint(
-                        checkpoint_json["Results"]
-                    )
+                    self._state: CheckpointObject = {
+                        "Results": Results.read_from_checkpoint(
+                            checkpoint_json["Results"]
+                        )
+                    }
+
             except EOFError:
                 raise (
                     GenAIPerfException(
