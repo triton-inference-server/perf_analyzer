@@ -258,7 +258,7 @@ class RunConfigMeasurement:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> CheckpointObject:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -273,7 +273,9 @@ class RunConfigMeasurement:
         return rcm_dict
 
     @classmethod
-    def read_from_checkpoint(cls, rcm_dict: CheckpointObject) -> "RunConfigMeasurement":
+    def create_class_from_checkpoint(
+        cls, rcm_dict: CheckpointObject
+    ) -> "RunConfigMeasurement":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
         a new instance of a RCM
@@ -304,7 +306,7 @@ class RunConfigMeasurement:
             gpu_metric_dict: Any = {}
             for tag, record_dict in gpu_metrics_dict.values():
                 record = Record.get(tag)
-                record = record.read_from_checkpoint(record_dict)  # type: ignore
+                record = record.create_class_from_checkpoint(record_dict)  # type: ignore
                 gpu_metric_dict[tag] = record
 
             gpu_metrics[gpu_uuid] = gpu_metric_dict
@@ -318,7 +320,7 @@ class RunConfigMeasurement:
         model_config_measurements: ModelConfigMeasurements = {}
         for model_name, mcm_dict in mcm_dicts.items():
             model_config_measurements[model_name] = (
-                ModelConfigMeasurement.read_from_checkpoint(mcm_dict)
+                ModelConfigMeasurement.create_class_from_checkpoint(mcm_dict)
             )
 
         return model_config_measurements

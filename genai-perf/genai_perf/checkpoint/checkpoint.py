@@ -41,19 +41,19 @@ class Checkpoint:
     results: Results
 
     def __post_init__(self):
-        self._read_from_checkpoint()
+        self._create_class_from_checkpoint()
 
     ###########################################################################
     # Read/Write Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> None:
-        state_dict = {"Results": self.results.write_to_checkpoint()}
+    def create_checkpoint_object(self) -> None:
+        state_dict = {"Results": self.results.create_checkpoint_object()}
 
         checkpoint_file_path = self._create_checkpoint_file_path()
         with open(checkpoint_file_path, "w") as checkpoint_file:
             json.dump(state_dict, checkpoint_file, default=checkpoint_encoder)
 
-    def _read_from_checkpoint(self) -> None:
+    def _create_class_from_checkpoint(self) -> None:
         checkpoint_file_path = self._create_checkpoint_file_path()
 
         if os.path.isfile(checkpoint_file_path):
@@ -62,7 +62,7 @@ class Checkpoint:
                 with open(checkpoint_file_path, "r") as checkpoint_file:
                     checkpoint_json = json.load(checkpoint_file)
                     self._state: CheckpointObject = {
-                        "Results": Results.read_from_checkpoint(
+                        "Results": Results.create_class_from_checkpoint(
                             checkpoint_json["Results"]
                         )
                     }
@@ -92,7 +92,7 @@ class Checkpoint:
 def checkpoint_encoder(obj):
     if isinstance(obj, bytes):
         return obj.decode("utf-8")
-    elif hasattr(obj, "write_to_checkpoint"):
-        return obj.write_to_checkpoint()
+    elif hasattr(obj, "create_checkpoint_object"):
+        return obj.create_checkpoint_object()
     else:
         return obj.__dict__

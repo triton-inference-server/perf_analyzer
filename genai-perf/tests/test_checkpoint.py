@@ -61,6 +61,9 @@ class TestCheckpoint(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
+    # TODO: TPA-501: Add mock file I/O and check for empty directory and improperly
+    # formatted checkpoint files
+
     ###########################################################################
     # Checkpoint Tests
     ###########################################################################
@@ -73,8 +76,8 @@ class TestCheckpoint(unittest.TestCase):
         self.assertEqual({}, self._checkpoint._state)
 
         # Then write and read back the Results
-        self._checkpoint.write_to_checkpoint()
-        self._checkpoint._read_from_checkpoint()
+        self._checkpoint.create_checkpoint_object()
+        self._checkpoint._create_class_from_checkpoint()
         os.remove(self._checkpoint._create_checkpoint_file_path())
 
         self.assertEqual(self._results, self._checkpoint._state["Results"])

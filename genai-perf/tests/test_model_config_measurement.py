@@ -121,7 +121,7 @@ class TestModelConfigMeasurement(unittest.TestCase):
         """
         mcmA_json = json.dumps(self.mcmA, default=checkpoint_encoder)
 
-        mcmA_from_checkpoint = ModelConfigMeasurement.read_from_checkpoint(
+        mcmA_from_checkpoint = ModelConfigMeasurement.create_class_from_checkpoint(
             json.loads(mcmA_json)
         )
 

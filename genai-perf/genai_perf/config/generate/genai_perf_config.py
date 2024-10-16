@@ -62,7 +62,7 @@ class GenAIPerfConfig:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> CheckpointObject:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -72,7 +72,7 @@ class GenAIPerfConfig:
         return genai_perf_config_dict
 
     @classmethod
-    def read_from_checkpoint(
+    def create_class_from_checkpoint(
         cls, genai_perf_config_dict: CheckpointObject
     ) -> "GenAIPerfConfig":
         """

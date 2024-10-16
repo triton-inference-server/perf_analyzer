@@ -85,8 +85,10 @@ class TestGenAIPerfConfig(unittest.TestCase):
             self._default_genai_perf_config, default=checkpoint_encoder
         )
 
-        genai_perf_config_from_checkpoint = GenAIPerfConfig.read_from_checkpoint(
-            json.loads(genai_perf_config_json)
+        genai_perf_config_from_checkpoint = (
+            GenAIPerfConfig.create_class_from_checkpoint(
+                json.loads(genai_perf_config_json)
+            )
         )
 
         self.assertEqual(

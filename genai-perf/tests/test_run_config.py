@@ -63,7 +63,7 @@ class TestRunConfig(unittest.TestCase):
         """
         run_config_json = json.dumps(self._run_config, default=checkpoint_encoder)
 
-        run_config_from_checkpoint = RunConfig.read_from_checkpoint(
+        run_config_from_checkpoint = RunConfig.create_class_from_checkpoint(
             json.loads(run_config_json)
         )
 

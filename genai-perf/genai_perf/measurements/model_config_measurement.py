@@ -102,7 +102,7 @@ class ModelConfigMeasurement:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> CheckpointObject:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -116,7 +116,7 @@ class ModelConfigMeasurement:
         return mcm_dict
 
     @classmethod
-    def read_from_checkpoint(
+    def create_class_from_checkpoint(
         cls, mcm_dict: CheckpointObject
     ) -> "ModelConfigMeasurement":
         """
@@ -137,7 +137,7 @@ class ModelConfigMeasurement:
 
         for [tag, record_dict] in perf_metrics_dict.values():
             record = Record.get(tag)
-            record = record.read_from_checkpoint(record_dict)  # type: ignore
+            record = record.create_class_from_checkpoint(record_dict)  # type: ignore
             perf_metrics[tag] = record  # type: ignore
 
         return perf_metrics

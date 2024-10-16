@@ -53,34 +53,36 @@ class RunConfig:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> CheckpointObject:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
         """
         run_config_dict = {
             "name": self.name,
-            "genai_perf_config": self.genai_perf_config.write_to_checkpoint(),
-            "perf_analyzer_config": self.perf_analyzer_config.write_to_checkpoint(),
-            "measurement": self.measurement.write_to_checkpoint(),
+            "genai_perf_config": self.genai_perf_config.create_checkpoint_object(),
+            "perf_analyzer_config": self.perf_analyzer_config.create_checkpoint_object(),
+            "measurement": self.measurement.create_checkpoint_object(),
         }
 
         return run_config_dict
 
     @classmethod
-    def read_from_checkpoint(cls, run_config_dict: CheckpointObject) -> "RunConfig":
+    def create_class_from_checkpoint(
+        cls, run_config_dict: CheckpointObject
+    ) -> "RunConfig":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
         a new instance of a RCM
         """
         name = run_config_dict["name"]
-        genai_perf_config = GenAIPerfConfig.read_from_checkpoint(
+        genai_perf_config = GenAIPerfConfig.create_class_from_checkpoint(
             run_config_dict["genai_perf_config"]
         )
-        perf_analyzer_config = PerfAnalyzerConfig.read_from_checkpoint(
+        perf_analyzer_config = PerfAnalyzerConfig.create_class_from_checkpoint(
             run_config_dict["perf_analyzer_config"]
         )
-        measurement = RunConfigMeasurement.read_from_checkpoint(
+        measurement = RunConfigMeasurement.create_class_from_checkpoint(
             run_config_dict["measurement"]
         )
 

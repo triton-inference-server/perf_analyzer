@@ -54,7 +54,9 @@ class TestResults(unittest.TestCase):
         """
         results_json = json.dumps(self._results, default=checkpoint_encoder)
 
-        results_from_checkpoint = Results.read_from_checkpoint(json.loads(results_json))
+        results_from_checkpoint = Results.create_class_from_checkpoint(
+            json.loads(results_json)
+        )
 
         self.assertEqual(results_from_checkpoint, self._results)
 

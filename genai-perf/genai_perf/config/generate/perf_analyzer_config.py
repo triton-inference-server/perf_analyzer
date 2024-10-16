@@ -163,7 +163,7 @@ class PerfAnalyzerConfig:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> CheckpointObject:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -173,7 +173,7 @@ class PerfAnalyzerConfig:
         return pa_config_dict
 
     @classmethod
-    def read_from_checkpoint(
+    def create_class_from_checkpoint(
         cls, perf_analyzer_config_dict: CheckpointObject
     ) -> "PerfAnalyzerConfig":
         """

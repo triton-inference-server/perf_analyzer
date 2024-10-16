@@ -167,7 +167,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             self._default_perf_analyzer_config, default=checkpoint_encoder
         )
 
-        pa_config_from_checkpoint = PerfAnalyzerConfig.read_from_checkpoint(
+        pa_config_from_checkpoint = PerfAnalyzerConfig.create_class_from_checkpoint(
             json.loads(pa_config_json)
         )
 
