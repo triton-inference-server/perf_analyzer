@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional, TypeAlias, Union
 
 import genai_perf.logging as logging
 from genai_perf.measurements.model_config_measurement import (
-    MetricObjectives,
     ModelConfigMeasurement,
     ModelConfigMeasurements,
 )
@@ -31,10 +30,13 @@ from genai_perf.types import (
     ConstraintName,
     ConstraintValue,
     GpuId,
+    GpuMetricObjectives,
     GpuRecords,
+    MetricObjectives,
     ModelName,
     ModelWeights,
     PerfMetricName,
+    PerfMetricObjectives,
     PerfRecords,
 )
 
@@ -49,7 +51,7 @@ WeightedRcmScore: TypeAlias = float
 class RunConfigMeasurementDefaults:
     MODEL_WEIGHTING = 1
 
-    METRIC_OBJECTIVE = {}  # type: ignore
+    METRIC_OBJECTIVE = None
 
     SELF_IS_BETTER = 1
     OTHER_IS_BETTER = -1
@@ -80,7 +82,9 @@ class RunConfigMeasurement:
             this is a valid measurement
         """
         self._gpu_metrics = gpu_metrics
-        self._gpu_metric_objectives = RunConfigMeasurementDefaults.METRIC_OBJECTIVE
+        self._gpu_metric_objectives: Optional[GpuMetricObjectives] = (
+            RunConfigMeasurementDefaults.METRIC_OBJECTIVE
+        )
 
         # Since this is not stored in the checkpoint it is optional, and
         # can be later set by an accessor method
@@ -205,7 +209,7 @@ class RunConfigMeasurement:
         }
 
     def set_gpu_metric_objectives(
-        self, gpu_metric_objectives: Dict[ModelName, MetricObjectives]
+        self, gpu_metric_objectives: GpuMetricObjectives
     ) -> None:
         """
         Sets the metric weighting for all GPU metric based measurements
@@ -213,6 +217,7 @@ class RunConfigMeasurement:
         for model_name in gpu_metric_objectives.keys():
             assert model_name in self._model_weights.keys()
 
+        self._gpu_metric_objectives = {}
         for model_name, model_gpu_metric_objectives in gpu_metric_objectives.items():
             self._gpu_metric_objectives[model_name] = {
                 objective: (value / sum(model_gpu_metric_objectives.values()))
@@ -220,7 +225,7 @@ class RunConfigMeasurement:
             }
 
     def set_perf_metric_objectives(
-        self, perf_metric_objectives: Dict[ModelName, MetricObjectives]
+        self, perf_metric_objectives: PerfMetricObjectives
     ) -> None:
         """
         Sets the metric weighting for all perf metric based measurements
