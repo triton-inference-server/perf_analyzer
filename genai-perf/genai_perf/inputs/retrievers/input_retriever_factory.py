@@ -24,8 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Dict, Type
-
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig

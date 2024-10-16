@@ -30,7 +30,6 @@ from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 
 class OpenAIEmbeddingsConverter(BaseConverter):
 

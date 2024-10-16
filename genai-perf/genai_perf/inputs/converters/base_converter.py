@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Any, Dict, List, Union
+from typing import Any, Dict
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import ModelSelectionStrategy

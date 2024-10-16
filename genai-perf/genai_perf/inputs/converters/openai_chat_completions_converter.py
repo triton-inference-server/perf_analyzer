@@ -28,7 +28,7 @@ import random
 from typing import Any, Dict, List
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat, PromptSource
+from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.exceptions import GenAIPerfException
