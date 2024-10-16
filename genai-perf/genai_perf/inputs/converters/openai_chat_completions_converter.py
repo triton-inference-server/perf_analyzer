@@ -59,14 +59,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
     def _create_payload(self, index: int, row: DataRow, config: InputsConfig) -> Dict[Any, Any]:
         model_name = self._select_model_name(config, index)
-
-        content: Union[str, List[Dict[Any, Any]]] = ""
-        if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
-            content = row.texts[0]
-        elif config.output_format == OutputFormat.OPENAI_VISION or config.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            content = self._add_multi_modal_content(row)
-        else:
-            raise GenAIPerfException(f"Output format {config.output_format} is not supported")
+        content = self._retrieve_content(row, config)
 
         payload = {
             "model": model_name,
@@ -81,6 +74,15 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         self._add_request_params(payload, config)
         return payload
 
+    def _retrieve_content(self, row: DataRow, config: InputsConfig) -> Union[str, List[Dict[Any, Any]]]:
+        content: Union[str, List[Dict[Any, Any]]] = ""
+        if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
+            content = row.texts[0]
+        elif config.output_format == OutputFormat.OPENAI_VISION or config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            content = self._add_multi_modal_content(row)
+        else:
+            raise GenAIPerfException(f"Output format {config.output_format} is not supported")
+        return content
     
     def _add_multi_modal_content(self, entry: DataRow) -> List[Dict[Any, Any]]:
         content = []
