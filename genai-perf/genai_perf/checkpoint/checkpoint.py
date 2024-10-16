@@ -49,17 +49,17 @@ class Checkpoint:
     def write_to_checkpoint(self) -> None:
         state_dict = {"Results": self.results.write_to_checkpoint()}
 
-        checkpoint_filename = self._create_checkpoint_filename()
-        with open(checkpoint_filename, "w") as checkpoint_file:
+        checkpoint_file_path = self._create_checkpoint_file_path()
+        with open(checkpoint_file_path, "w") as checkpoint_file:
             json.dump(state_dict, checkpoint_file, default=checkpoint_encoder)
 
     def _read_from_checkpoint(self) -> None:
-        checkpoint_filename = self._create_checkpoint_filename()
+        checkpoint_file_path = self._create_checkpoint_file_path()
 
-        if os.path.isfile(checkpoint_filename):
+        if os.path.isfile(checkpoint_file_path):
             self.checkpoint_exists = True
             try:
-                with open(checkpoint_filename, "r") as checkpoint_file:
+                with open(checkpoint_file_path, "r") as checkpoint_file:
                     checkpoint_json = json.load(checkpoint_file)
                     self._state: CheckpointObject = {
                         "Results": Results.read_from_checkpoint(
@@ -78,12 +78,12 @@ class Checkpoint:
             self.checkpoint_exists = False
             self._state = {}
 
-    def _create_checkpoint_filename(self) -> str:
-        checkpoint_filename = os.path.join(
+    def _create_checkpoint_file_path(self) -> str:
+        checkpoint_file_path = os.path.join(
             self.config.checkpoint_directory, CheckpointDefaults.FILENAME
         )
 
-        return checkpoint_filename
+        return checkpoint_file_path
 
 
 ###########################################################################

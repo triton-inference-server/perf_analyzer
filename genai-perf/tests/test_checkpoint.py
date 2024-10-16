@@ -75,7 +75,7 @@ class TestCheckpoint(unittest.TestCase):
         # Then write and read back the Results
         self._checkpoint.write_to_checkpoint()
         self._checkpoint._read_from_checkpoint()
-        os.remove(self._checkpoint._create_checkpoint_filename())
+        os.remove(self._checkpoint._create_checkpoint_file_path())
 
         self.assertEqual(self._results, self._checkpoint._state["Results"])
 
