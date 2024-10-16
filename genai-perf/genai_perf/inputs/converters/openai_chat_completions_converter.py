@@ -40,9 +40,11 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
             if config.add_stream:
                 raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase()}.")
-        elif config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
+        else:
             if config.batch_size_text != DEFAULT_BATCH_SIZE:
                 raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}.")
+            if config.batch_size_image != DEFAULT_BATCH_SIZE:
+                raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}.")
 
 
     def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
