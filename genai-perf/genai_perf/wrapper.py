@@ -68,7 +68,8 @@ class Profiler:
         skip_args = [
             "artifact_dir",
             "backend",
-            "batch_size",
+            "batch_size_image",
+            "batch_size_text",
             "concurrency",
             "endpoint_type",
             "extra_inputs",

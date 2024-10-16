@@ -1581,7 +1581,7 @@ TEST_CASE("Testing Command Line Parser")
                           "2",        "--request-rate-range",
                           "5"};
 
-      expected_msg = "request-count can not be less than request-rate";
+      expected_msg = "--request-count can not be less than request rate";
       CHECK_THROWS_WITH_AS(
           act = parser.Parse(argc, argv), expected_msg.c_str(),
           PerfAnalyzerException);
@@ -1595,7 +1595,7 @@ TEST_CASE("Testing Command Line Parser")
                           "2",        "--concurrency-range",
                           "5"};
 
-      expected_msg = "request-count can not be less than concurrency";
+      expected_msg = "--request-count can not be less than concurrency";
       CHECK_THROWS_WITH_AS(
           act = parser.Parse(argc, argv), expected_msg.c_str(),
           PerfAnalyzerException);
@@ -1610,7 +1610,7 @@ TEST_CASE("Testing Command Line Parser")
                           "5:6:1"};
 
       expected_msg =
-          "request-count not supported with multiple request-rate values in "
+          "--request-count not supported with multiple request rate values in "
           "one run";
       CHECK_THROWS_WITH_AS(
           act = parser.Parse(argc, argv), expected_msg.c_str(),
@@ -1626,7 +1626,7 @@ TEST_CASE("Testing Command Line Parser")
                           "5:6:1"};
 
       expected_msg =
-          "request-count not supported with multiple concurrency values in "
+          "--request-count not supported with multiple concurrency values in "
           "one run";
       CHECK_THROWS_WITH_AS(
           act = parser.Parse(argc, argv), expected_msg.c_str(),
@@ -1688,6 +1688,77 @@ TEST_CASE("Testing Command Line Parser")
       exp->request_count = 0;
       exp->measurement_mode = MeasurementMode::COUNT_WINDOWS;
       exp->measurement_request_count = 50;
+    }
+  }
+
+  SUBCASE("Option : --warmup-request-count")
+  {
+    SUBCASE("valid nonzero value")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--warmup-request-count", "500"};
+
+      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
+      CHECK(!parser.UsageCalled());
+
+      exp->warmup_request_count = 500;
+    }
+    SUBCASE("zero value")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--warmup-request-count", "0"};
+
+      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
+      CHECK(!parser.UsageCalled());
+
+      exp->warmup_request_count = 0;
+    }
+    SUBCASE("negative value")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--warmup-request-count", "-2"};
+
+      expected_msg = CreateUsageMessage(
+          "--warmup-request-count", "The value must be >= 0.");
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv), expected_msg.c_str(),
+          PerfAnalyzerException);
+      check_params = false;
+    }
+    SUBCASE("multiple request rate")
+    {
+      int argc = 7;
+      char* argv[argc] = {app_name,   "-m",
+                          model_name, "--warmup-request-count",
+                          "20",       "--request-rate-range",
+                          "5:6:1"};
+
+      expected_msg =
+          "--warmup-request-count not supported with multiple request rate "
+          "values in one run";
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv), expected_msg.c_str(),
+          PerfAnalyzerException);
+      check_params = false;
+    }
+    SUBCASE("multiple concurrency")
+    {
+      int argc = 7;
+      char* argv[argc] = {app_name,   "-m",
+                          model_name, "--warmup-request-count",
+                          "20",       "--concurrency-range",
+                          "5:6:1"};
+
+      expected_msg =
+          "--warmup-request-count not supported with multiple concurrency "
+          "values in one run";
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv), expected_msg.c_str(),
+          PerfAnalyzerException);
+      check_params = false;
     }
   }
 

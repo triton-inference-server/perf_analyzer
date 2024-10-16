@@ -3,7 +3,7 @@ import random
 from io import BytesIO
 
 import pytest
-from genai_perf.inputs.synthetic_image_generator import (
+from genai_perf.inputs.retrievers.synthetic_image_generator import (
     ImageFormat,
     SyntheticImageGenerator,
 )

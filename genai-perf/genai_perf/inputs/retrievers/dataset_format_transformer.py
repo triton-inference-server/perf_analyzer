@@ -24,36 +24,43 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict
-
-from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
+from typing import Any, Dict, List
 
 
-class OpenAIEmbeddingsConverter(BaseConverter):
+class DatasetFormatTransformer:
+    """
+    This class converts the dataset into a generic format that
+    is agnostic of the data source.
+    """
 
-    _CONTENT_NAMES = [
-        "text",
-    ]
-
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
-        request_body: Dict[str, Any] = {"data": []}
-
-        for index, entry in enumerate(generic_dataset["rows"]):
-            text = self._construct_text_payload_batch_agnostic(
-                config.batch_size_text, entry
+    @staticmethod
+    def to_generic(dataset: List[Dict[str, Any]]) -> Dict:
+        if isinstance(dataset, list) and len(dataset) > 0:
+            if isinstance(dataset[0], dict):
+                converted_data = []
+                for item in dataset:
+                    row_data = {
+                        "text_input": item.get("text_input", ""),
+                        "image": item.get("image", ""),
+                        "system_prompt": item.get("system_prompt", ""),
+                        "response": item.get("response", ""),
+                    }
+                    converted_data.append(row_data)
+                return {
+                    "features": ["text_input", "system_prompt", "response"],
+                    "rows": [{"row": item} for item in converted_data],
+                }
+            elif isinstance(dataset[0], str):
+                # Assume dataset is a list of strings
+                return {
+                    "features": ["text_input"],
+                    "rows": [{"row": {"text_input": item}} for item in dataset],
+                }
+            else:
+                raise ValueError(
+                    f"Dataset is not in a recognized format. Dataset: `{dataset}`"
+                )
+        else:
+            raise ValueError(
+                f"Dataset is empty or not in a recognized format. Dataset: `{dataset}`"
             )
-            model_name = self._select_model_name(config, index)
-
-            payload = {
-                "model": model_name,
-                "input": text,
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
-
-        return request_body
-
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
-            payload[key] = value

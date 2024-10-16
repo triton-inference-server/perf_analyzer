@@ -271,6 +271,7 @@ if(TRITON_ENABLE_PERF_ANALYZER_TS)
 endif() # TRITON_ENABLE_PERF_ANALYZER_TS
 
 if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
+  set(TEST_HTTP_CLIENT test_http_client.cc)
   target_compile_definitions(
     client-backend-library
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_OPENAI=1
@@ -328,6 +329,7 @@ add_executable(
   test_ctx_id_tracker.cc
   test_profile_data_collector.cc
   test_profile_data_exporter.cc
+  ${TEST_HTTP_CLIENT}
 )
 
 # -Wno-write-strings is needed for the unit tests in order to statically create

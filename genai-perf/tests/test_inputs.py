@@ -12,19 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import namedtuple
 from pathlib import Path
-from unittest.mock import mock_open, patch
 
 import pytest
 from genai_perf import tokenizer
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.input_constants import (
-    ModelSelectionStrategy,
-    OutputFormat,
-    PromptSource,
-)
+from genai_perf.inputs.input_constants import OutputFormat, PromptSource
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
@@ -44,19 +38,6 @@ class TestInputs:
     @pytest.fixture(scope="class")
     def default_tokenizer(self):
         yield tokenizer.get_tokenizer(tokenizer.DEFAULT_TOKENIZER)
-
-    def test_input_type_url_no_dataset_name(self):
-        """
-        Test for exception when input type is URL and no dataset name
-        """
-        inputs = Inputs(
-            InputsConfig(
-                input_type=PromptSource.DATASET,
-                dataset_name="",
-            )
-        )
-        with pytest.raises(GenAIPerfException):
-            _ = inputs._check_for_dataset_name_if_input_type_is_url()
 
     def test_input_type_synthetic_no_tokenizer(self):
         """
@@ -103,24 +84,6 @@ class TestInputs:
         inputs.config.length = -1
         with pytest.raises(GenAIPerfException):
             _ = inputs._check_for_valid_length()
-
-    def test_inputs_error_in_server_response(self):
-        """
-        Test for exception when length is out of range
-        """
-
-        inputs = Inputs(
-            InputsConfig(
-                input_type=PromptSource.DATASET,
-                dataset_name=ic.OPEN_ORCA,
-                output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
-                starting_index=ic.DEFAULT_STARTING_INDEX,
-                length=int(ic.DEFAULT_LENGTH * 100),
-            )
-        )
-
-        with pytest.raises(GenAIPerfException):
-            _ = inputs.create_inputs()
 
     # TODO (TPA-114) Refactor LLM inputs and testing
     # def test_inputs_with_non_default_length(self):
@@ -485,8 +448,8 @@ class TestInputs:
                 # generic_json
                 {
                     "rows": [
-                        {"text_input": "test input one"},
-                        {"text_input": "test input two"},
+                        {"text": "test input one"},
+                        {"text": "test input two"},
                     ]
                 },
                 False,
@@ -518,8 +481,8 @@ class TestInputs:
                 # generic_json
                 {
                     "rows": [
-                        {"text_input": "test input one"},
-                        {"text_input": "test input two"},
+                        {"text": "test input one"},
+                        {"text": "test input two"},
                     ]
                 },
                 True,
@@ -575,77 +538,6 @@ class TestInputs:
         trtllm_json = inputs._convert_generic_json_to_output_format(generic_json)
 
         assert trtllm_json == expected_json
-
-    @pytest.mark.parametrize(
-        "row, expected_content",
-        [
-            # text and image
-            (
-                {"text_input": "test input one", "image": "test_image1"},
-                [
-                    {
-                        "type": "text",
-                        "text": "test input one",
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": "test_image1",
-                        },
-                    },
-                ],
-            ),
-            # image only
-            (
-                {"image": "test_image1"},
-                [
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": "test_image1",
-                        },
-                    },
-                ],
-            ),
-        ],
-    )
-    def test_openai_multi_modal_json(self, row, expected_content) -> None:
-        inputs = Inputs(
-            InputsConfig(
-                add_stream=True,
-                extra_inputs={},
-                output_tokens_mean=10,
-                output_tokens_stddev=0,
-                model_name=["test_model"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
-            )
-        )
-
-        generic_json = {"rows": [row]}
-        pa_json = inputs._convert_generic_json_to_output_format(
-            generic_json,
-        )
-
-        assert pa_json == {
-            "data": [
-                {
-                    "payload": [
-                        {
-                            "model": "test_model",
-                            "messages": [
-                                {
-                                    "role": "user",
-                                    "content": expected_content,
-                                }
-                            ],
-                            "stream": True,
-                            "max_tokens": 10,
-                        }
-                    ]
-                }
-            ]
-        }
 
     # def test_trtllm_default_max_tokens(self, default_tokenizer: Tokenizer) -> None:
     #     input_name = "max_tokens"

@@ -122,7 +122,7 @@ genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
     --endpoint-type embeddings \
-    --batch-size 2 \
+    --batch-size-text 2 \
     --input-file embeddings.jsonl \
     --measurement-interval 1000 \
     --goodput request_latency:22.5
