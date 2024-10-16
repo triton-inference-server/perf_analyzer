@@ -14,7 +14,6 @@
 
 import json
 import unittest
-from copy import deepcopy
 from unittest.mock import patch
 
 from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
@@ -33,14 +32,15 @@ class TestRunConfigMeasurement(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._create_rcmA()
-        self._create_rcmB()
-        self._create_multi_model_rcm()
+        self._create_gpu_metrics()
+        self._create_perf_metrics()
 
     def tearDown(self):
         patch.stopall()
 
-    def _create_rcmA(self) -> None:
+    def _create_gpu_metrics(self) -> None:
+        #
+        # Record A
         self.gpu_power_recordA = GPUPowerUsage(120)
         self.gpu_util_recordA = GPUUtilization(50)
 
@@ -51,20 +51,8 @@ class TestRunConfigMeasurement(unittest.TestCase):
             }
         }
 
-        self.throughput_recordA = PerfThroughput(1000)
-        self.latency_recordA = PerfLatencyP99(40)
-
-        self.perf_metricsA = {
-            PerfThroughput.tag: self.throughput_recordA,
-            PerfLatencyP99.tag: self.latency_recordA,
-        }
-
-        self.rcmA = RunConfigMeasurement(self.gpu_metricsA)
-        self.rcmA.add_perf_metrics(
-            model_name="test_model", perf_metrics=self.perf_metricsA
-        )
-
-    def _create_rcmB(self) -> None:
+        #
+        # Record B
         self.gpu_power_recordB = GPUPowerUsage(60)
         self.gpu_util_recordB = GPUUtilization(50)
 
@@ -75,20 +63,8 @@ class TestRunConfigMeasurement(unittest.TestCase):
             }
         }
 
-        self.throughput_recordB = PerfThroughput(500)
-        self.latency_recordB = PerfLatencyP99(30)
-
-        self.perf_metricsB = {
-            PerfThroughput.tag: self.throughput_recordB,
-            PerfLatencyP99.tag: self.latency_recordB,
-        }
-
-        self.rcmB = RunConfigMeasurement(self.gpu_metricsB)
-        self.rcmB.add_perf_metrics(
-            model_name="test_model", perf_metrics=self.perf_metricsB
-        )
-
-    def _create_multi_model_rcm(self) -> None:
+        #
+        # Record MM
         self.gpu_power_recordMM = GPUPowerUsage(120)
         self.gpu_util_recordMM = GPUUtilization(50)
 
@@ -99,6 +75,29 @@ class TestRunConfigMeasurement(unittest.TestCase):
             }
         }
 
+    def _create_perf_metrics(self) -> None:
+        #
+        # Record A
+        self.throughput_recordA = PerfThroughput(1000)
+        self.latency_recordA = PerfLatencyP99(40)
+
+        self.perf_metricsA = {
+            PerfThroughput.tag: self.throughput_recordA,
+            PerfLatencyP99.tag: self.latency_recordA,
+        }
+
+        #
+        # Record B
+        self.throughput_recordB = PerfThroughput(500)
+        self.latency_recordB = PerfLatencyP99(30)
+
+        self.perf_metricsB = {
+            PerfThroughput.tag: self.throughput_recordB,
+            PerfLatencyP99.tag: self.latency_recordB,
+        }
+
+        #
+        # Record MM
         self.throughput_recordMM_0 = PerfThroughput(1000)
         self.latency_recordMM_0 = PerfLatencyP99(20)
 
@@ -115,13 +114,28 @@ class TestRunConfigMeasurement(unittest.TestCase):
             PerfLatencyP99.tag: self.latency_recordMM_1,
         }
 
-        self.rcmMM = RunConfigMeasurement(self.gpu_metricsMM)
-        self.rcmMM.add_perf_metrics(
+    def _create_rcmA(self) -> RunConfigMeasurement:
+        rcmA = RunConfigMeasurement(self.gpu_metricsA)
+        rcmA.add_perf_metrics(model_name="test_model", perf_metrics=self.perf_metricsA)
+
+        return rcmA
+
+    def _create_rcmB(self) -> RunConfigMeasurement:
+        rcmB = RunConfigMeasurement(self.gpu_metricsB)
+        rcmB.add_perf_metrics(model_name="test_model", perf_metrics=self.perf_metricsB)
+
+        return rcmB
+
+    def _create_multi_model_rcm(self) -> RunConfigMeasurement:
+        rcmMM = RunConfigMeasurement(self.gpu_metricsMM)
+        rcmMM.add_perf_metrics(
             model_name="modelMM_0", perf_metrics=self.perf_metricsMM_0
         )
-        self.rcmMM.add_perf_metrics(
+        rcmMM.add_perf_metrics(
             model_name="modelMM_1", perf_metrics=self.perf_metricsMM_1
         )
+
+        return rcmMM
 
     ###########################################################################
     # Accessor Tests
@@ -130,57 +144,51 @@ class TestRunConfigMeasurement(unittest.TestCase):
         """
         Test that values are properly initialized
         """
+        rcmA = self._create_rcmA()
 
         #
         # GPU Metrics accessors
-        self.assertEqual(self.rcmA.get_all_gpu_metrics(), self.gpu_metricsA)
+        self.assertEqual(rcmA.get_all_gpu_metrics(), self.gpu_metricsA)
 
         expected_gpu_metric = {
             "0": {GPUPowerUsage.tag: self.gpu_metricsA["0"].get(GPUPowerUsage.tag)}
         }
-        self.assertEqual(
-            expected_gpu_metric, self.rcmA.get_gpu_metric(GPUPowerUsage.tag)
-        )
+        self.assertEqual(expected_gpu_metric, rcmA.get_gpu_metric(GPUPowerUsage.tag))
 
         #
         # MCM accessors
-        self.assertIsNone(self.rcmA.get_model_config_measurement("ModelNotPresent"))
+        self.assertIsNone(rcmA.get_model_config_measurement("ModelNotPresent"))
 
         expected_mcmA = ModelConfigMeasurement(self.perf_metricsA)
         expected_mcm_dict = {"test_model": expected_mcmA}
-        self.assertEqual(self.rcmA.get_model_config_measurements(), expected_mcm_dict)
-        self.assertEqual(
-            self.rcmA.get_model_config_measurement("test_model"), expected_mcmA
-        )
+        self.assertEqual(rcmA.get_model_config_measurements(), expected_mcm_dict)
+        self.assertEqual(rcmA.get_model_config_measurement("test_model"), expected_mcmA)
 
         #
         # Perf Metrics accessors
         expected_all_perf_metrics_dict = {"test_model": self.perf_metricsA}
-        self.assertEqual(
-            expected_all_perf_metrics_dict, self.rcmA.get_all_perf_metrics()
-        )
-        self.assertEqual(
-            self.perf_metricsA, self.rcmA.get_model_perf_metrics("test_model")
-        )
+        self.assertEqual(expected_all_perf_metrics_dict, rcmA.get_all_perf_metrics())
+        self.assertEqual(self.perf_metricsA, rcmA.get_model_perf_metrics("test_model"))
         self.assertEqual(
             self.perf_metricsA[PerfThroughput.tag],
-            self.rcmA.get_model_perf_metric("test_model", PerfThroughput.tag),
+            rcmA.get_model_perf_metric("test_model", PerfThroughput.tag),
         )
         self.assertEqual(
             self.perf_metricsA[PerfThroughput.tag].value(),
-            self.rcmA.get_model_perf_metric_value("test_model", PerfThroughput.tag),
+            rcmA.get_model_perf_metric_value("test_model", PerfThroughput.tag),
         )
         self.assertEqual(
             10,
-            self.rcmA.get_model_perf_metric_value(
+            rcmA.get_model_perf_metric_value(
                 "test_model", "MetricNotPresent", return_value=10
             ),
         )
 
         #
         # Weighted Perf Metrics accessor
+        rcmMM = self._create_multi_model_rcm()
         model_weights = {"modelMM_0": 0.8, "modelMM_1": 0.2}
-        self.rcmMM.set_model_weighting(model_weights)
+        rcmMM.set_model_weighting(model_weights)
 
         expected_weighted_perf_metric_values = {
             "modelMM_0": self.perf_metricsMM_0[PerfThroughput.tag].value() * 0.8,
@@ -189,20 +197,21 @@ class TestRunConfigMeasurement(unittest.TestCase):
 
         self.assertEqual(
             expected_weighted_perf_metric_values,
-            self.rcmMM.get_weighted_perf_metric_values(PerfThroughput.tag),
+            rcmMM.get_weighted_perf_metric_values(PerfThroughput.tag),
         )
 
     def test_set_gpu_metric_objectives(self):
         """
         Test that GPU metric objectives can be set in a multi-model setting
         """
+        rcmMM = self._create_multi_model_rcm()
         gpu_metric_objectives = {
             "modelMM_0": {GPUPowerUsage.tag: 1},
             "modelMM_1": {GPUUtilization.tag: 1},
         }
 
-        self.rcmMM.set_gpu_metric_objectives(gpu_metric_objectives)
-        self.assertEqual(gpu_metric_objectives, self.rcmMM._gpu_metric_objectives)
+        rcmMM.set_gpu_metric_objectives(gpu_metric_objectives)
+        self.assertEqual(gpu_metric_objectives, rcmMM._gpu_metric_objectives)
 
     ###########################################################################
     # Checkpoint Tests
@@ -211,22 +220,23 @@ class TestRunConfigMeasurement(unittest.TestCase):
         """
         Checks to ensure checkpoint methods work as intended
         """
-        rcmA_json = json.dumps(self.rcmA, default=checkpoint_encoder)
+        rcmA = self._create_rcmA()
+        rcmA_json = json.dumps(rcmA, default=checkpoint_encoder)
 
         rcmA_from_checkpoint = RunConfigMeasurement.read_from_checkpoint(
             json.loads(rcmA_json)
         )
 
         self.assertEqual(
-            rcmA_from_checkpoint.get_all_gpu_metrics(), self.rcmA.get_all_gpu_metrics()
+            rcmA_from_checkpoint.get_all_gpu_metrics(), rcmA.get_all_gpu_metrics()
         )
         self.assertEqual(
             rcmA_from_checkpoint.get_model_config_measurements(),
-            self.rcmA.get_model_config_measurements(),
+            rcmA.get_model_config_measurements(),
         )
 
         # Catchall in case something new is added
-        self.assertEqual(rcmA_from_checkpoint, self.rcmA)
+        self.assertEqual(rcmA_from_checkpoint, rcmA)
 
     ###########################################################################
     # Comparison Tests
@@ -240,27 +250,30 @@ class TestRunConfigMeasurement(unittest.TestCase):
         # RCMB's latency is worse than RCMA
         # Factoring in perf metric objectives (equal)
         # tips this is favor of RCMA (2x throughput, 33% worse latency)
-        self.assertTrue(self.rcmA.is_better_than(self.rcmB))
-        self.assertFalse(self.rcmB.is_better_than(self.rcmA))
+        rcmA = self._create_rcmA()
+        rcmB = self._create_rcmB()
+
+        self.assertTrue(rcmA.is_better_than(rcmB))
+        self.assertFalse(rcmB.is_better_than(rcmA))
 
         # Changing the metric objectives to bias latency
         # this tips the scale in the favor of RCMB
         latency_bias_objectives = {
             "test_model": {PerfThroughput.tag: 1, PerfLatencyP99.tag: 4}
         }
-        self.rcmA.set_perf_metric_objectives(latency_bias_objectives)
-        self.rcmB.set_perf_metric_objectives(latency_bias_objectives)
+        rcmA.set_perf_metric_objectives(latency_bias_objectives)
+        rcmB.set_perf_metric_objectives(latency_bias_objectives)
 
-        self.assertFalse(self.rcmA.is_better_than(self.rcmB))
-        self.assertTrue(self.rcmB.is_better_than(self.rcmA))
+        self.assertFalse(rcmA.is_better_than(rcmB))
+        self.assertTrue(rcmB.is_better_than(rcmA))
 
     def test_is_better_than_gpu_metric(self):
         """
         Test to ensure measurement GPU metric comparison is working as intended
         """
         # RCMA's power is higher, therefore RCMB is better
-        rcmA = deepcopy(self.rcmA)
-        rcmB = deepcopy(self.rcmB)
+        rcmA = self._create_rcmA()
+        rcmB = self._create_rcmB()
 
         rcmA.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
         rcmB.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
@@ -277,8 +290,8 @@ class TestRunConfigMeasurement(unittest.TestCase):
         """
         Test that weighted percentages are returned correctly
         """
-        rcmA = deepcopy(self.rcmA)
-        rcmB = deepcopy(self.rcmB)
+        rcmA = self._create_rcmA()
+        rcmB = self._create_rcmB()
 
         # Default is throughput, rcmA = 1000, rcmB = 500
         self.assertEqual(rcmA.calculate_weighted_percentage_gain(rcmB), 100)
@@ -303,10 +316,11 @@ class TestRunConfigMeasurement(unittest.TestCase):
         Test to ensure constraints are reported as passing
         if none were specified
         """
-        self.assertTrue(self.rcmA.is_passing_constraints())
+        rcmA = self._create_rcmA()
+        self.assertTrue(rcmA.is_passing_constraints())
 
-        self.rcmA.set_constraints(RunConstraints({"modelA": None}))
-        self.assertTrue(self.rcmA.is_passing_constraints())
+        rcmA.set_constraints(RunConstraints({"modelA": None}))
+        self.assertTrue(rcmA.is_passing_constraints())
 
     def test_is_passing_gpu_constraints(self):
         """
@@ -314,17 +328,18 @@ class TestRunConfigMeasurement(unittest.TestCase):
         passing/failing if model is above/below
         GPU Power threshold
         """
+        rcmA = self._create_rcmA()
 
         # RCMA's power is 120
         model_constraints = ModelConstraints({GPUPowerUsage.tag: 50})
         run_constraints = RunConstraints({"test_model": model_constraints})
-        self.rcmA.set_constraints(run_constraints)
-        self.assertFalse(self.rcmA.is_passing_constraints())
+        rcmA.set_constraints(run_constraints)
+        self.assertFalse(rcmA.is_passing_constraints())
 
         model_constraints = ModelConstraints({GPUPowerUsage.tag: 150})
         run_constraints = RunConstraints({"test_model": model_constraints})
-        self.rcmA.set_constraints(run_constraints)
-        self.assertTrue(self.rcmA.is_passing_constraints())
+        rcmA.set_constraints(run_constraints)
+        self.assertTrue(rcmA.is_passing_constraints())
 
     def test_is_passing_perf_constraints(self):
         """
@@ -332,17 +347,18 @@ class TestRunConfigMeasurement(unittest.TestCase):
         passing/failing if model is above/below
         latency threshold
         """
+        rcmA = self._create_rcmA()
 
         # RCMA's latency is 40
         model_constraints = ModelConstraints({PerfLatencyP99.tag: 50})
         run_constraints = RunConstraints({"test_model": model_constraints})
-        self.rcmA.set_constraints(run_constraints)
-        self.assertTrue(self.rcmA.is_passing_constraints())
+        rcmA.set_constraints(run_constraints)
+        self.assertTrue(rcmA.is_passing_constraints())
 
         model_constraints = ModelConstraints({PerfLatencyP99.tag: 20})
         run_constraints = RunConstraints({"test_model": model_constraints})
-        self.rcmA.set_constraints(run_constraints)
-        self.assertFalse(self.rcmA.is_passing_constraints())
+        rcmA.set_constraints(run_constraints)
+        self.assertFalse(rcmA.is_passing_constraints())
 
 
 if __name__ == "__main__":

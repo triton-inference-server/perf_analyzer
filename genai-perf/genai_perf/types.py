@@ -52,6 +52,8 @@ Constraints: TypeAlias = Dict[ConstraintName, ConstraintValue]
 # Objectives
 ###########################################################################
 MetricObjectives: TypeAlias = Dict[str, float]
+GpuMetricObjectives: TypeAlias = Dict[ModelName, MetricObjectives]
+PerfMetricObjectives: TypeAlias = Dict[ModelName, MetricObjectives]
 
 ###########################################################################
 # Run Config
