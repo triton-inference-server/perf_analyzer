@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
 from genai_perf.inputs.converters import TensorRTLLMConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
@@ -31,20 +32,31 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
-
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, DataRow, FileData
+from typing import List, Optional
 
 class TestTensorRTLLMConverter:
 
+    @staticmethod
+    def create_generic_dataset():
+        """Create a standard generic dataset for testing."""
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    filename="file1",
+                    rows=[
+                        DataRow(texts=["text input one"]),
+                        DataRow(texts=["text input two"])
+                    ]
+                )
+            }
+        )
+
     def test_convert_default(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM,
@@ -71,12 +83,7 @@ class TestTensorRTLLMConverter:
         assert result == expected_result
 
     def test_convert_with_request_parameters(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         extra_inputs = {
             "ignore_eos": True,
@@ -89,7 +96,7 @@ class TestTensorRTLLMConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM,
-            add_stream=True,  # set streaming
+            add_stream=True,
         )
 
         trtllm_converter = TensorRTLLMConverter()
@@ -116,4 +123,20 @@ class TestTensorRTLLMConverter:
             ]
         }
 
+        assert result == expected_result
+
+    def test_convert_empty_dataset(self):
+        generic_dataset = GenericDataset(files_data={})
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.TENSORRTLLM,
+        )
+
+        trtllm_converter = TensorRTLLMConverter()
+        result = trtllm_converter.convert(generic_dataset, config)
+
+        expected_result = {"data": []}
         assert result == expected_result
