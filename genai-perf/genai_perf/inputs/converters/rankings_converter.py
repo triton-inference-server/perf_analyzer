@@ -52,7 +52,7 @@ class RankingsConverter(BaseConverter):
         request_body: Dict[str, Any] = {"data": []}
 
         for query_index, query_row in enumerate(queries_data.rows):
-            if query_index > rows_of_passage_data:
+            if query_index >= rows_of_passage_data:
                 break
 
             model_name = self._select_model_name(config, query_index)

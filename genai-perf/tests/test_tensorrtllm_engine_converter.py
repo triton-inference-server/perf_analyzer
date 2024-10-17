@@ -30,7 +30,6 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
     ModelSelectionStrategy,
     OutputFormat,
-    DEFAULT_BATCH_SIZE,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer

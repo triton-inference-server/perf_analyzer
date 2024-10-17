@@ -26,7 +26,7 @@
 
 import pytest
 from genai_perf.inputs.converters import VLLMConverter
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat, DEFAULT_BATCH_SIZE
+from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, FileData, DataRow

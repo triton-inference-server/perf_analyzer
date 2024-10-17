@@ -108,30 +108,7 @@ class FileInputRetriever(BaseInputRetriever):
         """
         self._verify_file(filename)
         prompts, images = self._get_content_from_input_file(filename)
-        if self.config.batch_size_image > len(images):
-            raise ValueError(
-                "Batch size for images cannot be larger than the number of available images"
-            )
-        if self.config.batch_size_text > len(prompts):
-            raise ValueError(
-                "Batch size for texts cannot be larger than the number of available texts"
-            )
-        
-        data_rows: List[DataRow] = []
-
-        if (
-            self.config.batch_size_text == DEFAULT_BATCH_SIZE
-            and self.config.batch_size_image == DEFAULT_BATCH_SIZE
-        ):
-            for prompt, image in zip(prompts, images):
-                data_rows.append(DataRow(texts=[prompt], images=[image]))
-        else:
-            for _ in range(self.config.num_prompts):
-                sampled_images = random.sample(images, self.config.batch_size_image)
-                sampled_texts = random.sample(prompts, self.config.batch_size_text)
-                data_rows.append(DataRow(texts=sampled_texts, images=sampled_images))
-
-        return FileData(str(filename), data_rows)
+        return self._convert_content_to_data_file(prompts, images, filename)
 
     def _verify_file(self, filename: Path) -> None:
         """
@@ -220,3 +197,68 @@ class FileInputRetriever(BaseInputRetriever):
         img_base64 = utils.encode_image(img, img.format)
         payload = f"data:image/{img.format.lower()};base64,{img_base64}"
         return payload
+
+    def _convert_content_to_data_file(self, prompts: List[str], images: List[str], filename: Path) -> FileData:
+        """
+        Converts the content to a DataFile.
+
+        Args
+        ----------
+        prompts : List[str]
+            The list of prompts to convert.
+        images : List[str]
+            The list of images to convert.
+        filename : Path
+            The filename to use for the DataFile.
+        
+        Returns
+        -------
+        FileData
+            The DataFile containing the converted data.
+        """
+        data_rows: List[DataRow] = []
+        
+        if prompts and images:
+            if self.config.batch_size_text > len(prompts):
+                raise ValueError(
+                    "Batch size for texts cannot be larger than the number of available texts"
+                )
+            if self.config.batch_size_image > len(images):
+                raise ValueError(
+                    "Batch size for images cannot be larger than the number of available images"
+                )
+            if self.config.batch_size_image > DEFAULT_BATCH_SIZE or self.config.batch_size_text > DEFAULT_BATCH_SIZE:
+                for _ in range(self.config.num_prompts):
+                    sampled_texts = random.sample(prompts, self.config.batch_size_text)
+                    sampled_images = random.sample(images, self.config.batch_size_image)
+                    data_rows.append(DataRow(texts=sampled_texts, images=sampled_images))
+            else:
+                for prompt, image in zip(prompts, images):
+                    data_rows.append(DataRow(texts=[prompt], images=[image]))
+        elif prompts:
+            if self.config.batch_size_text > len(prompts):
+                raise ValueError(
+                    "Batch size for texts cannot be larger than the number of available texts"
+                )
+            if self.config.batch_size_text > DEFAULT_BATCH_SIZE:
+                for _ in range(self.config.num_prompts):
+                    sampled_texts = random.sample(prompts, self.config.batch_size_text)
+                    data_rows.append(DataRow(texts=sampled_texts, images=[]))
+            else:
+                for prompt in prompts:
+                    data_rows.append(DataRow(texts=[prompt], images=[]))
+        elif images:
+            if self.config.batch_size_image > len(images):
+                raise ValueError(
+                    "Batch size for images cannot be larger than the number of available images"
+                )
+            
+            if self.config.batch_size_image > DEFAULT_BATCH_SIZE:
+                for _ in range(self.config.num_prompts):
+                    sampled_images = random.sample(images, self.config.batch_size_image)
+                    data_rows.append(DataRow(texts=[], images=sampled_images))
+            else:
+                for image in images:
+                    data_rows.append(DataRow(texts=[], images=[image]))
+
+        return FileData(str(filename), data_rows)
