@@ -344,13 +344,15 @@ def parse_goodput(values):
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
 
     args.synthetic_input_files = None
-    
+
     if args.input_file:
         if str(args.input_file).startswith("synthetic:"):
             args.prompt_source = ic.PromptSource.SYNTHETIC
             synthetic_input_files_str = str(args.input_file).split(":", 1)[1]
             args.synthetic_input_files = synthetic_input_files_str.split(",")
-            logger.debug(f"Input source is synthetic data: {args.synthetic_input_files}")
+            logger.debug(
+                f"Input source is synthetic data: {args.synthetic_input_files}"
+            )
         else:
             args.prompt_source = ic.PromptSource.FILE
             logger.debug(f"Input source is the following path: {args.input_file}")
@@ -376,10 +378,10 @@ def file_or_directory(value: str) -> Path:
     if value.startswith("synthetic:"):
         return Path(value)
     else:
-      path = Path(value)
-      if path.is_file() or path.is_dir:
-          return path
-          
+        path = Path(value)
+        if path.is_file() or path.is_dir():
+            return path
+
     raise ValueError(f"'{value}' is not a valid file or directory")
 
 
@@ -439,7 +441,7 @@ def _add_input_args(parser):
         "comma-separated list of filenames. The synthetic filenames should "
         "not have extensions. For example, 'synthetic:queries,passages'. "
         "Each line should be a JSON object with a 'text' or 'image' field "
-        "in JSONL format. Example: {\"text\": \"Your prompt here\"}",
+        'in JSONL format. Example: {"text": "Your prompt here"}',
     )
 
     input_group.add_argument(

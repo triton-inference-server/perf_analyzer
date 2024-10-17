@@ -28,20 +28,27 @@ import json
 import random
 from typing import Any, Dict
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
+from genai_perf.inputs.input_constants import (
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+)
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
+
 
 class VLLMConverter(BaseConverter):
 
     def check_config(self, config: InputsConfig) -> None:
         if config.batch_size_text != DEFAULT_BATCH_SIZE:
-            raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}.")
-    
-    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
+            raise GenAIPerfException(
+                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+            )
+
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():

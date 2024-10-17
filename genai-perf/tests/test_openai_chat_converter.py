@@ -24,12 +24,17 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from typing import Any, Dict, List
+
 import pytest
-from typing import Any, List, Dict
 from genai_perf.inputs.converters import OpenAIChatCompletionsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, FileData, DataRow
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 
 
 class TestOpenAIChatCompletionsConverter:
@@ -57,15 +62,13 @@ class TestOpenAIChatCompletionsConverter:
                 "file1": FileData(
                     filename="file1",
                     rows=[
-                        DataRow(
-                            texts=clean_text(row),
-                            images=clean_image(row)
-                        )
+                        DataRow(texts=clean_text(row), images=clean_image(row))
                         for row in rows
-                    ]
+                    ],
                 )
             }
         )
+
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset(
             [{"text": "text input one"}, {"text": "text input two"}]
