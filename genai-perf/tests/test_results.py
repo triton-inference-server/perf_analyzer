@@ -16,11 +16,11 @@ import json
 import unittest
 from unittest.mock import patch
 
+from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.config.run.results import Results
 from genai_perf.measurements.run_constraints import ModelConstraints, RunConstraints
 from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
 from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
-from genai_perf.utils import checkpoint_encoder
 from tests.test_utils import create_run_config
 
 
@@ -54,7 +54,9 @@ class TestResults(unittest.TestCase):
         """
         results_json = json.dumps(self._results, default=checkpoint_encoder)
 
-        results_from_checkpoint = Results.read_from_checkpoint(json.loads(results_json))
+        results_from_checkpoint = Results.create_class_from_checkpoint(
+            json.loads(results_json)
+        )
 
         self.assertEqual(results_from_checkpoint, self._results)
 

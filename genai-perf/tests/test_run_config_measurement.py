@@ -16,6 +16,7 @@ import json
 import unittest
 from unittest.mock import patch
 
+from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
 from genai_perf.measurements.model_constraints import ModelConstraints
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
@@ -24,7 +25,6 @@ from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
 from genai_perf.record.types.gpu_utilization import GPUUtilization
 from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
 from genai_perf.record.types.perf_throughput import PerfThroughput
-from genai_perf.utils import checkpoint_encoder
 
 
 class TestRunConfigMeasurement(unittest.TestCase):
@@ -223,7 +223,7 @@ class TestRunConfigMeasurement(unittest.TestCase):
         rcmA = self._create_rcmA()
         rcmA_json = json.dumps(rcmA, default=checkpoint_encoder)
 
-        rcmA_from_checkpoint = RunConfigMeasurement.read_from_checkpoint(
+        rcmA_from_checkpoint = RunConfigMeasurement.create_class_from_checkpoint(
             json.loads(rcmA_json)
         )
 

@@ -16,6 +16,7 @@ import json
 import unittest
 from unittest.mock import patch
 
+from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.measurements.model_config_measurement import (
     ModelConfigMeasurement,
     ModelConfigMeasurementDefaults,
@@ -23,7 +24,6 @@ from genai_perf.measurements.model_config_measurement import (
 from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
 from genai_perf.record.types.perf_throughput import PerfThroughput
 from genai_perf.record.types.time_to_first_token_avg import TimeToFirstTokenAvg
-from genai_perf.utils import checkpoint_encoder
 
 
 class TestModelConfigMeasurement(unittest.TestCase):
@@ -121,7 +121,7 @@ class TestModelConfigMeasurement(unittest.TestCase):
         """
         mcmA_json = json.dumps(self.mcmA, default=checkpoint_encoder)
 
-        mcmA_from_checkpoint = ModelConfigMeasurement.read_from_checkpoint(
+        mcmA_from_checkpoint = ModelConfigMeasurement.create_class_from_checkpoint(
             json.loads(mcmA_json)
         )
 
