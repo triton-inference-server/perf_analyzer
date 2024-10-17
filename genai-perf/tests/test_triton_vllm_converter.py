@@ -25,11 +25,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import VLLMConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, FileData, DataRow
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
+
 
 class TestVLLMConverter:
 
@@ -42,12 +47,12 @@ class TestVLLMConverter:
                     filename="file1",
                     rows=[
                         DataRow(texts=["text input one"]),
-                        DataRow(texts=["text input two"])
-                    ]
+                        DataRow(texts=["text input two"]),
+                    ],
                 )
             }
         )
-    
+
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
@@ -172,10 +177,10 @@ class TestVLLMConverter:
         )
 
         vllm_converter = VLLMConverter()
-        
+
         with pytest.raises(GenAIPerfException) as exc_info:
             vllm_converter.check_config(config)
-        
+
         assert str(exc_info.value) == (
             "The --batch-size-text flag is not supported for vllm."
         )

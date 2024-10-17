@@ -24,12 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import OpenAIEmbeddingsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, DataRow, FileData
-import pytest
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 
 
 class TestOpenAIEmbeddingsConverter:
@@ -43,14 +47,17 @@ class TestOpenAIEmbeddingsConverter:
 
         with pytest.raises(GenAIPerfException) as exc_info:
             converter.check_config(config)
-        assert str(exc_info.value) == "The --streaming option is not supported for openai_embeddings."
+        assert (
+            str(exc_info.value)
+            == "The --streaming option is not supported for openai_embeddings."
+        )
 
     def test_convert_default(self):
         generic_dataset = GenericDataset(
             files_data={
                 "file1": FileData(
                     filename="file1",
-                    rows=[DataRow(texts=["text_1"]), DataRow(texts=["text_2"])]
+                    rows=[DataRow(texts=["text_1"]), DataRow(texts=["text_2"])],
                 )
             }
         )
@@ -92,7 +99,10 @@ class TestOpenAIEmbeddingsConverter:
             files_data={
                 "file1": FileData(
                     filename="file1",
-                    rows=[DataRow(texts=["text_1", "text_2"]), DataRow(texts=["text_3", "text_4"])]
+                    rows=[
+                        DataRow(texts=["text_1", "text_2"]),
+                        DataRow(texts=["text_3", "text_4"]),
+                    ],
                 )
             }
         )
@@ -136,7 +146,7 @@ class TestOpenAIEmbeddingsConverter:
             files_data={
                 "file1": FileData(
                     filename="file1",
-                    rows=[DataRow(texts=["text_1"]), DataRow(texts=["text_2"])]
+                    rows=[DataRow(texts=["text_1"]), DataRow(texts=["text_2"])],
                 )
             }
         )

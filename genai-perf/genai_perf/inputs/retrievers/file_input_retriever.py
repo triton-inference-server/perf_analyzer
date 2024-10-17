@@ -26,24 +26,28 @@
 
 import random
 from pathlib import Path
-from typing import cast, Dict, List, Tuple
+from typing import Dict, List, Tuple, cast
 
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import DataRow, FileData, GenericDataset
-from genai_perf.utils import load_json_str
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.utils import load_json_str
 from PIL import Image
+
 
 class FileInputRetriever(BaseInputRetriever):
     """
     A input retriever class that handles input data provided by the user through
     file and directories.
     """
-
 
     def retrieve_data(self) -> GenericDataset:
         """
@@ -62,9 +66,9 @@ class FileInputRetriever(BaseInputRetriever):
         else:
             file_data = self._get_input_dataset_from_file(self.config.input_filename)
             files_data = {file_data.filename: file_data}
-        
+
         return GenericDataset(files_data)
-    
+
     def _get_input_datasets_from_dir(self) -> Dict[str, FileData]:
         """
         Retrieves the dataset from a directory containing multiple JSONL files.
@@ -73,7 +77,7 @@ class FileInputRetriever(BaseInputRetriever):
         ----------
         directory : Path
             The directory path to process.
-        
+
         Returns
         -------
         Dict[str, FileData]
@@ -83,14 +87,16 @@ class FileInputRetriever(BaseInputRetriever):
         self.config.input_filename = cast(Path, self.config.input_filename)
         jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
         if not jsonl_files:
-            raise ValueError(f"No JSONL files found in directory '{self.config.input_filename}'.")
-        
+            raise ValueError(
+                f"No JSONL files found in directory '{self.config.input_filename}'."
+            )
+
         files_data: Dict[str, FileData] = {}
         for file in jsonl_files:
             file_data = self._get_input_dataset_from_file(file)
             files_data[file.stem] = file_data
         return files_data
-    
+
     def _get_input_dataset_from_file(self, filename: Path) -> FileData:
         """
         Retrieves the dataset from a specific JSONL file.
@@ -99,7 +105,7 @@ class FileInputRetriever(BaseInputRetriever):
         ----------
         filename : Path
             The path of the file to process.
-        
+
         Returns
         -------
         Dict
@@ -125,11 +131,11 @@ class FileInputRetriever(BaseInputRetriever):
             If the file does not exist.
         """
         if not filename.exists():
-            raise FileNotFoundError(
-                f"The file '{filename}' does not exist."
-            )
+            raise FileNotFoundError(f"The file '{filename}' does not exist.")
 
-    def _get_content_from_input_file(self, filename: Path) -> Tuple[List[str], List[str]]:
+    def _get_content_from_input_file(
+        self, filename: Path
+    ) -> Tuple[List[str], List[str]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -137,7 +143,7 @@ class FileInputRetriever(BaseInputRetriever):
         ----------
         filename : Path
             The file path from which to read the content.
-            
+
         Returns
         -------
         Tuple[List[str], List[str]]
@@ -198,7 +204,9 @@ class FileInputRetriever(BaseInputRetriever):
         payload = f"data:image/{img.format.lower()};base64,{img_base64}"
         return payload
 
-    def _convert_content_to_data_file(self, prompts: List[str], images: List[str], filename: Path) -> FileData:
+    def _convert_content_to_data_file(
+        self, prompts: List[str], images: List[str], filename: Path
+    ) -> FileData:
         """
         Converts the content to a DataFile.
 
@@ -210,14 +218,14 @@ class FileInputRetriever(BaseInputRetriever):
             The list of images to convert.
         filename : Path
             The filename to use for the DataFile.
-        
+
         Returns
         -------
         FileData
             The DataFile containing the converted data.
         """
         data_rows: List[DataRow] = []
-        
+
         if prompts and images:
             if self.config.batch_size_text > len(prompts):
                 raise ValueError(
@@ -227,11 +235,16 @@ class FileInputRetriever(BaseInputRetriever):
                 raise ValueError(
                     "Batch size for images cannot be larger than the number of available images"
                 )
-            if self.config.batch_size_image > DEFAULT_BATCH_SIZE or self.config.batch_size_text > DEFAULT_BATCH_SIZE:
+            if (
+                self.config.batch_size_image > DEFAULT_BATCH_SIZE
+                or self.config.batch_size_text > DEFAULT_BATCH_SIZE
+            ):
                 for _ in range(self.config.num_prompts):
                     sampled_texts = random.sample(prompts, self.config.batch_size_text)
                     sampled_images = random.sample(images, self.config.batch_size_image)
-                    data_rows.append(DataRow(texts=sampled_texts, images=sampled_images))
+                    data_rows.append(
+                        DataRow(texts=sampled_texts, images=sampled_images)
+                    )
             else:
                 for prompt, image in zip(prompts, images):
                     data_rows.append(DataRow(texts=[prompt], images=[image]))
@@ -252,7 +265,7 @@ class FileInputRetriever(BaseInputRetriever):
                 raise ValueError(
                     "Batch size for images cannot be larger than the number of available images"
                 )
-            
+
             if self.config.batch_size_image > DEFAULT_BATCH_SIZE:
                 for _ in range(self.config.num_prompts):
                     sampled_images = random.sample(images, self.config.batch_size_image)

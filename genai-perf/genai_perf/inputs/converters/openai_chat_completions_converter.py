@@ -27,27 +27,41 @@
 import random
 from typing import Any, Dict, List, Union
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat
+from genai_perf.inputs.input_constants import (
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+    OutputFormat,
+)
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
+
 
 class OpenAIChatCompletionsConverter(BaseConverter):
 
     def check_config(self, config: InputsConfig) -> None:
         if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
             if config.add_stream:
-                raise GenAIPerfException(f"The --streaming option is not supported for {config.output_format.to_lowercase()}.")
-        elif config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS or config.output_format == OutputFormat.OPENAI_VISION:
+                raise GenAIPerfException(
+                    f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+                )
+        elif (
+            config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
+            or config.output_format == OutputFormat.OPENAI_VISION
+        ):
             if config.batch_size_text != DEFAULT_BATCH_SIZE:
-                raise GenAIPerfException(f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}.")
+                raise GenAIPerfException(
+                    f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                )
             if config.batch_size_image != DEFAULT_BATCH_SIZE:
-                raise GenAIPerfException(f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}.")
+                raise GenAIPerfException(
+                    f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}."
+                )
 
-
-    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
@@ -57,7 +71,9 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
         return request_body
 
-    def _create_payload(self, index: int, row: DataRow, config: InputsConfig) -> Dict[Any, Any]:
+    def _create_payload(
+        self, index: int, row: DataRow, config: InputsConfig
+    ) -> Dict[Any, Any]:
         model_name = self._select_model_name(config, index)
         content = self._retrieve_content(row, config)
 
@@ -74,18 +90,25 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         self._add_request_params(payload, config)
         return payload
 
-    def _retrieve_content(self, row: DataRow, config: InputsConfig) -> Union[str, List[Dict[Any, Any]]]:
+    def _retrieve_content(
+        self, row: DataRow, config: InputsConfig
+    ) -> Union[str, List[Dict[Any, Any]]]:
         content: Union[str, List[Dict[Any, Any]]] = ""
         if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
             content = row.texts[0]
-        elif config.output_format == OutputFormat.OPENAI_VISION or config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+        elif (
+            config.output_format == OutputFormat.OPENAI_VISION
+            or config.output_format == OutputFormat.IMAGE_RETRIEVAL
+        ):
             content = self._add_multi_modal_content(row)
         else:
-            raise GenAIPerfException(f"Output format {config.output_format} is not supported")
+            raise GenAIPerfException(
+                f"Output format {config.output_format} is not supported"
+            )
         return content
-    
+
     def _add_multi_modal_content(self, entry: DataRow) -> List[Dict[Any, Any]]:
-        content = []
+        content: List[Dict[Any, Any]] = []
         for text in entry.texts:
             content.append(
                 {

@@ -324,7 +324,7 @@ class TestCLIArguments:
             assert getattr(args, key) == value
 
     def test_file_flags_parsed(self, monkeypatch, mocker):
-        _ = mocker.patch("os.path.isfile", return_value=True)
+        _ = mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = [
             "genai-perf",
             "profile",
@@ -772,9 +772,7 @@ class TestCLIArguments:
     def test_inferred_prompt_source(
         self, monkeypatch, mocker, args, expected_prompt_source
     ):
-        _ = mocker.patch("builtins.open", mocker.mock_open(read_data="data"))
-        _ = mocker.patch("os.path.isfile", return_value=True)
-        _ = mocker.patch("os.path.isdir", return_value=True)
+        _ = mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
