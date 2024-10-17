@@ -43,6 +43,9 @@ AnalyzeParameter: TypeAlias = Dict[str, ConfigRangeOrList]
 # These will be moved to RunConfig once it's created
 @dataclass(frozen=True)
 class RunConfigDefaults:
+    # Top-level Defaults
+    CHECKPOINT_DIRECTORY = "./"
+
     # Optimize: Top-level Defaults
     OBJECTIVE = "throughput"
     CONSTRAINT = None
@@ -212,6 +215,7 @@ class ConfigOutputTokens:
 @dataclass
 class ConfigCommand:
     model_names: List[ModelName]
+    checkpoint_directory: str = default_field(RunConfigDefaults.CHECKPOINT_DIRECTORY)
     optimize: ConfigOptimize = ConfigOptimize()
     analyze: ConfigAnalyze = ConfigAnalyze()
     perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
