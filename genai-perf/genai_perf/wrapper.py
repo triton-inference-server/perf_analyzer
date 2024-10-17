@@ -102,6 +102,7 @@ class Profiler:
             # required for decoupled models into triton).
             "streaming",
             "subcommand",
+            "synthetic_input_files",
             "synthetic_input_tokens_mean",
             "synthetic_input_tokens_stddev",
             "tokenizer",

@@ -115,7 +115,7 @@ class TestInputs:
     #     dataset_json = default_inputs._convert_input_url_dataset_to_generic_json(
     #         dataset=dataset
     #     )
-    #     pa_json = default_inputs._convert_generic_json_to_output_format(
+    #     pa_json = default_inputs._convert_generic_dataset_to_output_format(
     #         output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
     #         generic_dataset=dataset_json,
     #         add_model_name=False,
@@ -535,7 +535,7 @@ class TestInputs:
                 output_tokens_deterministic=output_tokens_deterministic,
             )
         )
-        trtllm_json = inputs._convert_generic_json_to_output_format(generic_json)
+        trtllm_json = inputs._convert_generic_dataset_to_output_format(generic_json)
 
         assert trtllm_json == expected_json
 
