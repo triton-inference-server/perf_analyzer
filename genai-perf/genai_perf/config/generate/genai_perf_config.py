@@ -14,7 +14,6 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import (
@@ -23,7 +22,7 @@ from genai_perf.config.input.config_command import (
     ConfigOutputTokens,
     ConfigSyntheticTokens,
 )
-from genai_perf.types import ModelObjectiveParameters
+from genai_perf.types import CheckpointObject, ModelObjectiveParameters
 
 
 @dataclass
@@ -63,7 +62,7 @@ class GenAIPerfConfig:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> Dict[str, Any]:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -73,8 +72,8 @@ class GenAIPerfConfig:
         return genai_perf_config_dict
 
     @classmethod
-    def read_from_checkpoint(
-        cls, genai_perf_config_dict: Dict[str, Any]
+    def create_class_from_checkpoint(
+        cls, genai_perf_config_dict: CheckpointObject
     ) -> "GenAIPerfConfig":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
