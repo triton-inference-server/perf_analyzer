@@ -24,29 +24,45 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.inputs.converters.rankings_converter import RankingsConverter
+import pytest
+from genai_perf.inputs.converters import RankingsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, DataRow, FileData
+from typing import List, Optional
 
 
 class TestRankingsConverter:
 
+    @staticmethod
+    def create_generic_dataset(
+        queries_data: Optional[List[List[str]]] = None,
+        passages_data: Optional[List[List[str]]] = None
+    ) -> GenericDataset:
+        files_data = {}
+
+        if queries_data is not None:
+            files_data["queries"] = FileData(
+                filename="queries",
+                rows=[DataRow(texts=query) for query in queries_data]
+            )
+
+        if passages_data is not None:
+            files_data["passages"] = FileData(
+                filename="passages",
+                rows=[DataRow(texts=passage) for passage in passages_data]
+            )
+
+        return GenericDataset(files_data=files_data)
+
     def test_convert_default(self):
-        generic_dataset = {
-            "rows": [
-                {
-                    "query": {"text": "query 1"},
-                    "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
-                },
-                {
-                    "query": {"text": "query 2"},
-                    "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
-                },
-            ]
-        }
+        generic_dataset = self.create_generic_dataset(
+            queries_data=[["query 1"], ["query 2"]],
+            passages_data=[["passage 1", "passage 2"], ["passage 3", "passage 4"]]
+        )
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.RANKINGS,
@@ -60,8 +76,8 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": {"text": "query 1"},
-                            "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
+                            "query": "query 1",
+                            "passages": [{"text_input": "passage 1"}, {"text_input": "passage 2"}],
                             "model": "test_model",
                         }
                     ]
@@ -69,8 +85,8 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": {"text": "query 2"},
-                            "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
+                            "query": "query 2",
+                            "passages": [{"text_input": "passage 3"}, {"text_input": "passage 4"}],
                             "model": "test_model",
                         }
                     ]
@@ -81,18 +97,10 @@ class TestRankingsConverter:
         assert result == expected_result
 
     def test_convert_with_request_parameters(self):
-        generic_dataset = {
-            "rows": [
-                {
-                    "query": {"text": "query 1"},
-                    "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
-                },
-                {
-                    "query": {"text": "query 2"},
-                    "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
-                },
-            ]
-        }
+        generic_dataset = self.create_generic_dataset(
+            queries_data=[["query 1"], ["query 2"]],
+            passages_data=[["passage 1", "passage 2"], ["passage 3", "passage 4"]]
+        )
 
         extra_inputs = {
             "encoding_format": "base64",
@@ -115,8 +123,8 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": {"text": "query 1"},
-                            "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
+                            "query": "query 1",
+                            "passages": [{"text_input": "passage 1"}, {"text_input": "passage 2"}],
                             "model": "test_model",
                             "encoding_format": "base64",
                             "truncate": "END",
@@ -127,8 +135,8 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": {"text": "query 2"},
-                            "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
+                            "query": "query 2",
+                            "passages": [{"text_input": "passage 3"}, {"text_input": "passage 4"}],
                             "model": "test_model",
                             "encoding_format": "base64",
                             "truncate": "END",
@@ -142,21 +150,13 @@ class TestRankingsConverter:
         assert result == expected_result
 
     def test_convert_huggingface_tei(self):
-        generic_dataset = {
-            "rows": [
-                {
-                    "query": {"text": "query 1"},
-                    "passages": [{"text": "passage 1"}, {"text": "passage 2"}],
-                },
-                {
-                    "query": {"text": "query 2"},
-                    "passages": [{"text": "passage 3"}, {"text": "passage 4"}],
-                },
-            ]
-        }
+        generic_dataset = self.create_generic_dataset(
+            queries_data=[["query 1"], ["query 2"]],
+            passages_data=[["passage 1", "passage 2"], ["passage 3", "passage 4"]]
+        )
 
         extra_inputs = {
-            "rankings": "tei",  # specify HF TGI
+            "rankings": "tei",
             "additional_key": "additional_value",
         }
 
@@ -192,5 +192,102 @@ class TestRankingsConverter:
                 },
             ]
         }
+
+        assert result == expected_result
+
+    @pytest.mark.parametrize(
+        "queries_data, passages_data, expected_error",
+        [
+            (None, [["passage 1"], ["passage 2"]], "Both 'queries.jsonl' and 'passages.jsonl' must be present in the input datasets."),
+            ([["query 1"], ["query 2"]], None, "Both 'queries.jsonl' and 'passages.jsonl' must be present in the input datasets."),
+            (None, None, "Both 'queries.jsonl' and 'passages.jsonl' must be present in the input datasets."),
+        ]
+    )
+    def test_convert_missing_files(self, queries_data, passages_data, expected_error):
+        generic_dataset = self.create_generic_dataset(
+            queries_data=queries_data,
+            passages_data=passages_data
+        )
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.RANKINGS,
+        )
+
+        rankings_converter = RankingsConverter()
+
+        with pytest.raises(ValueError) as excinfo:
+            rankings_converter.convert(generic_dataset, config)
+        
+        assert str(excinfo.value) == expected_error
+
+    @pytest.mark.parametrize(
+        "queries_data, passages_data, expected_result",
+        [
+            # More queries than passages
+            (
+                [["query 1"], ["query 2"], ["query 3"]],
+                [["passage 1"], ["passage 2"]],
+                {
+                    "data": [
+                        {
+                            "payload": [
+                                {
+                                    "query": "query 1",
+                                    "passages": [{"text_input": "passage 1"}],
+                                    "model": "test_model",
+                                }
+                            ]
+                        },
+                        {
+                            "payload": [
+                                {
+                                    "query": "query 2",
+                                    "passages": [{"text_input": "passage 2"}],
+                                    "model": "test_model",
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ),
+            # More passages than queries
+            (
+                [["query 1"]],
+                [["passage 1"], ["passage 2"]],
+                {
+                    "data": [
+                        {
+                            "payload": [
+                                {
+                                    "query": "query 1",
+                                    "passages": [{"text_input": "passage 1"}],
+                                    "model": "test_model",
+                                }
+                            ]
+                        }
+                    ]
+                }
+            )
+        ]
+    )
+    def test_convert_mismatched_queries_and_passages(self, queries_data, passages_data, expected_result):
+        generic_dataset = self.create_generic_dataset(
+            queries_data=queries_data,
+            passages_data=passages_data
+        )
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.RANKINGS,
+        )
+
+        rankings_converter = RankingsConverter()
+
+        result = rankings_converter.convert(generic_dataset, config)
 
         assert result == expected_result

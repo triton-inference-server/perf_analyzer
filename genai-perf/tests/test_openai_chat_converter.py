@@ -25,24 +25,54 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from typing import Any, List, Dict
 from genai_perf.inputs.converters import OpenAIChatCompletionsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, FileData, DataRow
 
 
 class TestOpenAIChatCompletionsConverter:
 
+    @staticmethod
+    def create_generic_dataset(rows: List[Dict[str, Any]]) -> GenericDataset:
+        def clean_text(row):
+            text = row.get("text", [])
+            if isinstance(text, list):
+                return [t for t in text if t]
+            elif text:
+                return [text]
+            return []
+
+        def clean_image(row):
+            image = row.get("image", [])
+            if isinstance(image, list):
+                return [i for i in image if i]
+            elif image:
+                return [image]
+            return []
+
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    filename="file1",
+                    rows=[
+                        DataRow(
+                            texts=clean_text(row),
+                            images=clean_image(row)
+                        )
+                        for row in rows
+                    ]
+                )
+            }
+        )
     def test_convert_default(self):
-        generic_dataset = {
-            "features": ["text"],
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ],
-        }
+        generic_dataset = self.create_generic_dataset(
+            [{"text": "text input one"}, {"text": "text input two"}]
+        )
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
@@ -85,13 +115,9 @@ class TestOpenAIChatCompletionsConverter:
         assert result == expected_result
 
     def test_convert_with_request_parameters(self):
-        generic_dataset = {
-            "features": ["text"],
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ],
-        }
+        generic_dataset = self.create_generic_dataset(
+            [{"text": "text input one"}, {"text": "text input two"}]
+        )
 
         extra_inputs = {
             "ignore_eos": True,
@@ -104,7 +130,7 @@ class TestOpenAIChatCompletionsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
-            add_stream=True,  # set streaming
+            add_stream=True,
         )
 
         chat_converter = OpenAIChatCompletionsConverter()
@@ -154,7 +180,6 @@ class TestOpenAIChatCompletionsConverter:
     @pytest.mark.parametrize(
         "rows, output_format, first_content, second_content",
         [
-            # both text and image
             (
                 [
                     {"text": "test input one", "image": "test_image_1"},
@@ -186,7 +211,6 @@ class TestOpenAIChatCompletionsConverter:
                     },
                 ],
             ),
-            # image only
             (
                 [
                     {"image": "test_image_1"},
@@ -218,13 +242,10 @@ class TestOpenAIChatCompletionsConverter:
         """
         Test multi-modal format of OpenAI Chat API
         """
-        generic_dataset = {
-            "features": ["text"],
-            "rows": rows,
-        }
+        generic_dataset = self.create_generic_dataset(rows)
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=output_format,
@@ -273,18 +294,14 @@ class TestOpenAIChatCompletionsConverter:
         """
         Test batched multi-modal format of OpenAI Chat API for Image Retrieval
         """
-        generic_dataset = {
-            "features": ["text"],
-            "rows": [
-                [
-                    {"image": "test_image_1"},
-                    {"image": "test_image_2"},
-                ],
-            ],
-        }
+        generic_dataset = self.create_generic_dataset(
+            [
+                {"image": ["test_image_1", "test_image_2"]},
+            ]
+        )
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.IMAGE_RETRIEVAL,

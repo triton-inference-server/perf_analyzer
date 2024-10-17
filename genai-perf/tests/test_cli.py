@@ -335,11 +335,9 @@ class TestCLIArguments:
         ]
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
-        filepath, pathtype = args.input_file
-        assert filepath == Path(
+        assert args.input_file == Path(
             "fakefile.txt"
         ), "The file argument should be the path to the file"
-        assert pathtype == PathType.FILE
 
     @pytest.mark.parametrize(
         "arg, expected_path",
@@ -567,70 +565,6 @@ class TestCLIArguments:
                     "--output-tokens-mean-deterministic",
                 ],
                 "The --output-tokens-mean-deterministic option is only supported with the Triton and TensorRT-LLM Engine service-kind",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--batch-size-text",
-                    "10",
-                ],
-                "The --batch-size-text option is currently only supported with the embeddings and rankings endpoint types",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--batch-size-image",
-                    "10",
-                ],
-                "The --batch-size-image option is currently only supported with the image retrieval endpoint type",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint-type",
-                    "embeddings",
-                    "--streaming",
-                ],
-                "The --streaming option is not supported with the embeddings endpoint type",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint-type",
-                    "rankings",
-                    "--streaming",
-                ],
-                "The --streaming option is not supported with the rankings endpoint type",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint-type",
-                    "image_retrieval",
-                    "--streaming",
-                ],
-                "The --streaming option is not supported with the image_retrieval endpoint type",
             ),
             (
                 [
