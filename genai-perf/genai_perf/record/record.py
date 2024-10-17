@@ -159,11 +159,11 @@ class Record(metaclass=RecordType):
             the name tag of the record type.
         """
 
-    def write_to_checkpoint(self):
+    def create_checkpoint_object(self):
         return (self.tag, self.__dict__)
 
     @classmethod
-    def read_from_checkpoint(cls, record_dict) -> "Record":
+    def create_class_from_checkpoint(cls, record_dict) -> "Record":
         record = cls(0, 0)
         for key in ["_value", "_timestamp"]:
             if key in record_dict:

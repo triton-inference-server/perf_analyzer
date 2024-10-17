@@ -11,11 +11,16 @@
 # limitations under the License.
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import List
 
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_constraints import RunConstraints
-from genai_perf.types import GpuMetricObjectives, ModelWeights, PerfMetricObjectives
+from genai_perf.types import (
+    CheckpointObject,
+    GpuMetricObjectives,
+    ModelWeights,
+    PerfMetricObjectives,
+)
 
 
 @dataclass
@@ -30,13 +35,13 @@ class Results:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> Dict[str, Any]:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
         """
         run_config_dicts = [
-            run_config.write_to_checkpoint() for run_config in self.run_configs
+            run_config.create_checkpoint_object() for run_config in self.run_configs
         ]
 
         results_dict = {"run_configs": run_config_dicts}
@@ -44,14 +49,14 @@ class Results:
         return results_dict
 
     @classmethod
-    def read_from_checkpoint(cls, results_dict: Dict[str, Any]) -> "Results":
+    def create_class_from_checkpoint(cls, results_dict: CheckpointObject) -> "Results":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
         a new instance of Results
         """
         results = Results()
         for run_config_dict in results_dict["run_configs"]:
-            run_config = RunConfig.read_from_checkpoint(run_config_dict)
+            run_config = RunConfig.create_class_from_checkpoint(run_config_dict)
             results.add_run_config(run_config)
 
         return results

@@ -83,7 +83,10 @@ class TestRecord(unittest.TestCase):
             record_types[t]
             for t in [
                 "perf_throughput",
+                "input_sequence_length",
+                "output_sequence_length",
                 "output_token_throughput",
+                "output_token_throughput_per_request",
                 "gpu_free_memory",
                 "gpu_utilization",
                 "cpu_available_ram",
