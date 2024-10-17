@@ -16,6 +16,7 @@ import json
 import unittest
 from unittest.mock import patch
 
+from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.objective_parameter import (
     ObjectiveCategory,
@@ -27,7 +28,6 @@ from genai_perf.config.input.config_command import (
     ConfigInput,
     ConfigOutputTokens,
 )
-from genai_perf.utils import checkpoint_encoder
 
 
 class TestGenAIPerfConfig(unittest.TestCase):
@@ -85,8 +85,10 @@ class TestGenAIPerfConfig(unittest.TestCase):
             self._default_genai_perf_config, default=checkpoint_encoder
         )
 
-        genai_perf_config_from_checkpoint = GenAIPerfConfig.read_from_checkpoint(
-            json.loads(genai_perf_config_json)
+        genai_perf_config_from_checkpoint = (
+            GenAIPerfConfig.create_class_from_checkpoint(
+                json.loads(genai_perf_config_json)
+            )
         )
 
         self.assertEqual(

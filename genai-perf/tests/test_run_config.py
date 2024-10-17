@@ -16,11 +16,11 @@ import json
 import unittest
 from unittest.mock import patch
 
+from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.run_config import RunConfig
-from genai_perf.utils import checkpoint_encoder
 from tests.test_utils import create_perf_metrics, create_run_config_measurement
 
 
@@ -63,7 +63,7 @@ class TestRunConfig(unittest.TestCase):
         """
         run_config_json = json.dumps(self._run_config, default=checkpoint_encoder)
 
-        run_config_from_checkpoint = RunConfig.read_from_checkpoint(
+        run_config_from_checkpoint = RunConfig.create_class_from_checkpoint(
             json.loads(run_config_json)
         )
 
