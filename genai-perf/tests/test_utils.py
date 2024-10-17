@@ -101,6 +101,7 @@ def create_run_config_measurement(
 # RunConfig Constructor
 ###########################################################################
 def create_run_config(
+    config: ConfigCommand,
     run_config_name: str,
     model_name: str = "test_model",
     model_objective_parameters: ModelObjectiveParameters = {},
@@ -112,7 +113,6 @@ def create_run_config(
     input_seq_length: int = 0,
     output_seq_length: int = 0,
 ) -> RunConfig:
-    config = ConfigCommand([model_name])
     genai_perf_config = GenAIPerfConfig(
         config=config, model_objective_parameters=model_objective_parameters
     )
