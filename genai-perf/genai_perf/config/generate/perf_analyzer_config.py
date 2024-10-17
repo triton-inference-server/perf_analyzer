@@ -19,7 +19,7 @@ from typing import Any, Dict, List
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.types import ModelName, ModelObjectiveParameters
+from genai_perf.types import CheckpointObject, ModelName, ModelObjectiveParameters
 
 
 @dataclass
@@ -53,6 +53,15 @@ class PerfAnalyzerConfig:
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME_PA:
                     self._parameters[name] = parameter.get_value_based_on_category()
+
+    ###########################################################################
+    # Get Accessor Methods
+    ###########################################################################
+    def get_parameters(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary of parameters and their values
+        """
+        return self._parameters
 
     ###########################################################################
     # CLI String Creation Methods
@@ -154,7 +163,7 @@ class PerfAnalyzerConfig:
     ###########################################################################
     # Checkpoint Methods
     ###########################################################################
-    def write_to_checkpoint(self) -> Dict[str, Any]:
+    def create_checkpoint_object(self) -> CheckpointObject:
         """
         Converts the class data into a dictionary that can be written to
         the checkpoint file
@@ -164,8 +173,8 @@ class PerfAnalyzerConfig:
         return pa_config_dict
 
     @classmethod
-    def read_from_checkpoint(
-        cls, perf_analyzer_config_dict: Dict[str, Any]
+    def create_class_from_checkpoint(
+        cls, perf_analyzer_config_dict: CheckpointObject
     ) -> "PerfAnalyzerConfig":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
