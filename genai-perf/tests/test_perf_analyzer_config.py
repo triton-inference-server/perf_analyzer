@@ -16,6 +16,7 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
+from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.config.generate.objective_parameter import (
     ObjectiveCategory,
     ObjectiveParameter,
@@ -23,7 +24,6 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameters import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
-from genai_perf.utils import checkpoint_encoder
 
 
 class TestPerfAnalyzerConfig(unittest.TestCase):
@@ -167,7 +167,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             self._default_perf_analyzer_config, default=checkpoint_encoder
         )
 
-        pa_config_from_checkpoint = PerfAnalyzerConfig.read_from_checkpoint(
+        pa_config_from_checkpoint = PerfAnalyzerConfig.create_class_from_checkpoint(
             json.loads(pa_config_json)
         )
 

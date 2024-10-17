@@ -48,7 +48,7 @@ class GPURecord(Record):
         return self._device_uuid
 
     @classmethod
-    def read_from_checkpoint(cls, record_dict) -> "Record":
+    def create_class_from_checkpoint(cls, record_dict) -> "Record":
         record = cls(0)
         for key in ["_value", "_timestamp", "_device"]:
             if key in record_dict:
