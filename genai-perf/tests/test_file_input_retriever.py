@@ -26,6 +26,7 @@
 
 from pathlib import Path
 from unittest.mock import mock_open, patch
+
 import pytest
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.inputs_config import InputsConfig
@@ -72,15 +73,23 @@ class TestFileInputRetriever:
         return mock_open(read_data=file_contents.get(filename))()
 
     @staticmethod
-    @patch("genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image", return_value="mock_base64_image")
+    @patch(
+        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        return_value="mock_base64_image",
+    )
     def mock_encode_image(mock_encode_image):
         return mock_encode_image
-    
+
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
-    @patch("genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image", return_value="mock_base64_image")
+    @patch(
+        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        return_value="mock_base64_image",
+    )
     @patch("builtins.open", side_effect=open_side_effect)
-    def test_get_input_file_single_image(self, mock_file, mock_image, mock_encode_image, mock_exists):
+    def test_get_input_file_single_image(
+        self, mock_file, mock_image, mock_encode_image, mock_exists
+    ):
         file_retriever = FileInputRetriever(
             InputsConfig(
                 model_name=["test_model_A"],
@@ -88,7 +97,9 @@ class TestFileInputRetriever:
                 input_filename=Path("single_image.jsonl"),
             )
         )
-        file_data = file_retriever._get_input_dataset_from_file(Path("single_image.jsonl"))
+        file_data = file_retriever._get_input_dataset_from_file(
+            Path("single_image.jsonl")
+        )
 
         assert file_data is not None
         assert file_data.filename == "single_image.jsonl"
@@ -97,9 +108,14 @@ class TestFileInputRetriever:
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
-    @patch("genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image", side_effect=["mock_base64_image1", "mock_base64_image2", "mock_base64_image3"])
+    @patch(
+        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        side_effect=["mock_base64_image1", "mock_base64_image2", "mock_base64_image3"],
+    )
     @patch("builtins.open", side_effect=open_side_effect)
-    def test_get_input_file_multiple_images(self, mock_file, mock_image_open, mock_encode_image, mock_exists):
+    def test_get_input_file_multiple_images(
+        self, mock_file, mock_image_open, mock_encode_image, mock_exists
+    ):
         file_retriever = FileInputRetriever(
             InputsConfig(
                 model_name=["test_model_A"],
@@ -107,12 +123,18 @@ class TestFileInputRetriever:
                 input_filename=Path("multiple_images.jsonl"),
             )
         )
-        file_data = file_retriever._get_input_dataset_from_file(Path("multiple_images.jsonl"))
+        file_data = file_retriever._get_input_dataset_from_file(
+            Path("multiple_images.jsonl")
+        )
 
         assert file_data is not None
         assert file_data.filename == "multiple_images.jsonl"
         assert len(file_data.rows) == 3
-        expected_images = ["mock_base64_image1", "mock_base64_image2", "mock_base64_image3"]
+        expected_images = [
+            "mock_base64_image1",
+            "mock_base64_image2",
+            "mock_base64_image3",
+        ]
         for i, image in enumerate(expected_images):
             assert file_data.rows[i].images[0] == image
 
@@ -126,7 +148,9 @@ class TestFileInputRetriever:
                 input_filename=Path("single_prompt.jsonl"),
             )
         )
-        file_data = file_retriever._get_input_dataset_from_file(Path("single_prompt.jsonl"))
+        file_data = file_retriever._get_input_dataset_from_file(
+            Path("single_prompt.jsonl")
+        )
 
         assert file_data is not None
         assert file_data.filename == "single_prompt.jsonl"
@@ -143,7 +167,9 @@ class TestFileInputRetriever:
                 input_filename=Path("multiple_prompts.jsonl"),
             )
         )
-        file_data = file_retriever._get_input_dataset_from_file(Path("multiple_prompts.jsonl"))
+        file_data = file_retriever._get_input_dataset_from_file(
+            Path("multiple_prompts.jsonl")
+        )
 
         assert file_data is not None
         assert file_data.filename == "multiple_prompts.jsonl"
@@ -151,16 +177,21 @@ class TestFileInputRetriever:
         expected_prompts = [
             "What is the capital of France?",
             "Who wrote 1984?",
-            "What is quantum computing?"
+            "What is quantum computing?",
         ]
         for i, prompt in enumerate(expected_prompts):
             assert file_data.rows[i].texts[0] == prompt
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
-    @patch("genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image", return_value="mock_base64_image")
+    @patch(
+        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        return_value="mock_base64_image",
+    )
     @patch("builtins.open", side_effect=open_side_effect)
-    def test_get_input_file_multi_modal(self, mock_file, mock_image, mock_encode_image, mock_exists):
+    def test_get_input_file_multi_modal(
+        self, mock_file, mock_image, mock_encode_image, mock_exists
+    ):
         file_retriever = FileInputRetriever(
             InputsConfig(
                 model_name=["test_model_A"],
@@ -168,7 +199,9 @@ class TestFileInputRetriever:
                 input_filename=Path("multi_modal.jsonl"),
             )
         )
-        file_data = file_retriever._get_input_dataset_from_file(Path("multi_modal.jsonl"))
+        file_data = file_retriever._get_input_dataset_from_file(
+            Path("multi_modal.jsonl")
+        )
 
         assert file_data is not None
         assert file_data.filename == "multi_modal.jsonl"
@@ -186,7 +219,9 @@ class TestFileInputRetriever:
                 input_filename=Path("deprecated_text_input.jsonl"),
             )
         )
-        file_data = file_retriever._get_input_dataset_from_file(Path("deprecated_text_input.jsonl"))
+        file_data = file_retriever._get_input_dataset_from_file(
+            Path("deprecated_text_input.jsonl")
+        )
 
         assert file_data is not None
         assert file_data.filename == "deprecated_text_input.jsonl"
@@ -205,9 +240,11 @@ class TestFileInputRetriever:
                 input_filename=Path("conflicting_key.jsonl"),
             )
         )
-        with pytest.raises(ValueError, match="Each data entry must have only one of 'text_input' or 'text' key name."):
+        with pytest.raises(
+            ValueError,
+            match="Each data entry must have only one of 'text_input' or 'text' key name.",
+        ):
             file_retriever._get_input_dataset_from_file(Path("conflicting_key.jsonl"))
-            
 
     def test_get_input_file_without_file_existing(self):
         file_retriever = FileInputRetriever(
@@ -219,21 +256,41 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_dir", return_value=True)
     @patch("pathlib.Path.glob", return_value=[])
-    def test_get_input_datasets_from_dir_no_jsonl_files(self, mock_exists, mock_is_dir, mock_glob):
+    def test_get_input_datasets_from_dir_no_jsonl_files(
+        self, mock_exists, mock_is_dir, mock_glob
+    ):
         file_retriever = FileInputRetriever(
             InputsConfig(input_filename=Path("empty_dir"))
         )
         with pytest.raises(ValueError, match="No JSONL files found in directory"):
             _ = file_retriever._get_input_datasets_from_dir()
 
-
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_dir", return_value=True)
-    @patch("pathlib.Path.glob", return_value=[Path("single_prompt.jsonl"), Path("multiple_prompts.jsonl"), Path("single_image.jsonl"), Path("multi_modal.jsonl")])
+    @patch(
+        "pathlib.Path.glob",
+        return_value=[
+            Path("single_prompt.jsonl"),
+            Path("multiple_prompts.jsonl"),
+            Path("single_image.jsonl"),
+            Path("multi_modal.jsonl"),
+        ],
+    )
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
-    @patch("genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image", return_value="mock_base64_image")
+    @patch(
+        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        return_value="mock_base64_image",
+    )
     @patch("builtins.open", side_effect=open_side_effect)
-    def test_get_input_datasets_from_dir(self, mock_file, mock_image_open, mock_encode_image, mock_glob, mock_is_dir, mock_exists):
+    def test_get_input_datasets_from_dir(
+        self,
+        mock_file,
+        mock_image_open,
+        mock_encode_image,
+        mock_glob,
+        mock_is_dir,
+        mock_exists,
+    ):
         file_retriever = FileInputRetriever(
             InputsConfig(
                 model_name=["test_model_A"],
@@ -241,25 +298,27 @@ class TestFileInputRetriever:
                 input_filename=Path("test_dir"),
             )
         )
-        
+
         file_data = file_retriever._get_input_datasets_from_dir()
-        
+
         assert len(file_data) == 4
 
         assert file_data["single_prompt"].filename == "single_prompt.jsonl"
         assert len(file_data["single_prompt"].rows) == 1
-        assert file_data["single_prompt"].rows[0].texts[0] == "What is the capital of France?"
+        assert (
+            file_data["single_prompt"].rows[0].texts[0]
+            == "What is the capital of France?"
+        )
 
         assert file_data["multiple_prompts"].filename == "multiple_prompts.jsonl"
         assert len(file_data["multiple_prompts"].rows) == 3
         expected_prompts = [
             "What is the capital of France?",
             "Who wrote 1984?",
-            "What is quantum computing?"
+            "What is quantum computing?",
         ]
         for i, prompt in enumerate(expected_prompts):
             assert file_data["multiple_prompts"].rows[i].texts[0] == prompt
-
 
         assert file_data["single_image"].filename == "single_image.jsonl"
         assert len(file_data["single_image"].rows) == 1
@@ -273,7 +332,9 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("pathlib.Path.is_dir", return_value=True)
     @patch("pathlib.Path.glob", return_value=[])
-    def test_get_input_datasets_from_empty_dir(self, mock_exists, mock_is_dir, mock_glob):
+    def test_get_input_datasets_from_empty_dir(
+        self, mock_exists, mock_is_dir, mock_glob
+    ):
         file_retriever = FileInputRetriever(
             InputsConfig(input_filename=Path("empty_dir"))
         )

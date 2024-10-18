@@ -25,9 +25,17 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from genai_perf.inputs.converters import OpenAICompletionsConverter
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat, DEFAULT_OUTPUT_TOKENS_MEAN
+from genai_perf.inputs.input_constants import (
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+    ModelSelectionStrategy,
+    OutputFormat,
+)
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, FileData, DataRow
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 
 
 class TestOpenAICompletionsConverter:
@@ -41,8 +49,8 @@ class TestOpenAICompletionsConverter:
                     filename="file1",
                     rows=[
                         DataRow(texts=["text input one"]),
-                        DataRow(texts=["text input two"])
-                    ]
+                        DataRow(texts=["text input two"]),
+                    ],
                 )
             }
         )
