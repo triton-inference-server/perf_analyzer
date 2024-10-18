@@ -24,14 +24,15 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Dict, List, TypeAlias
 from dataclasses import dataclass, field
+from typing import Dict, List, TypeAlias
 
 Filename: TypeAlias = str
 TypeOfData: TypeAlias = str
 ListOfData: TypeAlias = List[str]
 DataRowDict: TypeAlias = Dict[TypeOfData, ListOfData]
 GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
+
 
 @dataclass
 class DataRow:
@@ -43,6 +44,7 @@ class DataRow:
         Converts the DataRow object to a dictionary.
         """
         return {"texts": self.texts, "images": self.images}
+
 
 @dataclass
 class FileData:
@@ -61,6 +63,7 @@ class FileData:
         }
         """
         return {self.filename: [row.to_dict() for row in self.rows]}
+
 
 @dataclass
 class GenericDataset:

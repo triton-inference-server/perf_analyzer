@@ -31,7 +31,12 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, DataRow, FileData
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
+
 
 class TestTensorRTLLMConverter:
 
@@ -44,8 +49,8 @@ class TestTensorRTLLMConverter:
                     filename="file1",
                     rows=[
                         DataRow(texts=["text input one"]),
-                        DataRow(texts=["text input two"])
-                    ]
+                        DataRow(texts=["text input two"]),
+                    ],
                 )
             }
         )

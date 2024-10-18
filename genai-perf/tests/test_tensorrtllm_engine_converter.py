@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import TensorRTLLMEngineConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
@@ -32,9 +33,12 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset, FileData, DataRow
-from genai_perf.exceptions import GenAIPerfException
 
 
 class TestTensorRTLLMEngineConverter:
@@ -48,8 +52,8 @@ class TestTensorRTLLMEngineConverter:
                     filename="file1",
                     rows=[
                         DataRow(texts=["text input one"]),
-                        DataRow(texts=["text input two"])
-                    ]
+                        DataRow(texts=["text input two"]),
+                    ],
                 )
             }
         )
