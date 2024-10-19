@@ -64,15 +64,15 @@ target_link_directories(
 
 target_link_libraries(
   triton-client-backend-library
-  PUBLIC grpcclient_static
+  PUBLIC ${TRITON_GRPC_STATIC_LIB}
   PUBLIC gRPC::grpc++
   PUBLIC gRPC::grpc
 )
 
 target_link_libraries(
   triton-client-backend-library
-  PUBLIC shm_utils_static
-  PUBLIC httpclient_static
+  PUBLIC ${TRITON_SHM_STATIC_LIB}
+  PUBLIC ${TRITON_HTTP_STATIC_LIB}
   PRIVATE CURL::libcurl
 )
 

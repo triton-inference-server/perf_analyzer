@@ -116,7 +116,7 @@ target_link_libraries(
     PUBLIC
       triton-common-json        # from repo-common
       triton-client-backend-library
-      json_utils_static
+      ${TRITON_JSON_STATIC_LIB}
       ${CAPI_TARGET_LINK_LIBRARY}
       ${TFS_TARGET_LINK_LIBRARY}
       ${TS_TARGET_LINK_LIBRARY}
