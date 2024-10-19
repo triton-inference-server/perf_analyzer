@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import TensorRTLLMEngineConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
@@ -31,22 +33,36 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 
 
 class TestTensorRTLLMEngineConverter:
 
-    def test_convert_default(self):
+    @staticmethod
+    def create_generic_dataset() -> GenericDataset:
+        """Helper method to create a standard generic dataset."""
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    filename="file1",
+                    rows=[
+                        DataRow(texts=["text input one"]),
+                        DataRow(texts=["text input two"]),
+                    ],
+                )
+            }
+        )
 
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+    def test_convert_default(self):
+        generic_dataset = self.create_generic_dataset()
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
@@ -80,12 +96,7 @@ class TestTensorRTLLMEngineConverter:
         assert result == expected_result
 
     def test_convert_with_request_parameters(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         extra_inputs = {"additional_key": "additional_value"}
 
@@ -131,3 +142,21 @@ class TestTensorRTLLMEngineConverter:
         }
 
         assert result == expected_result
+
+    def test_check_config_invalid_batch_size(self):
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.TENSORRTLLM_ENGINE,
+            batch_size_text=5,
+        )
+
+        trtllm_engine_converter = TensorRTLLMEngineConverter()
+
+        with pytest.raises(GenAIPerfException) as exc_info:
+            trtllm_engine_converter.check_config(config)
+
+        assert str(exc_info.value) == (
+            "The --batch-size-text flag is not supported for tensorrtllm_engine."
+        )

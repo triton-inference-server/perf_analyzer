@@ -25,22 +25,41 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from genai_perf.inputs.converters import OpenAICompletionsConverter
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.input_constants import (
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+    ModelSelectionStrategy,
+    OutputFormat,
+)
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 
 
 class TestOpenAICompletionsConverter:
 
+    @staticmethod
+    def create_generic_dataset() -> GenericDataset:
+        """Helper method to create a standard generic dataset."""
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    filename="file1",
+                    rows=[
+                        DataRow(texts=["text input one"]),
+                        DataRow(texts=["text input two"]),
+                    ],
+                )
+            }
+        )
+
     def test_convert_default(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
@@ -54,7 +73,7 @@ class TestOpenAICompletionsConverter:
                 {
                     "payload": [
                         {
-                            "prompt": "text input one",
+                            "prompt": ["text input one"],
                             "model": "test_model",
                         }
                     ]
@@ -62,7 +81,7 @@ class TestOpenAICompletionsConverter:
                 {
                     "payload": [
                         {
-                            "prompt": "text input two",
+                            "prompt": ["text input two"],
                             "model": "test_model",
                         }
                     ]
@@ -73,16 +92,10 @@ class TestOpenAICompletionsConverter:
         assert result == expected_result
 
     def test_convert_with_request_parameters(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         extra_inputs = {
             "ignore_eos": True,
-            "max_tokens": 1234,
             "additional_key": "additional_value",
         }
 
@@ -91,7 +104,8 @@ class TestOpenAICompletionsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
-            add_stream=True,  # set streaming
+            add_stream=True,
+            output_tokens_mean=1234,
         )
 
         completions_converter = OpenAICompletionsConverter()
@@ -102,7 +116,7 @@ class TestOpenAICompletionsConverter:
                 {
                     "payload": [
                         {
-                            "prompt": "text input one",
+                            "prompt": ["text input one"],
                             "model": "test_model",
                             "stream": True,
                             "ignore_eos": True,
@@ -114,12 +128,124 @@ class TestOpenAICompletionsConverter:
                 {
                     "payload": [
                         {
-                            "prompt": "text input two",
+                            "prompt": ["text input two"],
                             "model": "test_model",
                             "stream": True,
                             "ignore_eos": True,
                             "max_tokens": 1234,
                             "additional_key": "additional_value",
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_default_token_parameters(self):
+        generic_dataset = self.create_generic_dataset()
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_COMPLETIONS,
+            output_tokens_mean=DEFAULT_OUTPUT_TOKENS_MEAN,
+        )
+
+        completions_converter = OpenAICompletionsConverter()
+        result = completions_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input one"],
+                            "model": "test_model",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input two"],
+                            "model": "test_model",
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_streaming(self):
+        generic_dataset = self.create_generic_dataset()
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_COMPLETIONS,
+            add_stream=True,
+        )
+
+        completions_converter = OpenAICompletionsConverter()
+        result = completions_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input one"],
+                            "model": "test_model",
+                            "stream": True,
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input two"],
+                            "model": "test_model",
+                            "stream": True,
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_multiple_models(self):
+        generic_dataset = self.create_generic_dataset()
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["model_a", "model_b"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_COMPLETIONS,
+        )
+
+        completions_converter = OpenAICompletionsConverter()
+        result = completions_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input one"],
+                            "model": "model_a",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input two"],
+                            "model": "model_b",
                         }
                     ]
                 },

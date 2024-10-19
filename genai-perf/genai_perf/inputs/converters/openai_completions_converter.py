@@ -32,9 +32,12 @@ from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
+
 class OpenAICompletionsConverter(BaseConverter):
 
-    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
