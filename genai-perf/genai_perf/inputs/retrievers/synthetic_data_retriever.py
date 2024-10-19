@@ -27,7 +27,9 @@
 
 from typing import List
 
+from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -39,8 +41,7 @@ from genai_perf.inputs.retrievers.synthetic_image_generator import (
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
-from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
-from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
+
 
 class SyntheticDataRetriever(BaseInputRetriever):
     """
@@ -66,18 +67,18 @@ class SyntheticDataRetriever(BaseInputRetriever):
 
                 for _ in range(self.config.batch_size_image):
                     image = SyntheticImageGenerator.create_synthetic_image(
-                            image_width_mean=self.config.image_width_mean,
-                            image_width_stddev=self.config.image_width_stddev,
-                            image_height_mean=self.config.image_height_mean,
-                            image_height_stddev=self.config.image_height_stddev,
-                            image_format=self.config.image_format,
-                        )
+                        image_width_mean=self.config.image_width_mean,
+                        image_width_stddev=self.config.image_width_stddev,
+                        image_height_mean=self.config.image_height_mean,
+                        image_height_stddev=self.config.image_height_stddev,
+                        image_format=self.config.image_format,
+                    )
                     row.images.append(image)
 
                 data_rows.append(row)
 
             file_data = FileData(file, data_rows)
-            
+
             synthetic_dataset.files_data[file] = file_data
 
         return synthetic_dataset

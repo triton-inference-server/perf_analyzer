@@ -27,15 +27,17 @@
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
 from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
-from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
+
 
 class InputRetrieverFactory:
     """
     Factory class to create the input retriever to get the input data
     based on the input source.
     """
+
     @staticmethod
     def create(config: InputsConfig) -> BaseInputRetriever:
         retrievers = {

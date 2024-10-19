@@ -14,11 +14,12 @@
 
 from typing import cast
 from unittest.mock import patch
+
 import pytest
+from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
-from genai_perf.inputs.input_constants import OutputFormat, DEFAULT_SYNTHETIC_FILENAME
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
 
 
 class TestSyntheticDataRetriever:
@@ -38,10 +39,10 @@ class TestSyntheticDataRetriever:
             num_prompts=num_prompts,
             batch_size_text=batch_size_text,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
-            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME]
+            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
         )
         synthetic_retriever = SyntheticDataRetriever(config)
-        dataset: GenericDataset = synthetic_retriever.retrieve_data()
+        dataset = synthetic_retriever.retrieve_data()
 
         synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
         assert len(dataset.files_data[synthetic_input_filenames[0]].rows) == num_prompts
@@ -73,10 +74,10 @@ class TestSyntheticDataRetriever:
             batch_size_text=batch_size_text,
             batch_size_image=batch_size_image,
             output_format=OutputFormat.OPENAI_VISION,
-            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME]
+            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
         )
         synthetic_retriever = SyntheticDataRetriever(config)
-        dataset: GenericDataset = synthetic_retriever.retrieve_data()
+        dataset = synthetic_retriever.retrieve_data()
 
         synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
         assert len(dataset.files_data[synthetic_input_filenames[0]].rows) == num_prompts
@@ -85,7 +86,10 @@ class TestSyntheticDataRetriever:
             assert len(row.texts) == batch_size_text
             assert len(row.images) == batch_size_image
             assert all(text == "test prompt" for text in row.texts)
-            assert all(image == "data:image/jpeg;base64,test_base64_encoding" for image in row.images)
+            assert all(
+                image == "data:image/jpeg;base64,test_base64_encoding"
+                for image in row.images
+            )
 
     @patch(
         "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
@@ -107,7 +111,7 @@ class TestSyntheticDataRetriever:
             output_format=OutputFormat.OPENAI_VISION,
         )
         synthetic_retriever = SyntheticDataRetriever(config)
-        dataset: GenericDataset = synthetic_retriever.retrieve_data()
+        dataset = synthetic_retriever.retrieve_data()
 
         assert len(dataset.files_data) == 2
         assert "file1.jsonl" in dataset.files_data

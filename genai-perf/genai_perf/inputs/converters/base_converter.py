@@ -42,12 +42,14 @@ class BaseConverter:
     def check_config(self, config: InputsConfig) -> None:
         """
         Check whether the provided configuration is valid for this converter.
-        
+
         Throws a GenAIPerfException if the configuration is invalid.
         """
         pass
 
-    def convert(self, generic_dataset: GenericDataset, config: InputsConfig) -> Dict[Any, Any]:
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         """
         Construct a request body using the endpoint specific request format.
         """
