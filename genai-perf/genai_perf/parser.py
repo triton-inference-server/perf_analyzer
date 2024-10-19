@@ -191,53 +191,17 @@ def _check_conditional_args(
                 "with the Triton and TensorRT-LLM Engine service-kind."
             )
 
-    _check_conditional_args_embeddings_rankings(parser, args)
-
-    return args
-
-
-def _check_conditional_args_embeddings_rankings(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-):
-
     if args.output_format in [
         ic.OutputFormat.OPENAI_EMBEDDINGS,
         ic.OutputFormat.RANKINGS,
         ic.OutputFormat.IMAGE_RETRIEVAL,
     ]:
-        if args.streaming:
-            parser.error(
-                f"The --streaming option is not supported with the {args.endpoint_type} endpoint type."
-            )
-
         if args.generate_plots:
             parser.error(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
-    else:
-        if args.batch_size_text != ic.DEFAULT_BATCH_SIZE:
-            parser.error(
-                "The --batch-size-text option is currently only supported "
-                "with the embeddings and rankings endpoint types."
-            )
-        if args.batch_size_image != ic.DEFAULT_BATCH_SIZE:
-            parser.error(
-                "The --batch-size-image option is currently only supported "
-                "with the image retrieval endpoint type."
-            )
 
-    if args.input_file:
-        _, path_type = args.input_file
-        if args.output_format != ic.OutputFormat.RANKINGS:
-            if path_type == "directory":
-                parser.error(
-                    "A directory is only currently supported for the rankings endpoint type."
-                )
-        else:
-            if path_type == PathType.FILE:
-                parser.error(
-                    "The rankings endpoint-type requires a directory value for the --input-file flag."
-                )
+    return args
 
 
 def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
@@ -378,17 +342,22 @@ def parse_goodput(values):
 
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
+
+    args.synthetic_input_files = None
+
     if args.input_file:
-        args.prompt_source = ic.PromptSource.FILE
-        if args.endpoint_type == "rankings":
+        if str(args.input_file).startswith("synthetic:"):
+            args.prompt_source = ic.PromptSource.SYNTHETIC
+            synthetic_input_files_str = str(args.input_file).split(":", 1)[1]
+            args.synthetic_input_files = synthetic_input_files_str.split(",")
             logger.debug(
-                f"Input source is the following directory: {args.input_file[0]}"
+                f"Input source is synthetic data: {args.synthetic_input_files}"
             )
         else:
-            logger.debug(f"Input source is the following file: {args.input_file[0]}")
+            args.prompt_source = ic.PromptSource.FILE
+            logger.debug(f"Input source is the following path: {args.input_file}")
     else:
         args.prompt_source = ic.PromptSource.SYNTHETIC
-        logger.debug("Input source is synthetic data")
     return args
 
 
@@ -405,13 +374,15 @@ def _convert_str_to_enum_entry(args, option, enum):
 ### Types ###
 
 
-def file_or_directory(path: str) -> Tuple[Path, PathType]:
-    if os.path.isfile(path):
-        return (Path(path), PathType.FILE)
-    elif os.path.isdir(path):
-        return (Path(path), PathType.DIRECTORY)
+def file_or_directory(value: str) -> Path:
+    if value.startswith("synthetic:"):
+        return Path(value)
     else:
-        raise ValueError(f"'{path}' is not a valid file or directory")
+        path = Path(value)
+        if path.is_file() or path.is_dir():
+            return path
+
+    raise ValueError(f"'{value}' is not a valid file or directory")
 
 
 def positive_integer(value: str) -> int:
@@ -464,11 +435,13 @@ def _add_input_args(parser):
         type=file_or_directory,
         default=None,
         required=False,
-        help="The input file containing the prompts to use for profiling. "
-        "Each line should be a JSON object with a 'text' field in JSONL format. "
-        'Example: {"text": "Your prompt here"}'
-        "For the rankings endpoint-type, a directory should be passed in instead with "
-        'a "queries.jsonl" file and a "passages.jsonl" file with the same format.',
+        help="The input file or directory containing the content to use for "
+        "profiling. To use synthetic files for a converter that needs "
+        "multiple files, prefix the path with 'synthetic:', followed by a "
+        "comma-separated list of filenames. The synthetic filenames should "
+        "not have extensions. For example, 'synthetic:queries,passages'. "
+        "Each line should be a JSON object with a 'text' or 'image' field "
+        'in JSONL format. Example: {"text": "Your prompt here"}',
     )
 
     input_group.add_argument(

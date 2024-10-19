@@ -24,23 +24,40 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import VLLMConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 
 
 class TestVLLMConverter:
 
+    @staticmethod
+    def create_generic_dataset():
+        """Create a standard generic dataset for testing."""
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    filename="file1",
+                    rows=[
+                        DataRow(texts=["text input one"]),
+                        DataRow(texts=["text input two"]),
+                    ],
+                )
+            }
+        )
+
     def test_convert_default(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.VLLM,
@@ -67,12 +84,7 @@ class TestVLLMConverter:
         assert result == expected_result
 
     def test_convert_with_request_parameters(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         extra_inputs = {
             "ignore_eos": True,
@@ -86,7 +98,7 @@ class TestVLLMConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.VLLM,
-            add_stream=True,  # set streaming
+            add_stream=True,
         )
 
         vllm_converter = VLLMConverter()
@@ -118,20 +130,15 @@ class TestVLLMConverter:
         assert result == expected_result
 
     def test_convert_with_sampling_parameters(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         config = InputsConfig(
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.VLLM,
-            output_tokens_mean=1234,  # set max output sequence length
-            output_tokens_deterministic=True,  # set min output sequence length
+            output_tokens_mean=1234,
+            output_tokens_deterministic=True,
         )
 
         vllm_converter = VLLMConverter()
@@ -158,4 +165,38 @@ class TestVLLMConverter:
             ]
         }
 
+        assert result == expected_result
+
+    def test_check_config_invalid_batch_size(self):
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.VLLM,
+            batch_size_text=5,
+        )
+
+        vllm_converter = VLLMConverter()
+
+        with pytest.raises(GenAIPerfException) as exc_info:
+            vllm_converter.check_config(config)
+
+        assert str(exc_info.value) == (
+            "The --batch-size-text flag is not supported for vllm."
+        )
+
+    def test_convert_empty_dataset(self):
+        generic_dataset = GenericDataset(files_data={})
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.VLLM,
+        )
+
+        vllm_converter = VLLMConverter()
+        result = vllm_converter.convert(generic_dataset, config)
+
+        expected_result = {"data": []}
         assert result == expected_result

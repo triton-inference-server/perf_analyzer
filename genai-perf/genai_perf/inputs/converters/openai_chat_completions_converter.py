@@ -25,60 +25,103 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN, OutputFormat
+from genai_perf.inputs.input_constants import (
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+    OutputFormat,
+)
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 
 
 class OpenAIChatCompletionsConverter(BaseConverter):
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def check_config(self, config: InputsConfig) -> None:
+        if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            if config.add_stream:
+                raise GenAIPerfException(
+                    f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+                )
+        elif (
+            config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
+            or config.output_format == OutputFormat.OPENAI_VISION
+        ):
+            if config.batch_size_text != DEFAULT_BATCH_SIZE:
+                raise GenAIPerfException(
+                    f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                )
+            if config.batch_size_image != DEFAULT_BATCH_SIZE:
+                raise GenAIPerfException(
+                    f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}."
+                )
+
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            model_name = self._select_model_name(config, index)
-
-            content: Any = []
-            if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
-                content = entry["text"]
-            else:
-                # Treat single batch and multi-batch entries the same way
-                entries = entry if isinstance(entry, list) else [entry]
-                for _entry in entries:
-                    content += self._add_multi_modal_content(_entry)
-
-            payload = {
-                "model": model_name,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": content,
-                    }
-                ],
-            }
-
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+        for file_data in generic_dataset.files_data.values():
+            for index, row in enumerate(file_data.rows):
+                payload = self._create_payload(index, row, config)
+                request_body["data"].append({"payload": [payload]})
 
         return request_body
 
-    def _add_multi_modal_content(self, entry: Dict) -> List[Dict]:
-        content = []
-        if "text" in entry:
+    def _create_payload(
+        self, index: int, row: DataRow, config: InputsConfig
+    ) -> Dict[Any, Any]:
+        model_name = self._select_model_name(config, index)
+        content = self._retrieve_content(row, config)
+
+        payload = {
+            "model": model_name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": content,
+                }
+            ],
+        }
+
+        self._add_request_params(payload, config)
+        return payload
+
+    def _retrieve_content(
+        self, row: DataRow, config: InputsConfig
+    ) -> Union[str, List[Dict[Any, Any]]]:
+        content: Union[str, List[Dict[Any, Any]]] = ""
+        if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
+            content = row.texts[0]
+        elif (
+            config.output_format == OutputFormat.OPENAI_VISION
+            or config.output_format == OutputFormat.IMAGE_RETRIEVAL
+        ):
+            content = self._add_multi_modal_content(row)
+        else:
+            raise GenAIPerfException(
+                f"Output format {config.output_format} is not supported"
+            )
+        return content
+
+    def _add_multi_modal_content(self, entry: DataRow) -> List[Dict[Any, Any]]:
+        content: List[Dict[Any, Any]] = []
+        for text in entry.texts:
             content.append(
                 {
                     "type": "text",
-                    "text": entry["text"],
+                    "text": text,
                 }
             )
-        if "image" in entry:
+        for image in entry.images:
             content.append(
                 {
                     "type": "image_url",
                     "image_url": {
-                        "url": entry["image"],
+                        "url": image,
                     },
                 }
             )
