@@ -67,9 +67,10 @@ _endpoint_type_map = {
     "chat": "v1/chat/completions",
     "completions": "v1/completions",
     "embeddings": "v1/embeddings",
+    "image_retrieval": "v1/infer",
+    "nvclip": "v1/embeddings",
     "rankings": "v1/ranking",
     "vision": "v1/chat/completions",
-    "image_retrieval": "v1/infer",
 }
 
 
@@ -156,6 +157,8 @@ def _check_conditional_args(
             # because there's no openai vision endpoint.
             elif args.endpoint_type == "vision":
                 args.output_format = ic.OutputFormat.OPENAI_VISION
+            elif args.endpoint_type == "nvclip":
+                args.output_format = ic.OutputFormat.NVCLIP
 
             if args.endpoint is not None:
                 args.endpoint = args.endpoint.lstrip(" /")
@@ -192,9 +195,10 @@ def _check_conditional_args(
             )
 
     if args.output_format in [
+        ic.OutputFormat.IMAGE_RETRIEVAL,
+        ic.OutputFormat.NVCLIP,
         ic.OutputFormat.OPENAI_EMBEDDINGS,
         ic.OutputFormat.RANKINGS,
-        ic.OutputFormat.IMAGE_RETRIEVAL,
     ]:
         if args.generate_plots:
             parser.error(
@@ -634,7 +638,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--backend",
         type=str,
-        choices=utils.get_enum_names(ic.OutputFormat)[2:],
+        choices=utils.get_enum_names(ic.OutputFormat)[0:2],
         default="tensorrtllm",
         required=False,
         help=f'When using the "triton" service-kind, '
@@ -658,9 +662,10 @@ def _add_endpoint_args(parser):
             "chat",
             "completions",
             "embeddings",
+            "nvclip",
+            "image_retrieval",
             "rankings",
             "vision",
-            "image_retrieval",
         ],
         required=False,
         help=f"The endpoint-type to send requests to on the "

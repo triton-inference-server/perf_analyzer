@@ -57,7 +57,3 @@ class OpenAIEmbeddingsConverter(BaseConverter):
                 request_body["data"].append({"payload": [payload]})
 
         return request_body
-
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
-            payload[key] = value
