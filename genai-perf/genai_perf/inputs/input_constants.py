@@ -39,14 +39,21 @@ class PromptSource(Enum):
 
 
 class OutputFormat(Enum):
+    ################################################################
+    # Triton backends
+    ################################################################
+    TENSORRTLLM = auto()
+    VLLM = auto()
+    ################################################################
+    # Other output formats
+    ################################################################
+    IMAGE_RETRIEVAL = auto()
+    NVCLIP = auto()
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
-    IMAGE_RETRIEVAL = auto()
-    TENSORRTLLM = auto()
-    VLLM = auto()
     TENSORRTLLM_ENGINE = auto()
 
     def to_lowercase(self):

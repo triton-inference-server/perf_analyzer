@@ -38,15 +38,16 @@ class OutputFormatConverterFactory:
     @staticmethod
     def create(output_format: OutputFormat):
         converters = {
+            OutputFormat.IMAGE_RETRIEVAL: OpenAIChatCompletionsConverter,
+            OutputFormat.NVCLIP: NVClipConverter,
             OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,
             OutputFormat.OPENAI_COMPLETIONS: OpenAICompletionsConverter,
             OutputFormat.OPENAI_EMBEDDINGS: OpenAIEmbeddingsConverter,
-            OutputFormat.IMAGE_RETRIEVAL: OpenAIChatCompletionsConverter,
             OutputFormat.OPENAI_VISION: OpenAIChatCompletionsConverter,
             OutputFormat.RANKINGS: RankingsConverter,
-            OutputFormat.VLLM: VLLMConverter,
             OutputFormat.TENSORRTLLM: TensorRTLLMConverter,
             OutputFormat.TENSORRTLLM_ENGINE: TensorRTLLMEngineConverter,
+            OutputFormat.VLLM: VLLMConverter,
         }
         if output_format not in converters:
             raise GenAIPerfException(f"Output format {output_format} is not supported")

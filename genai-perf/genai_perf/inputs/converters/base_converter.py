@@ -64,3 +64,9 @@ class BaseConverter:
             raise GenAIPerfException(
                 f"Model selection strategy '{config.model_selection_strategy}' is unsupported"
             )
+
+    def _add_request_params(
+        self, payload: Dict[Any, Any], config: InputsConfig
+    ) -> None:
+        for key, value in config.extra_inputs.items():
+            payload[key] = value

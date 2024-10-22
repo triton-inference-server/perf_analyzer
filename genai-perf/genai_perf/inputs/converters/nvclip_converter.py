@@ -24,22 +24,46 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from .nvclip_converter import NVClipConverter
-from .openai_chat_completions_converter import OpenAIChatCompletionsConverter
-from .openai_completions_converter import OpenAICompletionsConverter
-from .openai_embeddings_converter import OpenAIEmbeddingsConverter
-from .rankings_converter import RankingsConverter
-from .tensorrtllm_converter import TensorRTLLMConverter
-from .tensorrtllm_engine_converter import TensorRTLLMEngineConverter
-from .vllm_converter import VLLMConverter
+from typing import Any, Dict
 
-__all__ = [
-    "NVClipConverter",
-    "OpenAIChatCompletionsConverter",
-    "OpenAICompletionsConverter",
-    "OpenAIEmbeddingsConverter",
-    "RankingsConverter",
-    "TensorRTLLMConverter",
-    "TensorRTLLMEngineConverter",
-    "VLLMConverter",
-]
+from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.converters.base_converter import BaseConverter
+from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+
+
+class NVClipConverter(BaseConverter):
+
+    def check_config(self, config: InputsConfig) -> None:
+        if config.add_stream:
+            raise GenAIPerfException(
+                f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+            )
+
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
+        request_body: Dict[str, Any] = {"data": []}
+        for file_data in generic_dataset.files_data.values():
+            for index, row in enumerate(file_data.rows):
+                model_name = self._select_model_name(config, index)
+                input_items = []
+
+                if row.texts:
+                    input_items.extend(row.texts)
+
+                if row.images:
+                    input_items.extend(row.images)
+
+                payload = {
+                    "model": model_name,
+                    "input": input_items,
+                }
+
+                for key, value in config.extra_inputs.items():
+                    payload[key] = value
+
+                self._add_request_params(payload, config)
+                request_body["data"].append({"payload": [payload]})
+
+        return request_body
