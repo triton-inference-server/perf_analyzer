@@ -96,8 +96,6 @@ you'll need to install the Perf Analyzer binary:
 
 ```bash
 pip install tritonclient
-
-apt update && apt install -y --no-install-recommends libb64-0d libcurl4
 ```
 
 You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) as well.
