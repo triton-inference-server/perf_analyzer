@@ -232,8 +232,7 @@ class TritonCApiInferResult : public cb::InferResult {
   Error RequestStatus() const override;
   /// See InferResult::RawData()
   Error RawData(
-      const std::string& output_name, const uint8_t** buf,
-      size_t* byte_size) const override;
+      const std::string& output_name, std::vector<uint8_t>& buf) const override;
   /// See InferResult::IsFinalResponse()
   Error IsFinalResponse(bool* is_final_response) const override;
   /// See InferResult::IsNullResponse()

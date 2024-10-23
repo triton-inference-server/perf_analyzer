@@ -60,19 +60,18 @@ class InferResult {
   }
   tc::Error RequestStatus() const { return status_; }
 
-  tc::Error RawData(
-      const std::string& output_name, const uint8_t** buf,
-      size_t* byte_size) const
+  tc::Error RawData(const std::string& output_name, std::vector<uint8_t>& buf)
   {
     auto it = outputs_.find(output_name);
-    if (it != outputs_.end()) {
-      *buf = reinterpret_cast<const uint8_t*>(it->second.base);
-      *byte_size = it->second.byte_size;
-    } else {
+    if (it == outputs_.end()) {
       return tc::Error(
           "The response does not contain results for output name '" +
           output_name + "'");
     }
+
+    buf = std::move(it->second.data);
+
+    outputs_.erase(it);
 
     return tc::Error::Success;
   }
