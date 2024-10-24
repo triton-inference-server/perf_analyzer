@@ -30,7 +30,7 @@ namespace triton::perfanalyzer {
 
 CUDARuntimeLibraryManager::CUDARuntimeLibraryManager()
 {
-  handle_ = dlopen("libcudart.so", RTLD_LAZY);
+  handle_ = dlopen("libcudart.so", RTLD_NOW);
   if (handle_ == nullptr) {
     throw std::runtime_error(
         std::string("Cannot open CUDA runtime library: ") + dlerror() + "\n");
