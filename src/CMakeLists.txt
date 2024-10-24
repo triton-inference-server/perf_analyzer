@@ -155,6 +155,7 @@ set(
   profile_data_exporter.cc
   periodic_concurrency_manager.cc
   periodic_concurrency_worker.cc
+  cuda_runtime_library_manager.cc
 )
 
 set(
@@ -198,6 +199,7 @@ set(
   periodic_concurrency_manager.h
   periodic_concurrency_worker.h
   thread_config.h
+  cuda_runtime_library_manager.h
 )
 
 add_executable(
@@ -263,10 +265,9 @@ if(TRITON_ENABLE_GPU)
     PUBLIC TRITON_ENABLE_GPU=1
   )
 
-  target_link_libraries(
-    perf_analyzer
-    PRIVATE CUDA::cudart
-  )
+  target_include_directories(perf_analyzer
+                             PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+
 endif() # TRITON_ENABLE_GPU
 
 if(TRITON_ENABLE_PERF_ANALYZER_C_API)
