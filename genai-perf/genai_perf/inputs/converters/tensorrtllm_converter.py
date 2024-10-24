@@ -58,7 +58,7 @@ class TensorRTLLMConverter(BaseConverter):
 
                 payload = {
                     "model": model_name,
-                    "text_input": text,
+                    "text_input": [text],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],  # default
                 }
                 self._add_request_params(payload, config)

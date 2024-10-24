@@ -72,12 +72,12 @@ class TestTensorRTLLMConverter:
             "data": [
                 {
                     "model": "test_model",
-                    "text_input": "text input one",
+                    "text_input": ["text input one"],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 },
                 {
                     "model": "test_model",
-                    "text_input": "text input two",
+                    "text_input": ["text input two"],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 },
             ]
@@ -109,7 +109,7 @@ class TestTensorRTLLMConverter:
             "data": [
                 {
                     "model": "test_model",
-                    "text_input": "text input one",
+                    "text_input": ["text input one"],
                     "ignore_eos": [True],
                     "max_tokens": [1234],
                     "stream": [True],
@@ -117,7 +117,7 @@ class TestTensorRTLLMConverter:
                 },
                 {
                     "model": "test_model",
-                    "text_input": "text input two",
+                    "text_input": ["text input two"],
                     "ignore_eos": [True],
                     "max_tokens": [1234],
                     "stream": [True],
