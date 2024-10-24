@@ -96,7 +96,8 @@ class RequestRateManager : public LoadManager {
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager,
       const std::unordered_map<std::string, cb::RequestParameter>&
-          request_parameters);
+          request_parameters,
+      const std::vector<float>& schedule);
 
   /// Performs warmup for benchmarking by sending a fixed number of requests
   /// according to the specified request rate
@@ -125,17 +126,20 @@ class RequestRateManager : public LoadManager {
       const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       const std::unordered_map<std::string, cb::RequestParameter>&
-          request_parameters);
+          request_parameters,
+      const std::vector<float>& schedule);
 
   void InitManagerFinalize() override;
 
   /// Generates and update the request schedule as per the given request rate.
   /// \param request_rate The request rate to use for new schedule.
-  void GenerateSchedule(const double request_rate);
+  void GenerateSchedule(
+      const double request_rate, const std::vector<float>& schedule);
 
   std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
       std::chrono::nanoseconds duration,
-      std::function<std::chrono::nanoseconds(std::mt19937&)> distribution);
+      std::function<std::chrono::nanoseconds(std::mt19937&)> distribution,
+      const std::vector<float>& schedule);
 
   std::vector<RateSchedulePtr_t> CreateEmptyWorkerSchedules();
 
@@ -161,6 +165,7 @@ class RequestRateManager : public LoadManager {
   size_t DetermineNumThreads();
 
   std::shared_ptr<std::chrono::nanoseconds> gen_duration_;
+  std::vector<float> schedule_;
   Distribution request_distribution_;
   std::chrono::steady_clock::time_point start_time_;
   bool execute_;
