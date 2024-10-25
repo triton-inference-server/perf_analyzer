@@ -52,14 +52,13 @@ class SyntheticDataRetriever(BaseInputRetriever):
         files = self.config.synthetic_input_filenames or [DEFAULT_SYNTHETIC_FILENAME]
         synthetic_dataset = GenericDataset(files_data={})
 
-        tokenizer = cast(Tokenizer, self.config.tokenizer)
         for file in files:
             data_rows: List[DataRow] = []
 
             for _ in range(self.config.num_prompts):
                 row = DataRow(texts=[], images=[])
                 prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                    tokenizer,
+                    cast(Tokenizer, self.config.tokenizer),
                     self.config.prompt_tokens_mean,
                     self.config.prompt_tokens_stddev,
                 )
