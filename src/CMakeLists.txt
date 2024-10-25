@@ -77,14 +77,6 @@ find_library(TRITON_SHM_STATIC_LIB
   REQUIRED
 )
 
-set(TRITON_RHEL_BUILD OFF)
-if(LINUX)
-  file(STRINGS "/etc/os-release" DISTRO_ID_LIKE REGEX "ID_LIKE")
-  if(${DISTRO_ID_LIKE} MATCHES "rhel|centos")
-    set (TRITON_RHEL_BUILD ON)
-  endif(${DISTRO_ID_LIKE} MATCHES "rhel|centos")
-endif(LINUX)
-
 #
 # Dependencies
 #
@@ -246,13 +238,6 @@ target_compile_definitions(
     GIT_SHA=${GIT_SHA}
 )
 
-if(TRITON_RHEL_BUILD)
-  target_compile_definitions(
-    perf_analyzer
-    PUBLIC TRITON_RHEL_BUILD=1
-  )
-endif(TRITON_RHEL_BUILD)
-
 # If gpu is enabled then compile with CUDA dependencies
 if(TRITON_ENABLE_GPU)
   target_compile_definitions(
@@ -366,13 +351,6 @@ target_include_directories(
     client_backend
     ${libb64_SOURCE_DIR}/include
 )
-
-if(TRITON_RHEL_BUILD)
-  target_compile_definitions(
-    perf_analyzer_unit_tests
-    PUBLIC TRITON_RHEL_BUILD=1
-  )
-endif(TRITON_RHEL_BUILD)
 
 # -Wno-write-strings is needed for the unit tests in order to statically create
 # input argv cases in the CommandLineParser unit test
