@@ -1041,10 +1041,30 @@ TritonLoader::GetOutputs(
             &byte_size, &memory_type, &memory_type_id, &userp),
         "inference_response_output_fn_ error");
 
+    std::string data_type{datatype};
+    std::vector<uint8_t> data_copy;
+    // The first 4 bytes of BYTES data is a 32-bit integer to indicate the size
+    // of the rest of the data (which we already know based on byte_size). It
+    // should be ignored here, as it isn't part of the actual response
+    if (data_type == "BYTES" && byte_size >= 4) {
+      data_copy.reserve(byte_size - 4);
+      std::copy(
+          static_cast<const uint8_t*>(base) + 4,
+          static_cast<const uint8_t*>(base) + byte_size,
+          std::back_inserter(data_copy));
+    } else {
+      data_copy.reserve(byte_size);
+      std::copy(
+          static_cast<const uint8_t*>(base),
+          static_cast<const uint8_t*>(base) + byte_size,
+          std::back_inserter(data_copy));
+    }
+
     outputs.emplace(
-        name, ResponseOutput{
-                  name, datatype, shape, dim_count, base, byte_size,
-                  memory_type, memory_type_id, userp});
+        name,
+        ResponseOutput{
+            std::string(name), datatype, shape, dim_count, std::move(data_copy),
+            byte_size, memory_type, memory_type_id, userp});
   }
 
   return Error::Success;

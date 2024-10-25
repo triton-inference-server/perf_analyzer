@@ -652,8 +652,7 @@ class InferResult {
   /// \return Error object indicating the success or failure of the
   /// request.
   virtual Error RawData(
-      const std::string& output_name, const uint8_t** buf,
-      size_t* byte_size) const = 0;
+      const std::string& output_name, std::vector<uint8_t>& buf) const = 0;
 
   /// Get final response bool for this response.
   /// \return Error object indicating the success or failure.

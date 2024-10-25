@@ -1,4 +1,4 @@
-// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -69,15 +69,35 @@ TEST_CASE("profile_data_collector: AddData")
   auto request1_response2_timestamp{clock_epoch + nanoseconds(3)};
   uint8_t fake_data_in[] = {0x01, 0x02, 0x03, 0x04};
   uint8_t fake_data_out[] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-  RequestRecord::RequestInput request1_request_input{
-      {"key1", RecordData(fake_data_in, 1, "fake_datatype")},
-      {"key2", RecordData(fake_data_in, 2, "fake_datatype")}};
-  RequestRecord::ResponseOutput request1_response1_output{
-      {"key1", RecordData(fake_data_out, 1, "fake_datatype")},
-      {"key2", RecordData(fake_data_out, 2, "fake_datatype")}};
-  RequestRecord::ResponseOutput request1_response2_output{
-      {"key3", RecordData(fake_data_out, 3, "fake_datatype")},
-      {"key4", RecordData(fake_data_out, 4, "fake_datatype")}};
+  RequestRecord::RequestInput request1_request_input;
+  request1_request_input.emplace(
+      "key1", RecordData(
+                  std::vector<uint8_t>(fake_data_in, fake_data_in + 1),
+                  "fake_datatype"));
+  request1_request_input.emplace(
+      "key2", RecordData(
+                  std::vector<uint8_t>(fake_data_in, fake_data_in + 2),
+                  "fake_datatype"));
+
+  RequestRecord::ResponseOutput request1_response1_output;
+  request1_response1_output.emplace(
+      "key1", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 1),
+                  "fake_datatype"));
+  request1_response1_output.emplace(
+      "key2", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 2),
+                  "fake_datatype"));
+
+  RequestRecord::ResponseOutput request1_response2_output;
+  request1_response2_output.emplace(
+      "key3", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 3),
+                  "fake_datatype"));
+  request1_response2_output.emplace(
+      "key4", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 4),
+                  "fake_datatype"));
 
   RequestRecord request_record1{
       request1_timestamp,
@@ -94,15 +114,35 @@ TEST_CASE("profile_data_collector: AddData")
   auto request2_timestamp{clock_epoch + nanoseconds(4)};
   auto request2_response1_timestamp{clock_epoch + nanoseconds(5)};
   auto request2_response2_timestamp{clock_epoch + nanoseconds(6)};
-  RequestRecord::RequestInput request2_request_input{
-      {"key3", RecordData(fake_data_in, 3, "fake_datatype")},
-      {"key4", RecordData(fake_data_in, 4, "fake_datatype")}};
-  RequestRecord::ResponseOutput request2_response1_output{
-      {"key5", RecordData(fake_data_out, 5, "fake_datatype")},
-      {"key6", RecordData(fake_data_out, 6, "fake_datatype")}};
-  RequestRecord::ResponseOutput request2_response2_output{
-      {"key7", RecordData(fake_data_out, 7, "fake_datatype")},
-      {"key8", RecordData(fake_data_out, 8, "fake_datatype")}};
+  RequestRecord::RequestInput request2_request_input;
+  request2_request_input.emplace(
+      "key3", RecordData(
+                  std::vector<uint8_t>(fake_data_in, fake_data_in + 3),
+                  "fake_datatype"));
+  request2_request_input.emplace(
+      "key4", RecordData(
+                  std::vector<uint8_t>(fake_data_in, fake_data_in + 4),
+                  "fake_datatype"));
+
+  RequestRecord::ResponseOutput request2_response1_output;
+  request2_response1_output.emplace(
+      "key5", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 5),
+                  "fake_datatype"));
+  request2_response1_output.emplace(
+      "key6", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 6),
+                  "fake_datatype"));
+
+  RequestRecord::ResponseOutput request2_response2_output;
+  request2_response2_output.emplace(
+      "key7", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 7),
+                  "fake_datatype"));
+  request2_response2_output.emplace(
+      "key8", RecordData(
+                  std::vector<uint8_t>(fake_data_out, fake_data_out + 8),
+                  "fake_datatype"));
 
   RequestRecord request_record2{
       request2_timestamp,

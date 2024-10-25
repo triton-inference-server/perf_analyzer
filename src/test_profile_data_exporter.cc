@@ -52,35 +52,56 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
   const bool in_buf3{true};
   const std::string in_buf4{"{\"abc\":\"def\"}"};
 
-  RequestRecord::RequestInput request_input{
+  RequestRecord::RequestInput request_input;
+  request_input.insert(
       {"in_key1",
-       {reinterpret_cast<const uint8_t*>(in_buf1.data()), in_buf1.size(),
-        "BYTES"}},
+       RecordData(
+           std::vector<uint8_t>(in_buf1.begin(), in_buf1.end()), "BYTES")});
+  request_input.insert(
       {"in_key2",
-       {reinterpret_cast<const uint8_t*>(&in_buf2), sizeof(in_buf2), "INT32"}},
+       RecordData(
+           std::vector<uint8_t>(
+               reinterpret_cast<const uint8_t*>(&in_buf2),
+               reinterpret_cast<const uint8_t*>(&in_buf2) + sizeof(in_buf2)),
+           "INT32")});
+  request_input.insert(
       {"in_key3",
-       {reinterpret_cast<const uint8_t*>(&in_buf3), sizeof(in_buf3), "BOOL"}},
+       RecordData(
+           std::vector<uint8_t>(
+               reinterpret_cast<const uint8_t*>(&in_buf3),
+               reinterpret_cast<const uint8_t*>(&in_buf3) + sizeof(in_buf3)),
+           "BOOL")});
+  request_input.insert(
       {"in_key4",
-       {reinterpret_cast<const uint8_t*>(in_buf4.data()), sizeof(in_buf4),
-        "JSON"}},
-  };
+       RecordData(
+           std::vector<uint8_t>(in_buf4.begin(), in_buf4.end()), "JSON")});
 
   // Response outputs
   std::vector<std::string> out_bufs{"abc", "def", "ghi", "jkl"};
-  RequestRecord::ResponseOutput response_output1{
+
+  RequestRecord::ResponseOutput response_output1;
+  response_output1.insert(
       {"out_key1",
-       {reinterpret_cast<const uint8_t*>(out_bufs[0].data()),
-        out_bufs[0].size(), "BYTES"}},
+       RecordData(
+           std::vector<uint8_t>(out_bufs[0].begin(), out_bufs[0].end()),
+           "BYTES")});
+  response_output1.insert(
       {"out_key2",
-       {reinterpret_cast<const uint8_t*>(out_bufs[1].data()),
-        out_bufs[1].size(), "BYTES"}}};
-  RequestRecord::ResponseOutput response_output2{
+       RecordData(
+           std::vector<uint8_t>(out_bufs[1].begin(), out_bufs[1].end()),
+           "BYTES")});
+
+  RequestRecord::ResponseOutput response_output2;
+  response_output2.insert(
       {"out_key3",
-       {reinterpret_cast<const uint8_t*>(out_bufs[2].data()),
-        out_bufs[2].size(), "BYTES"}},
+       RecordData(
+           std::vector<uint8_t>(out_bufs[2].begin(), out_bufs[2].end()),
+           "BYTES")});
+  response_output2.insert(
       {"out_key4",
-       {reinterpret_cast<const uint8_t*>(out_bufs[3].data()),
-        out_bufs[3].size(), "BYTES"}}};
+       RecordData(
+           std::vector<uint8_t>(out_bufs[3].begin(), out_bufs[3].end()),
+           "BYTES")});
 
   RequestRecord request_record{
       request_timestamp,
@@ -133,6 +154,7 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
       }
       )"};
 
+
   rapidjson::Document expected_document;
   expected_document.Parse(json.c_str());
 
@@ -144,6 +166,7 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
   const rapidjson::Value& expected_windows{
       expected_document["experiments"][0]["window_boundaries"]};
   const rapidjson::Value& expected_version{expected_document["version"]};
+
 
   const rapidjson::Value& actual_experiment{
       exporter.document_["experiments"][0]["experiment"]};
@@ -158,6 +181,7 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
 
   CHECK(actual_request["timestamp"] == expected_request["timestamp"]);
   CHECK(actual_request["sequence_id"] == expected_request["sequence_id"]);
+
 
   CHECK(
       actual_request["request_inputs"]["in_key1"] ==
@@ -196,29 +220,30 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
 {
   MockProfileDataExporter exporter{};
   rapidjson::Value json;
-  const uint8_t* buf;
 
   SUBCASE("Test bytes")
   {
     const std::string data{"abc123"};
-    buf = reinterpret_cast<const uint8_t*>(data.data());
-    exporter.AddDataToJSON(json, buf, data.size(), "BYTES");
+    std::vector<uint8_t> buf(data.begin(), data.end());
+    exporter.AddDataToJSON(json, buf, "BYTES");
     CHECK(json == "abc123");
   }
 
   SUBCASE("Test json")
   {
     const std::string data{"{\"abc\":\"def\"}"};
-    buf = reinterpret_cast<const uint8_t*>(data.data());
-    exporter.AddDataToJSON(json, buf, data.size(), "JSON");
+    std::vector<uint8_t> buf(data.begin(), data.end());
+    exporter.AddDataToJSON(json, buf, "JSON");
     CHECK(json == "{\"abc\":\"def\"}");
   }
 
   SUBCASE("Test bool")
   {
     const bool data[3] = {true, false, true};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "BOOL");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "BOOL");
     CHECK(json[0] == true);
     CHECK(json[1] == false);
     CHECK(json[2] == true);
@@ -227,8 +252,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test uint8")
   {
     const uint8_t data[3] = {1, 2, 3};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT8");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "UINT8");
     CHECK(json[0] == 1);
     CHECK(json[1] == 2);
     CHECK(json[2] == 3);
@@ -237,8 +264,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test uint16")
   {
     const uint16_t data[3] = {4, 5, 6};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT16");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "UINT16");
     CHECK(json[0] == 4);
     CHECK(json[1] == 5);
     CHECK(json[2] == 6);
@@ -247,8 +276,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test uint32")
   {
     const uint32_t data[3] = {7, 8, 9};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT32");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "UINT32");
     CHECK(json[0] == 7);
     CHECK(json[1] == 8);
     CHECK(json[2] == 9);
@@ -257,8 +288,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test uint64")
   {
     const uint64_t data[3] = {10, 11, 12};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "UINT64");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "UINT64");
     CHECK(json[0] == 10);
     CHECK(json[1] == 11);
     CHECK(json[2] == 12);
@@ -267,8 +300,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test int8")
   {
     const int8_t data[3] = {1, -2, 3};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "INT8");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "INT8");
     CHECK(json[0] == 1);
     CHECK(json[1] == -2);
     CHECK(json[2] == 3);
@@ -277,8 +312,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test int16")
   {
     const int16_t data[3] = {4, -5, 6};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "INT16");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "INT16");
     CHECK(json[0] == 4);
     CHECK(json[1] == -5);
     CHECK(json[2] == 6);
@@ -287,8 +324,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test int32")
   {
     const int32_t data[3] = {7, -8, 9};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "INT32");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "INT32");
     CHECK(json[0] == 7);
     CHECK(json[1] == -8);
     CHECK(json[2] == 9);
@@ -297,8 +336,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test int64")
   {
     const int64_t data[3] = {10, -11, 12};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "INT64");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "INT64");
     CHECK(json[0] == 10);
     CHECK(json[1] == -11);
     CHECK(json[2] == 12);
@@ -307,8 +348,10 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test fp32")
   {
     const float data[3] = {1.0, -2.0, 3.0};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "FP32");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "FP32");
     CHECK(json[0] == 1.0);
     CHECK(json[1] == -2.0);
     CHECK(json[2] == 3.0);
@@ -317,13 +360,16 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
   SUBCASE("Test fp64")
   {
     const double data[3] = {4.0, -5.0, 6.0};
-    buf = reinterpret_cast<const uint8_t*>(data);
-    exporter.AddDataToJSON(json, buf, sizeof(data), "FP64");
+    std::vector<uint8_t> buf(
+        reinterpret_cast<const uint8_t*>(data),
+        reinterpret_cast<const uint8_t*>(data) + sizeof(data));
+    exporter.AddDataToJSON(json, buf, "FP64");
     CHECK(json[0] == 4.0);
     CHECK(json[1] == -5.0);
     CHECK(json[2] == 6.0);
   }
 }
+
 
 TEST_CASE("profile_data_exporter: AddExperiment")
 {

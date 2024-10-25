@@ -34,11 +34,11 @@ namespace triton { namespace perfanalyzer { namespace clientbackend {
 namespace tritoncapi {
 
 struct ResponseOutput {
-  const char* name{};
+  std::string name{};
   TRITONSERVER_DataType datatype{};
   const int64_t* shape{};
   uint64_t dim_count{};
-  const void* base{};
+  std::vector<uint8_t> data;
   size_t byte_size{};
   TRITONSERVER_MemoryType memory_type{};
   int64_t memory_type_id{};

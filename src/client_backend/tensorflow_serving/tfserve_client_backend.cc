@@ -187,8 +187,7 @@ TFServeInferResult::RequestStatus() const
 
 Error
 TFServeInferResult::RawData(
-    const std::string& output_name, const uint8_t** buf,
-    size_t* byte_size) const
+    const std::string& output_name, std::vector<uint8_t>& buf) const
 {
   return Error(
       "Output retrieval is not currently supported for TFS client backend");
