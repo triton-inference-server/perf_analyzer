@@ -46,7 +46,7 @@ from genai_perf.inputs.input_constants import (
     PromptSource,
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, Tokenizer, get_tokenizer
+from genai_perf.tokenizer import Tokenizer
 
 
 @dataclass
@@ -141,4 +141,4 @@ class InputsConfig:
     random_seed: int = DEFAULT_RANDOM_SEED
 
     # The tokenizer to use when generating synthetic prompts
-    tokenizer: Tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+    tokenizer: Optional[Tokenizer] = None

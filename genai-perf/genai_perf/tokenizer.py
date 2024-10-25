@@ -14,18 +14,13 @@
 
 import contextlib
 import io
-from typing import List
+from typing import TYPE_CHECKING, List
+
+# Use TYPE_CHECKING to import BatchEncoding only during static type checks
+if TYPE_CHECKING:
+    from transformers import BatchEncoding
 
 from genai_perf.exceptions import GenAIPerfException
-
-# Silence tokenizer warning on import
-with contextlib.redirect_stdout(io.StringIO()) as stdout, contextlib.redirect_stderr(
-    io.StringIO()
-) as stderr:
-    from transformers import AutoTokenizer, BatchEncoding
-    from transformers import logging as token_logger
-
-    token_logger.set_verbosity_error()
 
 DEFAULT_TOKENIZER = "hf-internal-testing/llama-tokenizer"
 DEFAULT_TOKENIZER_REVISION = "main"
@@ -41,10 +36,14 @@ class Tokenizer:
         Initialize by downloading the tokenizer from Huggingface.co
         """
         try:
-            # Silence tokenizer warning on first use
+            # Silence tokenizer warning on import and first use
             with contextlib.redirect_stdout(
                 io.StringIO()
-            ) as stdout, contextlib.redirect_stderr(io.StringIO()) as stderr:
+            ) as stdout, contextlib.redirect_stderr(io.StringIO()):
+                from transformers import AutoTokenizer
+                from transformers import logging as token_logger
+
+                token_logger.set_verbosity_error()
                 tokenizer = AutoTokenizer.from_pretrained(
                     name, trust_remote_code=trust_remote_code, revision=revision
                 )
@@ -58,7 +57,7 @@ class Tokenizer:
         self._encode_args = {"add_special_tokens": False}
         self._decode_args = {"skip_special_tokens": True}
 
-    def __call__(self, text, **kwargs) -> BatchEncoding:
+    def __call__(self, text, **kwargs) -> "BatchEncoding":
         self._call_args.update(kwargs)
         return self._tokenizer(text, **self._call_args)
 
