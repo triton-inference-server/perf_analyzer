@@ -1,4 +1,4 @@
-# Copyright 2020-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2020-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -84,10 +84,9 @@ if(${TRITON_ENABLE_ZLIB})
 endif()
 
 if(${TRITON_ENABLE_GPU})
-  target_link_libraries(
-    triton-client-backend-library
-    PRIVATE CUDA::cudart
-  )
+  target_include_directories(triton-client-backend-library
+                             PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+
   # Need to enable this compilation flag, otherwise, ipc.h
   # will select mock-struct as opposed to the correct cuda
   # runtime header file.

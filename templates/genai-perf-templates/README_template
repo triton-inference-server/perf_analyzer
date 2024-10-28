@@ -89,15 +89,13 @@ genai-perf --help
 Since GenAI-Perf depends on Perf Analyzer,
 you'll need to install the Perf Analyzer binary:
 
-### Install Perf Analyzer (Ubuntu, Python 3.8+)
+### Install Perf Analyzer (Ubuntu, Python 3.10+)
 
 **NOTE**: you must already have CUDA 12 installed
 (checkout the [CUDA installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)).
 
 ```bash
 pip install tritonclient
-
-apt update && apt install -y --no-install-recommends libb64-0d libcurl4
 ```
 
 You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) as well.
@@ -282,8 +280,8 @@ When the dataset is synthetic, you can specify the following options:
 
 When the dataset is coming from a file, you can specify the following
 options:
-* `--input-file <path>`: The input file containing the prompts to
-  use for benchmarking as JSON objects.
+* `--input-file <path>`: The input file or directory containing the prompts or
+  filepaths to images to use for benchmarking as JSON objects.
 
 For any dataset, you can specify the following options:
 * `--output-tokens-mean <int>`: The mean number of tokens in each output. Ensure
@@ -420,9 +418,13 @@ Alternatively, a string representing a json formatted dict can be provided.
 
 ##### `--input-file <path>`
 
-The input file containing the prompts to use for profiling.
-Each line should be a JSON object with a 'text' field in JSONL format.
-Example: {\"text\": \"Your prompt here\"}"
+The input file or directory containing the content to use for
+profiling. To use synthetic files for a converter that needs
+multiple files, prefix the path with 'synthetic:', followed by a
+comma-separated list of filenames. The synthetic filenames should not have
+extensions. For example, 'synthetic:queries,passages'.
+Each line should be a JSON object with a 'text' or 'image' field
+in JSONL format. Example: {\"text\": \"Your prompt here\"}"
 
 ##### `--num-prompts <int>`
 

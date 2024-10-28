@@ -25,9 +25,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from typing import Any, Dict, List
+from typing import List
 
-from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
+from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 from genai_perf.inputs.retrievers.synthetic_image_generator import (
     SyntheticImageGenerator,
 )
@@ -36,33 +43,42 @@ from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
 )
 
 
-class SyntheticDataRetriever:
+class SyntheticDataRetriever(BaseInputRetriever):
     """
     A data retriever class that handles generation of synthetic data.
     """
 
-    def __init__(self, config):
-        self.config = config
+    def retrieve_data(self) -> GenericDataset:
+        files = self.config.synthetic_input_filenames or [DEFAULT_SYNTHETIC_FILENAME]
+        synthetic_dataset = GenericDataset(files_data={})
 
-    def retrieve_data(self) -> List[Dict[str, Any]]:
-        synthetic_dataset = []
-        for _ in range(self.config.num_prompts):
-            prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                self.config.tokenizer,
-                self.config.prompt_tokens_mean,
-                self.config.prompt_tokens_stddev,
-            )
-            data = {"text": prompt}
+        for file in files:
+            data_rows: List[DataRow] = []
 
-            if self.config.output_format == OutputFormat.OPENAI_VISION:
-                image = SyntheticImageGenerator.create_synthetic_image(
-                    image_width_mean=self.config.image_width_mean,
-                    image_width_stddev=self.config.image_width_stddev,
-                    image_height_mean=self.config.image_height_mean,
-                    image_height_stddev=self.config.image_height_stddev,
-                    image_format=self.config.image_format,
+            for _ in range(self.config.num_prompts):
+                row = DataRow(texts=[], images=[])
+                prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                    self.config.tokenizer,
+                    self.config.prompt_tokens_mean,
+                    self.config.prompt_tokens_stddev,
                 )
-                data["image"] = image
+                for _ in range(self.config.batch_size_text):
+                    row.texts.append(prompt)
 
-            synthetic_dataset.append(data)
+                for _ in range(self.config.batch_size_image):
+                    image = SyntheticImageGenerator.create_synthetic_image(
+                        image_width_mean=self.config.image_width_mean,
+                        image_width_stddev=self.config.image_width_stddev,
+                        image_height_mean=self.config.image_height_mean,
+                        image_height_stddev=self.config.image_height_stddev,
+                        image_format=self.config.image_format,
+                    )
+                    row.images.append(image)
+
+                data_rows.append(row)
+
+            file_data = FileData(file, data_rows)
+
+            synthetic_dataset.files_data[file] = file_data
+
         return synthetic_dataset

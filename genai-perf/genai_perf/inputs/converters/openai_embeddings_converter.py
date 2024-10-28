@@ -26,34 +26,34 @@
 
 from typing import Any, Dict
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class OpenAIEmbeddingsConverter(BaseConverter):
 
-    _CONTENT_NAMES = [
-        "text",
-    ]
+    def check_config(self, config: InputsConfig) -> None:
+        if config.add_stream:
+            raise GenAIPerfException(
+                f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+            )
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            text = self._construct_text_payload_batch_agnostic(
-                config.batch_size_text, entry
-            )
-            model_name = self._select_model_name(config, index)
+        for file_data in generic_dataset.files_data.values():
+            for index, row in enumerate(file_data.rows):
+                model_name = self._select_model_name(config, index)
 
-            payload = {
-                "model": model_name,
-                "input": text,
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+                payload = {
+                    "model": model_name,
+                    "input": row.texts,
+                }
+                self._add_request_params(payload, config)
+                request_body["data"].append({"payload": [payload]})
 
         return request_body
-
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
-            payload[key] = value

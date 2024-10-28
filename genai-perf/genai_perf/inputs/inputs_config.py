@@ -26,7 +26,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from genai_perf.inputs.input_constants import (
     DEFAULT_IMAGE_HEIGHT_MEAN,
@@ -62,17 +62,20 @@ class InputsConfig:
     # If true, adds a steam field to each payload
     add_stream: bool = False
 
-    # The number of image inputs per request (currently only used for the image retrieval endpoint)
+    # The number of image inputs per request
     batch_size_image: int = 1
 
-    # The number of text inputs per request (currently only used for the embeddings and rankings endpoints)
+    # The number of text inputs per request
     batch_size_text: int = 1
 
     # If provided, append these inputs to every request
     extra_inputs: Dict = field(default_factory=dict)
 
     # The filename where the input data is available
-    input_filename: Path = Path("")
+    input_filename: Optional[Path] = Path("")
+
+    # The filenames used for synthetic data generation
+    synthetic_input_filenames: Optional[List[str]] = field(default_factory=list)
 
     # The compression format of the images.
     image_format: ImageFormat = ImageFormat.PNG

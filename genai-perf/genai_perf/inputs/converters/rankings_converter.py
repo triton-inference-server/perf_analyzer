@@ -24,29 +24,60 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class RankingsConverter(BaseConverter):
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def check_config(self, config: InputsConfig) -> None:
+        if config.add_stream:
+            raise GenAIPerfException(
+                f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+            )
+
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
+        provided_filenames = list(generic_dataset.files_data.keys())
+        if "queries" not in provided_filenames or "passages" not in provided_filenames:
+            raise ValueError(
+                "Both 'queries.jsonl' and 'passages.jsonl' must be present in the input datasets."
+            )
+
+        queries_data = generic_dataset.files_data["queries"]
+        passages_data = generic_dataset.files_data["passages"]
+
+        rows_of_passage_data = len(passages_data.rows)
+
         request_body: Dict[str, Any] = {"data": []}
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            model_name = self._select_model_name(config, index)
+        for query_index, query_row in enumerate(queries_data.rows):
+            if query_index >= rows_of_passage_data:
+                break
+
+            model_name = self._select_model_name(config, query_index)
+            query = query_row.texts[0]
+
+            passage_entry = passages_data.rows[query_index]
+
+            passages: Union[List[str], List[Dict[str, str]]]
+            payload: Dict[str, Any]
 
             if self._is_rankings_tei(config):
-                payload = {
-                    "query": entry["query"]["text"],
-                    "texts": [p["text"] for p in entry["passages"]],
-                }
+                passages = passage_entry.texts
+                payload = {"query": query, "texts": passages}
             else:
+                passages = [
+                    {"text_input": p} for p in passage_entry.texts if p is not None
+                ]
                 payload = {
-                    "query": entry["query"],
-                    "passages": entry["passages"],
+                    "query": query,
+                    "passages": passages,
                     "model": model_name,
                 }
 

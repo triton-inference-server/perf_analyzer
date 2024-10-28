@@ -40,52 +40,37 @@ class Inputs:
 
     def __init__(self, config: InputsConfig):
         self.config = config
-        if self.config.extra_inputs is None:
-            self.config.extra_inputs = {}
+        self.converter = OutputFormatConverterFactory.create(self.config.output_format)
+        self.converter.check_config(self.config)
 
         random.seed(self.config.random_seed)
 
-    def create_inputs(self) -> Dict:
+    def create_inputs(self) -> None:
         """
         Given an input type, input format, and output type. Output a string of LLM Inputs
         (in a JSON dictionary) to a file.
         """
         self._check_for_valid_args()
-        input_retriever = InputRetrieverFactory(self.config)
-        generic_dataset_json = input_retriever.get_input_data()
+        input_retriever = InputRetrieverFactory.create(self.config)
+        generic_dataset = input_retriever.retrieve_data()
 
-        json_in_pa_format = self._convert_generic_json_to_output_format(
-            generic_dataset_json,
+        json_in_pa_format = self._convert_generic_dataset_to_output_format(
+            generic_dataset,
         )
         self._write_json_to_file(json_in_pa_format)
-        return json_in_pa_format
 
     def _check_for_valid_args(self) -> None:
-        self._check_for_supported_input_type()
         self._check_for_tokenzier_if_input_type_is_synthetic()
         self._check_for_valid_starting_index()
         self._check_for_valid_length()
 
-    def _convert_generic_json_to_output_format(self, generic_dataset) -> Dict:
-        converter = OutputFormatConverterFactory.create(self.config.output_format)
-        return converter.convert(generic_dataset, self.config)
+    def _convert_generic_dataset_to_output_format(self, generic_dataset) -> Dict:
+        return self.converter.convert(generic_dataset, self.config)
 
     def _write_json_to_file(self, json_in_pa_format: Dict) -> None:
         filename = self.config.output_dir / DEFAULT_INPUT_DATA_JSON
         with open(str(filename), "w") as f:
             f.write(json.dumps(json_in_pa_format, indent=2))
-
-    def _check_for_supported_input_type(self) -> None:
-        if self.config.output_format in [
-            OutputFormat.OPENAI_EMBEDDINGS,
-            OutputFormat.RANKINGS,
-            OutputFormat.IMAGE_RETRIEVAL,
-        ]:
-            if self.config.input_type != PromptSource.FILE:
-                raise GenAIPerfException(
-                    f"{self.config.output_format.to_lowercase()} only supports "
-                    "a file as input source."
-                )
 
     def _check_for_tokenzier_if_input_type_is_synthetic(self) -> None:
         if (

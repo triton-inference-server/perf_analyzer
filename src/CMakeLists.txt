@@ -77,14 +77,6 @@ find_library(TRITON_SHM_STATIC_LIB
   REQUIRED
 )
 
-set(TRITON_RHEL_BUILD OFF)
-if(LINUX)
-  file(STRINGS "/etc/os-release" DISTRO_ID_LIKE REGEX "ID_LIKE")
-  if(${DISTRO_ID_LIKE} MATCHES "rhel|centos")
-    set (TRITON_RHEL_BUILD ON)
-  endif(${DISTRO_ID_LIKE} MATCHES "rhel|centos")
-endif(LINUX)
-
 #
 # Dependencies
 #
@@ -104,11 +96,19 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 add_subdirectory(client_backend)
 
 include(FetchContent)
+
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/9406a60c7839052e4944ea4dbc8344762a89f9bd.zip
 )
 FetchContent_MakeAvailable(googletest)
+
+FetchContent_Declare(
+  libb64
+  GIT_REPOSITORY https://git.code.sf.net/p/libb64/git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(libb64)
 
 find_package(Git REQUIRED)
 
@@ -147,6 +147,7 @@ set(
   profile_data_exporter.cc
   periodic_concurrency_manager.cc
   periodic_concurrency_worker.cc
+  cuda_runtime_library_manager.cc
 )
 
 set(
@@ -190,6 +191,7 @@ set(
   periodic_concurrency_manager.h
   periodic_concurrency_worker.h
   thread_config.h
+  cuda_runtime_library_manager.h
 )
 
 add_executable(
@@ -199,13 +201,25 @@ add_executable(
   ${PERF_ANALYZER_HDRS}
 )
 
+target_sources(
+  perf_analyzer
+  PRIVATE
+    ${libb64_SOURCE_DIR}/src/cdecode.c
+    ${libb64_SOURCE_DIR}/src/cencode.c
+)
+
+target_include_directories(
+  perf_analyzer
+  PRIVATE
+    ${libb64_SOURCE_DIR}/include
+)
+
 target_link_libraries(
   perf_analyzer
   PRIVATE
     ${TRITON_HTTP_STATIC_LIB}
     ${TRITON_GRPC_STATIC_LIB}
     client-backend-library
-    -lb64
     ${CMAKE_DL_LIBS}
 )
 
@@ -224,13 +238,6 @@ target_compile_definitions(
     GIT_SHA=${GIT_SHA}
 )
 
-if(TRITON_RHEL_BUILD)
-  target_compile_definitions(
-    perf_analyzer
-    PUBLIC TRITON_RHEL_BUILD=1
-  )
-endif(TRITON_RHEL_BUILD)
-
 # If gpu is enabled then compile with CUDA dependencies
 if(TRITON_ENABLE_GPU)
   target_compile_definitions(
@@ -243,10 +250,9 @@ if(TRITON_ENABLE_GPU)
     PUBLIC TRITON_ENABLE_GPU=1
   )
 
-  target_link_libraries(
-    perf_analyzer
-    PRIVATE CUDA::cudart
-  )
+  target_include_directories(perf_analyzer
+                             PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+
 endif() # TRITON_ENABLE_GPU
 
 if(TRITON_ENABLE_PERF_ANALYZER_C_API)
@@ -332,23 +338,26 @@ add_executable(
   ${TEST_HTTP_CLIENT}
 )
 
-# -Wno-write-strings is needed for the unit tests in order to statically create
-# input argv cases in the CommandLineParser unit test
-#
-set_target_properties(perf_analyzer_unit_tests
-  PROPERTIES COMPILE_FLAGS "-Wno-write-strings")
-
-if(TRITON_RHEL_BUILD)
-  target_compile_definitions(
-    perf_analyzer_unit_tests
-    PUBLIC TRITON_RHEL_BUILD=1
-  )
-endif(TRITON_RHEL_BUILD)
+target_sources(
+  perf_analyzer_unit_tests
+  PRIVATE
+    ${libb64_SOURCE_DIR}/src/cdecode.c
+    ${libb64_SOURCE_DIR}/src/cencode.c
+)
 
 target_include_directories(
   perf_analyzer_unit_tests
   PRIVATE
     client_backend
+    ${libb64_SOURCE_DIR}/include
+)
+
+# -Wno-write-strings is needed for the unit tests in order to statically create
+# input argv cases in the CommandLineParser unit test
+target_compile_options(
+  perf_analyzer_unit_tests
+  PRIVATE
+    -Wno-write-strings
 )
 
 target_link_libraries(
@@ -356,7 +365,6 @@ target_link_libraries(
   PRIVATE
     gmock
     client-backend-library
-    -lb64
 )
 
 install(

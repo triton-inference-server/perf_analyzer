@@ -27,31 +27,42 @@
 import random
 from typing import Any, Dict
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import (
+    DEFAULT_BATCH_SIZE,
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
+    def check_config(self, config: InputsConfig) -> None:
+        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+            raise GenAIPerfException(
+                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+            )
 
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
-        for _, entry in enumerate(generic_dataset["rows"]):
-            token_ids = config.tokenizer.encode(entry["text"])
-            payload = {
-                "input_ids": {
-                    "content": token_ids,
-                    "shape": [len(token_ids)],
-                },
-                "input_lengths": [len(token_ids)],
-                "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append(payload)
+        for file_data in generic_dataset.files_data.values():
+            for row in file_data.rows:
+                token_ids = config.tokenizer.encode(row.texts[0])
+                payload = {
+                    "input_ids": {
+                        "content": token_ids,
+                        "shape": [len(token_ids)],
+                    },
+                    "input_lengths": [len(token_ids)],
+                    "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                }
+                self._add_request_params(payload, config)
+                request_body["data"].append(payload)
 
         return request_body
 

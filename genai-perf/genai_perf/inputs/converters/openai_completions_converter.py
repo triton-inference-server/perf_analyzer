@@ -30,36 +30,27 @@ from typing import Any, Dict
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class OpenAICompletionsConverter(BaseConverter):
 
-    # TODO (TPA-430): This works for great for synthetic and input file approaches
-    # but a bit tedious for dataset case as we need to specify the content names
-    # for each dataset. This is because a dataset can be used differently depending
-    # on the endpoint (e.g. chat vs non-chat).
-    _CONTENT_NAMES = [
-        "text",
-        # OPENORCA
-        "system_prompt",
-        "question",
-        # CNN DAILYMAIL
-        "article",
-    ]
-
-    def convert(self, generic_dataset: Dict, config: InputsConfig) -> Dict:
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
-        for index, entry in enumerate(generic_dataset["rows"]):
-            model_name = self._select_model_name(config, index)
-            prompt = self._construct_text_payload(entry)
+        for file_data in generic_dataset.files_data.values():
+            for index, row in enumerate(file_data.rows):
+                model_name = self._select_model_name(config, index)
+                prompt = row.texts
 
-            payload = {
-                "model": model_name,
-                "prompt": prompt,
-            }
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+                payload = {
+                    "model": model_name,
+                    "prompt": prompt,
+                }
+                self._add_request_params(payload, config)
+                request_body["data"].append({"payload": [payload]})
 
         return request_body
 

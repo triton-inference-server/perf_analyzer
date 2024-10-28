@@ -62,7 +62,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", ["genai-perf"] + args)
 
         with pytest.raises(SystemExit) as excinfo:
-            _ = parser.parse_args()
+            parser.parse_args()
 
         # Check that the exit was successful
         assert excinfo.value.code == 0
@@ -324,7 +324,7 @@ class TestCLIArguments:
             assert getattr(args, key) == value
 
     def test_file_flags_parsed(self, monkeypatch, mocker):
-        _ = mocker.patch("os.path.isfile", return_value=True)
+        mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = [
             "genai-perf",
             "profile",
@@ -335,11 +335,9 @@ class TestCLIArguments:
         ]
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
-        filepath, pathtype = args.input_file
-        assert filepath == Path(
+        assert args.input_file == Path(
             "fakefile.txt"
         ), "The file argument should be the path to the file"
-        assert pathtype == PathType.FILE
 
     @pytest.mark.parametrize(
         "arg, expected_path",
@@ -574,70 +572,6 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--batch-size-text",
-                    "10",
-                ],
-                "The --batch-size-text option is currently only supported with the embeddings and rankings endpoint types",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--batch-size-image",
-                    "10",
-                ],
-                "The --batch-size-image option is currently only supported with the image retrieval endpoint type",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint-type",
-                    "embeddings",
-                    "--streaming",
-                ],
-                "The --streaming option is not supported with the embeddings endpoint type",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint-type",
-                    "rankings",
-                    "--streaming",
-                ],
-                "The --streaming option is not supported with the rankings endpoint type",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint-type",
-                    "image_retrieval",
-                    "--streaming",
-                ],
-                "The --streaming option is not supported with the image_retrieval endpoint type",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -802,7 +736,7 @@ class TestCLIArguments:
         parsed_args, _ = parser.parse_args()
 
         with pytest.raises(ValueError) as exc_info:
-            _ = parser.get_extra_inputs_as_dict(parsed_args)
+            parser.get_extra_inputs_as_dict(parsed_args)
 
         assert str(exc_info.value) == expected_error
 
@@ -820,7 +754,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(ValueError) as exc_info:
-            parsed_args, _ = parser.parse_args()
+            parser.parse_args()
 
         assert str(exc_info.value) == expected_error
 
@@ -838,9 +772,7 @@ class TestCLIArguments:
     def test_inferred_prompt_source(
         self, monkeypatch, mocker, args, expected_prompt_source
     ):
-        _ = mocker.patch("builtins.open", mocker.mock_open(read_data="data"))
-        _ = mocker.patch("os.path.isfile", return_value=True)
-        _ = mocker.patch("os.path.isdir", return_value=True)
+        mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
@@ -888,7 +820,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", ["genai-perf", "compare"] + args)
 
         with pytest.raises(SystemExit) as excinfo:
-            _ = parser.parse_args()
+            parser.parse_args()
 
         # Check that the exit was successful
         assert excinfo.value.code == 0

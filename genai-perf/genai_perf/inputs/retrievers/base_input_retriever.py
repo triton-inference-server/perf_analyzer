@@ -24,22 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from .nvclip_converter import NVClipConverter
-from .openai_chat_completions_converter import OpenAIChatCompletionsConverter
-from .openai_completions_converter import OpenAICompletionsConverter
-from .openai_embeddings_converter import OpenAIEmbeddingsConverter
-from .rankings_converter import RankingsConverter
-from .tensorrtllm_converter import TensorRTLLMConverter
-from .tensorrtllm_engine_converter import TensorRTLLMEngineConverter
-from .vllm_converter import VLLMConverter
+from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
-__all__ = [
-    "NVClipConverter",
-    "OpenAIChatCompletionsConverter",
-    "OpenAICompletionsConverter",
-    "OpenAIEmbeddingsConverter",
-    "RankingsConverter",
-    "TensorRTLLMConverter",
-    "TensorRTLLMEngineConverter",
-    "VLLMConverter",
-]
+
+class BaseInputRetriever:
+    def __init__(self, config: InputsConfig):
+        self.config = config
+
+    def retrieve_data(self) -> GenericDataset:
+        """
+        Method to retrieve data as a GenericDataset.
+        """
+        raise NotImplementedError("This method should be implemented by subclasses.")

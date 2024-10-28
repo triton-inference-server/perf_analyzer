@@ -31,20 +31,35 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
 
 
 class TestTensorRTLLMConverter:
 
+    @staticmethod
+    def create_generic_dataset():
+        """Create a standard generic dataset for testing."""
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    filename="file1",
+                    rows=[
+                        DataRow(texts=["text input one"]),
+                        DataRow(texts=["text input two"]),
+                    ],
+                )
+            }
+        )
+
     def test_convert_default(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         config = InputsConfig(
-            extra_inputs={},  # no extra inputs
+            extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM,
@@ -57,12 +72,12 @@ class TestTensorRTLLMConverter:
             "data": [
                 {
                     "model": "test_model",
-                    "text_input": "text input one",
+                    "text_input": ["text input one"],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 },
                 {
                     "model": "test_model",
-                    "text_input": "text input two",
+                    "text_input": ["text input two"],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 },
             ]
@@ -71,12 +86,7 @@ class TestTensorRTLLMConverter:
         assert result == expected_result
 
     def test_convert_with_request_parameters(self):
-        generic_dataset = {
-            "rows": [
-                {"text": "text input one"},
-                {"text": "text input two"},
-            ]
-        }
+        generic_dataset = self.create_generic_dataset()
 
         extra_inputs = {
             "ignore_eos": True,
@@ -89,7 +99,7 @@ class TestTensorRTLLMConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM,
-            add_stream=True,  # set streaming
+            add_stream=True,
         )
 
         trtllm_converter = TensorRTLLMConverter()
@@ -99,7 +109,7 @@ class TestTensorRTLLMConverter:
             "data": [
                 {
                     "model": "test_model",
-                    "text_input": "text input one",
+                    "text_input": ["text input one"],
                     "ignore_eos": [True],
                     "max_tokens": [1234],
                     "stream": [True],
@@ -107,7 +117,7 @@ class TestTensorRTLLMConverter:
                 },
                 {
                     "model": "test_model",
-                    "text_input": "text input two",
+                    "text_input": ["text input two"],
                     "ignore_eos": [True],
                     "max_tokens": [1234],
                     "stream": [True],
@@ -116,4 +126,20 @@ class TestTensorRTLLMConverter:
             ]
         }
 
+        assert result == expected_result
+
+    def test_convert_empty_dataset(self):
+        generic_dataset = GenericDataset(files_data={})
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.TENSORRTLLM,
+        )
+
+        trtllm_converter = TensorRTLLMConverter()
+        result = trtllm_converter.convert(generic_dataset, config)
+
+        expected_result = {"data": []}
         assert result == expected_result
