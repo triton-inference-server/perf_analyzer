@@ -112,8 +112,7 @@ class MockInferResult : public InferResult {
   }
   Error RequestStatus() const override { return Error::Success; }
   Error RawData(
-      const std::string& output_name, const uint8_t** buf,
-      size_t* byte_size) const override
+      const std::string& output_name, std::vector<uint8_t>& buf) const override
   {
     return Error::Success;
   }

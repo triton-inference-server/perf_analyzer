@@ -162,34 +162,40 @@ ProfileDataExporter::AddResponseTimestamps(
 
 void
 ProfileDataExporter::SetValueToJSON(
-    rapidjson::Value& json, const size_t index, const uint8_t* buf,
-    const size_t byte_size, const std::string& data_type)
+    rapidjson::Value& json, const size_t index, const std::vector<uint8_t>& buf,
+    const std::string& data_type)
 {
+  auto data_type_size_opt = GetDataTypeSize(data_type);
+  if (!data_type_size_opt || (index * *data_type_size_opt >= buf.size())) {
+    std::cerr << "Index out of bounds." << std::endl;
+    return;
+  }
+
   if (data_type == "BOOL") {
-    json.SetBool(reinterpret_cast<const bool*>(buf)[index]);
+    json.SetBool(reinterpret_cast<const bool*>(buf.data())[index]);
   } else if (data_type == "UINT8") {
-    json.SetUint(reinterpret_cast<const uint8_t*>(buf)[index]);
+    json.SetUint(reinterpret_cast<const uint8_t*>(buf.data())[index]);
   } else if (data_type == "UINT16") {
-    json.SetUint(reinterpret_cast<const uint16_t*>(buf)[index]);
+    json.SetUint(reinterpret_cast<const uint16_t*>(buf.data())[index]);
   } else if (data_type == "UINT32") {
-    json.SetUint(reinterpret_cast<const uint32_t*>(buf)[index]);
+    json.SetUint(reinterpret_cast<const uint32_t*>(buf.data())[index]);
   } else if (data_type == "UINT64") {
-    json.SetUint64(reinterpret_cast<const uint64_t*>(buf)[index]);
+    json.SetUint64(reinterpret_cast<const uint64_t*>(buf.data())[index]);
   } else if (data_type == "INT8") {
-    json.SetInt(reinterpret_cast<const int8_t*>(buf)[index]);
+    json.SetInt(reinterpret_cast<const int8_t*>(buf.data())[index]);
   } else if (data_type == "INT16") {
-    json.SetInt(reinterpret_cast<const int16_t*>(buf)[index]);
+    json.SetInt(reinterpret_cast<const int16_t*>(buf.data())[index]);
   } else if (data_type == "INT32") {
-    json.SetInt(reinterpret_cast<const int32_t*>(buf)[index]);
+    json.SetInt(reinterpret_cast<const int32_t*>(buf.data())[index]);
   } else if (data_type == "INT64") {
-    json.SetInt64(reinterpret_cast<const int64_t*>(buf)[index]);
+    json.SetInt64(reinterpret_cast<const int64_t*>(buf.data())[index]);
   } else if (data_type == "FP32") {
-    json.SetFloat(reinterpret_cast<const float*>(buf)[index]);
+    json.SetFloat(reinterpret_cast<const float*>(buf.data())[index]);
   } else if (data_type == "FP64") {
-    json.SetDouble(reinterpret_cast<const double*>(buf)[index]);
+    json.SetDouble(reinterpret_cast<const double*>(buf.data())[index]);
   } else if (data_type == "BYTES" || data_type == "JSON") {
     json.SetString(
-        reinterpret_cast<const char*>(buf), byte_size,
+        reinterpret_cast<const char*>(buf.data()), buf.size(),
         document_.GetAllocator());
   } else {
     std::cerr << "WARNING: data type '" + data_type +
@@ -200,7 +206,7 @@ ProfileDataExporter::SetValueToJSON(
 
 void
 ProfileDataExporter::AddDataToJSON(
-    rapidjson::Value& json, const uint8_t* buf, const size_t byte_size,
+    rapidjson::Value& json, const std::vector<uint8_t>& buf,
     const std::string& data_type)
 {
   // TPA-268: support N-dimensional tensor
@@ -214,21 +220,21 @@ ProfileDataExporter::AddDataToJSON(
     if (!data_type_size) {
       return;
     }
-    data_size = byte_size / data_type_size.value();
+    data_size = buf.size() / data_type_size.value();
     if (data_size > 1) {
       json.SetArray();
     }
   }
 
-  if (buf != nullptr) {
+  if (!buf.empty()) {
     if (json.IsArray()) {
       for (int i = 0; i < data_size; i++) {
         rapidjson::Value data_val;
-        SetValueToJSON(data_val, i, buf, byte_size, data_type);
+        SetValueToJSON(data_val, i, buf, data_type);
         json.PushBack(data_val, document_.GetAllocator());
       }
     } else {
-      SetValueToJSON(json, 0 /* index */, buf, byte_size, data_type);
+      SetValueToJSON(json, 0 /* index */, buf, data_type);
     }
   } else {
     json.SetString("", 0, document_.GetAllocator());
@@ -243,12 +249,12 @@ ProfileDataExporter::AddRequestInputs(
   for (const auto& request_input : request_inputs) {
     for (const auto& input : request_input) {
       const auto& name{input.first};
-      const auto& buf{input.second.data_.get()};
+      const auto& buf{input.second.data_};
       const auto& byte_size{input.second.size_};
       const auto& data_type{input.second.data_type_};
       rapidjson::Value name_json(name.c_str(), document_.GetAllocator());
       rapidjson::Value input_json;
-      AddDataToJSON(input_json, buf, byte_size, data_type);
+      AddDataToJSON(input_json, buf, data_type);
       request_inputs_json.AddMember(
           name_json, input_json, document_.GetAllocator());
     }
@@ -264,12 +270,12 @@ ProfileDataExporter::AddResponseOutputs(
     rapidjson::Value response_output_json(rapidjson::kObjectType);
     for (const auto& output : response_output) {
       const auto& name{output.first};
-      const auto& buf{output.second.data_.get()};
+      const auto& buf{output.second.data_};
       const auto& byte_size{output.second.size_};
       const auto& data_type{output.second.data_type_};
       rapidjson::Value name_json(name.c_str(), document_.GetAllocator());
       rapidjson::Value output_json;
-      AddDataToJSON(output_json, buf, byte_size, data_type);
+      AddDataToJSON(output_json, buf, data_type);
       response_output_json.AddMember(
           name_json, output_json, document_.GetAllocator());
     }

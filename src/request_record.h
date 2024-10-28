@@ -35,12 +35,10 @@ namespace triton { namespace perfanalyzer {
 
 /// A record containing the data of a single request input or response output
 struct RecordData {
-  RecordData(const uint8_t* buf, size_t size, std::string data_type)
+  RecordData(std::vector<uint8_t>&& buf, std::string data_type)
   {
-    uint8_t* array = new uint8_t[size];
-    std::memcpy(array, buf, size);
-    data_ = std::shared_ptr<uint8_t>(array, [](uint8_t* p) { delete[] p; });
-    size_ = size;
+    data_ = std::move(buf);
+    size_ = buf.size() * sizeof(uint8_t);
     data_type_ = data_type;
   }
 
@@ -50,10 +48,10 @@ struct RecordData {
     if (size_ != other.size_)
       return false;
     // Compare the contents of the arrays
-    return std::memcmp(data_.get(), other.data_.get(), size_) == 0;
+    return std::memcmp(data_.data(), other.data_.data(), size_) == 0;
   }
 
-  std::shared_ptr<uint8_t> data_;
+  std::vector<uint8_t> data_;
   size_t size_;
   std::string data_type_;
 };
