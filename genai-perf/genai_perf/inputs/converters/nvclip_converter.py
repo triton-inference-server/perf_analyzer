@@ -60,9 +60,6 @@ class NVClipConverter(BaseConverter):
                     "input": input_items,
                 }
 
-                for key, value in config.extra_inputs.items():
-                    payload[key] = value
-
                 self._add_request_params(payload, config)
                 request_body["data"].append({"payload": [payload]})
 

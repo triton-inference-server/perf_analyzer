@@ -1,4 +1,4 @@
-// Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,24 +25,44 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <triton/core/tritonserver.h>
+#include <cuda_runtime_api.h>
+#include <dlfcn.h>
+#include <stddef.h>
 
-#include <cstddef>
-#include <cstdint>
+#include <stdexcept>
 
-namespace triton { namespace perfanalyzer { namespace clientbackend {
-namespace tritoncapi {
+namespace triton::perfanalyzer {
 
-struct ResponseOutput {
-  std::string name{};
-  TRITONSERVER_DataType datatype{};
-  const int64_t* shape{};
-  uint64_t dim_count{};
-  std::vector<uint8_t> data;
-  size_t byte_size{};
-  TRITONSERVER_MemoryType memory_type{};
-  int64_t memory_type_id{};
-  void* userp{};
+class CUDARuntimeLibraryManager {
+ public:
+  CUDARuntimeLibraryManager();
+
+  ~CUDARuntimeLibraryManager();
+
+  // Wrapper functions for CUDA API calls
+  cudaError_t cudaMalloc(void** devPtr, size_t size);
+  cudaError_t cudaFree(void* devPtr);
+  const char* cudaGetErrorName(cudaError_t error);
+  const char* cudaGetErrorString(cudaError_t error);
+  cudaError_t cudaIpcGetMemHandle(cudaIpcMemHandle_t* handle, void* devPtr);
+  cudaError_t cudaMemcpy(
+      void* dst, const void* src, size_t count, cudaMemcpyKind kind);
+  cudaError_t cudaSetDevice(int device);
+
+ private:
+  cudaError_t (*cuda_malloc_func_)(void**, size_t){nullptr};
+  cudaError_t (*cuda_free_func_)(void*){nullptr};
+  const char* (*cuda_get_error_name_func_)(cudaError_t){nullptr};
+  const char* (*cuda_get_error_string_func_)(cudaError_t){nullptr};
+  cudaError_t (*cuda_ipc_get_mem_handle_func_)(cudaIpcMemHandle_t*, void*){
+      nullptr};
+  cudaError_t (*cuda_memcpy_func_)(void*, const void*, size_t, cudaMemcpyKind){
+      nullptr};
+  cudaError_t (*cuda_set_device_func_)(int){nullptr};
+
+  void* handle_{nullptr};
+
+  void LoadFunctions();
 };
 
-}}}}  // namespace triton::perfanalyzer::clientbackend::tritoncapi
+}  // namespace triton::perfanalyzer

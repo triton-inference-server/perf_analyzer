@@ -1,4 +1,4 @@
-// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -202,12 +202,14 @@ InferDataManagerShm::CreateMemoryRegion(
     }
   } else if (memory_type == SharedMemoryType::CUDA_SHARED_MEMORY) {
 #ifdef TRITON_ENABLE_GPU
-    cudaError_t cuda_err = cudaMalloc((void**)ptr, byte_size);
+    cudaError_t cuda_err =
+        cuda_runtime_library_manager_.cudaMalloc((void**)ptr, byte_size);
     if (cuda_err != cudaSuccess) {
       return cb::Error(
           "unable to allocate memory of " + std::to_string(byte_size) +
               " bytes on gpu for output: " +
-              std::string(cudaGetErrorString(cuda_err)),
+              std::string(
+                  cuda_runtime_library_manager_.cudaGetErrorString(cuda_err)),
           pa::GENERIC_ERROR);
     }
 
@@ -223,22 +225,25 @@ InferDataManagerShm::CreateMemoryRegion(
               byte_size,
               std::unique_ptr<uint8_t, std::function<void(uint8_t*)>>(
                   reinterpret_cast<uint8_t*>(*ptr),
-                  [shm_region_name, byte_size](uint8_t* memory) {
-                    cudaError_t cuda_err = cudaFree(memory);
+                  [this, shm_region_name, byte_size](uint8_t* memory) {
+                    cudaError_t cuda_err =
+                        cuda_runtime_library_manager_.cudaFree(memory);
                     if (cuda_err != cudaSuccess) {
                       std::cerr
                           << "Unable to free cuda shared memory for "
                           << shm_region_name
                           << ": Starting: " << static_cast<void*>(memory)
-                          << ", size: " << byte_size
-                          << " bytes, Details: " << cudaGetErrorString(cuda_err)
+                          << ", size: " << byte_size << " bytes, Details: "
+                          << cuda_runtime_library_manager_.cudaGetErrorString(
+                                 cuda_err)
                           << std::endl;
                     }
                   }))));
     } else {
       cudaIpcMemHandle_t cuda_handle;
-      RETURN_IF_ERROR(
-          CreateCUDAIPCHandle(&cuda_handle, reinterpret_cast<void*>(*ptr)));
+      RETURN_IF_ERROR(CreateCUDAIPCHandle(
+          cuda_runtime_library_manager_, &cuda_handle,
+          reinterpret_cast<void*>(*ptr)));
       RETURN_IF_ERROR(backend_->RegisterCudaSharedMemory(
           shm_region_name, cuda_handle, byte_size));
 
@@ -284,13 +289,15 @@ InferDataManagerShm::CopySharedMemory(
     size_t offset = 0;
     size_t max_count = is_shape_tensor ? 1 : batch_size_;
     while (count < max_count) {
-      cudaError_t cuda_err = cudaMemcpy(
+      cudaError_t cuda_err = cuda_runtime_library_manager_.cudaMemcpy(
           (void*)(input_shm_ptr + offset), (void*)tensor_datas[count].data_ptr,
           tensor_datas[count].batch1_size, cudaMemcpyHostToDevice);
       if (cuda_err != cudaSuccess) {
         return cb::Error(
             "Failed to copy data to cuda shared memory for " + region_name +
-                " : " + std::string(cudaGetErrorString(cuda_err)),
+                " : " +
+                std::string(
+                    cuda_runtime_library_manager_.cudaGetErrorString(cuda_err)),
             pa::GENERIC_ERROR);
       }
       offset += tensor_datas[count].batch1_size;
