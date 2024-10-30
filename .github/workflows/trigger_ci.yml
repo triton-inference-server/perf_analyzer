@@ -20,5 +20,5 @@ jobs:
           curl --fail --request POST \
             --form token=${{ secrets.PIPELINE_TOKEN }} \
             --form variables[TRITON_PERF_ANALYZER_REPO_TAG]=${GITHUB_HEAD_REF} \
-            --form variables[TRITON_CLIENT_REPO_TAG]=fpetrini-dne-branch \
+            --form variables[TRITON_CLIENT_REPO_TAG]=${GITHUB_HEAD_REF} \
             -F ref=${GITHUB_HEAD_REF}  "${{ secrets.PIPELINE_URL }}"
