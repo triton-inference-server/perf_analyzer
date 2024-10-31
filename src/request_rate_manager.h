@@ -96,15 +96,14 @@ class RequestRateManager : public LoadManager {
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager,
       const std::unordered_map<std::string, cb::RequestParameter>&
-          request_parameters,
-      const std::vector<float>& schedule);
+          request_parameters);
 
   /// Performs warmup for benchmarking by sending a fixed number of requests
   /// according to the specified request rate
   /// \param target_request_rate The rate at which requests must be issued to
   /// the server.
   /// \param warmup_request_count The number of warmup requests to send.
-  cb::Error PerformWarmup(
+  virtual cb::Error PerformWarmup(
       double target_request_rate, size_t warmup_request_count);
 
   /// Adjusts the rate of issuing requests to be the same as 'request_rate'
@@ -113,7 +112,7 @@ class RequestRateManager : public LoadManager {
   /// \param request_count The number of requests to generate when profiling. If
   /// 0, then there is no limit, and it will generate until told to stop.
   /// \return cb::Error object indicating success or failure.
-  cb::Error ChangeRequestRate(
+  virtual cb::Error ChangeRequestRate(
       const double target_request_rate, const size_t request_count = 0);
 
  protected:
@@ -126,20 +125,17 @@ class RequestRateManager : public LoadManager {
       const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       const std::unordered_map<std::string, cb::RequestParameter>&
-          request_parameters,
-      const std::vector<float>& schedule);
+          request_parameters);
 
   void InitManagerFinalize() override;
 
   /// Generates and update the request schedule as per the given request rate.
   /// \param request_rate The request rate to use for new schedule.
-  void GenerateSchedule(
-      const double request_rate, const std::vector<float>& schedule);
+  void GenerateSchedule(const double request_rate);
 
   std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
       std::chrono::nanoseconds duration,
-      std::function<std::chrono::nanoseconds(std::mt19937&)> distribution,
-      const std::vector<float>& schedule);
+      std::function<std::chrono::nanoseconds(std::mt19937&)> distribution);
 
   std::vector<RateSchedulePtr_t> CreateEmptyWorkerSchedules();
 

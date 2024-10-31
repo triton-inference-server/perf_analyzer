@@ -39,6 +39,7 @@
 #include "concurrency_manager.h"
 #include "constants.h"
 #include "custom_load_manager.h"
+#include "custom_request_schedule_manager.h"
 #include "metrics.h"
 #include "metrics_manager.h"
 #include "model_parser.h"
@@ -46,6 +47,7 @@
 #include "periodic_concurrency_manager.h"
 #include "profile_data_collector.h"
 #include "request_rate_manager.h"
+
 
 namespace triton { namespace perfanalyzer {
 
@@ -442,6 +444,7 @@ class InferenceProfiler {
       size_t warmup_request_count, const size_t request_count,
       std::vector<PerfStatus>& perf_statuses, bool& meets_threshold,
       bool& is_stable);
+
 
   /// A helper function for profiling functions.
   /// \param status_summary Returns the summary of the measurement.
