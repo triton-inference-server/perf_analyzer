@@ -1769,8 +1769,6 @@ CLParser::ParseCommandLine(int argc, char** argv)
 
   // When the request-count feature is enabled, override the measurement mode to
   // be count windows with a window size of the requested count
-  // When the request-count feature is enabled, override the measurement mode to
-  // be count windows with a window size of the requested count
   if (params_->request_count) {
     params_->measurement_mode = MeasurementMode::COUNT_WINDOWS;
     params_->measurement_request_count = params_->request_count;
@@ -2017,43 +2015,22 @@ CLParser::VerifyOptions()
           "--triton-server-path should not be empty when using "
           "service-kind=triton_c_api.");
     }
-    if (params_->kind == cb::BackendKind::TRITON_C_API) {
-      if (params_->triton_server_path.empty()) {
-        Usage(
-            "--triton-server-path should not be empty when using "
-            "service-kind=triton_c_api.");
-      }
 
-      if (params_->model_repository_path.empty()) {
-        Usage(
-            "--model-repository should not be empty when using "
-            "service-kind=triton_c_api.");
-      }
-      if (params_->model_repository_path.empty()) {
-        Usage(
-            "--model-repository should not be empty when using "
-            "service-kind=triton_c_api.");
-      }
-
-      // Decoupled models run via Triton C API do not support shared memory
-      if (params_->async && params_->streaming &&
-          params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
-        Usage(
-            "Cannot use --shared-memory=system or --shared-memory=cuda "
-            "with "
-            "--service-kind=triton_c_api and --async and --streaming.");
-      }
-      // Decoupled models run via Triton C API do not support shared memory
-      if (params_->async && params_->streaming &&
-          params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
-        Usage(
-            "Cannot use --shared-memory=system or --shared-memory=cuda "
-            "with "
-            "--service-kind=triton_c_api and --async and --streaming.");
-      }
-
-      params_->protocol = cb::ProtocolType::UNKNOWN;
+    if (params_->model_repository_path.empty()) {
+      Usage(
+          "--model-repository should not be empty when using "
+          "service-kind=triton_c_api.");
     }
+
+    // Decoupled models run via Triton C API do not support shared memory
+    if (params_->async && params_->streaming &&
+        params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
+      Usage(
+          "Cannot use --shared-memory=system or --shared-memory=cuda "
+          "with "
+          "--service-kind=triton_c_api and --async and --streaming.");
+    }
+
     params_->protocol = cb::ProtocolType::UNKNOWN;
   }
 
@@ -2105,6 +2082,5 @@ CLParser::VerifyOptions()
     }
   }
 }
-
 
 }}  // namespace triton::perfanalyzer

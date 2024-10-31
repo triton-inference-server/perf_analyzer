@@ -48,8 +48,7 @@
 #include "profile_data_collector.h"
 #include "request_rate_manager.h"
 
-
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 
 #ifndef DOCTEST_CONFIG_DISABLE
 class NaggyMockInferenceProfiler;
@@ -832,4 +831,4 @@ class InferenceProfiler {
 #endif
 };
 
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer

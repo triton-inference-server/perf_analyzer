@@ -26,7 +26,7 @@
 
 #include "request_rate_manager.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 
 RequestRateManager::~RequestRateManager()
 {
@@ -312,4 +312,4 @@ RequestRateManager::DetermineNumThreads()
 }
 
 
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer

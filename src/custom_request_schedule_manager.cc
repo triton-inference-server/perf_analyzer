@@ -26,23 +26,16 @@
 
 #include "custom_request_schedule_manager.h"
 
-namespace triton { namespace perfanalyzer {
-  
-cb::Error CustomRequestScheduleManager::Create(
-  const bool async, const bool streaming,
-  const uint64_t measurement_window_ms, const size_t max_trials,
-  const std::vector<float>& schedule, const int32_t batch_size,
-  const size_t max_threads, const uint32_t num_of_sequences,
-  const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-  const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
-  const std::shared_ptr<cb::ClientBackendFactory>& factory,
-  std::unique_ptr<LoadManager>* manager,
-  const std::unordered_map<std::string, cb::RequestParameter>& request_parameters) 
+namespace triton::perfanalyzer {
+
+cb::Error
+CustomRequestScheduleManager::Create(
+    const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+    const std::shared_ptr<cb::ClientBackendFactory>& factory,
+    std::unique_ptr<LoadManager>* manager)
 {
-  std::unique_ptr<CustomRequestScheduleManager> local_manager(new CustomRequestScheduleManager(
-    async, streaming, measurement_window_ms, max_trials, schedule, batch_size,
-    max_threads, num_of_sequences, shared_memory_type,
-    output_shm_size, serial_sequences, parser, factory, request_parameters));
+  std::unique_ptr<CustomRequestScheduleManager> local_manager(
+      new CustomRequestScheduleManager(params, parser, factory));
 
   *manager = std::move(local_manager);
 
@@ -50,20 +43,17 @@ cb::Error CustomRequestScheduleManager::Create(
 }
 
 CustomRequestScheduleManager::CustomRequestScheduleManager(
-  const bool async, const bool streaming,
-  const uint64_t measurement_window_ms, const size_t max_trials,
-  const std::vector<float>& schedule, const int32_t batch_size,
-  const size_t max_threads, const uint32_t num_of_sequences,
-  const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-  const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
-  const std::shared_ptr<cb::ClientBackendFactory>& factory,
-  const std::unordered_map<std::string, cb::RequestParameter>& request_parameters)
-  : RequestRateManager(
-      async, streaming, Distribution::CUSTOM, batch_size,
-      measurement_window_ms, max_trials, max_threads, num_of_sequences,
-      shared_memory_type, output_shm_size, serial_sequences, parser,
-      factory, request_parameters), schedule_(schedule)
-{ 
+    const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+    const std::shared_ptr<cb::ClientBackendFactory>& factory)
+    : RequestRateManager(
+          params->async, params->streaming, Distribution::CUSTOM,
+          params->batch_size, params->measurement_window_ms, params->max_trials,
+          params->max_threads, params->num_of_sequences,
+          params->shared_memory_type, params->output_shm_size,
+          params->serial_sequences, parser, factory,
+          params->request_parameters),
+      schedule_(params->schedule)
+{
 }
 
 cb::Error
@@ -90,7 +80,9 @@ CustomRequestScheduleManager::ChangeRequestRate(
   return cb::Error::Success;
 }
 
-void CustomRequestScheduleManager::GenerateSchedule(const double request_rate, const std::vector<float>& schedule)
+void
+CustomRequestScheduleManager::GenerateSchedule(
+    const double request_rate, const std::vector<float>& schedule)
 {
   std::vector<float> scaled_schedule;
   scaled_schedule.reserve(schedule.size());
@@ -99,8 +91,7 @@ void CustomRequestScheduleManager::GenerateSchedule(const double request_rate, c
       scaled_schedule.push_back(value / static_cast<float>(request_rate));
     }
   }
-  auto worker_schedules =
-      CreateWorkerSchedules(schedule);
+  auto worker_schedules = CreateWorkerSchedules(schedule);
   GiveSchedulesToWorkers(worker_schedules);
 }
 
@@ -109,7 +100,7 @@ CustomRequestScheduleManager::CreateWorkerSchedules(
     const std::vector<float>& schedule)
 {
   std::vector<RateSchedulePtr_t> worker_schedules =
-    CreateEmptyWorkerSchedules();
+      CreateEmptyWorkerSchedules();
   std::vector<size_t> thread_ids{CalculateThreadIds()};
   std::chrono::nanoseconds next_timestamp(0);
   size_t thread_id_index = 0;
@@ -117,7 +108,7 @@ CustomRequestScheduleManager::CreateWorkerSchedules(
 
   for (const float& val : schedule) {
     next_timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-      std::chrono::duration<float>(val));
+        std::chrono::duration<float>(val));
     worker_index = thread_ids[thread_id_index];
     thread_id_index = ++thread_id_index % thread_ids.size();
     worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
@@ -127,4 +118,4 @@ CustomRequestScheduleManager::CreateWorkerSchedules(
   return worker_schedules;
 }
 
-}}
+}  // namespace triton::perfanalyzer

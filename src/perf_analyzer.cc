@@ -34,7 +34,7 @@
 
 namespace pa = triton::perfanalyzer;
 
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 
 volatile bool early_exit = false;
 
@@ -53,7 +53,7 @@ SignalHandler(int signum)
     exit(0);
   }
 }
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer
 
 PerfAnalyzer::PerfAnalyzer(pa::PAParamsPtr params) : params_(params)
 {
@@ -242,12 +242,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
     if (!params_->schedule.empty()) {
       FAIL_IF_ERR(
           pa::CustomRequestScheduleManager::Create(
-              params_->async, params_->streaming,
-              params_->measurement_window_ms, params_->max_trials,
-              params_->schedule, params_->batch_size, params_->max_threads,
-              params_->num_of_sequences, params_->shared_memory_type,
-              params_->output_shm_size, params_->serial_sequences, parser_,
-              factory, &manager, params_->request_parameters),
+              params_, parser_, factory, &manager),
           "failed to create custom request schedule manager");
     } else {
       FAIL_IF_ERR(

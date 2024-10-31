@@ -30,7 +30,7 @@
 #include "load_manager.h"
 #include "request_rate_worker.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 
 #ifndef DOCTEST_CONFIG_DISABLE
 class TestRequestRateManager;
@@ -115,6 +115,7 @@ class RequestRateManager : public LoadManager {
   virtual cb::Error ChangeRequestRate(
       const double target_request_rate, const size_t request_count = 0);
 
+
  protected:
   RequestRateManager(
       const bool async, const bool streaming, Distribution request_distribution,
@@ -161,7 +162,6 @@ class RequestRateManager : public LoadManager {
   size_t DetermineNumThreads();
 
   std::shared_ptr<std::chrono::nanoseconds> gen_duration_;
-  std::vector<float> schedule_;
   Distribution request_distribution_;
   std::chrono::steady_clock::time_point start_time_;
   bool execute_;
@@ -176,4 +176,4 @@ class RequestRateManager : public LoadManager {
 #endif
 };
 
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer

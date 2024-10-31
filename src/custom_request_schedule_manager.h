@@ -25,11 +25,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include "command_line_parser.h"
 #include "load_manager.h"
 #include "request_rate_manager.h"
 
-namespace triton { namespace perfanalyzer {
-    
+namespace triton::perfanalyzer {
+
 //==============================================================================
 /// CustomRequestScheduleManager is a helper class to send inference requests to
 /// inference server in accordance with the schedule set by the user.
@@ -37,100 +38,72 @@ namespace triton { namespace perfanalyzer {
 /// Detail:
 /// An instance of this load manager will be created at the beginning of the
 /// perf analyzer and it will be used to schedule to send requests at that
-/// particular second defined by the user. The particular seconds at which a 
+/// particular second defined by the user. The particular seconds at which a
 /// request should be sent can be set by the user using the `schedule` option.
-/// For example, if the `schedule` is set to 1,2,4,5,6.5, CustomRequestScheduleManager
-/// sends request at 1st second, 2nd second, 4th second and so on.
-/// 
+/// For example, if the `schedule` is set to 1,2,4,5,6.5,
+/// CustomRequestScheduleManager sends request at 1st second, 2nd second, 4th
+/// second and so on.
+///
 
 class CustomRequestScheduleManager : public RequestRateManager {
-  public:
-    ~CustomRequestScheduleManager() = default;
+ public:
+  ~CustomRequestScheduleManager() = default;
 
-    /// Creates an object of CustomRequestScheduleManager
-    /// \param async Whether to use asynchronous or synchronous API for infer request
-    /// \param streaming Whether to use gRPC streaming API for infer request
-    /// \param measurement_window_ms The time window for measurements
-    /// \param max_trials The maximum number of windows that will be measured
-    /// \param schedule The vector containing the schedule for requests
-    /// \param batch_size The batch size used for each request
-    /// \param max_threads The maximum number of working threads to be spawned
-    /// \param num_of_sequences The number of concurrent sequences to maintain on the server
-    /// \param shared_memory_type The type of shared memory to use for inputs
-    /// \param output_shm_size The size of the shared memory to allocate for the output
-    /// \param serial_sequences Enable serial sequence mode
-    /// \param parser The ModelParser object to get the model details
-    /// \param factory The ClientBackendFactory object used to create client to the server
-    /// \param manager Returns a new CustomRequestScheduleManager object
-    /// \param request_parameters Custom request parameters to send to the server
-    /// \return cb::Error object indicating success or failure
-    static cb::Error Create(
-      const bool async, const bool streaming,
-      const uint64_t measurement_window_ms, const size_t max_trials,
-      const std::vector<float>& schedule, const int32_t batch_size,
-      const size_t max_threads, const uint32_t num_of_sequences,
-      const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-      const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
+  /// Creates an object of CustomRequestScheduleManager
+  /// \param params A PAParamsPtr (std::shared_ptr<PerfAnalyzerParameters>) that
+  /// holds configuration parameters to create CustomRequestScheduleManager
+  /// object
+  ///
+  static cb::Error Create(
+      const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
-      std::unique_ptr<LoadManager>* manager,
-      const std::unordered_map<std::string, cb::RequestParameter>&
-        request_parameters);
-  
-    /// Performs warmup for benchmarking by sending a fixed number of requests
-    /// according to the specified request rate
-    /// \param request_rate The rate at which requests must be issued to the server
-    /// \param warmup_request_count The number of warmup requests to send
-    /// \return cb::Error object indicating success or failure
-    cb::Error PerformWarmup(double request_rate, size_t warmup_request_count) override;
+      std::unique_ptr<LoadManager>* manager);
 
-    /// Adjusts the rate of issuing requests to be the same as 'request_rate'
-    /// \param request_rate The rate at which requests must be issued to the server
-    /// \param request_count The number of requests to generate when profiling
-    /// \return cb::Error object indicating success or failure
-    cb::Error ChangeRequestRate(const double request_rate, const size_t request_count) override;
+  /// Performs warmup for benchmarking by sending a fixed number of requests
+  /// according to the specified request rate
+  /// \param request_rate The rate at which requests must be issued to the
+  /// server \param warmup_request_count The number of warmup requests to send
+  /// \return cb::Error object indicating success or failure
+  cb::Error PerformWarmup(
+      double request_rate, size_t warmup_request_count) override;
 
-  protected:
-    /// Constructor for CustomRequestScheduleManager
-    /// \param async Whether to use asynchronous or synchronous API for infer request
-    /// \param streaming Whether to use gRPC streaming API for infer request
-    /// \param measurement_window_ms The time window for measurements
-    /// \param max_trials The maximum number of windows that will be measured
-    /// \param schedule The vector containing the schedule for requests
-    /// \param batch_size The batch size used for each request
-    /// \param max_threads The maximum number of working threads to be spawned
-    /// \param num_of_sequences The number of concurrent sequences to maintain on the server
-    /// \param shared_memory_type The type of shared memory to use for inputs
-    /// \param output_shm_size The size of the shared memory to allocate for the output
-    /// \param serial_sequences Enable serial sequence mode
-    /// \param parser The ModelParser object to get the model details
-    /// \param factory The ClientBackendFactory object used to create client to the server
-    /// \param manager Returns a new CustomRequestScheduleManager object
-    /// \param request_parameters Custom request parameters to send to the server
-    CustomRequestScheduleManager(
-      const bool async, const bool streaming,
-      const uint64_t measurement_window_ms, const size_t max_trials,
-      const std::vector<float>& schedule, const int32_t batch_size,
-      const size_t max_threads, const uint32_t num_of_sequences,
-      const SharedMemoryType shared_memory_type, const size_t output_shm_size,
-      const bool serial_sequences, const std::shared_ptr<ModelParser>& parser,
-      const std::shared_ptr<cb::ClientBackendFactory>& factory,
-      const std::unordered_map<std::string, cb::RequestParameter>&
-        request_parameters);
+  /// Adjusts the rate of issuing requests to be the same as 'request_rate'
+  /// \param request_rate The rate at which requests must be issued to the
+  /// server \param request_count The number of requests to generate when
+  /// profiling \return cb::Error object indicating success or failure
+  cb::Error ChangeRequestRate(
+      const double request_rate, const size_t request_count) override;
 
-    /// Generates and updates the request schedule as per the given request rate and schedule
-    /// \param request_rate The request rate to use for new schedule
-    /// \param schedule The vector containing the schedule for requests
-    void GenerateSchedule(const double request_rate, const std::vector<float>& schedule);
 
-    /// Creates worker schedules based on the provided schedule
-    /// \param duration The maximum duration for the schedule
-    /// \param schedule The vector containing the schedule for requests
-    /// \return A vector of RateSchedulePtr_t representing the worker schedules
-    std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
+ protected:
+  /// Constructor for CustomRequestScheduleManager
+  ///
+  /// Initializes a CustomRequestScheduleManager instance using a PAParamsPtr
+  /// object that contains all necessary parameters for request scheduling.
+  ///
+  /// \param params A PAParamsPtr (std::shared_ptr<PerfAnalyzerParameters>) that
+  /// holds configuration parameters to create CustomRequestScheduleManager
+  /// object
+  ///
+  CustomRequestScheduleManager(
+      const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+      const std::shared_ptr<cb::ClientBackendFactory>& factory);
+
+  /// Generates and updates the request schedule as per the given request rate
+  /// and schedule \param request_rate The request rate to use for new schedule
+  /// \param schedule The vector containing the schedule for requests
+  void GenerateSchedule(
+      const double request_rate, const std::vector<float>& schedule);
+
+  /// Creates worker schedules based on the provided schedule
+  /// \param duration The maximum duration for the schedule
+  /// \param schedule The vector containing the schedule for requests
+  /// \return A vector of RateSchedulePtr_t representing the worker schedules
+  std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
       const std::vector<float>& schedule);
 
-    /// The vector containing the schedule for requests
-    std::vector<float> schedule_;
+  /// The vector containing the schedule for requests
+  std::vector<float> schedule_;
 };
 
-}}
+}  // namespace triton::perfanalyzer
