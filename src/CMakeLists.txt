@@ -37,13 +37,9 @@ option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance
 option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
 
 #
-# Client Options
+# Feature Options
 #
-option(TRITON_ENABLE_CC_HTTP "Build C++ HTTP client libraries" ON)
-option(TRITON_ENABLE_CC_GRPC "Build C++ GRPC client libraries" ON)
-option(TRITON_ENABLE_PYTHON_HTTP "Build Python HTTP client libraries" OFF)
-option(TRITON_ENABLE_PYTHON_GRPC "Build Python GRPC client libraries" OFF)
-option(TRITON_ENABLE_GPU "Enable GPU support in libraries" OFF)
+option(TRITON_ENABLE_GPU "Enable GPU support in libraries" ON)
 option(TRITON_ENABLE_ZLIB "Include ZLIB library in build" ON)
 
 #
@@ -58,6 +54,28 @@ set(TRITON_THIRD_PARTY_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/third-party-i
 
 # Add third party installation to the search path
 set(CMAKE_PREFIX_PATH ${TRITON_THIRD_PARTY_INSTALL_PREFIX} ${CMAKE_PREFIX_PATH})
+
+# Triton CC Client Libraries
+find_library(TRITON_HTTP_STATIC_LIB
+  NAMES httpclient_static
+  PATHS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+  REQUIRED
+)
+find_library(TRITON_GRPC_STATIC_LIB
+  NAMES grpcclient_static
+  PATHS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+  REQUIRED
+)
+find_library(TRITON_JSON_STATIC_LIB
+  NAMES json_utils_static
+  PATHS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+  REQUIRED
+)
+find_library(TRITON_SHM_STATIC_LIB
+  NAMES shm_utils_static
+  PATHS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}"
+  REQUIRED
+)
 
 #
 # Dependencies
@@ -78,11 +96,19 @@ include_directories(${Protobuf_INCLUDE_DIRS})
 add_subdirectory(client_backend)
 
 include(FetchContent)
+
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/9406a60c7839052e4944ea4dbc8344762a89f9bd.zip
 )
 FetchContent_MakeAvailable(googletest)
+
+FetchContent_Declare(
+  libb64
+  GIT_REPOSITORY https://git.code.sf.net/p/libb64/git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(libb64)
 
 find_package(Git REQUIRED)
 
@@ -104,6 +130,7 @@ set(
   data_loader.cc
   concurrency_manager.cc
   request_rate_manager.cc
+  custom_request_schedule_manager.cc
   load_worker.cc
   concurrency_worker.cc
   request_rate_worker.cc
@@ -121,6 +148,7 @@ set(
   profile_data_exporter.cc
   periodic_concurrency_manager.cc
   periodic_concurrency_worker.cc
+  cuda_runtime_library_manager.cc
 )
 
 set(
@@ -133,6 +161,7 @@ set(
   data_loader.h
   concurrency_manager.h
   request_rate_manager.h
+  custom_request_schedule_manager.h
   custom_load_manager.h
   iworker.h
   load_worker.h
@@ -164,6 +193,7 @@ set(
   periodic_concurrency_manager.h
   periodic_concurrency_worker.h
   thread_config.h
+  cuda_runtime_library_manager.h
 )
 
 add_executable(
@@ -173,13 +203,25 @@ add_executable(
   ${PERF_ANALYZER_HDRS}
 )
 
+target_sources(
+  perf_analyzer
+  PRIVATE
+    ${libb64_SOURCE_DIR}/src/cdecode.c
+    ${libb64_SOURCE_DIR}/src/cencode.c
+)
+
+target_include_directories(
+  perf_analyzer
+  PRIVATE
+    ${libb64_SOURCE_DIR}/include
+)
+
 target_link_libraries(
   perf_analyzer
   PRIVATE
-    httpclient_static
-    grpcclient_static
+    ${TRITON_HTTP_STATIC_LIB}
+    ${TRITON_GRPC_STATIC_LIB}
     client-backend-library
-    -lb64
     ${CMAKE_DL_LIBS}
 )
 
@@ -210,10 +252,9 @@ if(TRITON_ENABLE_GPU)
     PUBLIC TRITON_ENABLE_GPU=1
   )
 
-  target_link_libraries(
-    perf_analyzer
-    PRIVATE CUDA::cudart
-  )
+  target_include_directories(perf_analyzer
+                             PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+
 endif() # TRITON_ENABLE_GPU
 
 if(TRITON_ENABLE_PERF_ANALYZER_C_API)
@@ -238,6 +279,7 @@ if(TRITON_ENABLE_PERF_ANALYZER_TS)
 endif() # TRITON_ENABLE_PERF_ANALYZER_TS
 
 if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
+  set(TEST_HTTP_CLIENT test_http_client.cc)
   target_compile_definitions(
     client-backend-library
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_OPENAI=1
@@ -295,19 +337,29 @@ add_executable(
   test_ctx_id_tracker.cc
   test_profile_data_collector.cc
   test_profile_data_exporter.cc
-  test_http_client.cc
+  ${TEST_HTTP_CLIENT}
 )
 
-# -Wno-write-strings is needed for the unit tests in order to statically create
-# input argv cases in the CommandLineParser unit test
-#
-set_target_properties(perf_analyzer_unit_tests
-  PROPERTIES COMPILE_FLAGS "-Wno-write-strings")
+target_sources(
+  perf_analyzer_unit_tests
+  PRIVATE
+    ${libb64_SOURCE_DIR}/src/cdecode.c
+    ${libb64_SOURCE_DIR}/src/cencode.c
+)
 
 target_include_directories(
   perf_analyzer_unit_tests
   PRIVATE
     client_backend
+    ${libb64_SOURCE_DIR}/include
+)
+
+# -Wno-write-strings is needed for the unit tests in order to statically create
+# input argv cases in the CommandLineParser unit test
+target_compile_options(
+  perf_analyzer_unit_tests
+  PRIVATE
+    -Wno-write-strings
 )
 
 target_link_libraries(
@@ -315,11 +367,9 @@ target_link_libraries(
   PRIVATE
     gmock
     client-backend-library
-    -lb64
 )
 
 install(
   TARGETS perf_analyzer_unit_tests
   RUNTIME DESTINATION bin
 )
-

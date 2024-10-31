@@ -1943,27 +1943,45 @@ CLParser::VerifyOptions()
         "binary search mode.");
   }
 
+  if (params_->warmup_request_count != 0) {
+    if (params_->using_concurrency_range) {
+      if (params_->concurrency_range.start < params_->concurrency_range.end) {
+        Usage(
+            "--warmup-request-count not supported with multiple concurrency "
+            "values in one run");
+      }
+    }
+    if (params_->using_request_rate_range) {
+      if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
+          params_->request_rate_range[SEARCH_RANGE::kEND]) {
+        Usage(
+            "--warmup-request-count not supported with multiple request rate "
+            "values in one run");
+      }
+    }
+  }
+
   if (params_->request_count != 0) {
     if (params_->using_concurrency_range) {
       if (params_->request_count < params_->concurrency_range.start) {
-        Usage("request-count can not be less than concurrency");
+        Usage("--request-count can not be less than concurrency");
       }
       if (params_->concurrency_range.start < params_->concurrency_range.end) {
         Usage(
-            "request-count not supported with multiple concurrency values in "
+            "--request-count not supported with multiple concurrency values in "
             "one run");
       }
     }
     if (params_->using_request_rate_range) {
       if (params_->request_count <
           static_cast<int>(params_->request_rate_range[0])) {
-        Usage("request-count can not be less than request-rate");
+        Usage("--request-count can not be less than request rate");
       }
       if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
           params_->request_rate_range[SEARCH_RANGE::kEND]) {
         Usage(
-            "request-count not supported with multiple request-rate values in "
-            "one run");
+            "--request-count not supported with multiple request rate values "
+            "in one run");
       }
     }
   }
@@ -1973,9 +1991,13 @@ CLParser::VerifyOptions()
       Usage(
           "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
     } else if (params_->streaming) {
-      Usage("perf_analyzer does not support streaming for TensorFlow Serving.");
+      Usage(
+          "perf_analyzer does not support streaming for TensorFlow "
+          "Serving.");
     } else if (params_->async) {
-      Usage("perf_analyzer does not support async API for TensorFlow Serving.");
+      Usage(
+          "perf_analyzer does not support async API for TensorFlow "
+          "Serving.");
     } else if (!params_->using_batch_size) {
       params_->batch_size = 0;
     }
@@ -2004,7 +2026,8 @@ CLParser::VerifyOptions()
     if (params_->async && params_->streaming &&
         params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
       Usage(
-          "Cannot use --shared-memory=system or --shared-memory=cuda with "
+          "Cannot use --shared-memory=system or --shared-memory=cuda "
+          "with "
           "--service-kind=triton_c_api and --async and --streaming.");
     }
 
