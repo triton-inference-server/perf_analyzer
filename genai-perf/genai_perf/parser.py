@@ -458,6 +458,7 @@ def _add_input_args(parser):
 
     input_group.add_argument(
         "--output-tokens-mean",
+        "--osl",
         type=int,
         default=ic.DEFAULT_OUTPUT_TOKENS_MEAN,
         required=False,
@@ -497,6 +498,7 @@ def _add_input_args(parser):
 
     input_group.add_argument(
         "--synthetic-input-tokens-mean",
+        "--isl",
         type=int,
         default=ic.DEFAULT_PROMPT_TOKENS_MEAN,
         required=False,
