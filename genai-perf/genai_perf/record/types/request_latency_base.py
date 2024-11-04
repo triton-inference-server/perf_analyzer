@@ -15,44 +15,27 @@
 from functools import total_ordering
 
 from genai_perf.record.record import DecreasingRecord
+from genai_perf.types import RecordValue
 
 
 @total_ordering
-class PerfLatencyBase(DecreasingRecord):
+class RequestLatencyBase(DecreasingRecord):
     """
-    A base class for perf_analyzer latency metric
+    A base class for the request latency metric
     """
 
-    def __init__(self, value, timestamp=0):
-        """
-        Parameters
-        ----------
-        value : float
-            the latency extracted from the perf analyzer output
-        timestamp : float
-            Elapsed time from start of program
-        """
+    base_tag = "request_latency"
 
+    def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
         super().__init__(value, timestamp)
 
-    def __eq__(self, other):
-        """
-        Allows checking for
-        equality between two records
-        """
-
+    def __eq__(self, other: "RequestLatencyBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other):
-        """
-        Allows checking if
-        this record is less than
-        the other
-        """
-
+    def __lt__(self, other: "RequestLatencyBase") -> bool:
         return self.value() > other.value()
 
-    def __add__(self, other):
+    def __add__(self, other: "RequestLatencyBase") -> "RequestLatencyBase":
         """
         Allows adding two records together
         to produce a brand new record.
@@ -60,7 +43,7 @@ class PerfLatencyBase(DecreasingRecord):
 
         return self.__class__(value=(self.value() + other.value()))
 
-    def __sub__(self, other):
+    def __sub__(self, other: "RequestLatencyBase") -> "RequestLatencyBase":
         """
         Allows subbing two records together
         to produce a brand new record.

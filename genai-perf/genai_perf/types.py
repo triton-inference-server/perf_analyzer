@@ -38,6 +38,7 @@ TelemetryRecords: TypeAlias = Dict[str, "GPURecord"]  # type: ignore
 GpuRecords: TypeAlias = Dict[GpuId, TelemetryRecords]
 PerfRecords: TypeAlias = Dict[str, "Record"]  # type: ignore
 PerfMetricName: TypeAlias = str
+RecordValue = Union[float, int]
 
 ###########################################################################
 # Constraints

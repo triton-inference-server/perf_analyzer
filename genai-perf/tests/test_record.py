@@ -45,10 +45,16 @@ class TestRecord(unittest.TestCase):
         self.less_is_better_types = {
             record_types[t]
             for t in [
-                "perf_latency_avg",
-                "perf_latency_p90",
-                "perf_latency_p95",
-                "perf_latency_p99",
+                "request_latency_min",
+                "request_latency_max",
+                "request_latency_avg",
+                "request_latency_std",
+                "request_latency_p25",
+                "request_latency_p50",
+                "request_latency_p75",
+                "request_latency_p90",
+                "request_latency_p95",
+                "request_latency_p99",
                 "inter_token_latency_min",
                 "inter_token_latency_max",
                 "inter_token_latency_avg",
@@ -200,7 +206,7 @@ class TestRecord(unittest.TestCase):
         Test the value method
         """
         avg_value = RecordType.get_all_record_types()[
-            "perf_latency_p99"
+            "request_latency_p99"
         ].value_function()([10, 50, 100, 40])
 
         total_value = RecordType.get_all_record_types()[
