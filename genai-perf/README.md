@@ -431,6 +431,7 @@ in JSONL format. Example: {\"text\": \"Your prompt here\"}"
 The number of unique prompts to generate as stimulus. (default: `100`)
 
 ##### `--output-tokens-mean <int>`
+##### `--osl`
 
 The mean number of tokens in each output. Ensure the `--tokenizer` value is set
 correctly. (default: `-1`)
@@ -454,6 +455,7 @@ when `--output-tokens-mean` is provided. (default: `0`)
 The seed used to generate random values. (default: `0`)
 
 ##### `--synthetic-input-tokens-mean <int>`
+##### `--isl`
 
 The mean of number of tokens in the generated prompts when using synthetic
 data. (default: `550`)

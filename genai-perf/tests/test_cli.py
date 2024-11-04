@@ -196,6 +196,10 @@ class TestCLIArguments:
                 {"output_tokens_mean": 6},
             ),
             (
+                ["--osl", "6"],
+                {"output_tokens_mean": 6},
+            ),
+            (
                 ["--output-tokens-mean", "6", "--output-tokens-stddev", "7"],
                 {"output_tokens_stddev": 7},
             ),
@@ -228,6 +232,10 @@ class TestCLIArguments:
             (["--streaming"], {"streaming": True}),
             (
                 ["--synthetic-input-tokens-mean", "6"],
+                {"synthetic_input_tokens_mean": 6},
+            ),
+            (
+                ["--isl", "6"],
                 {"synthetic_input_tokens_mean": 6},
             ),
             (
