@@ -67,6 +67,7 @@ class TestRecord(unittest.TestCase):
                 "time_to_first_token_min",
                 "time_to_first_token_max",
                 "time_to_first_token_avg",
+                "time_to_first_token_std",
                 "time_to_first_token_p25",
                 "time_to_first_token_p50",
                 "time_to_first_token_p75",

@@ -15,44 +15,27 @@
 from functools import total_ordering
 
 from genai_perf.record.record import DecreasingRecord
+from genai_perf.types import RecordValue
 
 
 @total_ordering
 class TimeToFirstTokenBase(DecreasingRecord):
     """
-    A base class record for perf_analyzer time to first token metric
+    A base class record for the time to first token metric
     """
 
-    def __init__(self, value, timestamp=0):
-        """
-        Parameters
-        ----------
-        value : float
-            the latency extracted from the perf analyzer output
-        timestamp : float
-            Elapsed time from start of program
-        """
+    base_tag = "time_to_first_token"
 
+    def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
         super().__init__(value, timestamp)
 
-    def __eq__(self, other):
-        """
-        Allows checking for
-        equality between two records
-        """
-
+    def __eq__(self, other: "TimeToFirstTokenBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other):
-        """
-        Allows checking if
-        this record is less than
-        the other
-        """
-
+    def __lt__(self, other: "TimeToFirstTokenBase") -> bool:
         return self.value() > other.value()
 
-    def __add__(self, other):
+    def __add__(self, other: "TimeToFirstTokenBase") -> "TimeToFirstTokenBase":
         """
         Allows adding two records together
         to produce a brand new record.
@@ -60,7 +43,7 @@ class TimeToFirstTokenBase(DecreasingRecord):
 
         return self.__class__(value=(self.value() + other.value()))
 
-    def __sub__(self, other):
+    def __sub__(self, other: "TimeToFirstTokenBase") -> "TimeToFirstTokenBase":
         """
         Allows subbing two records together
         to produce a brand new record.

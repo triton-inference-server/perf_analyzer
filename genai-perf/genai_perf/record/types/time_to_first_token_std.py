@@ -18,16 +18,16 @@ from genai_perf.record.types.time_to_first_token_base import TimeToFirstTokenBas
 
 
 @total_ordering
-class TimeToFirstTokenP25(TimeToFirstTokenBase):
+class TimeToFirstTokenMin(TimeToFirstTokenBase):
     """
-    A record for p25 Time to first token metric
+    A record for std Time to first token metric
     """
 
-    tag = TimeToFirstTokenBase.base_tag + "_p25"
+    tag = TimeToFirstTokenBase.base_tag + "_std"
 
     def __init__(self, value, timestamp=0):
         super().__init__(value, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p25 Time To First Token (ms)"
+        return "Std Time To First Token (ms)"
