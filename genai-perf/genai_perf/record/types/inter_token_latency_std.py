@@ -18,16 +18,16 @@ from genai_perf.record.types.inter_token_latency_base import InterTokenLatencyBa
 
 
 @total_ordering
-class InterTokenLatencyAvg(InterTokenLatencyBase):
+class InterTokenLatencyStd(InterTokenLatencyBase):
     """
-    A record for avg Inter token latency metric
+    A record for std Inter token latency metric
     """
 
-    tag = InterTokenLatencyBase.base_tag + "_avg"
+    tag = InterTokenLatencyBase.base_tag + "_std"
 
     def __init__(self, value, timestamp=0):
         super().__init__(value, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "Avg Inter Token Latency (ms)"
+        return "Std Inter Token Latency (ms)"

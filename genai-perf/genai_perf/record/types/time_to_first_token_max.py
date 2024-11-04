@@ -20,7 +20,7 @@ from genai_perf.record.types.time_to_first_token_base import TimeToFirstTokenBas
 @total_ordering
 class TimeToFirstTokenMax(TimeToFirstTokenBase):
     """
-    A record for perf_analyzer Time to first token metric
+    A record for max Time to first token metric
     """
 
     tag = TimeToFirstTokenBase.base_tag + "_max"

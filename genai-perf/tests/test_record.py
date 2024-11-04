@@ -58,6 +58,7 @@ class TestRecord(unittest.TestCase):
                 "inter_token_latency_min",
                 "inter_token_latency_max",
                 "inter_token_latency_avg",
+                "inter_token_latency_std",
                 "inter_token_latency_p25",
                 "inter_token_latency_p50",
                 "inter_token_latency_p75",
