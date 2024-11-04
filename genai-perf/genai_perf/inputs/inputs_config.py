@@ -59,6 +59,9 @@ class InputsConfig:
     # General Parameters
     ####################
 
+    # The tokenizer to use when generating synthetic prompts
+    tokenizer: Tokenizer
+
     # If true, adds a steam field to each payload
     add_stream: bool = False
 
@@ -139,6 +142,3 @@ class InputsConfig:
 
     # Seed used to generate random values
     random_seed: int = DEFAULT_RANDOM_SEED
-
-    # The tokenizer to use when generating synthetic prompts
-    tokenizer: Optional[Tokenizer] = None

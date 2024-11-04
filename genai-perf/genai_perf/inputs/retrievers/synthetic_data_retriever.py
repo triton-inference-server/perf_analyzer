@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from typing import List, cast
+from typing import List
 
 from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
@@ -40,7 +40,6 @@ from genai_perf.inputs.retrievers.synthetic_image_generator import (
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
-from genai_perf.tokenizer import Tokenizer
 
 
 class SyntheticDataRetriever(BaseInputRetriever):
@@ -58,7 +57,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
             for _ in range(self.config.num_prompts):
                 row = DataRow(texts=[], images=[])
                 prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                    cast(Tokenizer, self.config.tokenizer),
+                    self.config.tokenizer,
                     self.config.prompt_tokens_mean,
                     self.config.prompt_tokens_stddev,
                 )

@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Any, Dict, cast
+from typing import Any, Dict
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
@@ -36,7 +36,6 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.tokenizer import Tokenizer
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
@@ -53,7 +52,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = cast(Tokenizer, config.tokenizer).encode(row.texts[0])
+                token_ids = config.tokenizer.encode(row.texts[0])
                 payload = {
                     "input_ids": {
                         "content": token_ids,
