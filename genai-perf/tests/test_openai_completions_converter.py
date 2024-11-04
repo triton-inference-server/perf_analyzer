@@ -36,6 +36,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOpenAICompletionsConverter:
@@ -63,6 +64,7 @@ class TestOpenAICompletionsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         completions_converter = OpenAICompletionsConverter()
@@ -106,6 +108,7 @@ class TestOpenAICompletionsConverter:
             output_format=OutputFormat.OPENAI_COMPLETIONS,
             add_stream=True,
             output_tokens_mean=1234,
+            tokenizer=get_empty_tokenizer(),
         )
 
         completions_converter = OpenAICompletionsConverter()
@@ -151,6 +154,7 @@ class TestOpenAICompletionsConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
             output_tokens_mean=DEFAULT_OUTPUT_TOKENS_MEAN,
+            tokenizer=get_empty_tokenizer(),
         )
 
         completions_converter = OpenAICompletionsConverter()
@@ -188,6 +192,7 @@ class TestOpenAICompletionsConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
             add_stream=True,
+            tokenizer=get_empty_tokenizer(),
         )
 
         completions_converter = OpenAICompletionsConverter()
@@ -226,6 +231,7 @@ class TestOpenAICompletionsConverter:
             model_name=["model_a", "model_b"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         completions_converter = OpenAICompletionsConverter()

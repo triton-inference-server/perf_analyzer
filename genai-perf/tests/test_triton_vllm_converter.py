@@ -34,6 +34,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestVLLMConverter:
@@ -61,6 +62,7 @@ class TestVLLMConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.VLLM,
+            tokenizer=get_empty_tokenizer(),
         )
 
         vllm_converter = VLLMConverter()
@@ -99,6 +101,7 @@ class TestVLLMConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.VLLM,
             add_stream=True,
+            tokenizer=get_empty_tokenizer(),
         )
 
         vllm_converter = VLLMConverter()
@@ -139,6 +142,7 @@ class TestVLLMConverter:
             output_format=OutputFormat.VLLM,
             output_tokens_mean=1234,
             output_tokens_deterministic=True,
+            tokenizer=get_empty_tokenizer(),
         )
 
         vllm_converter = VLLMConverter()
@@ -174,6 +178,7 @@ class TestVLLMConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.VLLM,
             batch_size_text=5,
+            tokenizer=get_empty_tokenizer(),
         )
 
         vllm_converter = VLLMConverter()
@@ -193,6 +198,7 @@ class TestVLLMConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.VLLM,
+            tokenizer=get_empty_tokenizer(),
         )
 
         vllm_converter = VLLMConverter()

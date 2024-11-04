@@ -31,9 +31,19 @@ class Tokenizer:
     A small wrapper class around Huggingface Tokenizer
     """
 
-    def __init__(self, name: str, trust_remote_code: bool, revision: str) -> None:
+    def __init__(self) -> None:
         """
-        Initialize by downloading the tokenizer from Huggingface.co
+        Initialize the tokenizer with default values
+        """
+
+        # default tokenizer parameters for __call__, encode, decode methods
+        self._call_args = {"add_special_tokens": False}
+        self._encode_args = {"add_special_tokens": False}
+        self._decode_args = {"skip_special_tokens": True}
+
+    def set_tokenizer(self, name: str, trust_remote_code: bool, revision: str):
+        """
+        Downloading the tokenizer from Huggingface.co or local filesystem
         """
         try:
             # Silence tokenizer warning on import and first use
@@ -49,13 +59,7 @@ class Tokenizer:
                 )
         except Exception as e:
             raise GenAIPerfException(e)
-
         self._tokenizer = tokenizer
-
-        # default tokenizer parameters for __call__, encode, decode methods
-        self._call_args = {"add_special_tokens": False}
-        self._encode_args = {"add_special_tokens": False}
-        self._decode_args = {"skip_special_tokens": True}
 
     def __call__(self, text, **kwargs) -> "BatchEncoding":
         self._call_args.update(kwargs)
@@ -73,6 +77,13 @@ class Tokenizer:
         return self._tokenizer.__repr__()
 
 
+def get_empty_tokenizer() -> Tokenizer:
+    """
+    Return a Tokenizer without a tokenizer set
+    """
+    return Tokenizer()
+
+
 def get_tokenizer(
     tokenizer_model: str,
     trust_remote_code: bool = False,
@@ -81,4 +92,6 @@ def get_tokenizer(
     """
     Return tokenizer for the given model name
     """
-    return Tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
+    tokenizer = Tokenizer()
+    tokenizer.set_tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
+    return tokenizer

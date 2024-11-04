@@ -34,6 +34,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOpenAIEmbeddingsConverter:
@@ -42,6 +43,7 @@ class TestOpenAIEmbeddingsConverter:
         config = InputsConfig(
             add_stream=True,
             output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            tokenizer=get_empty_tokenizer(),
         )
         converter = OpenAIEmbeddingsConverter()
 
@@ -66,6 +68,7 @@ class TestOpenAIEmbeddingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         converter = OpenAIEmbeddingsConverter()
@@ -113,6 +116,7 @@ class TestOpenAIEmbeddingsConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_EMBEDDINGS,
             batch_size_text=2,
+            tokenizer=get_empty_tokenizer(),
         )
 
         converter = OpenAIEmbeddingsConverter()
@@ -162,6 +166,7 @@ class TestOpenAIEmbeddingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         converter = OpenAIEmbeddingsConverter()
@@ -203,6 +208,7 @@ class TestOpenAIEmbeddingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         converter = OpenAIEmbeddingsConverter()

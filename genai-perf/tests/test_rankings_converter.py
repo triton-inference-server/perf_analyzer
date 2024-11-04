@@ -35,6 +35,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestRankingsConverter:
@@ -71,6 +72,7 @@ class TestRankingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.RANKINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         rankings_converter = RankingsConverter()
@@ -124,6 +126,7 @@ class TestRankingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.RANKINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         rankings_converter = RankingsConverter()
@@ -182,6 +185,7 @@ class TestRankingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.RANKINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         rankings_converter = RankingsConverter()
@@ -242,6 +246,7 @@ class TestRankingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.RANKINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         rankings_converter = RankingsConverter()
@@ -313,6 +318,7 @@ class TestRankingsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.RANKINGS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         rankings_converter = RankingsConverter()
