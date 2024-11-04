@@ -37,8 +37,8 @@ from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
 from genai_perf.record.types.gpu_utilization import GPUUtilization
 from genai_perf.record.types.input_sequence_length import InputSequenceLength
 from genai_perf.record.types.output_sequence_length import OutputSequenceLength
-from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
 from genai_perf.record.types.perf_throughput import PerfThroughput
+from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
 from genai_perf.types import GpuId, ModelObjectiveParameters, PerfRecords
 
 
@@ -69,7 +69,7 @@ def create_perf_metrics(
     if throughput:
         perf_metrics[PerfThroughput.tag] = PerfThroughput(throughput)
     if latency:
-        perf_metrics[PerfLatencyP99.tag] = PerfLatencyP99(latency)
+        perf_metrics[RequestLatencyP99.tag] = RequestLatencyP99(latency)
     if input_seq_length:
         perf_metrics[InputSequenceLength.tag] = InputSequenceLength(input_seq_length)
     if output_seq_length:
