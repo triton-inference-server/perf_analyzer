@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,38 +19,25 @@ from genai_perf.types import RecordValue
 
 
 @total_ordering
-class OutputTokenThroughput(IncreasingRecord):
+class OutputTokenThroughputPerRequestBase(IncreasingRecord):
     """
-    A record for Output token throughput
+    A base class for the output token throughput per request metric
     """
 
-    tag = "output_token_throughput"
+    base_tag = "output_token_throughput_per_request"
 
     def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
         super().__init__(value, timestamp)
 
-    @staticmethod
-    def value_function():
-        """
-        Returns the total value from a list
-
-        Returns
-        -------
-        Total value of the list
-        """
-        return sum
-
-    @staticmethod
-    def header(aggregation_tag=False) -> str:
-        return "Output Token Throughput (tokens/sec)"
-
-    def __eq__(self, other: "OutputTokenThroughput") -> bool:  # type: ignore
+    def __eq__(self, other: "OutputTokenThroughputPerRequestBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "OutputTokenThroughput") -> bool:
+    def __lt__(self, other: "OutputTokenThroughputPerRequestBase") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other: "OutputTokenThroughput") -> "OutputTokenThroughput":
+    def __add__(
+        self, other: "OutputTokenThroughputPerRequestBase"
+    ) -> "OutputTokenThroughputPerRequestBase":
         """
         Allows adding two records together
         to produce a brand new record.
@@ -58,9 +45,11 @@ class OutputTokenThroughput(IncreasingRecord):
 
         return self.__class__(value=(self.value() + other.value()))
 
-    def __sub__(self, other: "OutputTokenThroughput") -> "OutputTokenThroughput":
+    def __sub__(
+        self, other: "OutputTokenThroughputPerRequestBase"
+    ) -> "OutputTokenThroughputPerRequestBase":
         """
-        Allows subtracting two records together
+        Allows subbing two records together
         to produce a brand new record.
         """
 
