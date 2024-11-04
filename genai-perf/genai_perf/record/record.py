@@ -158,7 +158,7 @@ class Record(metaclass=RecordType):
                 setattr(record, key, record_dict[key])
         return record
 
-    def value(self) -> Union[float, int]:
+    def value(self) -> RecordValue:
         """
         This method returns the value of recorded metric
 

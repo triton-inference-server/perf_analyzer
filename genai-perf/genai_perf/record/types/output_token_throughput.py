@@ -15,27 +15,18 @@
 from functools import total_ordering
 
 from genai_perf.record.record import IncreasingRecord
+from genai_perf.types import RecordValue
 
 
 @total_ordering
 class OutputTokenThroughput(IncreasingRecord):
     """
-    A record for perf_analyzer
-    metric 'Output Token Throughput'
+    A record for Output token throughput
     """
 
     tag = "output_token_throughput"
 
-    def __init__(self, value, timestamp=0):
-        """
-        Parameters
-        ----------
-        value : float
-            The throughput from the perf analyzer output
-        timestamp : float
-            Elapsed time from start of program
-        """
-
+    def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
         super().__init__(value, timestamp)
 
     @staticmethod
@@ -50,43 +41,16 @@ class OutputTokenThroughput(IncreasingRecord):
         return sum
 
     @staticmethod
-    def header(aggregation_tag=False):
-        """
-        Parameters
-        ----------
-        aggregation_tag: bool
-            An optional tag that may be displayed
-            as part of the header indicating that
-            this record has been aggregated using
-            max, min or average etc.
-
-        Returns
-        -------
-        str
-            The full name of the
-            metric.
-        """
-
+    def header(aggregation_tag=False) -> str:
         return "Output Token Throughput (infer/sec)"
 
-    def __eq__(self, other):
-        """
-        Allows checking for
-        equality between two records
-        """
-
+    def __eq__(self, other: "OutputTokenThroughput") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other):
-        """
-        Allows checking if
-        this record is less than
-        the other
-        """
-
+    def __lt__(self, other: "OutputTokenThroughput") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other):
+    def __add__(self, other: "OutputTokenThroughput") -> "OutputTokenThroughput":
         """
         Allows adding two records together
         to produce a brand new record.
@@ -94,7 +58,7 @@ class OutputTokenThroughput(IncreasingRecord):
 
         return self.__class__(value=(self.value() + other.value()))
 
-    def __sub__(self, other):
+    def __sub__(self, other: "OutputTokenThroughput") -> "OutputTokenThroughput":
         """
         Allows subtracting two records together
         to produce a brand new record.
