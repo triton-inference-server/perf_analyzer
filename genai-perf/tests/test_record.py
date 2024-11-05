@@ -75,9 +75,8 @@ class TestRecord(unittest.TestCase):
                 "time_to_first_token_p90",
                 "time_to_first_token_p95",
                 "time_to_first_token_p99",
-                "gpu_used_memory",
-                "cpu_used_ram",
                 "gpu_power_usage",
+                "energy_consumption",
             ]
         }
 
@@ -116,10 +115,10 @@ class TestRecord(unittest.TestCase):
                 "input_sequence_length_p90",
                 "input_sequence_length_p95",
                 "input_sequence_length_p99",
-                "gpu_free_memory",
+                "gpu_power_limit",
                 "gpu_utilization",
-                "cpu_available_ram",
-                "gpu_total_memory",
+                "total_gpu_memory",
+                "gpu_memory_used",
             ]
         }
 

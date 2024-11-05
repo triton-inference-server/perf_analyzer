@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
 
 from functools import total_ordering
 
-from genai_perf.record.gpu_record import IncreasingGPURecord
+from genai_perf.record.gpu_record import DecreasingGPURecord
 
 
 @total_ordering
-class GPUUtilization(IncreasingGPURecord):
+class GPUEnergyConsumption(DecreasingGPURecord):
     """
-    GPU's utilization percentage
+    GPU's energy consumption metric
     """
 
-    tag = "gpu_utilization"
+    tag = "energy_consumption"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
@@ -37,16 +37,20 @@ class GPUUtilization(IncreasingGPURecord):
 
     @staticmethod
     def header(aggregation_tag=False):
-        return ("Average " if aggregation_tag else "") + "GPU Utilization (%)"
+        return ("Average " if aggregation_tag else "") + "GPU Energy Consumption (MJ)"
 
-    def __eq__(self, other: "GPUUtilization") -> bool:  # type: ignore
+    def __eq__(self, other: "GPUEnegryConsumption") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "GPUUtilization") -> bool:
-        return self.value() < other.value()
+    def __lt__(self, other: "GPUEnergyConsumption") -> bool:
+        return other.value() < self.value()
 
-    def __add__(self, other: "GPUUtilization") -> "GPUUtilization":
-        return GPUUtilization(device_uuid=None, value=(self.value() + other.value()))
+    def __add__(self, other: "GPUEnergyConsumption") -> "GPUEnergyConsumption":
+        return GPUEnergyConsumption(
+            device_uuid=None, value=(self.value() + other.value())
+        )
 
-    def __sub__(self, other: "GPUUtilization") -> "GPUUtilization":
-        return GPUUtilization(device_uuid=None, value=(self.value() - other.value()))
+    def __sub__(self, other: "GPUEnergyConsumption") -> "GPUEnergyConsumption":
+        return GPUEnergyConsumption(
+            device_uuid=None, value=(other.value() - self.value())
+        )

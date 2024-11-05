@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ from genai_perf.record.gpu_record import IncreasingGPURecord
 
 
 @total_ordering
-class GPUUtilization(IncreasingGPURecord):
+class GPUPowerLimit(IncreasingGPURecord):
     """
-    GPU's utilization percentage
+    GPU's power limit metric
     """
 
-    tag = "gpu_utilization"
+    tag = "gpu_power_limit"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
@@ -37,16 +37,16 @@ class GPUUtilization(IncreasingGPURecord):
 
     @staticmethod
     def header(aggregation_tag=False):
-        return ("Average " if aggregation_tag else "") + "GPU Utilization (%)"
+        return ("Average " if aggregation_tag else "") + "GPU Power Limit (W)"
 
-    def __eq__(self, other: "GPUUtilization") -> bool:  # type: ignore
+    def __eq__(self, other: "GPUPowerLimit") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "GPUUtilization") -> bool:
+    def __lt__(self, other: "GPUPowerLimit") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other: "GPUUtilization") -> "GPUUtilization":
-        return GPUUtilization(device_uuid=None, value=(self.value() + other.value()))
+    def __add__(self, other: "GPUPowerLimit") -> "GPUPowerLimit":
+        return GPUPowerLimit(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(self, other: "GPUUtilization") -> "GPUUtilization":
-        return GPUUtilization(device_uuid=None, value=(self.value() - other.value()))
+    def __sub__(self, other: "GPUPowerLimit") -> "GPUPowerLimit":
+        return GPUPowerLimit(device_uuid=None, value=(self.value() - other.value()))
