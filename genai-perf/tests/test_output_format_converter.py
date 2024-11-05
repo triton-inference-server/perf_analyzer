@@ -21,6 +21,7 @@ from genai_perf.inputs.converters.output_format_converter_factory import (
 )
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOutputFormatConverter:
@@ -147,6 +148,7 @@ class TestOutputFormatConverter:
             model_name=model_name_list,
             model_selection_strategy=model_selection_strategy,
             random_seed=seed,
+            tokenizer=get_empty_tokenizer(),
         )
         converter = OutputFormatConverterFactory.create(OutputFormat.IMAGE_RETRIEVAL)
         actual_model = converter._select_model_name(config, index)

@@ -28,7 +28,6 @@
 from typing import List
 
 from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,

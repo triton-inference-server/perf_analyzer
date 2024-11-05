@@ -14,18 +14,13 @@
 
 import contextlib
 import io
-from typing import List
+from typing import TYPE_CHECKING, List
+
+# Use TYPE_CHECKING to import BatchEncoding only during static type checks
+if TYPE_CHECKING:
+    from transformers import BatchEncoding
 
 from genai_perf.exceptions import GenAIPerfException
-
-# Silence tokenizer warning on import
-with contextlib.redirect_stdout(io.StringIO()) as stdout, contextlib.redirect_stderr(
-    io.StringIO()
-) as stderr:
-    from transformers import AutoTokenizer, BatchEncoding
-    from transformers import logging as token_logger
-
-    token_logger.set_verbosity_error()
 
 DEFAULT_TOKENIZER = "hf-internal-testing/llama-tokenizer"
 DEFAULT_TOKENIZER_REVISION = "main"
@@ -36,29 +31,37 @@ class Tokenizer:
     A small wrapper class around Huggingface Tokenizer
     """
 
-    def __init__(self, name: str, trust_remote_code: bool, revision: str) -> None:
+    def __init__(self) -> None:
         """
-        Initialize by downloading the tokenizer from Huggingface.co
+        Initialize the tokenizer with default values
         """
-        try:
-            # Silence tokenizer warning on first use
-            with contextlib.redirect_stdout(
-                io.StringIO()
-            ) as stdout, contextlib.redirect_stderr(io.StringIO()) as stderr:
-                tokenizer = AutoTokenizer.from_pretrained(
-                    name, trust_remote_code=trust_remote_code, revision=revision
-                )
-        except Exception as e:
-            raise GenAIPerfException(e)
-
-        self._tokenizer = tokenizer
 
         # default tokenizer parameters for __call__, encode, decode methods
         self._call_args = {"add_special_tokens": False}
         self._encode_args = {"add_special_tokens": False}
         self._decode_args = {"skip_special_tokens": True}
 
-    def __call__(self, text, **kwargs) -> BatchEncoding:
+    def set_tokenizer(self, name: str, trust_remote_code: bool, revision: str):
+        """
+        Downloading the tokenizer from Huggingface.co or local filesystem
+        """
+        try:
+            # Silence tokenizer warning on import and first use
+            with contextlib.redirect_stdout(
+                io.StringIO()
+            ) as stdout, contextlib.redirect_stderr(io.StringIO()):
+                from transformers import AutoTokenizer
+                from transformers import logging as token_logger
+
+                token_logger.set_verbosity_error()
+                tokenizer = AutoTokenizer.from_pretrained(
+                    name, trust_remote_code=trust_remote_code, revision=revision
+                )
+        except Exception as e:
+            raise GenAIPerfException(e)
+        self._tokenizer = tokenizer
+
+    def __call__(self, text, **kwargs) -> "BatchEncoding":
         self._call_args.update(kwargs)
         return self._tokenizer(text, **self._call_args)
 
@@ -74,6 +77,13 @@ class Tokenizer:
         return self._tokenizer.__repr__()
 
 
+def get_empty_tokenizer() -> Tokenizer:
+    """
+    Return a Tokenizer without a tokenizer set
+    """
+    return Tokenizer()
+
+
 def get_tokenizer(
     tokenizer_model: str,
     trust_remote_code: bool = False,
@@ -82,4 +92,6 @@ def get_tokenizer(
     """
     Return tokenizer for the given model name
     """
-    return Tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
+    tokenizer = Tokenizer()
+    tokenizer.set_tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
+    return tokenizer

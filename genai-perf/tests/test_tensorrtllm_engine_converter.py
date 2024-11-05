@@ -38,7 +38,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_empty_tokenizer, get_tokenizer
 
 
 class TestTensorRTLLMEngineConverter:
@@ -150,6 +150,7 @@ class TestTensorRTLLMEngineConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
             batch_size_text=5,
+            tokenizer=get_empty_tokenizer(),
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
