@@ -18,12 +18,12 @@ from genai_perf.record.record import IncreasingRecord
 
 
 @total_ordering
-class RequestThroughputAvg(IncreasingRecord):
+class RequestGoodputAvg(IncreasingRecord):
     """
-    A record avg request throughput metric
+    A record avg request goodput metric
     """
 
-    tag = "request_throughput_avg"
+    tag = "request_goodput_avg"
 
     def __init__(self, value, timestamp=0):
         super().__init__(value, timestamp)
@@ -34,16 +34,16 @@ class RequestThroughputAvg(IncreasingRecord):
 
     @staticmethod
     def header(aggregation_tag=False) -> str:
-        return "Request Throughput (requests/sec)"
+        return "Request Goodput (requests/sec)"
 
-    def __eq__(self, other: "RequestThroughputAvg") -> bool:  # type: ignore
+    def __eq__(self, other: "RequestGoodputAvg") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "RequestThroughputAvg") -> bool:
+    def __lt__(self, other: "RequestGoodputAvg") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other: "RequestThroughputAvg") -> "RequestThroughputAvg":
+    def __add__(self, other: "RequestGoodputAvg") -> "RequestGoodputAvg":
         return self.__class__(value=(self.value() + other.value()))
 
-    def __sub__(self, other: "RequestThroughputAvg") -> "RequestThroughputAvg":
+    def __sub__(self, other: "RequestGoodputAvg") -> "RequestGoodputAvg":
         return self.__class__(value=(self.value() - other.value()))
