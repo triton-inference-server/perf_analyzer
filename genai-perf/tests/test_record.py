@@ -77,12 +77,6 @@ class TestRecord(unittest.TestCase):
                 "time_to_first_token_p99",
                 "gpu_used_memory",
                 "cpu_used_ram",
-                "perf_server_compute_infer",
-                "perf_server_queue",
-                "perf_client_response_wait",
-                "perf_server_compute_output",
-                "perf_client_send_recv",
-                "perf_server_compute_input",
                 "gpu_power_usage",
             ]
         }
