@@ -15,53 +15,35 @@
 from functools import total_ordering
 
 from genai_perf.record.record import IncreasingRecord
-from genai_perf.types import RecordValue
 
 
 @total_ordering
-class OutputTokenThroughput(IncreasingRecord):
+class RequestThroughputAvg(IncreasingRecord):
     """
-    A record for Output token throughput
+    A record avg request throughput metric
     """
 
-    tag = "output_token_throughput"
+    tag = "request_throughput_avg"
 
-    def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
+    def __init__(self, value, timestamp=0):
         super().__init__(value, timestamp)
 
     @staticmethod
     def value_function():
-        """
-        Returns the total value from a list
-
-        Returns
-        -------
-        Total value of the list
-        """
         return sum
 
     @staticmethod
     def header(aggregation_tag=False) -> str:
-        return "Output Token Throughput (tokens/sec)"
+        return "Throughput (requests/sec)"
 
-    def __eq__(self, other: "OutputTokenThroughput") -> bool:  # type: ignore
+    def __eq__(self, other: "RequestThroughputAvg") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "OutputTokenThroughput") -> bool:
+    def __lt__(self, other: "RequestThroughputAvg") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other: "OutputTokenThroughput") -> "OutputTokenThroughput":
-        """
-        Allows adding two records together
-        to produce a brand new record.
-        """
-
+    def __add__(self, other: "RequestThroughputAvg") -> "RequestThroughputAvg":
         return self.__class__(value=(self.value() + other.value()))
 
-    def __sub__(self, other: "OutputTokenThroughput") -> "OutputTokenThroughput":
-        """
-        Allows subtracting two records together
-        to produce a brand new record.
-        """
-
+    def __sub__(self, other: "RequestThroughputAvg") -> "RequestThroughputAvg":
         return self.__class__(value=(self.value() - other.value()))

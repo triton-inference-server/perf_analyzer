@@ -83,8 +83,8 @@ class TestRecord(unittest.TestCase):
         self.more_is_better_types = {
             record_types[t]
             for t in [
-                "perf_throughput",
-                "output_token_throughput",
+                "request_throughput_avg",
+                "output_token_throughput_avg",
                 "output_token_throughput_per_request_min",
                 "output_token_throughput_per_request_max",
                 "output_token_throughput_per_request_avg",
@@ -232,7 +232,7 @@ class TestRecord(unittest.TestCase):
         ].value_function()([10, 50, 100, 40])
 
         total_value = RecordType.get_all_record_types()[
-            "perf_throughput"
+            "request_throughput_avg"
         ].value_function()([10, 50, 100, 40])
 
         self.assertEqual(avg_value, 50)

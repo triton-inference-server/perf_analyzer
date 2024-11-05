@@ -23,8 +23,8 @@ from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
 from genai_perf.record.types.gpu_utilization import GPUUtilization
-from genai_perf.record.types.perf_throughput import PerfThroughput
 from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 
 
 class TestRunConfigMeasurement(unittest.TestCase):
@@ -78,39 +78,39 @@ class TestRunConfigMeasurement(unittest.TestCase):
     def _create_perf_metrics(self) -> None:
         #
         # Record A
-        self.throughput_recordA = PerfThroughput(1000)
+        self.throughput_recordA = RequestThroughputAvg(1000)
         self.latency_recordA = RequestLatencyP99(40)
 
         self.perf_metricsA = {
-            PerfThroughput.tag: self.throughput_recordA,
+            RequestThroughputAvg.tag: self.throughput_recordA,
             RequestLatencyP99.tag: self.latency_recordA,
         }
 
         #
         # Record B
-        self.throughput_recordB = PerfThroughput(500)
+        self.throughput_recordB = RequestThroughputAvg(500)
         self.latency_recordB = RequestLatencyP99(30)
 
         self.perf_metricsB = {
-            PerfThroughput.tag: self.throughput_recordB,
+            RequestThroughputAvg.tag: self.throughput_recordB,
             RequestLatencyP99.tag: self.latency_recordB,
         }
 
         #
         # Record MM
-        self.throughput_recordMM_0 = PerfThroughput(1000)
+        self.throughput_recordMM_0 = RequestThroughputAvg(1000)
         self.latency_recordMM_0 = RequestLatencyP99(20)
 
-        self.throughput_recordMM_1 = PerfThroughput(2000)
+        self.throughput_recordMM_1 = RequestThroughputAvg(2000)
         self.latency_recordMM_1 = RequestLatencyP99(30)
 
         self.perf_metricsMM_0 = {
-            PerfThroughput.tag: self.throughput_recordMM_0,
+            RequestThroughputAvg.tag: self.throughput_recordMM_0,
             RequestLatencyP99.tag: self.latency_recordMM_0,
         }
 
         self.perf_metricsMM_1 = {
-            PerfThroughput.tag: self.throughput_recordMM_1,
+            RequestThroughputAvg.tag: self.throughput_recordMM_1,
             RequestLatencyP99.tag: self.latency_recordMM_1,
         }
 
@@ -170,12 +170,12 @@ class TestRunConfigMeasurement(unittest.TestCase):
         self.assertEqual(expected_all_perf_metrics_dict, rcmA.get_all_perf_metrics())
         self.assertEqual(self.perf_metricsA, rcmA.get_model_perf_metrics("test_model"))
         self.assertEqual(
-            self.perf_metricsA[PerfThroughput.tag],
-            rcmA.get_model_perf_metric("test_model", PerfThroughput.tag),
+            self.perf_metricsA[RequestThroughputAvg.tag],
+            rcmA.get_model_perf_metric("test_model", RequestThroughputAvg.tag),
         )
         self.assertEqual(
-            self.perf_metricsA[PerfThroughput.tag].value(),
-            rcmA.get_model_perf_metric_value("test_model", PerfThroughput.tag),
+            self.perf_metricsA[RequestThroughputAvg.tag].value(),
+            rcmA.get_model_perf_metric_value("test_model", RequestThroughputAvg.tag),
         )
         self.assertEqual(
             10,
@@ -191,13 +191,13 @@ class TestRunConfigMeasurement(unittest.TestCase):
         rcmMM.set_model_weighting(model_weights)
 
         expected_weighted_perf_metric_values = {
-            "modelMM_0": self.perf_metricsMM_0[PerfThroughput.tag].value() * 0.8,
-            "modelMM_1": self.perf_metricsMM_1[PerfThroughput.tag].value() * 0.2,
+            "modelMM_0": self.perf_metricsMM_0[RequestThroughputAvg.tag].value() * 0.8,
+            "modelMM_1": self.perf_metricsMM_1[RequestThroughputAvg.tag].value() * 0.2,
         }
 
         self.assertEqual(
             expected_weighted_perf_metric_values,
-            rcmMM.get_weighted_perf_metric_values(PerfThroughput.tag),
+            rcmMM.get_weighted_perf_metric_values(RequestThroughputAvg.tag),
         )
 
     def test_set_gpu_metric_objectives(self):
@@ -259,7 +259,7 @@ class TestRunConfigMeasurement(unittest.TestCase):
         # Changing the metric objectives to bias latency
         # this tips the scale in the favor of RCMB
         latency_bias_objectives = {
-            "test_model": {PerfThroughput.tag: 1, RequestLatencyP99.tag: 4}
+            "test_model": {RequestThroughputAvg.tag: 1, RequestLatencyP99.tag: 4}
         }
         rcmA.set_perf_metric_objectives(latency_bias_objectives)
         rcmB.set_perf_metric_objectives(latency_bias_objectives)
