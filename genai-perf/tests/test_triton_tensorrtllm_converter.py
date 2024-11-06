@@ -36,6 +36,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestTensorRTLLMConverter:
@@ -63,6 +64,7 @@ class TestTensorRTLLMConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM,
+            tokenizer=get_empty_tokenizer(),
         )
 
         trtllm_converter = TensorRTLLMConverter()
@@ -100,6 +102,7 @@ class TestTensorRTLLMConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM,
             add_stream=True,
+            tokenizer=get_empty_tokenizer(),
         )
 
         trtllm_converter = TensorRTLLMConverter()
@@ -136,6 +139,7 @@ class TestTensorRTLLMConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM,
+            tokenizer=get_empty_tokenizer(),
         )
 
         trtllm_converter = TensorRTLLMConverter()

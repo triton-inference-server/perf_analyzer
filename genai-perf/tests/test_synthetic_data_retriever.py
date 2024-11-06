@@ -18,8 +18,8 @@ from unittest.mock import patch
 import pytest
 from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestSyntheticDataRetriever:
@@ -40,6 +40,7 @@ class TestSyntheticDataRetriever:
             batch_size_text=batch_size_text,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
             synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
+            tokenizer=get_empty_tokenizer(),
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
@@ -75,6 +76,7 @@ class TestSyntheticDataRetriever:
             batch_size_image=batch_size_image,
             output_format=OutputFormat.OPENAI_VISION,
             synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
+            tokenizer=get_empty_tokenizer(),
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
@@ -109,6 +111,7 @@ class TestSyntheticDataRetriever:
             batch_size_image=1,
             synthetic_input_filenames=["file1.jsonl", "file2.jsonl"],
             output_format=OutputFormat.OPENAI_VISION,
+            tokenizer=get_empty_tokenizer(),
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()

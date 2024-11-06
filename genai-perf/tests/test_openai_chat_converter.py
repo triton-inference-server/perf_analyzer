@@ -35,6 +35,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOpenAIChatCompletionsConverter:
@@ -79,6 +80,7 @@ class TestOpenAIChatCompletionsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
+            tokenizer=get_empty_tokenizer(),
         )
 
         chat_converter = OpenAIChatCompletionsConverter()
@@ -133,6 +135,7 @@ class TestOpenAIChatCompletionsConverter:
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
+            tokenizer=get_empty_tokenizer(),
             add_stream=True,
         )
 
@@ -253,6 +256,7 @@ class TestOpenAIChatCompletionsConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=output_format,
             add_stream=True,
+            tokenizer=get_empty_tokenizer(),
         )
 
         chat_converter = OpenAIChatCompletionsConverter()
@@ -309,6 +313,7 @@ class TestOpenAIChatCompletionsConverter:
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.IMAGE_RETRIEVAL,
             add_stream=True,
+            tokenizer=get_empty_tokenizer(),
         )
 
         chat_converter = OpenAIChatCompletionsConverter()

@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
-import random
 from typing import Any, Dict
 
 from genai_perf.exceptions import GenAIPerfException
@@ -36,6 +35,7 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.utils import sample_bounded_normal
 
 
 class VLLMConverter(BaseConverter):
@@ -70,22 +70,18 @@ class VLLMConverter(BaseConverter):
         if config.add_stream:
             payload["stream"] = [True]
         if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
-            number_of_tokens = str(
-                int(
-                    max(
-                        0,
-                        random.gauss(
-                            config.output_tokens_mean,
-                            config.output_tokens_stddev,
-                        ),
-                    )
+            number_of_tokens = int(
+                sample_bounded_normal(
+                    mean=config.output_tokens_mean,
+                    stddev=config.output_tokens_stddev,
+                    lower=1,  # output token must be >= 1
                 )
             )
             sampling_parameters = {
-                "max_tokens": number_of_tokens,
+                "max_tokens": f"{number_of_tokens}",
             }
             if config.output_tokens_deterministic:
-                sampling_parameters["min_tokens"] = number_of_tokens
+                sampling_parameters["min_tokens"] = f"{number_of_tokens}"
             sampling_parameters_str = json.dumps(sampling_parameters)
             payload["sampling_parameters"] = [sampling_parameters_str]
         for key, value in config.extra_inputs.items():

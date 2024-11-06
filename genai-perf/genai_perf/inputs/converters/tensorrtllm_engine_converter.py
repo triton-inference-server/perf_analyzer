@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import random
 from typing import Any, Dict
 
 from genai_perf.exceptions import GenAIPerfException
@@ -36,6 +35,7 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.utils import sample_bounded_normal
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
@@ -71,7 +71,11 @@ class TensorRTLLMEngineConverter(BaseConverter):
             payload["streaming"] = [True]
         if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             num_tokens = int(
-                random.gauss(config.output_tokens_mean, config.output_tokens_stddev)
+                sample_bounded_normal(
+                    mean=config.output_tokens_mean,
+                    stddev=config.output_tokens_stddev,
+                    lower=1,  # output token must be >= 1
+                )
             )
             payload["request_output_len"] = [num_tokens]
             if config.output_tokens_deterministic:

@@ -34,6 +34,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestNVClipConverter:
@@ -57,6 +58,7 @@ class TestNVClipConverter:
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            tokenizer=get_empty_tokenizer(),
         )
 
         nv_clip_converter = NVClipConverter()
@@ -104,6 +106,7 @@ class TestNVClipConverter:
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            tokenizer=get_empty_tokenizer(),
         )
 
         nv_clip_converter = NVClipConverter()
@@ -137,6 +140,7 @@ class TestNVClipConverter:
             extra_inputs=extra_inputs,
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            tokenizer=get_empty_tokenizer(),
         )
 
         nv_clip_converter = NVClipConverter()
@@ -159,7 +163,7 @@ class TestNVClipConverter:
         assert result == expected_result
 
     def test_check_config_raises_exception_for_streaming(self):
-        config = InputsConfig(add_stream=True)
+        config = InputsConfig(add_stream=True, tokenizer=get_empty_tokenizer())
 
         nv_clip_converter = NVClipConverter()
 

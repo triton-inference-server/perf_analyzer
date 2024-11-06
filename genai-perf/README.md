@@ -74,7 +74,7 @@ The easiest way to install GenAI-Perf is through
 Install the latest release using the following command:
 
 ```bash
-export RELEASE="24.09"
+export RELEASE="24.10"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -136,7 +136,7 @@ docker run -ti \
     --shm-size=1g --ulimit memlock=-1 \
     -v /tmp:/tmp \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.09-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:24.10-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
@@ -431,6 +431,7 @@ in JSONL format. Example: {\"text\": \"Your prompt here\"}"
 The number of unique prompts to generate as stimulus. (default: `100`)
 
 ##### `--output-tokens-mean <int>`
+##### `--osl`
 
 The mean number of tokens in each output. Ensure the `--tokenizer` value is set
 correctly. (default: `-1`)
@@ -454,6 +455,7 @@ when `--output-tokens-mean` is provided. (default: `0`)
 The seed used to generate random values. (default: `0`)
 
 ##### `--synthetic-input-tokens-mean <int>`
+##### `--isl`
 
 The mean of number of tokens in the generated prompts when using synthetic
 data. (default: `550`)

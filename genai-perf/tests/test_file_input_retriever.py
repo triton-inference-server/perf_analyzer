@@ -31,6 +31,7 @@ import pytest
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
+from genai_perf.tokenizer import get_empty_tokenizer
 from PIL import Image
 
 
@@ -92,6 +93,7 @@ class TestFileInputRetriever:
     ):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("single_image.jsonl"),
@@ -118,6 +120,7 @@ class TestFileInputRetriever:
     ):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("multiple_images.jsonl"),
@@ -143,6 +146,7 @@ class TestFileInputRetriever:
     def test_get_input_file_single_prompt(self, mock_file, mock_exists):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("single_prompt.jsonl"),
@@ -162,6 +166,7 @@ class TestFileInputRetriever:
     def test_get_input_file_multiple_prompts(self, mock_file, mock_exists):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("multiple_prompts.jsonl"),
@@ -194,6 +199,7 @@ class TestFileInputRetriever:
     ):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("multi_modal.jsonl"),
@@ -214,6 +220,7 @@ class TestFileInputRetriever:
     def test_get_input_file_deprecated_text_input(self, mock_file, mock_exists):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("deprecated_text_input.jsonl"),
@@ -234,6 +241,7 @@ class TestFileInputRetriever:
     def test_get_input_file_conflicting_key(self, mock_file, mock_exists):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 batch_size_image=1,
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
@@ -248,7 +256,10 @@ class TestFileInputRetriever:
 
     def test_get_input_file_without_file_existing(self):
         file_retriever = FileInputRetriever(
-            InputsConfig(input_filename=Path("nonexistent_file.jsonl"))
+            InputsConfig(
+                tokenizer=get_empty_tokenizer(),
+                input_filename=Path("nonexistent_file.jsonl"),
+            )
         )
         with pytest.raises(FileNotFoundError):
             file_retriever._get_input_dataset_from_file(Path("nonexistent_file.jsonl"))
@@ -260,7 +271,9 @@ class TestFileInputRetriever:
         self, mock_exists, mock_is_dir, mock_glob
     ):
         file_retriever = FileInputRetriever(
-            InputsConfig(input_filename=Path("empty_dir"))
+            InputsConfig(
+                tokenizer=get_empty_tokenizer(), input_filename=Path("empty_dir")
+            )
         )
         with pytest.raises(ValueError, match="No JSONL files found in directory"):
             _ = file_retriever._get_input_datasets_from_dir()
@@ -293,6 +306,7 @@ class TestFileInputRetriever:
     ):
         file_retriever = FileInputRetriever(
             InputsConfig(
+                tokenizer=get_empty_tokenizer(),
                 model_name=["test_model_A"],
                 model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
                 input_filename=Path("test_dir"),
@@ -336,7 +350,9 @@ class TestFileInputRetriever:
         self, mock_exists, mock_is_dir, mock_glob
     ):
         file_retriever = FileInputRetriever(
-            InputsConfig(input_filename=Path("empty_dir"))
+            InputsConfig(
+                tokenizer=get_empty_tokenizer(), input_filename=Path("empty_dir")
+            )
         )
         with pytest.raises(ValueError, match="No JSONL files found in directory"):
             _ = file_retriever._get_input_datasets_from_dir()
