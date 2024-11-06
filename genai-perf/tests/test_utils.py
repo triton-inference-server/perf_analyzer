@@ -27,7 +27,12 @@
 from typing import Union
 
 import pytest
+from genai_perf import utils
 from genai_perf.metrics.statistics import Statistics
+
+###########################################################
+# Library of utility functions for other unit test scripts.
+###########################################################
 
 
 def ns_to_sec(ns: int) -> Union[int, float]:
@@ -42,3 +47,18 @@ def check_statistics(s1: Statistics, s2: Statistics) -> None:
         for stat_name, value in s1_dict[metric].items():
             if stat_name != "unit":
                 assert s2_dict[metric][stat_name] == pytest.approx(value)
+
+
+class TestUtils:
+    """
+    Unit test for genai_perf/utils.py utility functions
+    """
+
+    def test_sample_bounded_normal(self):
+        # lower bounded by -10
+        n = utils.sample_bounded_normal(mean=-1000, stddev=0, lower=-10)
+        assert n == -10
+
+        # upper bounded by 10
+        n = utils.sample_bounded_normal(mean=1000, stddev=0, upper=10)
+        assert n == 10

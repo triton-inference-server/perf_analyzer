@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import random
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
@@ -118,3 +119,11 @@ def get_enum_entry(name: str, enum: Type[Enum]) -> Optional[Enum]:
 
 def scale(value, factor):
     return value * factor
+
+
+def sample_bounded_normal(mean, stddev, lower=float("-inf"), upper=float("inf")):
+    """Bound random normal sampling to [lower, upper]. Set the final value to
+    the boundary value if the value goes below or above the boundaries.
+    """
+    n = random.gauss(mean, stddev)
+    return min(max(lower, n), upper)
