@@ -212,7 +212,9 @@ class Statistics:
                         metric_value
                     )
                 except KeyError:
-                    GenAIPerfException(f"{metric_name} is not a valid Record tag.")
+                    raise GenAIPerfException(
+                        f"{metric_name} is not a valid Record tag."
+                    )
 
                 statistic_records.append(new_record)
 
