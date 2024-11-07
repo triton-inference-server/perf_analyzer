@@ -30,7 +30,7 @@
 #include "load_manager.h"
 #include "request_rate_worker.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 
 #ifndef DOCTEST_CONFIG_DISABLE
 class TestRequestRateManager;
@@ -103,7 +103,7 @@ class RequestRateManager : public LoadManager {
   /// \param target_request_rate The rate at which requests must be issued to
   /// the server.
   /// \param warmup_request_count The number of warmup requests to send.
-  cb::Error PerformWarmup(
+  virtual cb::Error PerformWarmup(
       double target_request_rate, size_t warmup_request_count);
 
   /// Adjusts the rate of issuing requests to be the same as 'request_rate'
@@ -112,8 +112,9 @@ class RequestRateManager : public LoadManager {
   /// \param request_count The number of requests to generate when profiling. If
   /// 0, then there is no limit, and it will generate until told to stop.
   /// \return cb::Error object indicating success or failure.
-  cb::Error ChangeRequestRate(
+  virtual cb::Error ChangeRequestRate(
       const double target_request_rate, const size_t request_count = 0);
+
 
  protected:
   RequestRateManager(
@@ -175,4 +176,4 @@ class RequestRateManager : public LoadManager {
 #endif
 };
 
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer

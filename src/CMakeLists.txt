@@ -130,6 +130,7 @@ set(
   data_loader.cc
   concurrency_manager.cc
   request_rate_manager.cc
+  custom_request_schedule_manager.cc
   load_worker.cc
   concurrency_worker.cc
   request_rate_worker.cc
@@ -160,6 +161,7 @@ set(
   data_loader.h
   concurrency_manager.h
   request_rate_manager.h
+  custom_request_schedule_manager.h
   custom_load_manager.h
   iworker.h
   load_worker.h
