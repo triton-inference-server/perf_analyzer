@@ -163,6 +163,17 @@ Example output:
 └───────────────────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
 ```
 
+### Running with Authentication
+GenAI-Perf can benchmark secure endpoints such as OpenAI, which requires API
+key authentication. To do so, you can add your API key directly in the command.
+At the end of your command, append the below flags. Replace the key with your
+API key. The `--` flag allows arguments to pass directly into Perf Analyzer in
+superuser mode. The `-H` flag is used to add HTTP headers.
+
+```bash
+-- -H "Authorization: Bearer ${OPENAI_API_KEY}" -H "Accept: text/event-stream"
+```
+
 ## Profile GPT-2 running on OpenAI Completions API-Compatible Server <a id="openai-completions"></a>
 
 Serve the model on the vLLM server with [OpenAI Completions API](https://platform.openai.com/docs/api-reference/completions) endpoint:
@@ -199,4 +210,15 @@ Example output:
 │ Output token throughput (per sec) │ 257.21 │    N/A │    N/A │    N/A │    N/A │    N/A │
 │      Request throughput (per sec) │   2.28 │    N/A │    N/A │    N/A │    N/A │    N/A │
 └───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
+```
+
+### Running with Authentication
+GenAI-Perf can benchmark secure endpoints such as OpenAI, which requires API
+key authentication. To do so, you can add your API key directly in the command.
+At the end of your command, append the below flags. Replace the key with your
+API key. The `--` flag allows arguments to pass directly into Perf Analyzer in
+superuser mode. The `-H` flag is used to add HTTP headers.
+
+```bash
+-- -H "Authorization: Bearer ${OPENAI_API_KEY}" -H "Accept: text/event-stream"
 ```
