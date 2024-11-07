@@ -104,6 +104,7 @@ def create_run_config_measurement(
 
     return RunConfigMeasurement(gpu_metrics)
 
+
 ###########################################################################
 # RunConfig Constructor
 ###########################################################################
@@ -147,8 +148,9 @@ def create_run_config(
     )
 
     return run_config
-    
-    class TestUtils:
+
+
+class TestUtils:
     """
     Unit test for genai_perf/utils.py utility functions
     """
