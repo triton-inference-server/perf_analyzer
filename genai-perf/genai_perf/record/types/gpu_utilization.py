@@ -20,33 +20,16 @@ from genai_perf.record.gpu_record import IncreasingGPURecord
 @total_ordering
 class GPUUtilization(IncreasingGPURecord):
     """
-    GPU utilization record
+    GPU's utilization percentage
     """
 
     tag = "gpu_utilization"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
-        """
-        Parameters
-        ----------
-        value : float
-            The value of the GPU metrtic
-        device_uuid : str
-            The  GPU device uuid this metric is associated
-            with.
-        timestamp : int
-            The timestamp for the record in nanoseconds
-        """
-
         super().__init__(value, device_uuid, timestamp)
 
     @staticmethod
     def aggregation_function():
-        """
-        The function that is used to aggregate
-        this type of record
-        """
-
         def average(seq):
             return sum(seq[1:], start=seq[0]) / len(seq)
 
@@ -54,53 +37,16 @@ class GPUUtilization(IncreasingGPURecord):
 
     @staticmethod
     def header(aggregation_tag=False):
-        """
-        Parameters
-        ----------
-        aggregation_tag: bool
-            An optional tag that may be displayed
-            as part of the header indicating that
-            this record has been aggregated using
-            max, min or average etc.
-
-        Returns
-        -------
-        str
-            The full name of the
-            metric.
-        """
-
         return ("Average " if aggregation_tag else "") + "GPU Utilization (%)"
 
-    def __eq__(self, other):
-        """
-        Allows checking for
-        equality between two records
-        """
-
+    def __eq__(self, other: "GPUUtilization") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other):
-        """
-        Allows checking if
-        this record is less than
-        the other
-        """
-
+    def __lt__(self, other: "GPUUtilization") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other):
-        """
-        Allows adding two records together
-        to produce a brand new record.
-        """
-
+    def __add__(self, other: "GPUUtilization") -> "GPUUtilization":
         return GPUUtilization(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(self, other):
-        """
-        Allows subtracting two records together
-        to produce a brand new record.
-        """
-
+    def __sub__(self, other: "GPUUtilization") -> "GPUUtilization":
         return GPUUtilization(device_uuid=None, value=(self.value() - other.value()))
