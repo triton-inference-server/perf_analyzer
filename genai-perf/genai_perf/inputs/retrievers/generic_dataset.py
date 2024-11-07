@@ -25,7 +25,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from dataclasses import dataclass, field
-from typing import Dict, List, TypeAlias
+from typing import Any, Dict, List
+
+from typing_extensions import TypeAlias
 
 Filename: TypeAlias = str
 TypeOfData: TypeAlias = str
@@ -38,6 +40,7 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 class DataRow:
     texts: List[str] = field(default_factory=list)
     images: List[str] = field(default_factory=list)
+    extra_args: Dict[str, Any] = {}
 
     def to_dict(self) -> DataRowDict:
         """

@@ -77,6 +77,12 @@ class InputsConfig:
     # The filename where the input data is available
     input_filename: Optional[Path] = Path("")
 
+    # TODO
+    schedule_file: Optional[Path] = None
+
+    # TODO
+    block_size: int = 512
+
     # The filenames used for synthetic data generation
     synthetic_input_filenames: Optional[List[str]] = field(default_factory=list)
 

@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+import json
 from typing import List
 
 from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
@@ -51,16 +52,39 @@ class SyntheticDataRetriever(BaseInputRetriever):
         files = self.config.synthetic_input_filenames or [DEFAULT_SYNTHETIC_FILENAME]
         synthetic_dataset = GenericDataset(files_data={})
 
+        prompt_desc = []
+        if self.config.schedule_file is not None:
+            with open(self.config.schedule_file, "r") as f:
+                for j, line in enumerate(f):
+                    if j == self.config.num_prompts:
+                        break
+                    prompt_desc.append(json.loads(line))
+
         for file in files:
             data_rows: List[DataRow] = []
 
-            for _ in range(self.config.num_prompts):
+            for i in range(self.config.num_prompts):
                 row = DataRow(texts=[], images=[])
-                prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                    self.config.tokenizer,
-                    self.config.prompt_tokens_mean,
-                    self.config.prompt_tokens_stddev,
-                )
+                if prompt_desc:
+                    prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                        self.config.tokenizer,
+                        prompt_desc[i]["input_length"],
+                        0,
+                        prompt_desc[i].get("hash_ids", None),
+                        self.config.block_size,
+                    )
+                    # Generic processing needed here probably
+                    row.extra_args["max_tokens"] = prompt_desc[i].get(
+                        "output_length", None
+                    )
+                    row.extra_args["model"] = prompt_desc[i].get("model", None)
+                else:
+                    prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                        self.config.tokenizer,
+                        self.config.prompt_tokens_mean,
+                        self.config.prompt_tokens_stddev,
+                    )
+
                 for _ in range(self.config.batch_size_text):
                     row.texts.append(prompt)
 
