@@ -317,7 +317,7 @@ AUTHENTICATION
 
 ## Authentication
 
-GenAI-Perf can benchmark secure endpoints such as OpenAI, which requires API
+GenAI-Perf can benchmark secure endpoints such as OpenAI, which require API
 key authentication. To do so, you must add your API key directly in the command.
 At the end of your command, append the below flags. Replace the key with your
 API key. The `--` flag allows arguments to pass directly into Perf Analyzer in
@@ -326,6 +326,8 @@ superuser mode. The `-H` flag is used to add HTTP headers.
 ```bash
 -- -H "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
 ```
+
+</br>
 
 <!--
 ======================
