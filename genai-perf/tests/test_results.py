@@ -20,7 +20,7 @@ from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.config.run.results import Results
 from genai_perf.measurements.run_constraints import ModelConstraints, RunConstraints
 from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
-from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
+from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
 from tests.test_utils import create_run_config
 
 
@@ -73,7 +73,7 @@ class TestResults(unittest.TestCase):
 
         # Changing the objective to latency will result in config_9 being best
         self._results.set_perf_metric_objectives(
-            {"test_model": {PerfLatencyP99.tag: 1}}
+            {"test_model": {RequestLatencyP99.tag: 1}}
         )
         self.assertEqual("test_run_config_9", self._results.run_configs[0].name)
 
