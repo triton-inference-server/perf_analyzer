@@ -20,39 +20,14 @@ from genai_perf.record.types.inter_token_latency_base import InterTokenLatencyBa
 @total_ordering
 class InterTokenLatencyP95(InterTokenLatencyBase):
     """
-    A record for perf_analyzer Inter token latency metric
+    A record for p95 Inter token latency metric
     """
 
-    tag = "inter_token_latency_p95"
+    tag = InterTokenLatencyBase.base_tag + "_p95"
 
     def __init__(self, value, timestamp=0):
-        """
-        Parameters
-        ----------
-        value : float
-            the latency extracted from the perf analyzer output
-        timestamp : float
-            Elapsed time from start of program
-        """
-
         super().__init__(value, timestamp)
 
     @classmethod
-    def header(cls, aggregation_tag=False):
-        """
-        Parameters
-        ----------
-        aggregation_tag: bool
-            An optional tag that may be displayed
-            as part of the header indicating that
-            this record has been aggregated using
-            max, min or average etc.
-
-        Returns
-        -------
-        str
-            The full name of the
-            metric.
-        """
-
+    def header(cls, aggregation_tag=False) -> str:
         return "p95 Inter Token Latency (ms)"

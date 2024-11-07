@@ -20,6 +20,7 @@ from statistics import mean
 from typing import Any, Dict, Optional, TypeAlias
 
 from genai_perf.record.record import Record
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.types import (
     CheckpointObject,
     MetricObjectives,
@@ -39,7 +40,7 @@ ModelConfigMeasurements: TypeAlias = Dict[ModelName, "ModelConfigMeasurement"]
 ###########################################################################
 @dataclass(frozen=True)
 class ModelConfigMeasurementDefaults:
-    METRIC_OBJECTIVE = {"perf_throughput": 1.0}
+    METRIC_OBJECTIVE = {RequestThroughputAvg.tag: 1.0}
 
     SELF_IS_BETTER = 1
     OTHER_IS_BETTER = -1
