@@ -45,13 +45,20 @@ class TestRecord(unittest.TestCase):
         self.less_is_better_types = {
             record_types[t]
             for t in [
-                "perf_latency_avg",
-                "perf_latency_p90",
-                "perf_latency_p95",
-                "perf_latency_p99",
+                "request_latency_min",
+                "request_latency_max",
+                "request_latency_avg",
+                "request_latency_std",
+                "request_latency_p25",
+                "request_latency_p50",
+                "request_latency_p75",
+                "request_latency_p90",
+                "request_latency_p95",
+                "request_latency_p99",
                 "inter_token_latency_min",
                 "inter_token_latency_max",
                 "inter_token_latency_avg",
+                "inter_token_latency_std",
                 "inter_token_latency_p25",
                 "inter_token_latency_p50",
                 "inter_token_latency_p75",
@@ -61,36 +68,58 @@ class TestRecord(unittest.TestCase):
                 "time_to_first_token_min",
                 "time_to_first_token_max",
                 "time_to_first_token_avg",
+                "time_to_first_token_std",
                 "time_to_first_token_p25",
                 "time_to_first_token_p50",
                 "time_to_first_token_p75",
                 "time_to_first_token_p90",
                 "time_to_first_token_p95",
                 "time_to_first_token_p99",
-                "gpu_used_memory",
-                "cpu_used_ram",
-                "perf_server_compute_infer",
-                "perf_server_queue",
-                "perf_client_response_wait",
-                "perf_server_compute_output",
-                "perf_client_send_recv",
-                "perf_server_compute_input",
                 "gpu_power_usage",
+                "energy_consumption",
             ]
         }
 
         self.more_is_better_types = {
             record_types[t]
             for t in [
-                "perf_throughput",
-                "input_sequence_length",
-                "output_sequence_length",
-                "output_token_throughput",
-                "output_token_throughput_per_request",
-                "gpu_free_memory",
+                "request_throughput_avg",
+                "request_goodput_avg",
+                "output_token_throughput_avg",
+                "output_token_throughput_per_request_min",
+                "output_token_throughput_per_request_max",
+                "output_token_throughput_per_request_avg",
+                "output_token_throughput_per_request_std",
+                "output_token_throughput_per_request_p25",
+                "output_token_throughput_per_request_p50",
+                "output_token_throughput_per_request_p75",
+                "output_token_throughput_per_request_p90",
+                "output_token_throughput_per_request_p95",
+                "output_token_throughput_per_request_p99",
+                "output_sequence_length_min",
+                "output_sequence_length_max",
+                "output_sequence_length_avg",
+                "output_sequence_length_std",
+                "output_sequence_length_p25",
+                "output_sequence_length_p50",
+                "output_sequence_length_p75",
+                "output_sequence_length_p90",
+                "output_sequence_length_p95",
+                "output_sequence_length_p99",
+                "input_sequence_length_min",
+                "input_sequence_length_max",
+                "input_sequence_length_avg",
+                "input_sequence_length_std",
+                "input_sequence_length_p25",
+                "input_sequence_length_p50",
+                "input_sequence_length_p75",
+                "input_sequence_length_p90",
+                "input_sequence_length_p95",
+                "input_sequence_length_p99",
+                "gpu_power_limit",
                 "gpu_utilization",
-                "cpu_available_ram",
-                "gpu_total_memory",
+                "total_gpu_memory",
+                "gpu_memory_used",
             ]
         }
 
@@ -200,11 +229,11 @@ class TestRecord(unittest.TestCase):
         Test the value method
         """
         avg_value = RecordType.get_all_record_types()[
-            "perf_latency_p99"
+            "request_latency_p99"
         ].value_function()([10, 50, 100, 40])
 
         total_value = RecordType.get_all_record_types()[
-            "perf_throughput"
+            "request_throughput_avg"
         ].value_function()([10, 50, 100, 40])
 
         self.assertEqual(avg_value, 50)

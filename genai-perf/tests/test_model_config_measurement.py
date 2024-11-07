@@ -21,8 +21,8 @@ from genai_perf.measurements.model_config_measurement import (
     ModelConfigMeasurement,
     ModelConfigMeasurementDefaults,
 )
-from genai_perf.record.types.perf_latency_p99 import PerfLatencyP99
-from genai_perf.record.types.perf_throughput import PerfThroughput
+from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.record.types.time_to_first_token_avg import TimeToFirstTokenAvg
 
 
@@ -32,22 +32,22 @@ class TestModelConfigMeasurement(unittest.TestCase):
     ###########################################################################
     def setUp(self):
 
-        self.throughput_recordA = PerfThroughput(1000)
-        self.latency_recordA = PerfLatencyP99(20)
+        self.throughput_recordA = RequestThroughputAvg(1000)
+        self.latency_recordA = RequestLatencyP99(20)
 
         self.perf_metricsA = {
-            PerfThroughput.tag: self.throughput_recordA,
-            PerfLatencyP99.tag: self.latency_recordA,
+            RequestThroughputAvg.tag: self.throughput_recordA,
+            RequestLatencyP99.tag: self.latency_recordA,
         }
 
         self.mcmA = ModelConfigMeasurement(self.perf_metricsA)
 
-        self.throughput_recordB = PerfThroughput(500)
-        self.latency_recordB = PerfLatencyP99(10)
+        self.throughput_recordB = RequestThroughputAvg(500)
+        self.latency_recordB = RequestLatencyP99(10)
 
         self.perf_metricsB = {
-            PerfThroughput.tag: self.throughput_recordB,
-            PerfLatencyP99.tag: self.latency_recordB,
+            RequestThroughputAvg.tag: self.throughput_recordB,
+            RequestLatencyP99.tag: self.latency_recordB,
         }
 
         self.mcmB = ModelConfigMeasurement(self.perf_metricsB)
@@ -64,10 +64,10 @@ class TestModelConfigMeasurement(unittest.TestCase):
         """
         self.assertEqual(self.mcmA.get_perf_metrics(), self.perf_metricsA)
         self.assertEqual(
-            self.mcmA.get_perf_metric(PerfLatencyP99.tag), self.latency_recordA
+            self.mcmA.get_perf_metric(RequestLatencyP99.tag), self.latency_recordA
         )
         self.assertEqual(
-            self.mcmA.get_perf_metric_value(PerfThroughput.tag, return_value=-1),
+            self.mcmA.get_perf_metric_value(RequestThroughputAvg.tag, return_value=-1),
             self.throughput_recordA.value(),
         )
         self.assertEqual(
@@ -85,8 +85,10 @@ class TestModelConfigMeasurement(unittest.TestCase):
             self.mcmA._metric_objectives,
         )
 
-        self.mcmA.set_metric_objectives({PerfThroughput.tag: 2, PerfLatencyP99.tag: 3})
-        expected_mw = {PerfThroughput.tag: 2 / 5, PerfLatencyP99.tag: 3 / 5}
+        self.mcmA.set_metric_objectives(
+            {RequestThroughputAvg.tag: 2, RequestLatencyP99.tag: 3}
+        )
+        expected_mw = {RequestThroughputAvg.tag: 2 / 5, RequestLatencyP99.tag: 3 / 5}
         self.assertEqual(expected_mw, self.mcmA._metric_objectives)
 
     def test_get_weighted_score(self):
@@ -104,8 +106,8 @@ class TestModelConfigMeasurement(unittest.TestCase):
 
         # In this case we will change the objective to be latency, with mcmA = 20, mcmB = 5
         # since latency is a decreasing record (lower is better), scoreB will be positive
-        self.mcmA.set_metric_objectives({PerfLatencyP99.tag: 1})
-        self.mcmB.set_metric_objectives({PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives({RequestLatencyP99.tag: 1})
+        self.mcmB.set_metric_objectives({RequestLatencyP99.tag: 1})
         scoreA = self.mcmA.get_weighted_score(self.mcmB)
         scoreB = self.mcmB.get_weighted_score(self.mcmA)
 
@@ -144,8 +146,8 @@ class TestModelConfigMeasurement(unittest.TestCase):
         self.assertEqual(self.mcmA.calculate_weighted_percentage_gain(self.mcmB), 100)
         self.assertEqual(self.mcmB.calculate_weighted_percentage_gain(self.mcmA), -50)
 
-        self.mcmA.set_metric_objectives({PerfLatencyP99.tag: 1})
-        self.mcmB.set_metric_objectives({PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives({RequestLatencyP99.tag: 1})
+        self.mcmB.set_metric_objectives({RequestLatencyP99.tag: 1})
 
         # latency: mcmA: 20, mcmB: 10
         self.assertEqual(self.mcmA.calculate_weighted_percentage_gain(self.mcmB), -50)
@@ -157,8 +159,12 @@ class TestModelConfigMeasurement(unittest.TestCase):
         #
         # mcmA has 50% worse throughput, but 100% better latency
         # mcmB has 100% better latency, but 50% worse throughput
-        self.mcmA.set_metric_objectives({PerfThroughput.tag: 1, PerfLatencyP99.tag: 1})
-        self.mcmB.set_metric_objectives({PerfThroughput.tag: 1, PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives(
+            {RequestThroughputAvg.tag: 1, RequestLatencyP99.tag: 1}
+        )
+        self.mcmB.set_metric_objectives(
+            {RequestThroughputAvg.tag: 1, RequestLatencyP99.tag: 1}
+        )
         self.assertEqual(self.mcmA, self.mcmB)
         self.assertEqual(self.mcmA.calculate_weighted_percentage_gain(self.mcmB), 25)
         self.assertEqual(self.mcmB.calculate_weighted_percentage_gain(self.mcmA), 25)
@@ -170,13 +176,13 @@ class TestModelConfigMeasurement(unittest.TestCase):
         """
         Test that individual metric comparison works as expected
         """
-        self.mcmA.set_metric_objectives({PerfThroughput.tag: 1})
+        self.mcmA.set_metric_objectives({RequestThroughputAvg.tag: 1})
 
         # throughput: 1000 is better than 500
         self.assertTrue(self.mcmA.is_better_than(self.mcmB))
         self.assertGreater(self.mcmA, self.mcmB)
 
-        self.mcmA.set_metric_objectives({PerfLatencyP99.tag: 1})
+        self.mcmA.set_metric_objectives({RequestLatencyP99.tag: 1})
 
         # latency: 20 is worse than 10
         self.assertFalse(self.mcmA.is_better_than(self.mcmB))
@@ -188,7 +194,9 @@ class TestModelConfigMeasurement(unittest.TestCase):
         """
         # throuhput: 2000 vs. 1000 (better), latency: 20 vs. 10 (worse)
         # with latency bias mcmB is better
-        self.mcmA.set_metric_objectives({PerfThroughput.tag: 1, PerfLatencyP99.tag: 3})
+        self.mcmA.set_metric_objectives(
+            {RequestThroughputAvg.tag: 1, RequestLatencyP99.tag: 3}
+        )
 
         self.assertFalse(self.mcmA.is_better_than(self.mcmB))
 
