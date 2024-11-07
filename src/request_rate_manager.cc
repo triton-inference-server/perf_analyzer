@@ -26,7 +26,7 @@
 
 #include "request_rate_manager.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 
 RequestRateManager::~RequestRateManager()
 {
@@ -106,7 +106,6 @@ RequestRateManager::ChangeRequestRate(
 {
   PauseWorkers();
   ConfigureThreads(request_count);
-  // Can safely update the schedule
   GenerateSchedule(request_rate);
   ResumeWorkers();
 
@@ -152,7 +151,6 @@ RequestRateManager::CreateWorkerSchedules(
   std::chrono::nanoseconds next_timestamp(0);
   size_t thread_id_index = 0;
   size_t worker_index = 0;
-
 
   // Generate schedule until we hit max_duration, but also make sure that all
   // worker schedules follow the thread id distribution
@@ -314,4 +312,4 @@ RequestRateManager::DetermineNumThreads()
 }
 
 
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer

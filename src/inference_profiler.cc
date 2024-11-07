@@ -40,7 +40,7 @@
 #include "constants.h"
 #include "doctest.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 cb::Error
 ReportPrometheusMetrics(const Metrics& metrics)
 {
@@ -621,6 +621,7 @@ InferenceProfiler::Profile(
 
   is_stable = false;
   meets_threshold = true;
+
 
   RETURN_IF_ERROR(dynamic_cast<RequestRateManager*>(manager_.get())
                       ->PerformWarmup(request_rate, warmup_request_count));
@@ -1872,4 +1873,4 @@ InferenceProfiler::MergeMetrics(
   return cb::Error::Success;
 }
 
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer
