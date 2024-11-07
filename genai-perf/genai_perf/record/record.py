@@ -19,6 +19,7 @@ from statistics import mean
 from typing import Dict, Union
 
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.types import RecordValue
 
 
 class RecordType(ABCMeta):
@@ -90,16 +91,7 @@ class Record(metaclass=RecordType):
     records
     """
 
-    def __init__(self, value: Union[float, int], timestamp: int):
-        """
-        Parameters
-        ----------
-        value : float or int
-            The value of the GPU metric
-        timestamp : int
-            The timestamp for the record in nanoseconds
-        """
-
+    def __init__(self, value: RecordValue, timestamp: int):
         assert type(value) is float or type(value) is int
         assert type(timestamp) is int
 
@@ -124,16 +116,12 @@ class Record(metaclass=RecordType):
     def value_function() -> float:
         """
         Returns the average value from a list
-
-        Returns
-        -------
-        Average value of the list
         """
         return mean  # type: ignore
 
     @staticmethod
     @abstractmethod
-    def header(aggregation_tag=False):
+    def header(aggregation_tag=False) -> str:
         """
         Parameters
         ----------
@@ -170,7 +158,7 @@ class Record(metaclass=RecordType):
                 setattr(record, key, record_dict[key])
         return record
 
-    def value(self) -> Union[float, int]:
+    def value(self) -> RecordValue:
         """
         This method returns the value of recorded metric
 

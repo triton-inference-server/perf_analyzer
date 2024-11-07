@@ -32,6 +32,7 @@ import pytest
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 
 from .test_utils import check_statistics, ns_to_sec
@@ -215,6 +216,11 @@ class TestLLMProfileDataParser:
 
         check_llm_metrics(metrics, expected_metrics)
         check_statistics(statistics, expected_statistics)
+
+        # Check that Records can be created
+        records = statistics.create_records()
+        assert records is not None
+        assert records[0].tag == RequestThroughputAvg.tag
 
         # check non-existing profile data
         with pytest.raises(KeyError):

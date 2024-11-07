@@ -20,75 +20,26 @@ from genai_perf.record.gpu_record import IncreasingGPURecord
 @total_ordering
 class GPUTotalMemory(IncreasingGPURecord):
     """
-    The total memory in the GPU.
+    GPU's total memory metric
     """
 
-    tag = "gpu_total_memory"
+    tag = "total_gpu_memory"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
-        """
-        Parameters
-        ----------
-        value : float
-            The value of the GPU metrtic
-        device_uuid : str
-            The  GPU device uuid this metric is associated
-            with.
-        timestamp : int
-            The timestamp for the record in nanoseconds
-        """
-
         super().__init__(value, device_uuid, timestamp)
 
     @staticmethod
-    def header(aggregation_tag=False):
-        """
-        Parameters
-        ----------
-        aggregation_tag: bool
-            An optional tag that may be displayed
-            as part of the header indicating that
-            this record has been aggregated using
-            max, min or average etc.
+    def header(aggregation_tag=False) -> str:
+        return ("Max " if aggregation_tag else "") + "GPU Memory Available (GB)"
 
-        Returns
-        -------
-        str
-            The full name of the
-            metric.
-        """
-
-        return ("Max " if aggregation_tag else "") + "GPU Memory Available (MB)"
-
-    def __eq__(self, other):
-        """
-        Allows checking for
-        equality between two records
-        """
-
+    def __eq__(self, other: "GPUTotalMemory") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other):
-        """
-        Allows checking if
-        this record is less than
-        the other
-        """
-
+    def __lt__(self, other: "GPUTotalMemory") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other):
-        """
-        Allows adding two records together
-        to produce a brand new record.
-        """
-
+    def __add__(self, other: "GPUTotalMemory") -> "GPUTotalMemory":
         return GPUTotalMemory(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(self, other):
-        """
-        Allows subtracting two records together
-        to produce a brand new record.
-        """
-
+    def __sub__(self, other: "GPUTotalMemory") -> "GPUTotalMemory":
         return GPUTotalMemory(device_uuid=None, value=(self.value() - other.value()))

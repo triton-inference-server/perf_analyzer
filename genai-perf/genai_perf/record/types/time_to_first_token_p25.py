@@ -20,39 +20,14 @@ from genai_perf.record.types.time_to_first_token_base import TimeToFirstTokenBas
 @total_ordering
 class TimeToFirstTokenP25(TimeToFirstTokenBase):
     """
-    A record for perf_analyzer Time to first token metric
+    A record for p25 Time to first token metric
     """
 
-    tag = "time_to_first_token_p25"
+    tag = TimeToFirstTokenBase.base_tag + "_p25"
 
     def __init__(self, value, timestamp=0):
-        """
-        Parameters
-        ----------
-        value : float
-            the latency extracted from the perf analyzer output
-        timestamp : float
-            Elapsed time from start of program
-        """
-
         super().__init__(value, timestamp)
 
     @classmethod
-    def header(cls, aggregation_tag=False):
-        """
-        Parameters
-        ----------
-        aggregation_tag: bool
-            An optional tag that may be displayed
-            as part of the header indicating that
-            this record has been aggregated using
-            max, min or average etc.
-
-        Returns
-        -------
-        str
-            The full name of the
-            metric.
-        """
-
+    def header(cls, aggregation_tag=False) -> str:
         return "p25 Time To First Token (ms)"
