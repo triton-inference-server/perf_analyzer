@@ -48,10 +48,9 @@ class DataRow:
 
 @dataclass
 class FileData:
-    filename: str
     rows: List[DataRow]
 
-    def to_dict(self) -> Dict[Filename, List[DataRowDict]]:
+    def to_list(self) -> List[DataRowDict]:
         """
         Converts the FileData object to a dictionary.
         Output format example for two payloads from a file:
@@ -62,7 +61,7 @@ class FileData:
             ]
         }
         """
-        return {self.filename: [row.to_dict() for row in self.rows]}
+        return [row.to_dict() for row in self.rows]
 
 
 @dataclass
@@ -81,6 +80,6 @@ class GenericDataset:
         }
         """
         return {
-            filename: file_data.to_dict()[filename]
+            filename: file_data.to_list()
             for filename, file_data in self.files_data.items()
         }

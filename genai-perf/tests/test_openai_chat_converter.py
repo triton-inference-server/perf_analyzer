@@ -61,7 +61,6 @@ class TestOpenAIChatCompletionsConverter:
         return GenericDataset(
             files_data={
                 "file1": FileData(
-                    filename="file1",
                     rows=[
                         DataRow(texts=clean_text(row), images=clean_image(row))
                         for row in rows
