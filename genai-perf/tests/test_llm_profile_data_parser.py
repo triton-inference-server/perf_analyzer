@@ -907,17 +907,21 @@ class TestLLMProfileDataParser:
     )
     def test_unfinished_responses(self, mock_json) -> None:
         """Check if it handles unfinished responses."""
-        res_timestamps = [0, 1, 2]
+        res_timestamps = [0, 1, 2, 3, 4]
         res_outputs = [
+            # response 0 and 1 are single SSE response split into two.
+            {"response": 'data: {"object":"chat.completion.chunk","choices":[{"index"'},
             {
-                "response": 'data: {"id":"8ae835f2ecbb67f3-SJC","object":"chat.completion.chunk","created":1722875835,"choices":[{"index":0,"text"'
+                "response": ':0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
             },
+            # response 2 and 3 are two separate SSE responses overlapping some parts.
+            {"response": 'data: {"object":"chat.completion.chunk","choices":[{"index"'},
             {
-                "response": ':" writing","logprobs":null,"finish_reason":null,"seed":null,"delta":{"token_id":4477,"role":"assistant","content":" writing","tool_calls":null}}],"model":"meta-llama/Llama-3-8b-chat-hf","usage":null}'
+                "response": ':0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\ndata: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
             },
             {"response": "data: [DONE]\n\n"},
         ]
-        expected_response = 'data: {"id":"8ae835f2ecbb67f3-SJC","object":"chat.completion.chunk","created":1722875835,"choices":[{"index":0,"text":" writing","logprobs":null,"finish_reason":null,"seed":null,"delta":{"token_id":4477,"role":"assistant","content":" writing","tool_calls":null}}],"model":"meta-llama/Llama-3-8b-chat-hf","usage":null}'
+        expected_response = 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
 
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
         pd = LLMProfileDataParser(
@@ -927,6 +931,44 @@ class TestLLMProfileDataParser:
 
         pd._preprocess_response(res_timestamps, res_outputs)
         assert res_outputs[0]["response"] == expected_response
+        assert res_outputs[1]["response"] == expected_response
+        assert res_outputs[2]["response"] == expected_response
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=openai_profile_data,
+    )
+    def test_handle_keepalive_sse_responses(self, mock_json) -> None:
+        """Check if it handles unfinished responses."""
+        res_timestamps = [0, 1, 2, 3]
+        res_outputs = [
+            {
+                "response": ":\n\n",
+            },
+            {
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n'
+            },
+            {
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
+            },
+            {"response": "data: [DONE]\n\n"},
+        ]
+        expected_responses = [
+            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n',
+            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
+        ]
+
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        pd._preprocess_response(res_timestamps, res_outputs)
+
+        assert len(res_outputs) == 2 and len(res_timestamps) == 2
+        assert res_outputs[0]["response"] == expected_responses[0]
+        assert res_outputs[1]["response"] == expected_responses[1]
 
     @patch(
         "genai_perf.profile_data_parser.profile_data_parser.load_json",

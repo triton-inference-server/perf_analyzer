@@ -31,6 +31,7 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -182,26 +183,44 @@ class LLMProfileDataParser(ProfileDataParser):
             # Sometimes streamed chunks are returned in a splintered fashion.
             # This forces a merge with the previous chunk if error detected.
             if len(res_outputs) > 1:
-                for i in reversed(range(len(res_outputs))):
+                for i in reversed(range(1, len(res_outputs))):
                     response = res_outputs[i]["response"]
+
+                    # Ignore keepalive SSE response
+                    if response.strip() == ":":
+                        res_outputs[i]["response"] = ""
+                        continue
+
                     if not response.startswith("data: "):
-                        first_data = response.find("data: ")
-                        if first_data == -1:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"] + response.strip()
+                        prefix_idx = response.find("data: ")
+                        if "data: " not in res_outputs[i - 1]["response"]:
+                            raise GenAIPerfException(
+                                "Detected a splintered SSE response but the "
+                                "previous response does not contain proper SSE "
+                                "prefix to continue the fix."
                             )
+
+                        # When 'data: ' prefix is not found in the current
+                        # response, append it with the previous response
+                        # (assuming that the prev response contains it).
+                        if prefix_idx == -1:
+                            res_outputs[i - 1]["response"] += response
                             res_outputs[i]["response"] = ""
                         else:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"]
-                                + response[0:first_data].strip()
-                            )
-                            res_outputs[i]["response"] = response[first_data:].strip()
+                            res_outputs[i - 1]["response"] += response[0:prefix_idx]
+                            res_outputs[i]["response"] = response[prefix_idx:]
+
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
-                response = res_outputs[i]["response"]
-                responses = response.strip().split("\n\n")
+                response = res_outputs[i]["response"].strip()
+
+                # Ignore keepalive SSE response
+                if response == ":":
+                    res_outputs[i]["response"] = ""
+                    continue
+
+                responses = response.split("\n\n")
                 if len(responses) > 1:
                     merged_response = load_json_str(remove_sse_prefix(responses[0]))
                     if (
