@@ -52,14 +52,12 @@ class FileData:
 
     def to_list(self) -> List[DataRowDict]:
         """
-        Converts the FileData object to a dictionary.
+        Converts the FileData object to a list.
         Output format example for two payloads from a file:
-        {
-            'file_0': [
-                {'texts': ['text1', 'text2'], 'images': ['image1', 'image2']},
-                {'texts': ['text3', 'text4'], 'images': ['image3', 'image4']}
-            ]
-        }
+        [
+            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2']},
+            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4']}
+        ]
         """
         return [row.to_dict() for row in self.rows]
 
