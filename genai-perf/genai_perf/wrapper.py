@@ -27,6 +27,7 @@
 import subprocess
 from argparse import Namespace
 from typing import List, Optional
+import time
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
@@ -166,6 +167,7 @@ class Profiler:
                 subprocess.run(cmd, check=True, stdout=None)
             else:
                 subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
+            time.sleep(200)
         finally:
             if telemetry_data_collector is not None:
                 telemetry_data_collector.stop()
