@@ -86,14 +86,22 @@ class TestImageRetrievalConverter:
         result = image_retrieval_converter.convert(generic_dataset, config)
 
         expected_result = {
-            "input": [{
-                "type": "image_url",
-                "url": "test_image_1"
-            },
-            {
-                "type": "image_url",
-                "url": "test_image_2"
-            }]
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "input": [{
+                                "type": "image_url",
+                                "url": "test_image_1"
+                            },
+                            {
+                                "type": "image_url",
+                                "url": "test_image_2"
+                            }]
+                        }
+                    ]
+                },
+            ]
         }
-
+        
         assert result == expected_result
