@@ -18,7 +18,11 @@ from unittest.mock import patch
 
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
-from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
+from genai_perf.config.input.config_command import (
+    ConfigCommand,
+    RunConfigDefaults,
+    Subcommand,
+)
 
 
 class TestSweepObjectiveGenerator(unittest.TestCase):
@@ -28,8 +32,12 @@ class TestSweepObjectiveGenerator(unittest.TestCase):
     def setUp(self):
         self._config = ConfigCommand(model_names=["test_modelA", "test_modelB"])
         self._model_search_parameters = {
-            "test_modelA": SearchParameters(self._config.optimize),
-            "test_modelB": SearchParameters(self._config.optimize),
+            "test_modelA": SearchParameters(
+                config=self._config, subcommand=Subcommand.OPTIMIZE
+            ),
+            "test_modelB": SearchParameters(
+                config=self._config, subcommand=Subcommand.OPTIMIZE
+            ),
         }
 
         self._sweep_obj_gen = SweepObjectiveGenerator(
