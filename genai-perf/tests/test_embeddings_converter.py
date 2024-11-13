@@ -58,7 +58,6 @@ class TestOpenAIEmbeddingsConverter:
         generic_dataset = GenericDataset(
             files_data={
                 "file1": FileData(
-                    filename="file1",
                     rows=[DataRow(texts=["text_1"]), DataRow(texts=["text_2"])],
                 )
             }
@@ -101,7 +100,6 @@ class TestOpenAIEmbeddingsConverter:
         generic_dataset = GenericDataset(
             files_data={
                 "file1": FileData(
-                    filename="file1",
                     rows=[
                         DataRow(texts=["text_1", "text_2"]),
                         DataRow(texts=["text_3", "text_4"]),
@@ -149,7 +147,6 @@ class TestOpenAIEmbeddingsConverter:
         generic_dataset = GenericDataset(
             files_data={
                 "file1": FileData(
-                    filename="file1",
                     rows=[DataRow(texts=["text_1"]), DataRow(texts=["text_2"])],
                 )
             }

@@ -76,7 +76,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
 
                 data_rows.append(row)
 
-            file_data = FileData(file, data_rows)
+            file_data = FileData(data_rows)
 
             synthetic_dataset.files_data[file] = file_data
 

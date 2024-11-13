@@ -48,21 +48,18 @@ class DataRow:
 
 @dataclass
 class FileData:
-    filename: str
     rows: List[DataRow]
 
-    def to_dict(self) -> Dict[Filename, List[DataRowDict]]:
+    def to_list(self) -> List[DataRowDict]:
         """
-        Converts the FileData object to a dictionary.
+        Converts the FileData object to a list.
         Output format example for two payloads from a file:
-        {
-            'file_0': [
-                {'texts': ['text1', 'text2'], 'images': ['image1', 'image2']},
-                {'texts': ['text3', 'text4'], 'images': ['image3', 'image4']}
-            ]
-        }
+        [
+            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2']},
+            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4']}
+        ]
         """
-        return {self.filename: [row.to_dict() for row in self.rows]}
+        return [row.to_dict() for row in self.rows]
 
 
 @dataclass
@@ -74,13 +71,11 @@ class GenericDataset:
         Converts the entire DataStructure object to a dictionary.
         Output format example for one payload from two files:
         {
-            {
             'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}],
             'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}]
         }
-        }
         """
         return {
-            filename: file_data.to_dict()[filename]
+            filename: file_data.to_list()
             for filename, file_data in self.files_data.items()
         }
