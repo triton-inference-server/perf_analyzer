@@ -75,12 +75,5 @@ class ImageRetrievalConverter(BaseConverter):
     def _add_multi_modal_content(self, entry: DataRow) -> List[Dict[Any, Any]]:
         content: List[Dict[Any, Any]] = []
         for image in entry.images:
-            content.append(
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": image,
-                    },
-                }
-            )
+            content.append({"type": "image_url", "url": image})
         return content
