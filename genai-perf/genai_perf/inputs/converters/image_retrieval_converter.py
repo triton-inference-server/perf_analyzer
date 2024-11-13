@@ -49,7 +49,7 @@ class ImageRetrievalConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                payload = self._create_payload(index, row, config)
+                payload = self._create_payload(row, config)
                 request_body["input"] = payload
 
         return request_body
