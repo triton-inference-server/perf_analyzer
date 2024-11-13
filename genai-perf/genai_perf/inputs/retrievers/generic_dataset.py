@@ -71,10 +71,8 @@ class GenericDataset:
         Converts the entire DataStructure object to a dictionary.
         Output format example for one payload from two files:
         {
-            {
             'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}],
             'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}]
-        }
         }
         """
         return {
