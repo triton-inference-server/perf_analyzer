@@ -66,7 +66,8 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
             req_latency_ns = res_timestamps[-1] - req_timestamp
             request_latencies.append(req_latency_ns)
 
-            contents = load_json_str(req_inputs["input"])
+            payload = load_json_str(req_inputs["payload"])
+            contents = payload["input"]
             num_images = len([c for c in contents if c["type"] == "image_url"])
 
             # image throughput
