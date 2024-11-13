@@ -122,7 +122,7 @@ class Statistics:
     def _add_units(self, key) -> None:
         if self._is_time_metric(key):
             self._stats_dict[key]["unit"] = "ms"
-        elif key == "request_throughput" or "request_goodput":
+        elif key in ["request_throughput", "request_goodput"]:
             self._stats_dict[key]["unit"] = "requests/sec"
         elif key == "image_throughput":
             self._stats_dict[key]["unit"] = "pages/sec"
