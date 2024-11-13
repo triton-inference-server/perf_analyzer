@@ -24,59 +24,68 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import pytest
 from genai_perf.metrics import ImageRetrievalMetrics, LLMMetrics, Metrics, Statistics
+
+BASE_METRIC_UNITS = {
+    "request_throughput": "requests/sec",
+    "request_latency": "ms",
+    "request_goodput": "requests/sec",
+}
 
 
 class TestStatistics:
 
-    def test_base_metric_units(self):
-        metrics = Metrics(
-            request_throughputs=[1, 2, 3],
-            request_latencies=[4, 5, 6],
-            request_goodputs=[7, 8, 9],
-        )
-
+    @pytest.mark.parametrize(
+        "metrics, expected_units",
+        [
+            (
+                Metrics(
+                    request_throughputs=[1, 2, 3],
+                    request_latencies=[4, 5, 6],
+                    request_goodputs=[7, 8, 9],
+                ),
+                BASE_METRIC_UNITS,
+            ),
+            (
+                LLMMetrics(
+                    request_throughputs=[1, 2, 3],
+                    request_latencies=[4, 5, 6],
+                    time_to_first_tokens=[7, 8, 9],
+                    inter_token_latencies=[1, 2, 3],
+                    output_token_throughputs=[4, 5, 6],
+                    output_token_throughputs_per_request=[7, 8, 9],
+                    output_sequence_lengths=[1, 2, 3],
+                    input_sequence_lengths=[4, 5, 6],
+                    request_goodputs=[7, 8, 9],
+                ),
+                {
+                    **BASE_METRIC_UNITS,
+                    "time_to_first_token": "ms",
+                    "inter_token_latency": "ms",
+                    "output_token_throughput": "tokens/sec",
+                    "output_token_throughput_per_request": "tokens/sec",
+                    "output_sequence_length": "tokens",
+                    "input_sequence_length": "tokens",
+                },
+            ),
+            (
+                ImageRetrievalMetrics(
+                    request_throughputs=[1, 2, 3],
+                    request_latencies=[4, 5, 6],
+                    image_throughputs=[7, 8, 9],
+                    image_latencies=[1, 2, 3],
+                    request_goodputs=[4, 5, 6],
+                ),
+                {
+                    **BASE_METRIC_UNITS,
+                    "image_throughput": "pages/sec",
+                    "image_latency": "ms",
+                },
+            ),
+        ],
+    )
+    def test_metric_units(self, metrics, expected_units):
         stats = Statistics(metrics=metrics).stats_dict
-        assert stats["request_throughput"]["unit"] == "requests/sec"
-        assert stats["request_latency"]["unit"] == "ms"
-        assert stats["request_goodput"]["unit"] == "requests/sec"
-
-    def test_llm_metric_units(self):
-        metrics = LLMMetrics(
-            request_throughputs=[1, 2, 3],
-            request_latencies=[4, 5, 6],
-            time_to_first_tokens=[7, 8, 9],
-            inter_token_latencies=[1, 2, 3],
-            output_token_throughputs=[4, 5, 6],
-            output_token_throughputs_per_request=[7, 8, 9],
-            output_sequence_lengths=[1, 2, 3],
-            input_sequence_lengths=[4, 5, 6],
-            request_goodputs=[7, 8, 9],
-        )
-
-        stats = Statistics(metrics=metrics).stats_dict
-        assert stats["request_throughput"]["unit"] == "requests/sec"
-        assert stats["request_latency"]["unit"] == "ms"
-        assert stats["time_to_first_token"]["unit"] == "ms"
-        assert stats["inter_token_latency"]["unit"] == "ms"
-        assert stats["output_token_throughput"]["unit"] == "tokens/sec"
-        assert stats["output_token_throughput_per_request"]["unit"] == "tokens/sec"
-        assert stats["output_sequence_length"]["unit"] == "tokens"
-        assert stats["input_sequence_length"]["unit"] == "tokens"
-        assert stats["request_goodput"]["unit"] == "requests/sec"
-
-    def test_image_retriever_metric_units(self):
-        metrics = ImageRetrievalMetrics(
-            request_throughputs=[1, 2, 3],
-            request_latencies=[4, 5, 6],
-            image_throughputs=[7, 8, 9],
-            image_latencies=[1, 2, 3],
-            request_goodputs=[4, 5, 6],
-        )
-
-        stats = Statistics(metrics=metrics).stats_dict
-        assert stats["request_throughput"]["unit"] == "requests/sec"
-        assert stats["request_latency"]["unit"] == "ms"
-        assert stats["image_throughput"]["unit"] == "pages/sec"
-        assert stats["image_latency"]["unit"] == "ms"
-        assert stats["request_goodput"]["unit"] == "requests/sec"
+        for metric, unit in expected_units.items():
+            assert stats[metric]["unit"] == unit
