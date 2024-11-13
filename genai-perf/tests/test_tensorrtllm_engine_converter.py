@@ -49,7 +49,6 @@ class TestTensorRTLLMEngineConverter:
         return GenericDataset(
             files_data={
                 "file1": FileData(
-                    filename="file1",
                     rows=[
                         DataRow(texts=["text input one"]),
                         DataRow(texts=["text input two"]),

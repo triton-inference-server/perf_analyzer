@@ -41,9 +41,7 @@ class TestNVClipConverter:
 
     @staticmethod
     def create_generic_dataset(rows) -> GenericDataset:
-        return GenericDataset(
-            files_data={"file1": FileData(filename="file1", rows=rows)}
-        )
+        return GenericDataset(files_data={"file1": FileData(rows)})
 
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset(

@@ -64,8 +64,9 @@ class FileInputRetriever(BaseInputRetriever):
         if self.config.input_filename.is_dir():
             files_data = self._get_input_datasets_from_dir()
         else:
-            file_data = self._get_input_dataset_from_file(self.config.input_filename)
-            files_data = {file_data.filename: file_data}
+            input_file = self.config.input_filename
+            file_data = self._get_input_dataset_from_file(input_file)
+            files_data = {str(input_file): file_data}
 
         return GenericDataset(files_data)
 
@@ -274,4 +275,4 @@ class FileInputRetriever(BaseInputRetriever):
                 for image in images:
                     data_rows.append(DataRow(texts=[], images=[image]))
 
-        return FileData(str(filename), data_rows)
+        return FileData(data_rows)
