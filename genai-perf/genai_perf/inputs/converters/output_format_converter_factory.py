@@ -38,7 +38,7 @@ class OutputFormatConverterFactory:
     @staticmethod
     def create(output_format: OutputFormat):
         converters = {
-            OutputFormat.IMAGE_RETRIEVAL: OpenAIChatCompletionsConverter,
+            OutputFormat.IMAGE_RETRIEVAL: ImageRetrievalConverter,
             OutputFormat.NVCLIP: NVClipConverter,
             OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,
             OutputFormat.OPENAI_COMPLETIONS: OpenAICompletionsConverter,
