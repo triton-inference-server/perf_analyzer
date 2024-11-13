@@ -79,28 +79,26 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         )
 
     ###########################################################################
-    # Test CLI String Creation
+    # Test Command Creation
     ###########################################################################
-    def test_default_cli_string_creation(self):
+    def test_default_command_creation(self):
         """
         Test that the default CLI string is created correctly
         """
-        expected_cli_string = " ".join(
-            [
-                self._config.perf_analyzer.path,
-                "--model-name",
-                "test_model",
-                "--stability-percentage",
-                str(self._config.perf_analyzer.stability_threshold),
-                "--batch-size",
-                "1",
-                "--concurrency-range",
-                "64",
-            ]
-        )
-        cli_string = self._default_perf_analyzer_config.create_cli_string()
+        expected_command = [
+            self._config.perf_analyzer.path,
+            "-m",
+            "test_model",
+            "--stability-percentage",
+            str(self._config.perf_analyzer.stability_threshold),
+            "--batch-size",
+            "1",
+            "--concurrency-range",
+            "64",
+        ]
+        command = self._default_perf_analyzer_config.create_command()
 
-        self.assertEqual(expected_cli_string, cli_string)
+        self.assertEqual(expected_command, command)
 
     ###########################################################################
     # Test Representation
@@ -111,7 +109,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         """
         expected_representation = " ".join(
             [
-                "--model-name",
+                "-m",
                 "test_model",
                 "--stability-percentage",
                 str(self._config.perf_analyzer.stability_threshold),

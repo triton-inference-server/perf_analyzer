@@ -26,6 +26,7 @@ from genai_perf.config.input.config_command import (
     ConfigCommand,
     Range,
     RunConfigDefaults,
+    Subcommand,
 )
 from genai_perf.exceptions import GenAIPerfException
 
@@ -34,7 +35,9 @@ class TestSearchParameters(unittest.TestCase):
     def setUp(self):
         self.config = deepcopy(ConfigCommand(model_names=["test_model"]))
 
-        self.search_parameters = SearchParameters(config=self.config.optimize)
+        self.search_parameters = SearchParameters(
+            config=self.config, subcommand=Subcommand.OPTIMIZE
+        )
 
         self.search_parameters._add_search_parameter(
             name="concurrency",
@@ -164,7 +167,9 @@ class TestSearchParameters(unittest.TestCase):
         """
 
         config = deepcopy(ConfigCommand(model_names=["test_model"]))
-        search_parameters = SearchParameters(self.config.optimize)
+        search_parameters = SearchParameters(
+            config=config, subcommand=Subcommand.OPTIMIZE
+        )
 
         #######################################################################
         # Model Config
@@ -227,7 +232,9 @@ class TestSearchParameters(unittest.TestCase):
         config = deepcopy(ConfigCommand(model_names=["test_model"]))
         config.optimize.perf_analyzer.use_concurrency_formula = False
 
-        search_parameters = SearchParameters(config.optimize)
+        search_parameters = SearchParameters(
+            config=config, subcommand=Subcommand.OPTIMIZE
+        )
 
         concurrency = search_parameters.get_parameter("concurrency")
         self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
@@ -242,7 +249,9 @@ class TestSearchParameters(unittest.TestCase):
         config = deepcopy(ConfigCommand(model_names=["test_model"]))
         config.optimize.perf_analyzer.stimulus_type = "request_rate"
 
-        search_parameters = SearchParameters(config.optimize)
+        search_parameters = SearchParameters(
+            config=config, subcommand=Subcommand.OPTIMIZE
+        )
 
         request_rate = search_parameters.get_parameter("request_rate")
         self.assertEqual(SearchUsage.RUNTIME_PA, request_rate.usage)
@@ -302,7 +311,9 @@ class TestSearchParameters(unittest.TestCase):
         Test that search parameters are created correctly when calling
         default analyze subcommand
         """
-        search_parameters = SearchParameters(config=self.config.analyze)
+        search_parameters = SearchParameters(
+            config=self.config, subcommand=Subcommand.ANALYZE
+        )
 
         concurrency = search_parameters.get_parameter("concurrency")
         self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
@@ -315,15 +326,17 @@ class TestSearchParameters(unittest.TestCase):
         Test that search parameters are created correctly when calling
         default analyze subcommand
         """
-        config = deepcopy(self.config.analyze)
-        config.sweep_parameters = {
+        config = deepcopy(self.config)
+        config.analyze.sweep_parameters = {
             "num_prompts": [10, 50, 100],
             "request_rate": Range(
                 min=RunConfigDefaults.MIN_REQUEST_RATE,
                 max=RunConfigDefaults.MAX_REQUEST_RATE,
             ),
         }
-        search_parameters = SearchParameters(config=config)
+        search_parameters = SearchParameters(
+            config=config, subcommand=Subcommand.ANALYZE
+        )
 
         num_prompts = search_parameters.get_parameter("num_prompts")
         self.assertEqual(SearchUsage.RUNTIME_GAP, num_prompts.usage)

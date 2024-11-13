@@ -267,6 +267,7 @@ class RunConfigMeasurement:
 
         # Values based solely on user/config settings (that can vary from run to run)
         # are not stored in the checkpoint
+        del rcm_dict["_gpu_metric_objectives"]
         del rcm_dict["_model_weights"]
         del rcm_dict["_constraints"]
 
@@ -432,7 +433,10 @@ class RunConfigMeasurement:
                 self._calculate_weighted_model_rcm_score(other, gpu_id)
             )
 
-        return mean(weighted_rcm_scores)
+        if not weighted_rcm_scores:
+            return RunConfigMeasurementDefaults.EQUALIVILENT
+        else:
+            return mean(weighted_rcm_scores)
 
     def _calculate_weighted_model_rcm_score(
         self, other: "RunConfigMeasurement", gpu_id: GpuId
