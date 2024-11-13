@@ -23,7 +23,11 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.optuna_objective_generator import (
     OptunaObjectiveGenerator,
 )
-from genai_perf.config.generate.search_parameters import SearchParameters, SearchUsage
+from genai_perf.config.generate.search_parameters import (
+    SearchParameters,
+    SearchUsage,
+    Subcommand,
+)
 from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
 from tests.test_utils import create_perf_metrics, create_run_config_measurement
 
@@ -35,7 +39,9 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
     def setUp(self):
         self._config = ConfigCommand(model_names=["test_model"])
         self._model_search_parameters = {
-            "test_model": SearchParameters(self._config.optimize)
+            "test_model": SearchParameters(
+                config=self._config, subcommand=Subcommand.OPTIMIZE
+            )
         }
 
         self._perf_metrics = create_perf_metrics(throughput=1000, latency=50)
