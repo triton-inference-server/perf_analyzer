@@ -81,7 +81,7 @@ class RunConfigDefaults:
     OUTPUT_LOGGING = False
     OUTPUT_PATH = "./logs"
     MAX_AUTO_ADJUSTS = 10
-    STABILITY_THRESHOLD = 99.9
+    STABILITY_THRESHOLD = 999
 
     # GAP Input Defaults
     DATASET = "openorca"
