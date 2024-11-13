@@ -34,6 +34,7 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestImageRetrievalConverter:
@@ -66,7 +67,7 @@ class TestImageRetrievalConverter:
                 )
             }
         )
- 
+
     def test_convert_multi_modal_batched(self) -> None:
         """
         Test batched multi-modal format of OpenAI Chat API for Image Retrieval
@@ -80,6 +81,7 @@ class TestImageRetrievalConverter:
         config = InputsConfig(
             extra_inputs={},
             output_format=OutputFormat.IMAGE_RETRIEVAL,
+            tokenizer=get_empty_tokenizer(),
         )
 
         image_retrieval_converter = ImageRetrievalConverter()
@@ -90,18 +92,14 @@ class TestImageRetrievalConverter:
                 {
                     "payload": [
                         {
-                            "input": [{
-                                "type": "image_url",
-                                "url": "test_image_1"
-                            },
-                            {
-                                "type": "image_url",
-                                "url": "test_image_2"
-                            }]
+                            "input": [
+                                {"type": "image_url", "url": "test_image_1"},
+                                {"type": "image_url", "url": "test_image_2"},
+                            ]
                         }
                     ]
                 },
             ]
         }
-        
+
         assert result == expected_result

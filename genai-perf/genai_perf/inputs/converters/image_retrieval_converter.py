@@ -54,14 +54,10 @@ class ImageRetrievalConverter(BaseConverter):
 
         return request_body
 
-    def _create_payload(
-        self, row: DataRow, config: InputsConfig
-    ) -> Dict[Any, Any]:
+    def _create_payload(self, row: DataRow, config: InputsConfig) -> Dict[Any, Any]:
         content = self._retrieve_content(row, config)
 
-        payload = {
-            "input": content
-        }
+        payload = {"input": content}
         return payload
 
     def _retrieve_content(
