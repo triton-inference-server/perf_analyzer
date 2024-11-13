@@ -45,7 +45,7 @@ class ImageRetrievalConverter(BaseConverter):
     def convert(
         self, generic_dataset: GenericDataset, config: InputsConfig
     ) -> Dict[Any, Any]:
-        request_body: Dict[str, Any] = {"input": []}
+        request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
@@ -58,7 +58,11 @@ class ImageRetrievalConverter(BaseConverter):
         self, row: DataRow, config: InputsConfig
     ) -> Dict[Any, Any]:
         content = self._retrieve_content(row, config)
-        return content
+
+        payload = {
+            "input": content
+        }
+        return payload
 
     def _retrieve_content(
         self, row: DataRow, config: InputsConfig
