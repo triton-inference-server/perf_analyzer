@@ -56,7 +56,7 @@ class TestImageRetrievalProfileDataParser:
                     {
                         "timestamp": 1,
                         "request_inputs": {
-                            "payload": '{"input":[{"type":"image_url","image_url":{"url":"image1"}},{"type":"image_url","image_url":{"url":"image2"}}]}'
+                            "payload": '{"input":[{"type":"image_url","url":"image1"},{"type":"image_url","url":"image2"}]}'
                         },
                         "response_timestamps": [3],
                         "response_outputs": [{"response": '{"data":[]}'}],
@@ -64,7 +64,7 @@ class TestImageRetrievalProfileDataParser:
                     {
                         "timestamp": 3,
                         "request_inputs": {
-                            "payload": '{"input":[{"type":"image_url","image_url":{"url":"image1"}},{"type":"image_url","image_url":{"url":"image2"}},{"type":"image_url","image_url":{"url":"image3"}}]}'
+                            "payload": '{"input":[{"type":"image_url","url":"image1"},{"type":"image_url","url":"image2"},{"type":"image_url","url":"image3"}]}'
                         },
                         "response_timestamps": [7],
                         "response_outputs": [{"response": '{"data":[]}'}],
