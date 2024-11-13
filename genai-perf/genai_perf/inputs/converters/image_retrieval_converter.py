@@ -50,7 +50,7 @@ class ImageRetrievalConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 payload = self._create_payload(row, config)
-                request_body["input"] = payload
+                request_body["data"].append({"payload": [payload]})
 
         return request_body
 
