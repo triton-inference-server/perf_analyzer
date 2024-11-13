@@ -36,6 +36,7 @@ from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.metrics import Metrics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.record.record import Record, RecordType
+from genai_perf.types import PerfRecords
 
 
 class Statistics:
@@ -195,11 +196,11 @@ class Statistics:
         filepath = artifact_dir / f"{filename}.gzip"
         df.to_parquet(filepath, compression="gzip")
 
-    def create_records(self) -> List[Record]:
+    def create_records(self) -> PerfRecords:
         """
         Populates and returns a list of Records
         """
-        statistic_records = []
+        statistic_records = {}
         for metric_base_name, metric_info in self.stats_dict.items():
             for metric_post_name, metric_value in metric_info.items():
                 if metric_post_name == "unit":
@@ -216,6 +217,6 @@ class Statistics:
                         f"{metric_name} is not a valid Record tag."
                     )
 
-                statistic_records.append(new_record)
+                statistic_records[metric_name] = new_record
 
         return statistic_records
