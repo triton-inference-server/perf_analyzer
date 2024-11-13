@@ -22,7 +22,7 @@ from genai_perf.config.generate.search_parameter import (
     SearchParameter,
     SearchUsage,
 )
-from genai_perf.config.input.config_command import ConfigOptimize, Range, Subcommand
+from genai_perf.config.input.config_command import ConfigCommand, Range, Subcommand
 from genai_perf.exceptions import GenAIPerfException
 
 
@@ -58,17 +58,17 @@ class SearchParameters:
 
     def __init__(
         self,
-        config: ConfigOptimize,
+        config: ConfigCommand,
+        subcommand: Subcommand,
         is_bls_model: bool = False,
         is_ensemble_model: bool = False,
         is_composing_model: bool = False,
     ):
-        self._config = config
-        self._subcommand = (
-            Subcommand.OPTIMIZE
-            if isinstance(config, ConfigOptimize)
-            else Subcommand.ANALYZE
-        )
+        self._subcommand = subcommand
+        if subcommand == Subcommand.OPTIMIZE:
+            self._config = config.optimize
+        elif subcommand == Subcommand.ANALYZE:
+            self._config = config.analyze  # type: ignore
 
         # TODO: OPTIMIZE
         # self._supports_model_batch_size = model.supports_batching()

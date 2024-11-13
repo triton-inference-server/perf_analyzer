@@ -220,7 +220,7 @@ class TestLLMProfileDataParser:
         # Check that Records can be created
         records = statistics.create_records()
         assert records is not None
-        assert records[0].tag == RequestThroughputAvg.tag
+        assert records[RequestThroughputAvg.tag] is not None
 
         # check non-existing profile data
         with pytest.raises(KeyError):

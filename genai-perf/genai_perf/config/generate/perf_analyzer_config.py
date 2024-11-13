@@ -66,12 +66,20 @@ class PerfAnalyzerConfig:
     ###########################################################################
     # CLI String Creation Methods
     ###########################################################################
+    def create_command(self) -> List[str]:
+        """
+        Returns the PA command a list of strings
+        """
+        cli_args = self._create_required_args()
+        cli_args += self._create_parameter_args()
+
+        return cli_args
+
     def create_cli_string(self) -> str:
         """
         Returns the PA command as a string
         """
-        cli_args = self._create_required_args()
-        cli_args += self._create_parameter_args()
+        cli_args = self.create_command()
 
         cli_string = " ".join(cli_args)
         return cli_string
@@ -80,7 +88,7 @@ class PerfAnalyzerConfig:
         # These come from the config and are always used
         required_args = [
             self._config.path,
-            "--model-name",
+            "-m",
             self._model_name,
             "--stability-percentage",
             str(self._config.stability_threshold),

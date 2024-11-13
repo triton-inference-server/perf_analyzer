@@ -38,7 +38,7 @@ class Checkpoint:
     config: ConfigCommand
 
     # Every top-level class that needs to store state is passed in
-    results: Results
+    results: Results = Results()
 
     def __post_init__(self):
         self._create_class_from_checkpoint()
@@ -61,11 +61,9 @@ class Checkpoint:
             try:
                 with open(checkpoint_file_path, "r") as checkpoint_file:
                     checkpoint_json = json.load(checkpoint_file)
-                    self._state: CheckpointObject = {
-                        "Results": Results.create_class_from_checkpoint(
-                            checkpoint_json["Results"]
-                        )
-                    }
+                    self.results = Results.create_class_from_checkpoint(
+                        checkpoint_json["Results"]
+                    )
 
             except EOFError:
                 raise (
@@ -76,7 +74,6 @@ class Checkpoint:
                 )
         else:
             self.checkpoint_exists = False
-            self._state = {}
 
     def _create_checkpoint_file_path(self) -> str:
         checkpoint_file_path = os.path.join(

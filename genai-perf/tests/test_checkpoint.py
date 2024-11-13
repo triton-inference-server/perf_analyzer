@@ -19,7 +19,7 @@ from unittest.mock import patch
 from genai_perf.checkpoint.checkpoint import Checkpoint
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
-from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_command import ConfigCommand, Subcommand
 from genai_perf.config.run.results import Results
 from tests.test_utils import create_run_config
 
@@ -31,7 +31,9 @@ class TestCheckpoint(unittest.TestCase):
     def setUp(self):
         self._config = ConfigCommand(model_names=["test_model"])
         self._model_search_parameters = {
-            "test_model": SearchParameters(self._config.analyze)
+            "test_model": SearchParameters(
+                config=self._config, subcommand=Subcommand.ANALYZE
+            )
         }
 
         self._sweep_obj_gen = SweepObjectiveGenerator(
@@ -72,15 +74,11 @@ class TestCheckpoint(unittest.TestCase):
         Checks to ensure checkpoint methods work as intended
         """
 
-        # First ensure that there is no state when a checkpoint doesn't exist
-        self.assertEqual({}, self._checkpoint._state)
-
-        # Then write and read back the Results
         self._checkpoint.create_checkpoint_object()
         self._checkpoint._create_class_from_checkpoint()
         os.remove(self._checkpoint._create_checkpoint_file_path())
 
-        self.assertEqual(self._results, self._checkpoint._state["Results"])
+        self.assertEqual(self._results, self._checkpoint.results)
 
 
 if __name__ == "__main__":
