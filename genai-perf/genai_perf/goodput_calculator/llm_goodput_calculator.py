@@ -68,9 +68,9 @@ class LLMGoodputCalculator(GoodputCalculator):
         )
 
     def _add_slo_mapping(self) -> None:
-        self._slo_names["time_to_first_token"] = "time_to_first_tokens"
-        self._slo_names["inter_token_latency"] = "inter_token_latencies"
-        self._slo_names["output_token_throughput_per_request"] = (
+        self._slo_names["time_to_first_token"] = "time_to_first_tokens"  # nosec
+        self._slo_names["inter_token_latency"] = "inter_token_latencies"  # nosec
+        self._slo_names["output_token_throughput_per_request"] = (  # nosec
             "output_token_throughputs_per_request"
         )
         self._slo_names["image_throughput"] = "image_throughputs"

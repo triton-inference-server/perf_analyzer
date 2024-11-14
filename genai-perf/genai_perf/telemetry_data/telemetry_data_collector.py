@@ -74,7 +74,7 @@ class TelemetryDataCollector(ABC):
         return telemetry_stats
 
     def _fetch_metrics(self) -> str:
-        response = requests.get(self._server_metrics_url)
+        response = requests.get(self._server_metrics_url, timeout=5)
         response.raise_for_status()
         return response.text
 
