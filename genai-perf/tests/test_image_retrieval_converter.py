@@ -40,43 +40,22 @@ from genai_perf.tokenizer import get_empty_tokenizer
 class TestImageRetrievalConverter:
 
     @staticmethod
-    def create_generic_dataset(rows: List[Dict[str, Any]]) -> GenericDataset:
-        def clean_text(row):
-            text = row.get("text", [])
-            if isinstance(text, list):
-                return [t for t in text if t]
-            elif text:
-                return [text]
-            return []
-
-        def clean_image(row):
-            image = row.get("image", [])
-            if isinstance(image, list):
-                return [i for i in image if i]
-            elif image:
-                return [image]
-            return []
-
+    def create_generic_dataset() -> GenericDataset:
         return GenericDataset(
             files_data={
                 "file1": FileData(
                     rows=[
-                        DataRow(texts=clean_text(row), images=clean_image(row))
-                        for row in rows
+                        DataRow(images=["test_image_1", "test_image_2"]),
                     ],
                 )
             }
         )
 
-    def test_convert_multi_modal_batched(self) -> None:
+    def test_convert_default(self) -> None:
         """
-        Test batched Image Retrieval request payload
+        Test Image Retrieval request payload
         """
-        generic_dataset = self.create_generic_dataset(
-            [
-                {"image": ["test_image_1", "test_image_2"]},
-            ]
-        )
+        generic_dataset = self.create_generic_dataset()
 
         config = InputsConfig(
             extra_inputs={},
