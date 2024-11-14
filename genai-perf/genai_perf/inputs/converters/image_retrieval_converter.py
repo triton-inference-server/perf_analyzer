@@ -41,6 +41,10 @@ class ImageRetrievalConverter(BaseConverter):
                 raise GenAIPerfException(
                     f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
                 )
+        else:
+            raise GenAIPerfException(
+                f"Output format {config.output_format} is not supported"
+            )
 
     def convert(
         self, generic_dataset: GenericDataset, config: InputsConfig
@@ -48,35 +52,10 @@ class ImageRetrievalConverter(BaseConverter):
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
-            for index, row in enumerate(file_data.rows):
-               payload = {
-                   "input": [
-                       {"type": "image_url", "url": img} for img in row.images
-                   ]
-               }
+            for _, row in enumerate(file_data.rows):
+                payload = {
+                    "input": [{"type": "image_url", "url": img} for img in row.images]
+                }
+                request_body["data"].append({"payload": [payload]})
 
         return request_body
-
-    def _create_payload(self, row: DataRow, config: InputsConfig) -> Dict[Any, Any]:
-        content = self._retrieve_content(row, config)
-
-        payload = {"input": content}
-        return payload
-
-    def _retrieve_content(
-        self, row: DataRow, config: InputsConfig
-    ) -> Union[str, List[Dict[Any, Any]]]:
-        content: Union[str, List[Dict[Any, Any]]] = ""
-        if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            content = self._add_multi_modal_content(row)
-        else:
-            raise GenAIPerfException(
-                f"Output format {config.output_format} is not supported"
-            )
-        return content
-
-    def _add_multi_modal_content(self, entry: DataRow) -> List[Dict[Any, Any]]:
-        content: List[Dict[Any, Any]] = []
-        for image in entry.images:
-            content.append({"type": "image_url", "url": image})
-        return content
