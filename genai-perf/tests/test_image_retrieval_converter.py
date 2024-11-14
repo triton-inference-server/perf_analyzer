@@ -70,7 +70,7 @@ class TestImageRetrievalConverter:
 
     def test_convert_multi_modal_batched(self) -> None:
         """
-        Test batched multi-modal format of OpenAI Chat API for Image Retrieval
+        Test batched Image Retrieval request payload
         """
         generic_dataset = self.create_generic_dataset(
             [
