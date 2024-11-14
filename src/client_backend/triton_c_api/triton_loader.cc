@@ -42,6 +42,11 @@
 #include "c_api_infer_results.h"
 #include "scoped_defer.h"
 
+#ifdef TRITON_ENABLE_GPU
+#include "../../cuda_runtime_library_manager.h"
+#endif
+
+
 namespace triton { namespace perfanalyzer { namespace clientbackend {
 namespace tritoncapi {
 namespace {
@@ -1046,19 +1051,35 @@ TritonLoader::GetOutputs(
     // The first 4 bytes of BYTES data is a 32-bit integer to indicate the size
     // of the rest of the data (which we already know based on byte_size). It
     // should be ignored here, as it isn't part of the actual response
+    // if (data_type == "BYTES" && byte_size >= 4) {
+    //   data_copy.reserve(byte_size - 4);
+    //   std::copy(
+    //       static_cast<const uint8_t*>(base) + 4,
+    //       static_cast<const uint8_t*>(base) + byte_size,
+    //       std::back_inserter(data_copy));
+    // } else {
+    //   data_copy.reserve(byte_size);
+    //   std::copy(
+    //       static_cast<const uint8_t*>(base),
+    //       static_cast<const uint8_t*>(base) + byte_size,
+    //       std::back_inserter(data_copy));
+    // }
     if (data_type == "BYTES" && byte_size >= 4) {
-      data_copy.reserve(byte_size - 4);
-      std::copy(
-          static_cast<const uint8_t*>(base) + 4,
-          static_cast<const uint8_t*>(base) + byte_size,
-          std::back_inserter(data_copy));
-    } else {
-      data_copy.reserve(byte_size);
-      std::copy(
-          static_cast<const uint8_t*>(base),
-          static_cast<const uint8_t*>(base) + byte_size,
-          std::back_inserter(data_copy));
+      base = static_cast<const uint8_t*>(base) + 4;
+      byte_size -= 4;
     }
+    #ifdef TRITON_ENABLE_GPU
+      triton::perfanalyzer::CUDARuntimeLibraryManager cuda_manager;
+      cudaError_t cuda_err = cuda_manager.cudaMemcpy(data_copy.data(), base, byte_size, cudaMemcpyDeviceToHost);
+      if (cuda_err != cudaSuccess) {
+        return Error("CUDA memory copy failed: " + std::string(cuda_manager.cudaGetErrorString(cuda_err)));
+      }
+    #else
+      std::copy(
+        static_cast<const uint8_t*>(base),
+        static_cast<const uint8_t*>(base) + byte_size,
+        std::back_inserter(data_copy));
+    #endif
 
     outputs.emplace(
         name,
