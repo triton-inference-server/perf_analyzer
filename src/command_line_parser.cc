@@ -138,6 +138,8 @@ CLParser::Usage(const std::string& msg)
             << std::endl;
   std::cerr << "\t--percentile <percentile>" << std::endl;
   std::cerr << "\t--request-count <number of requests>" << std::endl;
+  std::cerr << "\t--warmup-request-count <number of warmup requests>"
+            << std::endl;
   std::cerr << "\tDEPRECATED OPTIONS" << std::endl;
   std::cerr << "\t-t <number of concurrent requests>" << std::endl;
   std::cerr << "\t-c <maximum concurrency>" << std::endl;
@@ -472,6 +474,12 @@ CLParser::Usage(const std::string& msg)
              "until stabilization is detected.",
              18)
       << std::endl;
+  std::cerr << FormatMessage(
+                   " --warmup-request-count: Specifies the number of warmup "
+                   "requests to send before benchmarking. The default is 0, "
+                   "which means that no warmup requests will be sent.",
+                   18)
+            << std::endl;
   std::cerr << FormatMessage(
                    " --serial-sequences: Enables serial sequence mode "
                    "where a maximum of one request is outstanding at a time "
