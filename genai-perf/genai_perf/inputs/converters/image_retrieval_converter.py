@@ -49,8 +49,11 @@ class ImageRetrievalConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                payload = self._create_payload(row, config)
-                request_body["data"].append({"payload": [payload]})
+               payload = {
+                   "input": [
+                       {"type": "image_url", "url": img} for img in row.images
+                   ]
+               }
 
         return request_body
 
