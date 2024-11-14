@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -156,6 +156,12 @@ will also be reported in the results.
 
 Default is `-1` indicating that the average latency is used to determine
 stability.
+
+#### `--warmup-request-count=<n>`
+
+Specifies the number of warmup requests to send before benchmarking.
+
+Default is `0`, which means that no warmup requests will be sent.
 
 #### `--request-count=<n>`
 
