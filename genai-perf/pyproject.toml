@@ -28,6 +28,7 @@
 name = "genai-perf"
 readme = "README.md"
 description = "GenAI Perf Analyzer CLI - CLI tool to simplify profiling LLMs and Generative AI models with Perf Analyzer"
+license = {text = "BSD"}
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 3 - Alpha",
