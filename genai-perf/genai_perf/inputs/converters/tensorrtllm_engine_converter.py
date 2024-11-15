@@ -55,7 +55,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 if not config.apply_chat_template:
                     token_ids = config.tokenizer.encode(row.texts[0])
                 else:
-                    token_ids = config.tokenizer.apply_chat_template([{"role": "user", "content": row.texts[0]}])
+                    token_ids = config.tokenizer.apply_chat_template(row.texts[0])
                 payload = {
                     "input_ids": {
                         "content": token_ids,
