@@ -52,7 +52,10 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = config.tokenizer.encode(row.texts[0])
+                if not config.apply_chat_template:
+                    token_ids = config.tokenizer.encode(row.texts[0])
+                else:
+                    token_ids = config.tokenizer.apply_chat_template([{"role": "user", "context": row.texts[0]}])
                 payload = {
                     "input_ids": {
                         "content": token_ids,
