@@ -80,6 +80,8 @@ class TensorRTLLMEngineConverter(BaseConverter):
             payload["request_output_len"] = [num_tokens]
             if config.output_tokens_deterministic:
                 payload["min_length"] = [num_tokens]
+        if config.set_end_id:
+            payload["end_id"] = config.tokenizer._tokenizer.eos_token_id
 
         for key, value in config.extra_inputs.items():
             payload[key] = [value]

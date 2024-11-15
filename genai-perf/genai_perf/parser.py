@@ -739,6 +739,13 @@ def _add_output_args(parser):
         "export file is profile_export.json, the genai-perf file will be "
         "exported to profile_export_genai_perf.csv.",
     )
+    output_group.add_argument(
+        "--triton-converter-set-end-id",
+        action="store_true",
+        required=False,
+        help="If specified, the input to trtllm engines in triton server will "
+        "contain end_id set to EOS token."
+    )
 
 
 def _add_other_args(parser):
