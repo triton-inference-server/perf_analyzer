@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
-from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
 from genai_perf.logging import logging
@@ -108,16 +108,16 @@ class PerfAnalyzerConfig:
         self._cli_args = []
 
         # When restoring from a checkpoint there won't be any args
-        try:
-            self._cli_args += self._add_required_args(args)
-            self._cli_args += Profiler.add_protocol_args(args)
-            self._cli_args += Profiler.add_inference_load_args(args)
-            self._cli_args += self._add_misc_args(args)
+        if not hasattr(self._args, "subcommand"):
+            return
 
-            if extra_args:
-                self._cli_args += self._add_extra_args(extra_args)
-        except:
-            pass
+        self._cli_args += self._add_required_args(args)
+        self._cli_args += Profiler.add_protocol_args(args)
+        self._cli_args += Profiler.add_inference_load_args(args)
+        self._cli_args += self._add_misc_args(args)
+
+        if extra_args:
+            self._cli_args += self._add_extra_args(extra_args)
 
     def _set_options_based_on_config(self, config: ConfigCommand) -> None:
         self._config: ConfigPerfAnalyzer = config.perf_analyzer
@@ -133,34 +133,34 @@ class PerfAnalyzerConfig:
 
     def _set_artifact_paths(self) -> None:
         # When restoring from a checkpoint there won't be any args
-        try:
-            if self._args.artifact_dir == Path(DEFAULT_ARTIFACT_DIR):
-                artifact_name = self._get_artifact_model_name()
-                artifact_name += self._get_artifact_service_kind()
-                artifact_name += self._get_artifact_stimulus_type()
+        if not hasattr(self._args, "subcommand"):
+            return
 
-                self._args.artifact_dir = self._args.artifact_dir / Path(
-                    "-".join(artifact_name)
-                )
+        if self._args.artifact_dir == Path(DEFAULT_ARTIFACT_DIR):
+            artifact_name = self._get_artifact_model_name()
+            artifact_name += self._get_artifact_service_kind()
+            artifact_name += self._get_artifact_stimulus_type()
 
-            if self._args.profile_export_file.parent != Path(""):
-                raise ValueError(
-                    "Please use --artifact-dir option to define intermediary paths to "
-                    "the profile export file."
-                )
-
-            self._args.profile_export_file = (
-                self._args.artifact_dir / self._args.profile_export_file
+            self._args.artifact_dir = self._args.artifact_dir / Path(
+                "-".join(artifact_name)
             )
 
-            self._cli_args += [
-                f"--input-data",
-                f"{self._args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
-                f"--profile-export-file",
-                f"{self._args.profile_export_file}",
-            ]
-        except:
-            pass
+        if self._args.profile_export_file.parent != Path(""):
+            raise ValueError(
+                "Please use --artifact-dir option to define intermediary paths to "
+                "the profile export file."
+            )
+
+        self._args.profile_export_file = (
+            self._args.artifact_dir / self._args.profile_export_file
+        )
+
+        self._cli_args += [
+            f"--input-data",
+            f"{self._args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
+            f"--profile-export-file",
+            f"{self._args.profile_export_file}",
+        ]
 
     def _get_artifact_model_name(self) -> List[str]:
         # Preprocess Huggingface model names that include '/' in their model name.
