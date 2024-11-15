@@ -142,3 +142,6 @@ class InputsConfig:
 
     # Seed used to generate random values
     random_seed: int = DEFAULT_RANDOM_SEED
+
+    # whether to set end_id in triton converter
+    set_end_id: bool = False

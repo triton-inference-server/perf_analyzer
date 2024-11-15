@@ -97,6 +97,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         batch_size_image=args.batch_size_image,
         batch_size_text=args.batch_size_text,
         output_dir=args.artifact_dir,
+        set_end_id=args.triton_converter_set_end_id,
     )
 
 
