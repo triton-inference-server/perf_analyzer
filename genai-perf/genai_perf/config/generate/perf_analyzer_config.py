@@ -115,9 +115,7 @@ class PerfAnalyzerConfig:
         self._cli_args += Profiler.add_protocol_args(args)
         self._cli_args += Profiler.add_inference_load_args(args)
         self._cli_args += self._add_misc_args(args)
-
-        if extra_args:
-            self._cli_args += self._add_extra_args(extra_args)
+        self._cli_args += self._add_extra_args(extra_args)
 
     def _set_options_based_on_config(self, config: ConfigCommand) -> None:
         self._config: ConfigPerfAnalyzer = config.perf_analyzer
