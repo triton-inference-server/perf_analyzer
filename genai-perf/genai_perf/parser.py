@@ -571,6 +571,14 @@ def _add_image_input_args(parser):
         "If format is not selected, format of generated image is selected at random",
     )
 
+    input_group.add_argument(
+        "--triton-converter-set-end-id",
+        action="store_true",
+        required=False,
+        help="If specified, the input to trtllm engines in triton server will "
+        "contain end_id set to EOS token."
+    )
+
 
 def _add_profile_args(parser):
     profile_group = parser.add_argument_group("Profiling")
@@ -738,13 +746,6 @@ def _add_output_args(parser):
         "<profile_export_file>_genai_perf.csv. For example, if the profile "
         "export file is profile_export.json, the genai-perf file will be "
         "exported to profile_export_genai_perf.csv.",
-    )
-    output_group.add_argument(
-        "--triton-converter-set-end-id",
-        action="store_true",
-        required=False,
-        help="If specified, the input to trtllm engines in triton server will "
-        "contain end_id set to EOS token."
     )
 
 
