@@ -87,4 +87,5 @@ class TensorRTLLMEngineConverter(BaseConverter):
         for key, value in config.extra_inputs.items():
             if key == "triton_converter_set_end_id" and value:
                 payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
-            payload[key] = [value]
+            else:
+                payload[key] = [value]
