@@ -83,7 +83,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
             payload["request_output_len"] = [num_tokens]
             if config.output_tokens_deterministic:
                 payload["min_length"] = [num_tokens]
-        if config.set_end_id:
+        if config.extra_inputs.getattr("triton_converter_set_end_id", False):
             payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
 
         for key, value in config.extra_inputs.items():

@@ -572,14 +572,6 @@ def _add_image_input_args(parser):
     )
 
     input_group.add_argument(
-        "--triton-converter-set-end-id",
-        action="store_true",
-        required=False,
-        help="If specified, the input to trtllm engines in triton server will "
-        "contain end_id set to EOS token."
-    )
-
-    input_group.add_argument(
         "--triton-converter-apply-chat-template",
         action="store_true",
         required=False,
