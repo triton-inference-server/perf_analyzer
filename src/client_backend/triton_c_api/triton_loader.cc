@@ -1052,6 +1052,7 @@ TritonLoader::GetOutputs(
       base = static_cast<const uint8_t*>(base) + 4;
       byte_size -= 4;
     }
+
     if (memory_type == TRITONSERVER_MEMORY_GPU) {
       CUDARuntimeLibraryManager cuda_manager;
       cudaError_t cuda_err = cuda_manager.cudaMemcpy(
