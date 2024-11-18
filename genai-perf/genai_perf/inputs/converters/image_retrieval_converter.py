@@ -24,31 +24,38 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from typing import Any, Dict
+
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.converters import *
+from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
-class OutputFormatConverterFactory:
-    """
-    This class converts the generic JSON to the specific format
-    used by a given endpoint.
-    """
+class ImageRetrievalConverter(BaseConverter):
 
-    @staticmethod
-    def create(output_format: OutputFormat):
-        converters = {
-            OutputFormat.IMAGE_RETRIEVAL: ImageRetrievalConverter,
-            OutputFormat.NVCLIP: NVClipConverter,
-            OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,
-            OutputFormat.OPENAI_COMPLETIONS: OpenAICompletionsConverter,
-            OutputFormat.OPENAI_EMBEDDINGS: OpenAIEmbeddingsConverter,
-            OutputFormat.OPENAI_VISION: OpenAIChatCompletionsConverter,
-            OutputFormat.RANKINGS: RankingsConverter,
-            OutputFormat.TENSORRTLLM: TensorRTLLMConverter,
-            OutputFormat.TENSORRTLLM_ENGINE: TensorRTLLMEngineConverter,
-            OutputFormat.VLLM: VLLMConverter,
-        }
-        if output_format not in converters:
-            raise GenAIPerfException(f"Output format {output_format} is not supported")
-        return converters[output_format]()
+    def check_config(self, config: InputsConfig) -> None:
+        if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            if config.add_stream:
+                raise GenAIPerfException(
+                    f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+                )
+        else:
+            raise GenAIPerfException(
+                f"Output format {config.output_format} is not supported"
+            )
+
+    def convert(
+        self, generic_dataset: GenericDataset, config: InputsConfig
+    ) -> Dict[Any, Any]:
+        request_body: Dict[str, Any] = {"data": []}
+
+        for file_data in generic_dataset.files_data.values():
+            for _, row in enumerate(file_data.rows):
+                payload = {
+                    "input": [{"type": "image_url", "url": img} for img in row.images]
+                }
+                request_body["data"].append({"payload": [payload]})
+
+        return request_body

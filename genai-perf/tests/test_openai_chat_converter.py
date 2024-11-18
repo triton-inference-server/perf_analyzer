@@ -61,7 +61,6 @@ class TestOpenAIChatCompletionsConverter:
         return GenericDataset(
             files_data={
                 "file1": FileData(
-                    filename="file1",
                     rows=[
                         DataRow(texts=clean_text(row), images=clean_image(row))
                         for row in rows
@@ -219,23 +218,31 @@ class TestOpenAIChatCompletionsConverter:
             ),
             (
                 [
-                    {"image": "test_image_1"},
-                    {"image": "test_image_2"},
+                    {"text": "test input A", "image": "test_image_A1"},
+                    {"text": "test input B", "image": "test_image_B2"},
                 ],
-                OutputFormat.IMAGE_RETRIEVAL,
+                OutputFormat.OPENAI_VISION,
                 [
+                    {
+                        "type": "text",
+                        "text": "test input A",
+                    },
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "test_image_1",
+                            "url": "test_image_A1",
                         },
                     },
                 ],
                 [
                     {
+                        "type": "text",
+                        "text": "test input B",
+                    },
+                    {
                         "type": "image_url",
                         "image_url": {
-                            "url": "test_image_2",
+                            "url": "test_image_B2",
                         },
                     },
                 ],
@@ -286,62 +293,6 @@ class TestOpenAIChatCompletionsConverter:
                                 {
                                     "role": "user",
                                     "content": second_content,
-                                }
-                            ],
-                            "stream": True,
-                        }
-                    ]
-                },
-            ]
-        }
-
-        assert result == expected_result
-
-    def test_convert_multi_modal_batched(self) -> None:
-        """
-        Test batched multi-modal format of OpenAI Chat API for Image Retrieval
-        """
-        generic_dataset = self.create_generic_dataset(
-            [
-                {"image": ["test_image_1", "test_image_2"]},
-            ]
-        )
-
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.IMAGE_RETRIEVAL,
-            add_stream=True,
-            tokenizer=get_empty_tokenizer(),
-        )
-
-        chat_converter = OpenAIChatCompletionsConverter()
-        result = chat_converter.convert(generic_dataset, config)
-
-        expected_result = {
-            "data": [
-                {
-                    "payload": [
-                        {
-                            "model": "test_model",
-                            "messages": [
-                                {
-                                    "role": "user",
-                                    "content": [
-                                        {
-                                            "type": "image_url",
-                                            "image_url": {
-                                                "url": "test_image_1",
-                                            },
-                                        },
-                                        {
-                                            "type": "image_url",
-                                            "image_url": {
-                                                "url": "test_image_2",
-                                            },
-                                        },
-                                    ],
                                 }
                             ],
                             "stream": True,

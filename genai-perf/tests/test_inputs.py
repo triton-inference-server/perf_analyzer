@@ -50,7 +50,6 @@ class TestInputs:
         generic_dataset = GenericDataset(
             files_data={
                 "file1.jsonl": FileData(
-                    filename="file1.jsonl",
                     rows=[DataRow(texts=["test input"], images=[])],
                 )
             }
@@ -97,7 +96,6 @@ class TestInputs:
         generic_dataset = GenericDataset(
             files_data={
                 "file1.jsonl": FileData(
-                    filename="file1.jsonl",
                     rows=[DataRow(texts=["test input one"], images=[])],
                 )
             }

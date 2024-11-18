@@ -43,7 +43,7 @@ class TestOutputFormatConverter:
             ),
             (
                 OutputFormat.IMAGE_RETRIEVAL,
-                OpenAIChatCompletionsConverter,
+                ImageRetrievalConverter,
             ),
             (
                 OutputFormat.OPENAI_VISION,

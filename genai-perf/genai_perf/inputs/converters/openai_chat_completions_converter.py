@@ -41,12 +41,7 @@ from genai_perf.utils import sample_bounded_normal
 class OpenAIChatCompletionsConverter(BaseConverter):
 
     def check_config(self, config: InputsConfig) -> None:
-        if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            if config.add_stream:
-                raise GenAIPerfException(
-                    f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
-                )
-        elif (
+        if (
             config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
             or config.output_format == OutputFormat.OPENAI_VISION
         ):
@@ -96,10 +91,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         content: Union[str, List[Dict[Any, Any]]] = ""
         if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
             content = row.texts[0]
-        elif (
-            config.output_format == OutputFormat.OPENAI_VISION
-            or config.output_format == OutputFormat.IMAGE_RETRIEVAL
-        ):
+        elif config.output_format == OutputFormat.OPENAI_VISION:
             content = self._add_multi_modal_content(row)
         else:
             raise GenAIPerfException(

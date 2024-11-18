@@ -24,31 +24,60 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.converters import *
+
+from genai_perf.inputs.converters import ImageRetrievalConverter
 from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers.generic_dataset import (
+    DataRow,
+    FileData,
+    GenericDataset,
+)
+from genai_perf.tokenizer import get_empty_tokenizer
 
 
-class OutputFormatConverterFactory:
-    """
-    This class converts the generic JSON to the specific format
-    used by a given endpoint.
-    """
+class TestImageRetrievalConverter:
 
     @staticmethod
-    def create(output_format: OutputFormat):
-        converters = {
-            OutputFormat.IMAGE_RETRIEVAL: ImageRetrievalConverter,
-            OutputFormat.NVCLIP: NVClipConverter,
-            OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,
-            OutputFormat.OPENAI_COMPLETIONS: OpenAICompletionsConverter,
-            OutputFormat.OPENAI_EMBEDDINGS: OpenAIEmbeddingsConverter,
-            OutputFormat.OPENAI_VISION: OpenAIChatCompletionsConverter,
-            OutputFormat.RANKINGS: RankingsConverter,
-            OutputFormat.TENSORRTLLM: TensorRTLLMConverter,
-            OutputFormat.TENSORRTLLM_ENGINE: TensorRTLLMEngineConverter,
-            OutputFormat.VLLM: VLLMConverter,
+    def create_generic_dataset() -> GenericDataset:
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    rows=[
+                        DataRow(images=["test_image_1", "test_image_2"]),
+                    ],
+                )
+            }
+        )
+
+    def test_convert_default(self) -> None:
+        """
+        Test Image Retrieval request payload
+        """
+        generic_dataset = self.create_generic_dataset()
+
+        config = InputsConfig(
+            extra_inputs={},
+            output_format=OutputFormat.IMAGE_RETRIEVAL,
+            tokenizer=get_empty_tokenizer(),
+        )
+
+        image_retrieval_converter = ImageRetrievalConverter()
+        result = image_retrieval_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "input": [
+                                {"type": "image_url", "url": "test_image_1"},
+                                {"type": "image_url", "url": "test_image_2"},
+                            ]
+                        }
+                    ]
+                },
+            ]
         }
-        if output_format not in converters:
-            raise GenAIPerfException(f"Output format {output_format} is not supported")
-        return converters[output_format]()
+
+        assert result == expected_result

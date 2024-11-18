@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from .image_retrieval_converter import ImageRetrievalConverter
 from .nvclip_converter import NVClipConverter
 from .openai_chat_completions_converter import OpenAIChatCompletionsConverter
 from .openai_completions_converter import OpenAICompletionsConverter
@@ -34,6 +35,7 @@ from .tensorrtllm_engine_converter import TensorRTLLMEngineConverter
 from .vllm_converter import VLLMConverter
 
 __all__ = [
+    "ImageRetrievalConverter",
     "NVClipConverter",
     "OpenAIChatCompletionsConverter",
     "OpenAICompletionsConverter",
