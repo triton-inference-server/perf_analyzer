@@ -282,8 +282,11 @@ class LLMProfileDataParser(ProfileDataParser):
         for r in res_outputs:
             if isinstance(r["output_ids"], list):
                 token_ids += r["output_ids"]
-            else:
+            elif isinstance(r["output_ids"], int):
                 token_ids.append(r["output_ids"])
+            else:
+                # for the empty first/last responses
+                token_ids.append(0)
         return token_ids, len(token_ids)
 
     def _get_triton_output_tokens(self, res_outputs: List[Dict]) -> List[str]:
