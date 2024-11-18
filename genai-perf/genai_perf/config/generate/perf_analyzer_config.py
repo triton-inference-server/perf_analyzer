@@ -12,14 +12,69 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import Namespace
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
+from genai_perf.logging import logging
 from genai_perf.types import CheckpointObject, ModelName, ModelObjectiveParameters
+from genai_perf.utils import convert_option_name
+from genai_perf.wrapper import Profiler
+
+# This is the list of GAP CLI args that are not used when creating
+# the PA command line
+perf_analyzer_ignore_args = [
+    "artifact_dir",
+    "backend",
+    "batch_size_image",
+    "batch_size_text",
+    "concurrency",
+    "endpoint_type",
+    "extra_inputs",
+    "formatted_model_name",
+    "func",
+    "generate_plots",
+    "goodput",
+    "image_format",
+    "image_height_mean",
+    "image_height_stddev",
+    "image_width_mean",
+    "image_width_stddev",
+    "input_dataset",
+    "input_file",
+    "input_format",
+    "model",
+    "model_selection_strategy",
+    "num_prompts",
+    "output_format",
+    "output_tokens_mean",
+    "output_tokens_mean_deterministic",
+    "output_tokens_stddev",
+    "profile_export_file",
+    "prompt_source",
+    "random_seed",
+    "request_rate",
+    "server_metrics_url",
+    # The 'streaming' passed in to this script is to determine if the
+    # LLM response should be streaming. That is different than the
+    # 'streaming' that PA takes, which means something else (and is
+    # required for decoupled models into triton).
+    "streaming",
+    "subcommand",
+    "synthetic_input_files",
+    "synthetic_input_tokens_mean",
+    "synthetic_input_tokens_stddev",
+    "tokenizer",
+    "tokenizer_trust_remote_code",
+    "tokenizer_revision",
+]
 
 
 @dataclass
@@ -34,14 +89,34 @@ class PerfAnalyzerConfig:
         config: ConfigCommand,
         model_objective_parameters: ModelObjectiveParameters,
         model_name: ModelName,
+        args: Namespace = Namespace(),
+        extra_args: Optional[List[str]] = None,
     ):
         self._model_name = model_name
+        self._args = deepcopy(args)
+        self._set_options_based_on_cli(args, extra_args)
         self._set_options_based_on_config(config)
         self._set_options_based_on_objective(model_objective_parameters)
+        self._set_artifact_paths()
 
     ###########################################################################
     # Set Options Methods
     ###########################################################################
+    def _set_options_based_on_cli(
+        self, args: Namespace, extra_args: Optional[List[str]] = None
+    ) -> None:
+        self._cli_args = []
+
+        # When restoring from a checkpoint there won't be any args
+        if not hasattr(self._args, "subcommand"):
+            return
+
+        self._cli_args += self._add_required_args(args)
+        self._cli_args += Profiler.add_protocol_args(args)
+        self._cli_args += Profiler.add_inference_load_args(args)
+        self._cli_args += self._add_misc_args(args)
+        self._cli_args += self._add_extra_args(extra_args)
+
     def _set_options_based_on_config(self, config: ConfigCommand) -> None:
         self._config: ConfigPerfAnalyzer = config.perf_analyzer
 
@@ -54,6 +129,139 @@ class PerfAnalyzerConfig:
                 if parameter.usage == SearchUsage.RUNTIME_PA:
                     self._parameters[name] = parameter.get_value_based_on_category()
 
+    def _set_artifact_paths(self) -> None:
+        # When restoring from a checkpoint there won't be any args
+        if not hasattr(self._args, "subcommand"):
+            return
+
+        if self._args.artifact_dir == Path(DEFAULT_ARTIFACT_DIR):
+            artifact_name = self._get_artifact_model_name()
+            artifact_name += self._get_artifact_service_kind()
+            artifact_name += self._get_artifact_stimulus_type()
+
+            self._args.artifact_dir = self._args.artifact_dir / Path(
+                "-".join(artifact_name)
+            )
+
+        if self._args.profile_export_file.parent != Path(""):
+            raise ValueError(
+                "Please use --artifact-dir option to define intermediary paths to "
+                "the profile export file."
+            )
+
+        self._args.profile_export_file = (
+            self._args.artifact_dir / self._args.profile_export_file
+        )
+
+        self._cli_args += [
+            f"--input-data",
+            f"{self._args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
+            f"--profile-export-file",
+            f"{self._args.profile_export_file}",
+        ]
+
+    def _get_artifact_model_name(self) -> List[str]:
+        # Preprocess Huggingface model names that include '/' in their model name.
+        if (self._args.formatted_model_name is not None) and (
+            "/" in self._args.formatted_model_name
+        ):
+            filtered_name = "_".join(self._args.formatted_model_name.split("/"))
+            logger = logging.getLogger(__name__)
+            logger.info(
+                f"Model name '{self._args.formatted_model_name}' cannot be used to create artifact "
+                f"directory. Instead, '{filtered_name}' will be used."
+            )
+            model_name = [f"{filtered_name}"]
+        else:
+            model_name = [f"{self._args.formatted_model_name}"]
+
+        return model_name
+
+    def _get_artifact_service_kind(self) -> List[str]:
+        if self._args.service_kind == "openai":
+            service_kind = [f"{self._args.service_kind}-{self._args.endpoint_type}"]
+        elif self._args.service_kind == "triton":
+            service_kind = [
+                f"{self._args.service_kind}-{self._args.backend.to_lowercase()}"
+            ]
+        elif self._args.service_kind == "tensorrtllm_engine":
+            service_kind = [f"{self._args.service_kind}"]
+        else:
+            raise ValueError(f"Unknown service kind '{self._args.service_kind}'.")
+
+        return service_kind
+
+    def _get_artifact_stimulus_type(self) -> List[str]:
+        if self._args.concurrency:
+            stimulus = [f"concurrency{self._args.concurrency}"]
+        elif self._args.request_rate:
+            stimulus = [f"request_rate{self._args.request_rate}"]
+        elif "concurrency" in self._parameters:
+            concurrency = str(self._parameters["concurrency"])
+            stimulus = [f"concurrency{concurrency}"]
+        elif "request_rate" in self._parameters:
+            request_rate = str(self._parameters["request_rate"])
+            stimulus = [f"request_rate{request_rate}"]
+
+        return stimulus
+
+    def _add_required_args(self, args: Namespace) -> List[str]:
+        required_args = [
+            f"-m",
+            f"{args.formatted_model_name}",
+            f"--async",
+        ]
+
+        return required_args
+
+    def _add_misc_args(self, args: Namespace) -> List[str]:
+        misc_args = []
+
+        for arg, value in vars(args).items():
+            if arg in perf_analyzer_ignore_args:
+                pass
+            elif self._arg_is_tensorrtllm_engine(arg, value):
+                misc_args += self._add_tensorrtllm_engine_args()
+            elif value is None or value is False:
+                pass
+            elif value is True:
+                misc_args += self._add_boolean_arg(arg)
+            else:
+                misc_args += self._add_non_boolean_arg(arg, value)
+
+        return misc_args
+
+    def _add_boolean_arg(self, arg: str) -> List[str]:
+        if len(arg) == 1:
+            return [f"-{arg}"]
+        else:
+            return [f"--{arg}"]
+
+    def _add_non_boolean_arg(self, arg: str, value: Any) -> List[str]:
+        if len(arg) == 1:
+            return [f"-{arg}", f"{value}"]
+        else:
+            converted_arg = convert_option_name(arg)
+            return [f"--{converted_arg}", f"{value}"]
+
+    def _add_tensorrtllm_engine_args(self) -> List[str]:
+        # GAP needs to call PA using triton_c_api service kind when running
+        # against tensorrtllm engine.
+        return ["--service-kind", "triton_c_api", "--streaming"]
+
+    def _arg_is_tensorrtllm_engine(self, arg: str, value: str) -> bool:
+        return arg == "service_kind" and value == "tensorrtllm_engine"
+
+    def _add_extra_args(self, extra_args: Optional[List[str]]) -> List[str]:
+        if not extra_args:
+            return []
+
+        args = []
+        for extra_arg in extra_args:
+            args += [f"{extra_arg}"]
+
+        return args
+
     ###########################################################################
     # Get Accessor Methods
     ###########################################################################
@@ -63,6 +271,21 @@ class PerfAnalyzerConfig:
         """
         return self._parameters
 
+    def get_obj_args(self) -> Namespace:
+        """
+        Returns args that can be used by the existing CLI based methods in GAP
+        These will include any objectives that are set via parameters
+        """
+        obj_args = deepcopy(self._args)
+        if "concurrency" in self._parameters:
+            obj_args.concurrency = self._parameters["concurrency"]
+        if "request_rate" in self._parameters:
+            obj_args.request_rate = self._parameters["request_rate"]
+        if "runtime_batch_size" in self._parameters:
+            obj_args.batch_size = self._parameters["runtime_batch_size"]
+
+        return obj_args
+
     ###########################################################################
     # CLI String Creation Methods
     ###########################################################################
@@ -70,7 +293,11 @@ class PerfAnalyzerConfig:
         """
         Returns the PA command a list of strings
         """
-        cli_args = self._create_required_args()
+
+        cli_args = [self._config.path]
+        # FIXME: For now these will come from the CLI until support for a config file is added
+        # cli_args = self._create_required_args()
+        cli_args += self._cli_args
         cli_args += self._create_parameter_args()
 
         return cli_args
@@ -108,7 +335,7 @@ class PerfAnalyzerConfig:
         obj_to_cli_dict = {
             "runtime_batch_size": "--batch-size",
             "concurrency": "--concurrency-range",
-            "request-rate": "--request-rate-range",
+            "request_rate": "--request-rate-range",
         }
 
         try:
@@ -130,26 +357,29 @@ class PerfAnalyzerConfig:
             "--metrics-url",
             "--latency-report-file",
             "--measurement-request-count",
+            "--input-data",
+            "--profile-export-file",
+            "-i",
+            "-u",
         ]
         options_only_to_remove = ["--verbose", "--extra-verbose", "--verbose-csv"]
 
-        representation = self.create_cli_string()
+        command = self.create_command()
 
-        # Remove the PA call path which is always the first token
-        representation_list = representation.split(" ")
-        representation_list.pop(0)
-        representation = " ".join(representation_list)
+        # Remove the PA call path which is always the first item
+        command.pop(0)
 
         for option_with_arg in options_with_arg_to_remove:
-            representation = self._remove_option_from_cli_string(
-                option_with_arg, representation, with_arg=True
-            )
+            if option_with_arg in command:
+                index = command.index(option_with_arg)
+                del command[index : index + 2]
 
         for option_only in options_only_to_remove:
-            representation = self._remove_option_from_cli_string(
-                option_only, representation, with_arg=False
-            )
+            if option_only in command:
+                index = command.index(option_only)
+                del command[index]
 
+        representation = " ".join(command)
         return representation
 
     def _remove_option_from_cli_string(
@@ -178,6 +408,9 @@ class PerfAnalyzerConfig:
         """
         pa_config_dict = deepcopy(self.__dict__)
 
+        # Values set on the CLI are not kept (they can vary from run to run)
+        del pa_config_dict["_args"]
+
         return pa_config_dict
 
     @classmethod
@@ -197,5 +430,6 @@ class PerfAnalyzerConfig:
             **perf_analyzer_config_dict["_config"]
         )
         perf_analyzer_config._parameters = perf_analyzer_config_dict["_parameters"]
+        perf_analyzer_config._cli_args = perf_analyzer_config_dict["_cli_args"]
 
         return perf_analyzer_config

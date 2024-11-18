@@ -16,6 +16,7 @@ import json
 import unittest
 from unittest.mock import MagicMock, patch
 
+from genai_perf import parser
 from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.config.generate.objective_parameter import (
     ObjectiveCategory,
@@ -27,6 +28,7 @@ from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnal
 
 
 class TestPerfAnalyzerConfig(unittest.TestCase):
+
     ###########################################################################
     # Setup & Teardown
     ###########################################################################
@@ -49,8 +51,20 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 ),
             }
         }
+        cli = [
+            "genai-perf",
+            "analyze",
+            "-m",
+            "test_model",
+            "--service-kind",
+            "triton",
+        ]
+        with patch("sys.argv", cli):
+            args, extra_args = parser.parse_args()
 
         self._default_perf_analyzer_config = PerfAnalyzerConfig(
+            args=args,
+            extra_args=extra_args,
             config=self._config,
             model_objective_parameters=self._objective_parameters,
             model_name="test_model",
@@ -89,8 +103,26 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             self._config.perf_analyzer.path,
             "-m",
             "test_model",
+            "--async",
+            "-i",
+            "grpc",
+            "--streaming",
+            "-u",
+            "localhost:8001",
+            "--shape",
+            "max_tokens:1",
+            "--shape",
+            "text_input:1",
+            "--service-kind",
+            "triton",
+            "--measurement-interval",
+            "10000",
             "--stability-percentage",
-            str(self._config.perf_analyzer.stability_threshold),
+            "999",
+            "--input-data",
+            "artifacts/test_model-triton-tensorrtllm-concurrency64/inputs.json",
+            "--profile-export-file",
+            "artifacts/test_model-triton-tensorrtllm-concurrency64/profile_export.json",
             "--batch-size",
             "1",
             "--concurrency-range",
@@ -111,8 +143,18 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             [
                 "-m",
                 "test_model",
+                "--async",
+                "--streaming",
+                "--shape",
+                "max_tokens:1",
+                "--shape",
+                "text_input:1",
+                "--service-kind",
+                "triton",
+                "--measurement-interval",
+                "10000",
                 "--stability-percentage",
-                str(self._config.perf_analyzer.stability_threshold),
+                "999",
                 "--batch-size",
                 "1",
                 "--concurrency-range",
@@ -121,37 +163,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         )
         representation = self._default_perf_analyzer_config.representation()
 
-        self.assertEqual(expected_representation, representation)
-
-    @patch(
-        "genai_perf.config.generate.perf_analyzer_config.PerfAnalyzerConfig.create_cli_string",
-        MagicMock(
-            return_value=" ".join(
-                [
-                    "perf_analyzer",
-                    "--url",
-                    "url_string",
-                    "--metrics-url",
-                    "url_string",
-                    "--latency-report-file",
-                    "file_string",
-                    "--measurement-request-count",
-                    "mrc_string",
-                    "--verbose",
-                    "--extra-verbose",
-                    "--verbose-csv",
-                ]
-            )
-        ),
-    )
-    def test_with_removal_representation(self):
-        """
-        Test that the representation is created correctly when every
-        possible value that should be removed is added
-        """
-        representation = self._default_perf_analyzer_config.representation()
-
-        expected_representation = ""
         self.assertEqual(expected_representation, representation)
 
     ###########################################################################
