@@ -30,16 +30,26 @@ import sys
 import traceback
 from argparse import Namespace
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import genai_perf.logging as logging
 from genai_perf import parser
+from genai_perf.checkpoint.checkpoint import Checkpoint
+from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.generate.search_parameters import SearchParameters
+from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
+from genai_perf.config.input.config_command import ConfigCommand, Range, Subcommand
+from genai_perf.config.run.results import Results
+from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
+from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.profile_data_parser import (
@@ -47,11 +57,15 @@ from genai_perf.profile_data_parser import (
     LLMProfileDataParser,
     ProfileDataParser,
 )
+from genai_perf.record.types.input_sequence_length_p99 import InputSequenceLengthP99
+from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
     TritonTelemetryDataCollector,
 )
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
+from genai_perf.types import GpuRecords, ModelObjectiveParameters
 
 
 def create_artifacts_dirs(args: Namespace) -> None:
@@ -186,10 +200,12 @@ def run():
     # TMA-1900: refactor CLI handler
     logging.init_logging()
     args, extra_args = parser.parse_args()
-    config_options = create_config_options(args)
     if args.subcommand == "compare":
         args.func(args)
+    elif args.subcommand == "analyze":
+        analyze_subcommand(args)
     else:
+        config_options = create_config_options(args)
         create_artifacts_dirs(args)
         tokenizer = get_tokenizer(
             args.tokenizer,
@@ -201,6 +217,136 @@ def run():
         args.func(args, extra_args, telemetry_data_collector)
         data_parser = calculate_metrics(args, tokenizer)
         report_output(data_parser, telemetry_data_collector, args)
+
+
+def analyze_subcommand(args: Namespace) -> None:
+    #
+    # Setup
+    config = _setup_config(args)
+
+    model_name = config.model_names[0]
+    model_search_parameters = {
+        model_name: SearchParameters(config=config, subcommand=Subcommand.ANALYZE)
+    }
+    sweep_objective_generator = SweepObjectiveGenerator(config, model_search_parameters)
+    telemetry_data_collector = create_telemetry_data_collector(args)
+    checkpoint = Checkpoint(config)
+    results = checkpoint.results
+
+    #
+    # Sweep Loop
+    for count, objectives in enumerate(sweep_objective_generator.get_objectives()):
+        #
+        # Create GAP/PA Configs
+        genai_perf_config = GenAIPerfConfig(
+            config=config, args=args, model_objective_parameters=objectives
+        )
+        # The GAP/PA Configs will (for now) modify the CLI args
+        # based on the objective being swept
+        gap_obj_args = genai_perf_config.get_obj_args()
+
+        perf_analyzer_config = PerfAnalyzerConfig(
+            model_name=model_name,
+            args=gap_obj_args,
+            config=config,
+            model_objective_parameters=objectives,
+        )
+        obj_args = perf_analyzer_config.get_obj_args()
+
+        #
+        # Create Input/Artifacts
+        input_config_options = create_config_options(obj_args)
+        create_artifacts_dirs(obj_args)
+        tokenizer = get_tokenizer(
+            obj_args.tokenizer,
+            obj_args.tokenizer_trust_remote_code,
+            obj_args.tokenizer_revision,
+        )
+        generate_inputs(input_config_options)
+
+        #
+        # Run PA
+        args.func(obj_args, perf_analyzer_config, telemetry_data_collector)
+
+        #
+        # Extract Perf Metrics
+        infer_mode, load_level = _determine_infer_mode_and_load_level(
+            obj_args, objectives, model_name
+        )
+        data_parser = calculate_metrics(obj_args, tokenizer)
+        perf_stats = data_parser.get_statistics(infer_mode, load_level)
+        perf_metrics = perf_stats.create_records()
+
+        #
+        # Extract Telemetry Metrics
+        telemetry_stats = (
+            telemetry_data_collector.get_statistics()
+            if telemetry_data_collector
+            else None
+        )
+        # FIXME: Once I'm able to collect telemetry records will need
+        # to write a method to hook this up
+        gpu_metrics: GpuRecords = {}
+
+        #
+        # Create RunConfigMeasurement
+        run_config_measurement = RunConfigMeasurement(gpu_metrics)
+        run_config_measurement.add_perf_metrics(model_name, perf_metrics)
+
+        #
+        # Create RunConfig
+        run_config_name = model_name + "_run_config_" + str(count)
+        run_config = RunConfig(
+            name=run_config_name,
+            genai_perf_config=genai_perf_config,
+            perf_analyzer_config=perf_analyzer_config,
+            measurement=run_config_measurement,
+        )
+
+        #
+        # Add to results and write checkpoint
+        results.add_run_config(run_config)
+        checkpoint.create_checkpoint_object()
+
+
+def _setup_config(args: Namespace) -> ConfigCommand:
+    config = ConfigCommand(model_names=args.model)
+
+    if args.sweep_list:
+        config.analyze.sweep_parameters = {args.sweep_type: args.sweep_list}
+    else:
+        config.analyze.sweep_parameters = {
+            args.sweep_type: Range(min=args.sweep_min, max=args.sweep_max)
+        }
+
+    return config
+
+
+def _determine_infer_mode_and_load_level(
+    args: Namespace, objectives: ModelObjectiveParameters, model_name: str
+) -> Tuple[str, str]:
+    if args.sweep_type == "concurrency":
+        infer_mode = "concurrency"
+        load_level = (
+            f"{objectives[model_name][infer_mode].get_value_based_on_category()}"
+        )
+    elif args.sweep_type == "request_rate":
+        infer_mode = "request_rate"
+        load_level = (
+            f"{float(objectives[model_name][infer_mode].get_value_based_on_category())}"
+        )
+    elif args.sweep_type == "input_sequence_length" or args.sweep_type == "num_prompts":
+        if args.concurrency:
+            infer_mode = "concurrency"
+            load_level = f"{args.concurrency}"
+        elif args.request_rate:
+            infer_mode = "request_rate"
+            load_level = f"{args.request_rate}"
+        else:
+            infer_mode = "concurrency"
+            load_level = "1"
+
+    return infer_mode, load_level
 
 
 def main():
