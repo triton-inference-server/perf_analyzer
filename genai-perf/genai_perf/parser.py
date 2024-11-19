@@ -885,7 +885,7 @@ def _add_analyze_args(parser):
         type=str,
         default=f"{RunConfigDefaults.MIN_CONCURRENCY}:{RunConfigDefaults.MAX_CONCURRENCY}",
         required=False,
-        help=f"The range the stimulus will be swept. Represented as 'min:max'.",
+        help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
     )
     analyze_group.add_argument(
         "--sweep-list",
