@@ -94,6 +94,7 @@ message(STATUS "Using protobuf ${Protobuf_VERSION}")
 include_directories(${Protobuf_INCLUDE_DIRS})
 
 add_subdirectory(client_backend)
+add_subdirectory(maxine)
 
 include(FetchContent)
 
