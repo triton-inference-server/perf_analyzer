@@ -341,7 +341,7 @@ def _determine_infer_mode_and_load_level(
             infer_mode = "concurrency"
             load_level = "1"
     else:
-        GenAIPerfException("Cannot determine infer_mode/load_level")
+        raise GenAIPerfException("Cannot determine infer_mode/load_level")
 
     return infer_mode, load_level
 
