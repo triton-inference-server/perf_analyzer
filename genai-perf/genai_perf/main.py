@@ -40,7 +40,6 @@ from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
 from genai_perf.config.input.config_command import ConfigCommand, Range, Subcommand
-from genai_perf.config.run.results import Results
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
@@ -48,7 +47,6 @@ from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.measurements.model_config_measurement import ModelConfigMeasurement
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
@@ -57,9 +55,6 @@ from genai_perf.profile_data_parser import (
     LLMProfileDataParser,
     ProfileDataParser,
 )
-from genai_perf.record.types.input_sequence_length_p99 import InputSequenceLengthP99
-from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
-from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
     TritonTelemetryDataCollector,
@@ -279,13 +274,13 @@ def analyze_subcommand(args: Namespace) -> None:
 
         #
         # Extract Telemetry Metrics
-        telemetry_stats = (
-            telemetry_data_collector.get_statistics()
-            if telemetry_data_collector
-            else None
-        )
         # FIXME: Once I'm able to collect telemetry records will need
         # to write a method to hook this up
+        # telemetry_stats = (
+        #     telemetry_data_collector.get_statistics()
+        #     if telemetry_data_collector
+        #     else None
+        # )
         gpu_metrics: GpuRecords = {}
 
         #
@@ -345,6 +340,8 @@ def _determine_infer_mode_and_load_level(
         else:
             infer_mode = "concurrency"
             load_level = "1"
+    else:
+        GenAIPerfException("Cannot determine infer_mode/load_level")
 
     return infer_mode, load_level
 
