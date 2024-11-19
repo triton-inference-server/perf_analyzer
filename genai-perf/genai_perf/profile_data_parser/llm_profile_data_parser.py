@@ -184,12 +184,6 @@ class LLMProfileDataParser(ProfileDataParser):
             # This forces a merge with the previous chunk if error detected.
             for i in reversed(range(1, len(res_outputs))):
                 response = res_outputs[i]["response"]
-
-                # Ignore keepalive SSE response
-                if response.strip() == ":":
-                    res_outputs[i]["response"] = ""
-                    continue
-
                 if not response.startswith("data: "):
                     prefix_idx = response.find("data: ")
                     if "data: " not in res_outputs[i - 1]["response"]:
@@ -212,26 +206,16 @@ class LLMProfileDataParser(ProfileDataParser):
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
-                response = res_outputs[i]["response"].strip()
-
-                # Ignore keepalive SSE response
-                if response == ":":
-                    res_outputs[i]["response"] = ""
-                    continue
-
-                responses = response.split("\n\n")
+                responses = res_outputs[i]["response"].strip().split("\n\n")
                 if len(responses) > 1:
-                    merged_response = load_json_str(remove_sse_prefix(responses[0]))
-                    if (
-                        merged_response["choices"][0]["delta"].get("content", None)
-                        is None
-                    ):
-                        merged_response["choices"][0]["delta"]["content"] = ""
-                    for r in responses[1:]:
-                        text = self._extract_openai_text_output(r)
-                        merged_response["choices"][0]["delta"]["content"] += text
-
-                    res_outputs[i] = {"response": json.dumps(merged_response)}
+                    merged_text = "".join(
+                        [self._extract_openai_text_output(r) for r in responses]
+                    )
+                    data = load_json_str(remove_sse_prefix(responses[0]))
+                    data["choices"][0]["delta"]["content"] = merged_text
+                    res_outputs[i] = {"response": json.dumps(data)}
+                elif self._is_openai_empty_response(responses[0]):
+                    res_outputs[i]["response"] = ""
 
             # Remove responses without any content
             indices_to_remove = []
@@ -327,6 +311,10 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _extract_openai_text_output(self, response: str) -> str:
         """Extracts text/content of the OpenAI response object."""
+        # Check for SSE comment or empty response
+        if not response or response.startswith(":"):
+            return ""
+
         response = remove_sse_prefix(response)
 
         if response == "[DONE]":

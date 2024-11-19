@@ -938,9 +938,11 @@ class TestLLMProfileDataParser:
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
         return_value=openai_profile_data,
     )
-    def test_handle_keepalive_sse_responses(self, mock_json) -> None:
-        """Check if it handles unfinished responses."""
-        res_timestamps = [0, 1, 2, 3]
+    def test_handle_sse_comments(self, mock_json) -> None:
+        """Check if the parser can handle SSE comments that are often used for
+        keep alive mechanism.
+        """
+        res_timestamps = [0, 1, 2, 3, 4, 5]
         res_outputs = [
             {
                 "response": ":\n\n",
@@ -949,13 +951,19 @@ class TestLLMProfileDataParser:
                 "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n'
             },
             {
+                "response": ":\n\n",
+            },
+            {
                 "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
+            },
+            {
+                "response": ":\n\n",
             },
             {"response": "data: [DONE]\n\n"},
         ]
         expected_responses = [
-            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n',
-            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
+            '{"object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"token_id": 4477, "role": "assistant", "content": "Hello "}}], "model": "meta-llama"}',
+            '{"object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"token_id": 4477, "role": "assistant", "content": "world!"}}], "model": "meta-llama"}',
         ]
 
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
