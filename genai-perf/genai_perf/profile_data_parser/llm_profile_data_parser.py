@@ -182,33 +182,32 @@ class LLMProfileDataParser(ProfileDataParser):
         if self._service_kind == "openai":
             # Sometimes streamed chunks are returned in a splintered fashion.
             # This forces a merge with the previous chunk if error detected.
-            if len(res_outputs) > 1:
-                for i in reversed(range(1, len(res_outputs))):
-                    response = res_outputs[i]["response"]
+            for i in reversed(range(1, len(res_outputs))):
+                response = res_outputs[i]["response"]
 
-                    # Ignore keepalive SSE response
-                    if response.strip() == ":":
+                # Ignore keepalive SSE response
+                if response.strip() == ":":
+                    res_outputs[i]["response"] = ""
+                    continue
+
+                if not response.startswith("data: "):
+                    prefix_idx = response.find("data: ")
+                    if "data: " not in res_outputs[i - 1]["response"]:
+                        raise GenAIPerfException(
+                            "Detected a splintered SSE response but the "
+                            "previous response does not contain proper SSE "
+                            "prefix to continue the fix."
+                        )
+
+                    # When 'data: ' prefix is not found in the current
+                    # response, append it with the previous response
+                    # (assuming that the prev response contains it).
+                    if prefix_idx == -1:
+                        res_outputs[i - 1]["response"] += response
                         res_outputs[i]["response"] = ""
-                        continue
-
-                    if not response.startswith("data: "):
-                        prefix_idx = response.find("data: ")
-                        if "data: " not in res_outputs[i - 1]["response"]:
-                            raise GenAIPerfException(
-                                "Detected a splintered SSE response but the "
-                                "previous response does not contain proper SSE "
-                                "prefix to continue the fix."
-                            )
-
-                        # When 'data: ' prefix is not found in the current
-                        # response, append it with the previous response
-                        # (assuming that the prev response contains it).
-                        if prefix_idx == -1:
-                            res_outputs[i - 1]["response"] += response
-                            res_outputs[i]["response"] = ""
-                        else:
-                            res_outputs[i - 1]["response"] += response[0:prefix_idx]
-                            res_outputs[i]["response"] = response[prefix_idx:]
+                    else:
+                        res_outputs[i - 1]["response"] += response[0:prefix_idx]
+                        res_outputs[i]["response"] = response[prefix_idx:]
 
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
