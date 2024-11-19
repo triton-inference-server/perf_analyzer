@@ -49,13 +49,11 @@ class TestRankingsConverter:
 
         if queries_data is not None:
             files_data["queries"] = FileData(
-                filename="queries",
                 rows=[DataRow(texts=query) for query in queries_data],
             )
 
         if passages_data is not None:
             files_data["passages"] = FileData(
-                filename="passages",
                 rows=[DataRow(texts=passage) for passage in passages_data],
             )
 

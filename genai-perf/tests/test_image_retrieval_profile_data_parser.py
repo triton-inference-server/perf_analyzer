@@ -56,26 +56,18 @@ class TestImageRetrievalProfileDataParser:
                     {
                         "timestamp": 1,
                         "request_inputs": {
-                            "payload": '{"messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"image1"}},{"type":"image_url","image_url":{"url":"image2"}}]}],"model":"yolox"}'
+                            "payload": '{"input":[{"type":"image_url","url":"image1"},{"type":"image_url","url":"image2"}]}'
                         },
                         "response_timestamps": [3],
-                        "response_outputs": [
-                            {
-                                "response": '{"object":"list","data":[],"model":"yolox","usage":null}'
-                            }
-                        ],
+                        "response_outputs": [{"response": '{"data":[]}'}],
                     },
                     {
                         "timestamp": 3,
                         "request_inputs": {
-                            "payload": '{"messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"image1"}},{"type":"image_url","image_url":{"url":"image2"}},{"type":"image_url","image_url":{"url":"image3"}}]}],"model":"yolox"}'
+                            "payload": '{"input":[{"type":"image_url","url":"image1"},{"type":"image_url","url":"image2"},{"type":"image_url","url":"image3"}]}'
                         },
                         "response_timestamps": [7],
-                        "response_outputs": [
-                            {
-                                "response": '{"object":"list","data":[],"model":"yolox","usage":null}'
-                            }
-                        ],
+                        "response_outputs": [{"response": '{"data":[]}'}],
                     },
                 ],
             }
