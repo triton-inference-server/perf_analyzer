@@ -938,10 +938,8 @@ class TestLLMProfileDataParser:
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
         return_value=openai_profile_data,
     )
-    def test_handle_sse_comments(self, mock_json) -> None:
-        """Check if the parser can handle SSE comments that are often used for
-        keep alive mechanism.
-        """
+    def test_handle_non_data_sse_fields(self, mock_json) -> None:
+        """Check if the parser can handle SSE comments or event field."""
         res_timestamps = [0, 1, 2, 3, 4, 5]
         res_outputs = [
             {
@@ -957,7 +955,7 @@ class TestLLMProfileDataParser:
                 "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
             },
             {
-                "response": ":\n\n",
+                "response": "event: some description\n\n",
             },
             {"response": "data: [DONE]\n\n"},
         ]

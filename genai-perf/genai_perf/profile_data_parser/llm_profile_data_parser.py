@@ -311,8 +311,9 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _extract_openai_text_output(self, response: str) -> str:
         """Extracts text/content of the OpenAI response object."""
-        # Check for SSE comment or empty response
-        if not response or response.startswith(":"):
+        # (TODO) TPA-829: Add more proper SSE event stream support
+        # Check for empty, comment, or event SSE response
+        if not response or any(response.startswith(p) for p in [":", "event:"]):
             return ""
 
         response = remove_sse_prefix(response)
