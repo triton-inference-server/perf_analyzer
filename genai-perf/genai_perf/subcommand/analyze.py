@@ -43,12 +43,14 @@ from genai_perf.subcommand.common import (
     create_config_options,
     create_telemetry_data_collector,
     generate_inputs,
+    run_perf_analyzer,
 )
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
 )
 from genai_perf.tokenizer import get_tokenizer
 from genai_perf.types import GpuRecords, ModelObjectiveParameters
+from genai_perf.wrapper import Profiler
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +106,11 @@ def analyze_handler(args: Namespace) -> None:
 
         #
         # Run PA
-        _run_analyze(obj_args, perf_analyzer_config, telemetry_data_collector)
+        run_perf_analyzer(
+            args=obj_args,
+            perf_analyzer_config=perf_analyzer_config,
+            telemetry_data_collector=telemetry_data_collector,
+        )
 
         #
         # Extract Perf Metrics
@@ -187,24 +193,3 @@ def _determine_infer_mode_and_load_level(
         raise GenAIPerfException("Cannot determine infer_mode/load_level")
 
     return infer_mode, load_level
-
-
-def _run_analyze(
-    args: Namespace,
-    perf_analyzer_config: PerfAnalyzerConfig,
-    telemetry_data_collector: Optional[TelemetryDataCollector] = None,
-) -> None:
-    try:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.start()
-        cmd = perf_analyzer_config.create_command()
-        logger.info(
-            f"Running Perf Analyzer : '{perf_analyzer_config.create_cli_string()}'"
-        )
-        if args and args.verbose:
-            subprocess.run(cmd, check=True, stdout=None)
-        else:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
-    finally:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.stop()

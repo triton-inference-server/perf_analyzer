@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import subprocess  # nosec
 from argparse import Namespace
 from typing import List, Optional
 
@@ -150,22 +149,3 @@ class Profiler:
             for arg in extra_args:
                 cmd += [f"{arg}"]
         return cmd
-
-    @staticmethod
-    def run(
-        args: Namespace,
-        extra_args: Optional[List[str]],
-        telemetry_data_collector: Optional[TelemetryDataCollector] = None,
-    ) -> None:
-        try:
-            if telemetry_data_collector is not None:
-                telemetry_data_collector.start()
-            cmd = Profiler.build_cmd(args, extra_args)
-            logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
-            if args and args.verbose:
-                subprocess.run(cmd, check=True, stdout=None)  # nosec
-            else:
-                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
-        finally:
-            if telemetry_data_collector is not None:
-                telemetry_data_collector.stop()

@@ -37,6 +37,7 @@ from genai_perf.subcommand.common import (
     create_config_options,
     create_telemetry_data_collector,
     generate_inputs,
+    run_perf_analyzer,
 )
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
@@ -58,7 +59,7 @@ def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
     )
     generate_inputs(config_options)
     telemetry_data_collector = create_telemetry_data_collector(args)
-    Profiler.run(
+    run_perf_analyzer(
         args=args,
         extra_args=extra_args,
         telemetry_data_collector=telemetry_data_collector,
