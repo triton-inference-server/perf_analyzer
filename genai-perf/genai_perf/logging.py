@@ -95,6 +95,16 @@ def init_logging() -> None:
                 "level": "DEBUG",
                 "propagate": False,
             },
+            "genai_perf.subcommand.analyze": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+            "genai_perf.subcommand.common": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
         },
     }
     logging.config.dictConfig(LOGGING_CONFIG)

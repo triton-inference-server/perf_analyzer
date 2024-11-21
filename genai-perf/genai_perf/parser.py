@@ -29,6 +29,7 @@ import argparse
 import os
 import subprocess
 import sys
+from argparse import Namespace
 from enum import Enum, auto
 from pathlib import Path
 from typing import Optional, Tuple
@@ -36,19 +37,47 @@ from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
+from genai_perf.checkpoint.checkpoint import Checkpoint
+from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.input.config_command import RunConfigDefaults
+from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
+from genai_perf.config.input.config_command import (
+    ConfigCommand,
+    Range,
+    RunConfigDefaults,
+)
+from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import (
     DEFAULT_ARTIFACT_DIR,
     DEFAULT_COMPARE_DIR,
     DEFAULT_PROFILE_EXPORT_FILE,
+    DEFAULT_TRITON_METRICS_URL,
 )
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
+from genai_perf.profile_data_parser import (
+    ImageRetrievalProfileDataParser,
+    LLMProfileDataParser,
+    ProfileDataParser,
+)
+from genai_perf.subcommand.analyze import analyze_handler
+from genai_perf.subcommand.compare import compare_handler
+from genai_perf.subcommand.profile import profile_handler
 from genai_perf.telemetry_data import TelemetryDataCollector
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
+from genai_perf.telemetry_data.triton_telemetry_data_collector import (
+    TelemetryDataCollector,
+    TritonTelemetryDataCollector,
+)
+from genai_perf.tokenizer import (
+    DEFAULT_TOKENIZER,
+    DEFAULT_TOKENIZER_REVISION,
+    Tokenizer,
+    get_tokenizer,
+)
+from genai_perf.types import GpuRecords, ModelObjectiveParameters
 
 from . import __version__
 
@@ -246,16 +275,16 @@ def _process_sweep_args(args):
     """
     Process the sweep args
     """
-    if args.sweep_range:
+    if args.sweep_list:
+        _parse_sweep_list(args)
+    elif args.sweep_range:
         args.sweep_min, args.sweep_max, args.sweep_step = _parse_sweep_range(
             args.sweep_range
         )
         _check_sweep_range(args)
 
-    if args.sweep_list:
-        _parse_sweep_list(args)
-    elif args.sweep_step:
-        _create_sweep_list(args)
+        if args.sweep_step:
+            _create_sweep_list(args)
 
     return args
 
@@ -896,49 +925,6 @@ def _add_analyze_args(parser):
     )
 
 
-def get_extra_inputs_as_dict(args: argparse.Namespace) -> dict:
-    request_inputs = {}
-    if args.extra_inputs:
-        for input_str in args.extra_inputs:
-            if input_str.startswith("{") and input_str.endswith("}"):
-                request_inputs.update(utils.load_json_str(input_str))
-            else:
-                semicolon_count = input_str.count(":")
-                if semicolon_count != 1:
-                    raise ValueError(
-                        f"Invalid input format for --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
-                    )
-                input_name, value = input_str.split(":", 1)
-
-                if not input_name or not value:
-                    raise ValueError(
-                        f"Input name or value is empty in --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
-                    )
-
-                is_bool = value.lower() in ["true", "false"]
-                is_int = value.isdigit()
-                is_float = value.count(".") == 1 and (
-                    value[0] == "." or value.replace(".", "").isdigit()
-                )
-
-                if is_bool:
-                    value = value.lower() == "true"
-                elif is_int:
-                    value = int(value)
-                elif is_float:
-                    value = float(value)
-
-                if input_name in request_inputs:
-                    raise ValueError(
-                        f"Input name already exists in request_inputs dictionary: {input_name}"
-                    )
-                request_inputs[input_name] = value
-
-    return request_inputs
-
-
 def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
     compare = subparsers.add_parser(
         Subcommand.COMPARE.to_lowercase(),
@@ -995,54 +981,6 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(analyze)
     analyze.set_defaults(func=analyze_handler)
     return analyze
-
-
-### Handlers ###
-
-
-def create_compare_dir() -> None:
-    if not os.path.exists(DEFAULT_COMPARE_DIR):
-        os.mkdir(DEFAULT_COMPARE_DIR)
-
-
-def compare_handler(args: argparse.Namespace):
-    """Handles `compare` subcommand workflow."""
-    if args.files:
-        create_compare_dir()
-        output_dir = Path(f"{DEFAULT_COMPARE_DIR}")
-        PlotConfigParser.create_init_yaml_config(args.files, output_dir)
-        args.config = output_dir / "config.yaml"
-
-    config_parser = PlotConfigParser(args.config)
-    plot_configs = config_parser.generate_configs()
-    plot_manager = PlotManager(plot_configs)
-    plot_manager.generate_plots()
-
-
-def profile_handler(
-    args, extra_args, telemetry_data_collector: Optional[TelemetryDataCollector]
-) -> None:
-    from genai_perf.wrapper import Profiler
-
-    Profiler.run(
-        args=args,
-        extra_args=extra_args,
-        telemetry_data_collector=telemetry_data_collector,
-    )
-
-
-def analyze_handler(
-    args: argparse.Namespace,
-    perf_analyzer_config: PerfAnalyzerConfig,
-    telemetry_data_collector: Optional[TelemetryDataCollector],
-) -> None:
-    from genai_perf.wrapper import Profiler
-
-    run_analyze(
-        args=args,
-        perf_analyzer_config=perf_analyzer_config,
-        telemetry_data_collector=telemetry_data_collector,
-    )
 
 
 ### Parser Initialization ###
@@ -1125,24 +1063,3 @@ def parse_args():
     args = refine_args(parser, args)
 
     return args, argv[passthrough_index + 1 :]
-
-
-def run_analyze(
-    args: argparse.Namespace,
-    perf_analyzer_config: PerfAnalyzerConfig,
-    telemetry_data_collector: Optional[TelemetryDataCollector] = None,
-) -> None:
-    try:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.start()
-        cmd = perf_analyzer_config.create_command()
-        logger.info(
-            f"Running Perf Analyzer : '{perf_analyzer_config.create_cli_string()}'"
-        )
-        if args and args.verbose:
-            subprocess.run(cmd, check=True, stdout=None)
-        else:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
-    finally:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.stop()

@@ -37,6 +37,7 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.parser import PathType
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
 class TestCLIArguments:
@@ -744,7 +745,7 @@ class TestCLIArguments:
         parsed_args, _ = parser.parse_args()
 
         with pytest.raises(ValueError) as exc_info:
-            parser.get_extra_inputs_as_dict(parsed_args)
+            get_extra_inputs_as_dict(parsed_args)
 
         assert str(exc_info.value) == expected_error
 
@@ -887,7 +888,7 @@ class TestCLIArguments:
     def test_get_extra_inputs_as_dict(self, extra_inputs_list, expected_dict):
         namespace = argparse.Namespace()
         namespace.extra_inputs = extra_inputs_list
-        actual_dict = parser.get_extra_inputs_as_dict(namespace)
+        actual_dict = get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
 
     test_triton_metrics_url = "http://tritonmetrics.com:8002/metrics"
