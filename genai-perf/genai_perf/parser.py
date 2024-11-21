@@ -27,9 +27,7 @@
 
 import argparse
 import os
-import subprocess
 import sys
-from argparse import Namespace
 from enum import Enum, auto
 from pathlib import Path
 from typing import Optional, Tuple
@@ -37,47 +35,17 @@ from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.checkpoint.checkpoint import Checkpoint
-from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
-from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    Range,
-    RunConfigDefaults,
-)
-from genai_perf.config.run.run_config import RunConfig
-from genai_perf.constants import (
-    DEFAULT_ARTIFACT_DIR,
-    DEFAULT_COMPARE_DIR,
-    DEFAULT_PROFILE_EXPORT_FILE,
-    DEFAULT_TRITON_METRICS_URL,
-)
+from genai_perf.config.input.config_command import RunConfigDefaults
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
-from genai_perf.profile_data_parser import (
-    ImageRetrievalProfileDataParser,
-    LLMProfileDataParser,
-    ProfileDataParser,
-)
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.telemetry_data import TelemetryDataCollector
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-    TritonTelemetryDataCollector,
-)
-from genai_perf.tokenizer import (
-    DEFAULT_TOKENIZER,
-    DEFAULT_TOKENIZER_REVISION,
-    Tokenizer,
-    get_tokenizer,
-)
-from genai_perf.types import GpuRecords, ModelObjectiveParameters
+from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
 
@@ -273,7 +241,8 @@ def _check_goodput_args(args):
 
 def _process_sweep_args(args):
     """
-    Process the sweep args
+    Process the sweep args which can either be a list or
+    a min:max:[step]
     """
     if args.sweep_list:
         _parse_sweep_list(args)
@@ -295,11 +264,7 @@ def _parse_sweep_range(sweep_range: str) -> Tuple[int, int, Optional[int]]:
     if len(sweep_range_list) == 2:
         return (int(sweep_range_list[0]), int(sweep_range_list[1]), None)
     elif len(sweep_range_list) == 3:
-        return (
-            int(sweep_range_list[0]),
-            int(sweep_range_list[1]),
-            int(sweep_range_list[2]),
-        )
+        return tuple(int(x) for x in sweep_range_list)  # type: ignore
     else:
         raise argparse.ArgumentTypeError(
             "The format of '--sweep-range' must be min:max or min:max:step."
@@ -315,22 +280,22 @@ def _check_sweep_range(args):
         raise argparse.ArgumentTypeError("--sweep-range step value must be an int.")
 
     if args.sweep_min < 1 or args.sweep_max < 1:
-        raise argparse.ArgumentTypeError("-sweep-range min/max value must be positive")
+        raise argparse.ArgumentTypeError("--sweep-range min/max value must be positive")
     if args.sweep_step and args.sweep_step < 1:
-        raise argparse.ArgumentTypeError("-sweep-range step value must be positive")
+        raise argparse.ArgumentTypeError("--sweep-range step value must be positive")
     if args.sweep_min >= args.sweep_max:
-        raise argparse.ArgumentTypeError("-sweep-range max must be greater than min")
+        raise argparse.ArgumentTypeError("--sweep-range max must be greater than min")
 
     if args.sweep_type == "concurrency":
         if not utils.is_power_of_two(args.sweep_min) or not utils.is_power_of_two(
             args.sweep_max
         ):
             raise argparse.ArgumentTypeError(
-                "-sweep-range min/max values must be powers of 2 when sweeping concurrency"
+                "--sweep-range min/max values must be powers of 2 when sweeping concurrency"
             )
         if args.sweep_step:
             raise argparse.ArgumentTypeError(
-                "-sweep-range step is not supported when sweeping concurrency"
+                "--sweep-range step is not supported when sweeping concurrency"
             )
 
 

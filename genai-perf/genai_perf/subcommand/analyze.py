@@ -78,6 +78,7 @@ def analyze_handler(args: Namespace) -> None:
         genai_perf_config = GenAIPerfConfig(
             config=config, args=args, model_objective_parameters=objectives
         )
+
         # The GAP/PA Configs will (for now) modify the CLI args
         # based on the objective being swept
         gap_obj_args = genai_perf_config.get_obj_args()
