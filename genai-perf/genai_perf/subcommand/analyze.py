@@ -23,9 +23,9 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import subprocess
+
 from argparse import Namespace
-from typing import Optional, Tuple
+from typing import Tuple
 
 import genai_perf.logging as logging
 from genai_perf.checkpoint.checkpoint import Checkpoint
@@ -44,9 +44,6 @@ from genai_perf.subcommand.common import (
     create_telemetry_data_collector,
     generate_inputs,
     run_perf_analyzer,
-)
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
 )
 from genai_perf.tokenizer import get_tokenizer
 from genai_perf.types import GpuRecords, ModelObjectiveParameters

@@ -23,6 +23,7 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 from argparse import Namespace
 from typing import List, Optional
 
@@ -43,7 +44,6 @@ from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
 )
 from genai_perf.tokenizer import get_tokenizer
-from genai_perf.wrapper import Profiler
 
 
 def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
