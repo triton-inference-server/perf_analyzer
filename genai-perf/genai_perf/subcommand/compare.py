@@ -23,37 +23,31 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+import os
 from argparse import Namespace
 from pathlib import Path
 
-import pytest
-from genai_perf.subcommand.common import create_artifacts_dirs
+from genai_perf.constants import DEFAULT_COMPARE_DIR
+from genai_perf.plots.plot_config_parser import PlotConfigParser
+from genai_perf.plots.plot_manager import PlotManager
 
 
-@pytest.fixture
-def mock_makedirs(mocker):
-    return mocker.patch("os.makedirs")
+def compare_handler(args: Namespace) -> None:
+    """
+    Handles `compare` subcommand workflow
+    """
+    if args.files:
+        _create_compare_dir()
+        output_dir = Path(f"{DEFAULT_COMPARE_DIR}")
+        PlotConfigParser.create_init_yaml_config(args.files, output_dir)
+        args.config = output_dir / "config.yaml"
+
+    config_parser = PlotConfigParser(args.config)
+    plot_configs = config_parser.generate_configs()
+    plot_manager = PlotManager(plot_configs)
+    plot_manager.generate_plots()
 
 
-def test_create_artifacts_dirs_custom_path(mock_makedirs):
-    artifacts_dir_path = "/genai_perf_artifacts"
-    mock_args = Namespace(artifact_dir=Path(artifacts_dir_path), generate_plots=True)
-    create_artifacts_dirs(mock_args)
-    mock_makedirs.assert_any_call(
-        Path(artifacts_dir_path), exist_ok=True
-    ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
-    mock_makedirs.assert_any_call(
-        Path(artifacts_dir_path) / "plots", exist_ok=True
-    ), f"Expected os.makedirs to create plots directory inside {artifacts_dir_path}/plots path."
-    assert mock_makedirs.call_count == 2
-
-
-def test_create_artifacts_disable_generate_plots(mock_makedirs):
-    artifacts_dir_path = "/genai_perf_artifacts"
-    mock_args = Namespace(artifact_dir=Path(artifacts_dir_path))
-    create_artifacts_dirs(mock_args)
-    mock_makedirs.assert_any_call(
-        Path(artifacts_dir_path), exist_ok=True
-    ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
-    assert mock_makedirs.call_count == 1
+def _create_compare_dir() -> None:
+    if not os.path.exists(DEFAULT_COMPARE_DIR):
+        os.mkdir(DEFAULT_COMPARE_DIR)

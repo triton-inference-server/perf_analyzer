@@ -38,6 +38,7 @@ class SearchParameters:
         "runtime_batch_size",
         "concurrency",
         "request_rate",
+        "input_sequence_length",
     ]
 
     linear_range_parameters = ["instance_count", "num_prompts"]
@@ -50,9 +51,7 @@ class SearchParameters:
 
     runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
 
-    runtime_gap_parameters = [
-        "num_prompts",
-    ]
+    runtime_gap_parameters = ["num_prompts", "input_sequence_length"]
 
     all_parameters = model_parameters + runtime_pa_parameters + runtime_gap_parameters
 

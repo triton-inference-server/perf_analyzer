@@ -129,12 +129,7 @@ def sample_bounded_normal(mean, stddev, lower=float("-inf"), upper=float("inf"))
     return min(max(lower, n), upper)
 
 
-# FIXME: OPTIMIZE
-# This will move to the checkpoint class when it's created
-def checkpoint_encoder(obj):
-    if isinstance(obj, bytes):
-        return obj.decode("utf-8")
-    elif hasattr(obj, "write_to_checkpoint"):
-        return obj.write_to_checkpoint()
-    else:
-        return obj.__dict__
+def is_power_of_two(n: int) -> bool:
+    if n <= 0:
+        return False
+    return (n & (n - 1)) == 0

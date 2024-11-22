@@ -57,6 +57,11 @@ GpuMetricObjectives: TypeAlias = Dict[ModelName, MetricObjectives]
 PerfMetricObjectives: TypeAlias = Dict[ModelName, MetricObjectives]
 
 ###########################################################################
+# Parameters
+###########################################################################
+Parameters: TypeAlias = Dict[str, Any]
+
+###########################################################################
 # Run Config
 ###########################################################################
 RunConfigName: TypeAlias = str

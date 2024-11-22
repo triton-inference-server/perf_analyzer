@@ -32,7 +32,7 @@ from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
-from genai_perf.parser import get_extra_inputs_as_dict
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
 class TestOutputReporter:
