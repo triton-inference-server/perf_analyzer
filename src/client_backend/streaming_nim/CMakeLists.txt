@@ -26,19 +26,40 @@
 
 cmake_minimum_required (VERSION 3.18)
 
-add_library(maxine-proto OBJECT "${CMAKE_CURRENT_LIST_DIR}/maxine.proto")
+FetchContent_Declare(speechliveportrait-repo
+  GIT_REPOSITORY "https://oauth2:${GITLAB_PERSONAL_ACCESS_TOKEN}@gitlab-master.nvidia.com/maxine-nvcf/features/maxine-nvcf-speechliveportrait.git"
+  GIT_TAG "main"
+  SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/speechliveportrait-repo/src/speechliveportrait"
+)
+FetchContent_MakeAvailable(speechliveportrait-repo)
 
-target_link_libraries(maxine-proto PUBLIC protobuf::libprotobuf gRPC::grpc++)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/protos)
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/speechliveportrait-repo/src/speechliveportrait
+                                                           ${CMAKE_BINARY_DIR}/protos/speechliveportrait)
+
+set(SPEECH_LIVE_PORTRAIT_PROTO ${CMAKE_BINARY_DIR}/protos/speechliveportrait/grpc/protos/nvidia/maxine/speechliveportrait/v1/speechliveportrait.proto)
+set(SPEECH_LIVE_PORTRAIT_PROTO_DIR ${CMAKE_BINARY_DIR}/protos/speechliveportrait/grpc/protos/nvidia/maxine/speechliveportrait/v1)
+set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/compiled")
+
+file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
+
+add_library(speechliveportrait-proto OBJECT ${SPEECH_LIVE_PORTRAIT_PROTO})
+
+target_link_libraries(speechliveportrait-proto PUBLIC protobuf::libprotobuf gRPC::grpc++)
 
 protobuf_generate(
-  TARGET maxine-proto
+  TARGET speechliveportrait-proto
   LANGUAGE cpp
   GENERATE_EXTENSIONS .pb.h .pb.cc
+  IMPORT_DIRS ${SPEECH_LIVE_PORTRAIT_PROTO_DIR}
+  PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
 )
 
 protobuf_generate(
-  TARGET maxine-proto
+  TARGET speechliveportrait-proto
   LANGUAGE grpc
   GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
   PLUGIN protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+  IMPORT_DIRS ${SPEECH_LIVE_PORTRAIT_PROTO_DIR}
+  PROTOC_OUT_DIR "${PROTO_BINARY_DIR}"
 )

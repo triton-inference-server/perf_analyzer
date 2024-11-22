@@ -66,6 +66,10 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
   add_subdirectory(openai)
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAI
 
+if(TRITON_ENABLE_PERF_ANALYZER_STREAMING_NIM)
+  add_subdirectory(streaming_nim)
+endif() # TRITON_ENABLE_PERF_ANALYZER_STREAMING_NIM
+
 set(
   CLIENT_BACKEND_SRCS
   client_backend.cc

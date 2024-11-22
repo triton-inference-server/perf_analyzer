@@ -35,6 +35,8 @@ option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF
 option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_STREAMING_NIM "Enable Streaming NIM support for Performance Analyzer" OFF)
+set(GITLAB_PERSONAL_ACCESS_TOKEN "" CACHE STRING "Personal access token for GitLab repository")
 
 #
 # Feature Options
@@ -94,7 +96,6 @@ message(STATUS "Using protobuf ${Protobuf_VERSION}")
 include_directories(${Protobuf_INCLUDE_DIRS})
 
 add_subdirectory(client_backend)
-add_subdirectory(maxine)
 
 include(FetchContent)
 
@@ -286,6 +287,14 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_OPENAI=1
   )
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAI
+
+if(TRITON_ENABLE_PERF_ANALYZER_STREAMING_NIM)
+  target_compile_definitions(
+    client-backend-library
+    PUBLIC TRITON_ENABLE_PERF_ANALYZER_STREAMING_NIM=1
+  )
+endif() # TRITON_ENABLE_PERF_ANALYZER_STREAMING_NIM
+
 
 install(
   TARGETS perf_analyzer
