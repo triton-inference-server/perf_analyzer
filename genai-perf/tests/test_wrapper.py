@@ -30,6 +30,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from genai_perf import parser
 from genai_perf.constants import DEFAULT_GRPC_URL
+from genai_perf.subcommand.common import run_perf_analyzer
 from genai_perf.wrapper import Profiler
 
 
@@ -146,14 +147,14 @@ class TestWrapper:
         # Ensure the correct arguments are appended.
         assert cmd_string.count(" -i http") == 1
 
-    @patch("genai_perf.wrapper.subprocess.run")
+    @patch("genai_perf.subcommand.common.subprocess.run")
     @patch("genai_perf.wrapper.TelemetryDataCollector")
     def test_stdout_verbose(self, mock_telemetry_collector, mock_subprocess_run):
         args = MagicMock()
         args.model = "test_model"
         args.verbose = True
         telemetry_data_collector = mock_telemetry_collector.return_value
-        Profiler.run(
+        run_perf_analyzer(
             args=args,
             extra_args=None,
             telemetry_data_collector=telemetry_data_collector,
@@ -166,14 +167,14 @@ class TestWrapper:
                 "stdout" not in kwargs or kwargs["stdout"] is None
             ), "With the verbose flag, stdout should not be redirected."
 
-    @patch("genai_perf.wrapper.subprocess.run")
+    @patch("genai_perf.subcommand.common.subprocess.run")
     @patch("genai_perf.wrapper.TelemetryDataCollector")
     def test_stdout_not_verbose(self, mock_telemetry_collector, mock_subprocess_run):
         args = MagicMock()
         args.model = "test_model"
         args.verbose = False
         telemetry_data_collector = mock_telemetry_collector.return_value
-        Profiler.run(
+        run_perf_analyzer(
             args=args,
             extra_args=None,
             telemetry_data_collector=telemetry_data_collector,

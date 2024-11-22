@@ -27,6 +27,7 @@ from genai_perf.types import (
     MetricObjectives,
     ModelName,
     ModelWeights,
+    Parameters,
     PerfMetricName,
     PerfRecords,
     RunConfigName,
@@ -95,7 +96,10 @@ class RunConfig:
     ###########################################################################
     # Get Accessor Methods
     ###########################################################################
-    def get_perf_analyzer_parameters(self) -> Dict[str, Any]:
+    def get_genai_perf_parameters(self) -> Parameters:
+        return self.genai_perf_config.get_parameters()
+
+    def get_perf_analyzer_parameters(self) -> Parameters:
         return self.perf_analyzer_config.get_parameters()
 
     def get_all_gpu_metrics(self) -> GpuRecords:
