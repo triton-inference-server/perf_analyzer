@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+
 import argparse
 import os
 import sys
@@ -35,11 +36,15 @@ from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_COMPARE_DIR
+from genai_perf.config.input.config_command import RunConfigDefaults
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
+from genai_perf.subcommand.analyze import analyze_handler
+from genai_perf.subcommand.compare import compare_handler
+from genai_perf.subcommand.profile import profile_handler
 from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
@@ -57,6 +62,7 @@ class PathType(Enum):
 class Subcommand(Enum):
     PROFILE = auto()
     COMPARE = auto()
+    ANALYZE = auto()
 
     def to_lowercase(self):
         return self.name.lower()
@@ -266,6 +272,83 @@ def _check_goodput_args(args):
                     f"The goodput constraint value should be non-negative. "
                 )
     return args
+
+
+def _process_sweep_args(args):
+    """
+    Process the sweep args which can either be a list or
+    a min:max:[step]
+    """
+    if args.sweep_list:
+        _parse_sweep_list(args)
+    elif args.sweep_range:
+        args.sweep_min, args.sweep_max, args.sweep_step = _parse_sweep_range(
+            args.sweep_range
+        )
+        _check_sweep_range(args)
+
+        if args.sweep_step:
+            _create_sweep_list(args)
+
+    return args
+
+
+def _parse_sweep_range(sweep_range: str) -> Tuple[int, int, Optional[int]]:
+    sweep_range_list = sweep_range.split(":")
+
+    if len(sweep_range_list) == 2:
+        return (int(sweep_range_list[0]), int(sweep_range_list[1]), None)
+    elif len(sweep_range_list) == 3:
+        return tuple(int(x) for x in sweep_range_list)  # type: ignore
+    else:
+        raise argparse.ArgumentTypeError(
+            "The format of '--sweep-range' must be min:max or min:max:step."
+        )
+
+
+def _check_sweep_range(args):
+    if not isinstance(args.sweep_min, int):
+        raise argparse.ArgumentTypeError("--sweep-range min value must be an int.")
+    if not isinstance(args.sweep_max, int):
+        raise argparse.ArgumentTypeError("--sweep-range max value must be an int.")
+    if args.sweep_step and not isinstance(args.sweep_step, int):
+        raise argparse.ArgumentTypeError("--sweep-range step value must be an int.")
+
+    if args.sweep_min < 1 or args.sweep_max < 1:
+        raise argparse.ArgumentTypeError("--sweep-range min/max value must be positive")
+    if args.sweep_step and args.sweep_step < 1:
+        raise argparse.ArgumentTypeError("--sweep-range step value must be positive")
+    if args.sweep_min >= args.sweep_max:
+        raise argparse.ArgumentTypeError("--sweep-range max must be greater than min")
+
+    if args.sweep_type == "concurrency":
+        if not utils.is_power_of_two(args.sweep_min) or not utils.is_power_of_two(
+            args.sweep_max
+        ):
+            raise argparse.ArgumentTypeError(
+                "--sweep-range min/max values must be powers of 2 when sweeping concurrency"
+            )
+        if args.sweep_step:
+            raise argparse.ArgumentTypeError(
+                "--sweep-range step is not supported when sweeping concurrency"
+            )
+
+
+def _parse_sweep_list(args):
+    args.sweep_list = [int(entry) for entry in args.sweep_list.split(",")]
+    _check_sweep_list(args)
+
+
+def _check_sweep_list(args):
+    for entry in args.sweep_list:
+        if entry < 0:
+            raise argparse.ArgumentTypeError("Values in -sweep-list must be positive")
+
+
+def _create_sweep_list(args):
+    args.sweep_list = [
+        value for value in range(args.sweep_min, args.sweep_max + 1, args.sweep_step)
+    ]
 
 
 def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
@@ -799,7 +882,7 @@ def _add_output_args(parser):
     output_group.add_argument(
         "--profile-export-file",
         type=Path,
-        default=Path("profile_export.json"),
+        default=Path(DEFAULT_PROFILE_EXPORT_FILE),
         help="The path where the perf_analyzer profile export will be "
         "generated. By default, the profile export will be to "
         "profile_export.json. The genai-perf file will be exported to "
@@ -848,47 +931,31 @@ def _add_other_args(parser):
     )
 
 
-def get_extra_inputs_as_dict(args: argparse.Namespace) -> dict:
-    request_inputs = {}
-    if args.extra_inputs:
-        for input_str in args.extra_inputs:
-            if input_str.startswith("{") and input_str.endswith("}"):
-                request_inputs.update(utils.load_json_str(input_str))
-            else:
-                semicolon_count = input_str.count(":")
-                if semicolon_count != 1:
-                    raise ValueError(
-                        f"Invalid input format for --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
-                    )
-                input_name, value = input_str.split(":", 1)
+def _add_analyze_args(parser):
+    analyze_group = parser.add_argument_group("Analyze")
 
-                if not input_name or not value:
-                    raise ValueError(
-                        f"Input name or value is empty in --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
-                    )
-
-                is_bool = value.lower() in ["true", "false"]
-                is_int = value.isdigit()
-                is_float = value.count(".") == 1 and (
-                    value[0] == "." or value.replace(".", "").isdigit()
-                )
-
-                if is_bool:
-                    value = value.lower() == "true"
-                elif is_int:
-                    value = int(value)
-                elif is_float:
-                    value = float(value)
-
-                if input_name in request_inputs:
-                    raise ValueError(
-                        f"Input name already exists in request_inputs dictionary: {input_name}"
-                    )
-                request_inputs[input_name] = value
-
-    return request_inputs
+    analyze_group.add_argument(
+        "--sweep-type",
+        type=str,
+        default=RunConfigDefaults.STIMULUS_TYPE,
+        choices=["concurrency", "num_prompts", "input_sequence_length", "request_rate"],
+        required=False,
+        help=f"The stimulus type that GAP will sweep.",
+    )
+    analyze_group.add_argument(
+        "--sweep-range",
+        type=str,
+        default=f"{RunConfigDefaults.MIN_CONCURRENCY}:{RunConfigDefaults.MAX_CONCURRENCY}",
+        required=False,
+        help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
+    )
+    analyze_group.add_argument(
+        "--sweep-list",
+        type=str,
+        default=None,
+        required=False,
+        help=f"A comma-separated list of values that stimulus will be swept over.",
+    )
 
 
 def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
@@ -933,38 +1000,20 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     return profile
 
 
-### Handlers ###
-
-
-def create_compare_dir() -> None:
-    if not os.path.exists(DEFAULT_COMPARE_DIR):
-        os.mkdir(DEFAULT_COMPARE_DIR)
-
-
-def compare_handler(args: argparse.Namespace):
-    """Handles `compare` subcommand workflow."""
-    if args.files:
-        create_compare_dir()
-        output_dir = Path(f"{DEFAULT_COMPARE_DIR}")
-        PlotConfigParser.create_init_yaml_config(args.files, output_dir)
-        args.config = output_dir / "config.yaml"
-
-    config_parser = PlotConfigParser(args.config)
-    plot_configs = config_parser.generate_configs()
-    plot_manager = PlotManager(plot_configs)
-    plot_manager.generate_plots()
-
-
-def profile_handler(
-    args, extra_args, telemetry_data_collector: Optional[TelemetryDataCollector]
-) -> None:
-    from genai_perf.wrapper import Profiler
-
-    Profiler.run(
-        args=args,
-        extra_args=extra_args,
-        telemetry_data_collector=telemetry_data_collector,
+def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
+    analyze = subparsers.add_parser(
+        Subcommand.ANALYZE.to_lowercase(),
+        description="Subcommand to analyze LLMs and Generative AI models.",
     )
+    _add_endpoint_args(analyze)
+    _add_input_args(analyze)
+    _add_image_input_args(analyze)
+    _add_profile_args(analyze)
+    _add_analyze_args(analyze)
+    _add_output_args(analyze)
+    _add_other_args(analyze)
+    analyze.set_defaults(func=analyze_handler)
+    return analyze
 
 
 ### Parser Initialization ###
@@ -989,6 +1038,7 @@ def init_parsers():
     )
     _ = _parse_compare_args(subparsers)
     _ = _parse_profile_args(subparsers)
+    _ = _parse_analyze_args(subparsers)
     subparsers.required = True
 
     return parser
@@ -1016,6 +1066,15 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
+        _print_warnings(args)
+    elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
+        args = _infer_prompt_source(args)
+        args = _check_model_args(parser, args)
+        args = _check_conditional_args(parser, args)
+        args = _check_image_input_args(parser, args)
+        args = _check_server_metrics_url(parser, args)
+        args = _check_goodput_args(args)
+        args = _process_sweep_args(args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
         args = _check_compare_args(parser, args)

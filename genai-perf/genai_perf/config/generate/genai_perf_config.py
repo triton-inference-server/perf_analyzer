@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from argparse import Namespace
 from copy import deepcopy
 from dataclasses import dataclass
 
@@ -22,7 +23,7 @@ from genai_perf.config.input.config_command import (
     ConfigOutputTokens,
     ConfigSyntheticTokens,
 )
-from genai_perf.types import CheckpointObject, ModelObjectiveParameters
+from genai_perf.types import CheckpointObject, ModelObjectiveParameters, Parameters
 
 
 @dataclass
@@ -37,7 +38,9 @@ class GenAIPerfConfig:
         self,
         config: ConfigCommand,
         model_objective_parameters: ModelObjectiveParameters,
+        args: Namespace = Namespace(),
     ):
+        self._args = deepcopy(args)
         self._set_options_based_on_config(config)
         self._set_options_based_on_objective(model_objective_parameters)
 
@@ -51,13 +54,39 @@ class GenAIPerfConfig:
     def _set_options_based_on_objective(
         self, model_objective_parameters: ModelObjectiveParameters
     ) -> None:
+        self._parameters: Parameters = {}
         for objective in model_objective_parameters.values():
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME_GAP:
+                    self._parameters[name] = parameter.get_value_based_on_category()
                     if hasattr(self.input, name):
                         self.input.__setattr__(
                             name, parameter.get_value_based_on_category()
                         )
+
+    ###########################################################################
+    # Get Accessor Methods
+    ###########################################################################
+    def get_parameters(self) -> Parameters:
+        """
+        Returns a dictionary of parameters and their values
+        """
+        return self._parameters
+
+    def get_obj_args(self) -> Namespace:
+        """
+        Returns args that can be used by the existing CLI based methods in GAP
+        These will include any objectives that are set via parameters
+        """
+        obj_args = deepcopy(self._args)
+        if "input_sequence_length" in self._parameters:
+            obj_args.synthetic_input_tokens_mean = self._parameters[
+                "input_sequence_length"
+            ]
+        if "num_prompts" in self._parameters:
+            obj_args.num_prompts = self._parameters["num_prompts"]
+
+        return obj_args
 
     ###########################################################################
     # Checkpoint Methods
@@ -68,6 +97,9 @@ class GenAIPerfConfig:
         the checkpoint file
         """
         genai_perf_config_dict = deepcopy(self.__dict__)
+
+        # Values set on the CLI are not kept (they can vary from run to run)
+        del genai_perf_config_dict["_args"]
 
         return genai_perf_config_dict
 
@@ -83,6 +115,8 @@ class GenAIPerfConfig:
             config=ConfigCommand([""]),
             model_objective_parameters={},
         )
+        genai_perf_config._parameters = genai_perf_config_dict["_parameters"]
+
         genai_perf_config.input = ConfigInput(**genai_perf_config_dict["input"])
         genai_perf_config.input.synthetic_tokens = ConfigSyntheticTokens(
             **genai_perf_config_dict["input"]["synthetic_tokens"]

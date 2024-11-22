@@ -24,7 +24,12 @@ from genai_perf.constants import DEFAULT_ARTIFACT_DIR
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
 from genai_perf.logging import logging
-from genai_perf.types import CheckpointObject, ModelName, ModelObjectiveParameters
+from genai_perf.types import (
+    CheckpointObject,
+    ModelName,
+    ModelObjectiveParameters,
+    Parameters,
+)
 from genai_perf.utils import convert_option_name
 from genai_perf.wrapper import Profiler
 
@@ -68,6 +73,12 @@ perf_analyzer_ignore_args = [
     # required for decoupled models into triton).
     "streaming",
     "subcommand",
+    "sweep_list",
+    "sweep_type",
+    "sweep_range",
+    "sweep_min",
+    "sweep_max",
+    "sweep_step",
     "synthetic_input_files",
     "synthetic_input_tokens_mean",
     "synthetic_input_tokens_stddev",
@@ -97,7 +108,7 @@ class PerfAnalyzerConfig:
         self._set_options_based_on_cli(args, extra_args)
         self._set_options_based_on_config(config)
         self._set_options_based_on_objective(model_objective_parameters)
-        self._set_artifact_paths()
+        self._set_artifact_paths(model_objective_parameters)
 
     ###########################################################################
     # Set Options Methods
@@ -123,13 +134,15 @@ class PerfAnalyzerConfig:
     def _set_options_based_on_objective(
         self, model_objective_parameters: ModelObjectiveParameters
     ) -> None:
-        self._parameters: Dict[str, Any] = {}
+        self._parameters: Parameters = {}
         for objective in model_objective_parameters.values():
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME_PA:
                     self._parameters[name] = parameter.get_value_based_on_category()
 
-    def _set_artifact_paths(self) -> None:
+    def _set_artifact_paths(
+        self, model_objective_parameters: ModelObjectiveParameters
+    ) -> None:
         # When restoring from a checkpoint there won't be any args
         if not hasattr(self._args, "subcommand"):
             return
@@ -137,7 +150,9 @@ class PerfAnalyzerConfig:
         if self._args.artifact_dir == Path(DEFAULT_ARTIFACT_DIR):
             artifact_name = self._get_artifact_model_name()
             artifact_name += self._get_artifact_service_kind()
-            artifact_name += self._get_artifact_stimulus_type()
+            artifact_name += self._get_artifact_stimulus_type(
+                model_objective_parameters
+            )
 
             self._args.artifact_dir = self._args.artifact_dir / Path(
                 "-".join(artifact_name)
@@ -191,17 +206,27 @@ class PerfAnalyzerConfig:
 
         return service_kind
 
-    def _get_artifact_stimulus_type(self) -> List[str]:
-        if self._args.concurrency:
-            stimulus = [f"concurrency{self._args.concurrency}"]
-        elif self._args.request_rate:
-            stimulus = [f"request_rate{self._args.request_rate}"]
-        elif "concurrency" in self._parameters:
-            concurrency = str(self._parameters["concurrency"])
+    def _get_artifact_stimulus_type(
+        self, model_objective_parameters: ModelObjectiveParameters
+    ) -> List[str]:
+        parameters = model_objective_parameters[self._model_name]
+
+        if "concurrency" in parameters:
+            concurrency = str(parameters["concurrency"].get_value_based_on_category())
             stimulus = [f"concurrency{concurrency}"]
-        elif "request_rate" in self._parameters:
-            request_rate = str(self._parameters["request_rate"])
+        elif "request_rate" in parameters:
+            request_rate = str(parameters["request_rate"].get_value_based_on_category())
             stimulus = [f"request_rate{request_rate}"]
+        elif "input_sequence_length" in parameters:
+            input_sequence_length = str(
+                parameters["input_sequence_length"].get_value_based_on_category()
+            )
+            stimulus = [f"input_sequence_length{input_sequence_length}"]
+        elif "num_prompts" in parameters:
+            input_sequence_length = str(
+                parameters["num_prompts"].get_value_based_on_category()
+            )
+            stimulus = [f"num_prompts{input_sequence_length}"]
 
         return stimulus
 
@@ -265,7 +290,7 @@ class PerfAnalyzerConfig:
     ###########################################################################
     # Get Accessor Methods
     ###########################################################################
-    def get_parameters(self) -> Dict[str, Any]:
+    def get_parameters(self) -> Parameters:
         """
         Returns a dictionary of parameters and their values
         """
