@@ -54,6 +54,9 @@ You can use GenAI-Perf to run performance benchmarks on
 - [Ranking Models](docs/rankings.md)
 - [Multiple LoRA Adapters](docs/lora.md)
 
+You can also use GenAI-Perf to run benchmarks on your
+[custom APIs](docs/customizable_frontends.md).
+
 > [!Note]
 > GenAI-Perf is currently in early release and under rapid development. While we
 > will try to remain consistent, command line options and functionality are
@@ -96,6 +99,8 @@ you'll need to install the Perf Analyzer binary:
 
 ```bash
 pip install tritonclient
+
+sudo apt update && sudo apt install -y --no-install-recommends libb64-0d
 ```
 
 You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) as well.
