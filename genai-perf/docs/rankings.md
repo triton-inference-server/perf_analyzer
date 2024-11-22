@@ -28,11 +28,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # Profile Ranking Models with GenAI-Perf
 
-
 GenAI-Perf allows you to profile ranking models compatible with Hugging Face's
 [Text Embeddings Inference's re-ranker API](https://huggingface.co/docs/text-embeddings-inference/en/quick_tour#re-rankers).
 
-## Create a Sample Rankings Input Directory
+## Start a Hugging Face Re-Ranker-Compatible Server
+To start a Hugging Face re-ranker-compatible server, run the following commands:
+
+```bash
+model=BAAI/bge-reranker-base
+
+docker run --gpus all -p 8080:80 --pull always ghcr.io/huggingface/text-embeddings-inference:1.3 --model-id $model --port 80
+```
+
+To specify the use of the HuggingFace server,
+our benchmarking commands below will include
+`--endpoint rerank` and `--extra-inputs rankings:tei`.
+
+## Approach 1. Profile Using Synthetic Inputs
+
+To profile ranking models using GenAI-Perf, use the following command:
+
+```bash
+genai-perf profile \
+    -m BAAI/bge-reranker-base \
+    --tokenizer BAAI/bge-reranker-base \
+    --service-kind openai \
+    --endpoint-type rankings \
+    --endpoint rerank \
+    --input-file synthetic:queries,passages \
+    -u localhost:8080 \
+    --extra-inputs rankings:tei \
+    --synthetic-input-tokens-mean 100 \
+    --batch-size-text 2
+```
+
+## Approach 2. Profile Using Custom Inputs
+
+### Create a Sample Rankings Input Directory
 
 To create a sample rankings input directory, follow these steps:
 
@@ -59,33 +91,22 @@ echo '{"text": "Eric Anderson (born January 18, 1968) is an American sociologist
 {"text": "Daddys Home 2 Principal photography on the film began in Massachusetts in March 2017 and it was released in the United States by Paramount Pictures on November 10, 2017. Although the film received unfavorable reviews, it has grossed over $180 million worldwide on a $69 million budget."}' > rankings_jsonl/passages.jsonl
 ```
 
-## Start a Hugging Face Re-Ranker-Compatible Server
-To start a Hugging Face re-ranker-compatible server, run the following commands:
-
-```bash
-model=BAAI/bge-reranker-large
-revision=refs/pr/4
-volume=$PWD/data
-
-docker run --gpus all -p 8080:80 -v $volume:/data --pull always ghcr.io/huggingface/text-embeddings-inference:1.3 --model-id $model --revision $revision
-```
-
-## Run GenAI-Perf
+### Run GenAI-Perf
 To profile ranking models using GenAI-Perf, use the following command:
 
 ```bash
 genai-perf profile \
-    -m BAAI/bge-reranker-large \
+    -m BAAI/bge-reranker-base \
+    --tokenizer BAAI/bge-reranker-base \
     --service-kind openai \
     --endpoint-type rankings \
     --endpoint rerank \
     --input-file rankings_jsonl/ \
     -u localhost:8080 \
-    --extra-inputs rankings:tei \
-    --batch-size-text 2
+    --extra-inputs rankings:tei
 ```
 
-This command specifies the use of Hugging Face's ranking API with `--endpoint rerank` and `--extra-inputs rankings:tei`.
+## Review the output
 
 Example output:
 

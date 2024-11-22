@@ -31,7 +31,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 GenAI-Perf allows you to profile embedding models running on an
 [OpenAI Embeddings API](https://platform.openai.com/docs/api-reference/embeddings)-compatible server.
 
-## Create a Sample Embeddings Input File
+## Start an OpenAI Embeddings-Compatible Server
+To start an OpenAI embeddings-compatible server, run the following command:
+```bash
+docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model intfloat/e5-mistral-7b-instruct --dtype float16 --max-model-len 1024
+```
+
+## Approach 1. Profile Using Synthetic Inputs
+
+To profile embeddings models using GenAI-Perf, use the following command:
+
+```bash
+genai-perf profile \
+    -m intfloat/e5-mistral-7b-instruct \
+    --tokenizer intfloat/e5-mistral-7b-instruct \
+    --service-kind openai \
+    --endpoint-type embeddings \
+    --batch-size-text 2
+```
+
+## Approach 2. Profile Using Custom Inputs
+
+### Create a Sample Embeddings Input File
 
 To create a sample embeddings input file, use the following command:
 
@@ -50,18 +71,13 @@ This will generate a file named embeddings.jsonl with the following content:
 {"text": "In what state did they film Shrek 2?"}
 ```
 
-## Start an OpenAI Embeddings-Compatible Server
-To start an OpenAI embeddings-compatible server, run the following command:
-```bash
-docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model intfloat/e5-mistral-7b-instruct --dtype float16 --max-model-len 1024
-```
-
-## Run GenAI-Perf
+### Run GenAI-Perf
 To profile embeddings models using GenAI-Perf, use the following command:
 
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
+    --tokenizer intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
     --endpoint-type embeddings \
     --batch-size-text 2 \
@@ -87,10 +103,13 @@ For example, you could use this command:
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
+    --tokenizer intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
     --endpoint-type embeddings \
     --extra-inputs user:sample_user
 ```
+
+## Review the output
 
 Example output:
 
@@ -103,4 +122,3 @@ Example output:
 └──────────────────────┴───────┴───────┴────────┴───────┴───────┴───────┘
 Request throughput (per sec): 23.63
 ```
-
