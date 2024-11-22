@@ -70,7 +70,7 @@ class RunConfigMeasurement:
 
     def __init__(
         self,
-        gpu_metrics: GpuRecords,
+        gpu_metrics: GpuRecords = {},
         run_constraints: Optional[RunConstraints] = None,
     ):
         """

@@ -29,6 +29,7 @@ from genai_perf.types import (
     ModelName,
     ModelObjectiveParameters,
     Parameters,
+    Representation,
 )
 from genai_perf.utils import convert_option_name
 from genai_perf.wrapper import Profiler
@@ -371,7 +372,7 @@ class PerfAnalyzerConfig:
     ###########################################################################
     # Representation Methods
     ###########################################################################
-    def representation(self) -> str:
+    def representation(self) -> Representation:
         """
         A string representation of the PA command that removes values which
         can vary between runs, but should be ignored when determining

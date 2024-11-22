@@ -46,10 +46,10 @@ class RunConfig:
     # triton_env: Dict[str, Any]
     # model_run_configs: List[ModelRunConfig]
 
-    name: RunConfigName
     genai_perf_config: GenAIPerfConfig
     perf_analyzer_config: PerfAnalyzerConfig
-    measurement: RunConfigMeasurement
+    name: RunConfigName = ""
+    measurement: RunConfigMeasurement = RunConfigMeasurement()
 
     ###########################################################################
     # Checkpoint Methods
@@ -88,7 +88,10 @@ class RunConfig:
         )
 
         run_config = RunConfig(
-            name, genai_perf_config, perf_analyzer_config, measurement
+            name=name,
+            genai_perf_config=genai_perf_config,
+            perf_analyzer_config=perf_analyzer_config,
+            measurement=measurement,
         )
 
         return run_config
@@ -138,6 +141,16 @@ class RunConfig:
             perf_metric_name, return_value
         )
 
+    def get_name_id(self) -> str:
+        """
+        Return the unique ID assigned to a RunConfig's name
+        by convention this is the final part of the string after
+        the underscore
+        """
+        name_fields = self.name.split("_")
+
+        return name_fields[-1]
+
     ###########################################################################
     # Set Accessor Methods
     ###########################################################################
@@ -163,6 +176,23 @@ class RunConfig:
         perf_metrics: PerfRecords,
     ) -> None:
         self.measurement.add_perf_metrics(model_name, perf_metrics)
+
+    ###########################################################################
+    # Representation Methods
+    ###########################################################################
+    def representation(self) -> str:
+        """
+        A string representation of the RunConfig options which will be
+        used when determining if a previous (checkpointed) run can be used
+        """
+        representation = " ".join(
+            [
+                self.perf_analyzer_config.representation(),
+                self.genai_perf_config.representation(),
+            ]
+        )
+
+        return representation
 
     ###########################################################################
     # Constraint Methods

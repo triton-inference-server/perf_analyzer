@@ -23,7 +23,12 @@ from genai_perf.config.input.config_command import (
     ConfigOutputTokens,
     ConfigSyntheticTokens,
 )
-from genai_perf.types import CheckpointObject, ModelObjectiveParameters, Parameters
+from genai_perf.types import (
+    CheckpointObject,
+    ModelObjectiveParameters,
+    Parameters,
+    Representation,
+)
 
 
 @dataclass
@@ -87,6 +92,18 @@ class GenAIPerfConfig:
             obj_args.num_prompts = self._parameters["num_prompts"]
 
         return obj_args
+
+    ###########################################################################
+    # Representation Methods
+    ###########################################################################
+    def representation(self) -> Representation:
+        """
+        A string representation of the GAP options which will be
+        used when determining if a previous (checkpointed) run can be used
+        """
+        representation = " ".join([self.input.__str__(), self.output_tokens.__str__()])
+
+        return representation
 
     ###########################################################################
     # Checkpoint Methods

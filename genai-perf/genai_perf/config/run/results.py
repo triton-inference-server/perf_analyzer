@@ -10,17 +10,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple
 
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.types import (
     CheckpointObject,
     GpuMetricObjectives,
+    ModelName,
     ModelWeights,
     PerfMetricObjectives,
+    Representation,
 )
+
+
+@dataclass(frozen=True)
+class ResultsDefaults:
+    STARTING_ID = -1
 
 
 @dataclass
@@ -80,11 +88,30 @@ class Results:
 
         return failing_results
 
+    def get_run_config_name_based_on_representation(
+        self, model_name: ModelName, representation: str
+    ) -> Tuple[bool, str]:
+        """
+        Returns the name of the RunConfig if the representation is found,
+        else creates a new name by incrementing the config ID
+        """
+        max_run_config_id = ResultsDefaults.STARTING_ID
+        for run_config in self.run_configs:
+            foo = run_config.representation()
+            if representation == run_config.representation():
+                return True, run_config.name
+            else:
+                max_run_config_id = max(
+                    max_run_config_id, int(run_config.get_name_id())
+                )
+
+        return False, f"{model_name}_run_config_{max_run_config_id+1}"
+
     ###########################################################################
     # Set Accessor Methods
     ###########################################################################
     def add_run_config(self, run_config: RunConfig) -> None:
-        self.run_configs.append(run_config)
+        self.run_configs.append(deepcopy(run_config))
         self.run_configs.sort(reverse=True)
 
     def set_gpu_metric_objectives(
