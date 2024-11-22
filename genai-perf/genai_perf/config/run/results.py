@@ -97,7 +97,6 @@ class Results:
         """
         max_run_config_id = ResultsDefaults.STARTING_ID
         for run_config in self.run_configs:
-            foo = run_config.representation()
             if representation == run_config.representation():
                 return True, run_config.name
             else:
