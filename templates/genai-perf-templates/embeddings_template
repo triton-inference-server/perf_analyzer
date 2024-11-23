@@ -109,7 +109,7 @@ genai-perf profile \
     --extra-inputs user:sample_user
 ```
 
-## Review the output
+## Review the Output
 
 Example output:
 

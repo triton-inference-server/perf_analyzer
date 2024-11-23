@@ -106,7 +106,7 @@ genai-perf profile \
     --extra-inputs rankings:tei
 ```
 
-## Review the output
+## Review the Output
 
 Example output:
 
