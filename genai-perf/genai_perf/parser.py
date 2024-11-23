@@ -172,6 +172,11 @@ def _check_conditional_args(
     if args.service_kind == "triton":
         args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
         args.output_format = args.backend
+    else:
+        if args.backend is not ic.DEFAULT_BACKEND:
+            parser.error(
+                "The --backend option should only be used when using the 'triton' service-kind."
+            )
 
     if args.service_kind == "tensorrtllm_engine":
         args.output_format = ic.OutputFormat.TENSORRTLLM_ENGINE
@@ -435,25 +440,41 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
+        "--goodput",
+        "-g",
+        nargs="+",
+        required=False,
+        help="An option to provide constraints in order to compute goodput. "
+        "Specify goodput constraints as 'key:value' pairs, where the key is a "
+        "valid metric name, and the value is a number representing "
+        "either milliseconds or a throughput value per second. For example, "
+        "'request_latency:300' or 'output_token_throughput_per_request:600'. "
+        "Multiple key:value pairs can be provided, separated by spaces. ",
+    )
+
+    input_group.add_argument(
         "--input-file",
         type=file_or_directory,
         default=None,
         required=False,
         help="The input file or directory containing the content to use for "
-        "profiling. To use synthetic files for a converter that needs "
-        "multiple files, prefix the path with 'synthetic:', followed by a "
-        "comma-separated list of filenames. The synthetic filenames should "
-        "not have extensions. For example, 'synthetic:queries,passages'. "
-        "Each line should be a JSON object with a 'text' or 'image' field "
-        'in JSONL format. Example: {"text": "Your prompt here"}',
+        "profiling. Each line should be a JSON object with a 'text' or "
+        "'image' field 'in JSONL format. Example: {\"text\":"
+        ' "Your prompt here"}\'. To use synthetic files for a converter that '
+        "needs multiple files, prefix the path with 'synthetic:', followed "
+        "by a comma-separated list of filenames. The synthetic filenames "
+        "should not have extensions. For example, "
+        "'synthetic:queries,passages'. ",
     )
 
     input_group.add_argument(
         "--num-prompts",
+        "--num-payloads",
         type=positive_integer,
         default=ic.DEFAULT_NUM_PROMPTS,
         required=False,
-        help=f"The number of unique prompts to generate as stimulus.",
+        help=f"The number of unique payloads to send. "
+        "These will be reused until benchmarking is complete.",
     )
 
     input_group.add_argument(
@@ -497,6 +518,16 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
+        "--request-count",
+        type=int,
+        default=ic.DEFAULT_REQUEST_COUNT,
+        required=False,
+        help="The number of requests to use for measurement."
+        "By default, the measurement will continue until stabilization is "
+        "detected.",
+    )
+
+    input_group.add_argument(
         "--synthetic-input-tokens-mean",
         "--isl",
         type=int,
@@ -514,16 +545,11 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
-        "--goodput",
-        "-g",
-        nargs="+",
+        "--warmup-request-count",
+        type=int,
+        default=ic.DEFAULT_WARMUP_REQUEST_COUNT,
         required=False,
-        help="An option to provide constraints in order to compute goodput. "
-        "Specify goodput constraints as 'key:value' pairs, where the key is a "
-        "valid metric name, and the value is a number representing "
-        "either milliseconds or a throughput value per second. For example, "
-        "'request_latency:300' or 'output_token_throughput_per_request:600'. "
-        "Multiple key:value pairs can be provided, separated by spaces. ",
+        help=f"The number of warmup requests to send before benchmarking.",
     )
 
 
@@ -641,7 +667,7 @@ def _add_endpoint_args(parser):
         "--backend",
         type=str,
         choices=utils.get_enum_names(ic.OutputFormat)[0:2],
-        default="tensorrtllm",
+        default=ic.DEFAULT_BACKEND,
         required=False,
         help=f'When using the "triton" service-kind, '
         "this is the backend of the model. "

@@ -282,6 +282,9 @@ When the dataset is synthetic, you can specify the following options:
 * `--synthetic-input-tokens-stddev <int>`: The standard deviation of number of
   tokens in the generated prompts when using synthetic data, >= 0.
 * `--random-seed <int>`: The seed used to generate random values, >= 0.
+* `--request-count <int>`: The number of requests to benchmark
+* `--warmup-request-count <int>`: The number of requests to send before
+benchmarking
 
 When the dataset is coming from a file, you can specify the following
 options:
@@ -479,6 +482,11 @@ when `--output-tokens-mean` is provided. (default: `0`)
 
 The seed used to generate random values. (default: `0`)
 
+##### `--request-count <int>`
+
+The number of requests to use for measurement. By default, the measurement
+will continue until stabilization is detected. (default: 0)
+
 ##### `--synthetic-input-tokens-mean <int>`
 ##### `--isl`
 
@@ -489,6 +497,10 @@ data. (default: `550`)
 
 The standard deviation of number of tokens in the generated prompts when
 using synthetic data. (default: `0`)
+
+##### `--warmup-request-count <int>`
+
+The number of warmup requests to send before benchmarking. (default: `0`)
 
 ### Profiling Options
 
