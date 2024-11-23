@@ -56,6 +56,7 @@ class TensorRTLLMConverter(BaseConverter):
                     "model": model_name,
                     "text_input": [text],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],  # default
+                    "exclude_input_in_output": [True],  # default
                 }
 
                 request_body["data"].append(

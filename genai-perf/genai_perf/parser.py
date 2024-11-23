@@ -306,11 +306,7 @@ def _add_endpoint_args(parser):
         "--backend",
         type=str,
         choices=utils.get_enum_names(ic.OutputFormat)[0:2],
-        help=f"When benchmarking Triton, "
-        "this is the backend of the model. "
-        "For the TENSORRT-LLM backend, you currently must set "
-        "'exclude_input_in_output' to true in the model config to "
-        "not echo the input tokens in the output.",
+        help=f"When benchmarking Triton, this is the backend of the model. ",
     )
 
     endpoint_group.add_argument(
