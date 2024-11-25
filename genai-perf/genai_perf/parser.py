@@ -468,8 +468,8 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
-        "--num-prompts",
         "--num-payloads",
+        "--num-prompts",
         type=positive_integer,
         default=ic.DEFAULT_NUM_PROMPTS,
         required=False,
