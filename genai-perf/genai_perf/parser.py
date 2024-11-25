@@ -471,7 +471,7 @@ def _add_input_args(parser):
         "--num-payloads",
         "--num-prompts",
         type=positive_integer,
-        default=ic.DEFAULT_NUM_PROMPTS,
+        default=ic.DEFAULT_NUM_PAYLOADS,
         required=False,
         help=f"The number of unique payloads to send. "
         "These will be reused until benchmarking is complete.",

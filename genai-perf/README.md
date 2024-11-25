@@ -276,7 +276,8 @@ GenAI-Perf supports model input prompts from either synthetically generated
 inputs, or from a dataset defined via a file.
 
 When the dataset is synthetic, you can specify the following options:
-* `--num-prompts <int>`: The number of unique prompts to generate as stimulus, >= 1.
+* `--num-payloads <int>`: The number of unique payloads to send.
+  These will be reused until benchmarking is complete.
 * `--synthetic-input-tokens-mean <int>`: The mean of number of tokens in the
   generated prompts when using synthetic data, >= 1.
 * `--synthetic-input-tokens-stddev <int>`: The standard deviation of number of
@@ -454,9 +455,10 @@ extensions. For example, 'synthetic:queries,passages'.
 Each line should be a JSON object with a 'text' or 'image' field
 in JSONL format. Example: {\"text\": \"Your prompt here\"}"
 
-##### `--num-prompts <int>`
+##### `--num-payloads <int>`
 
-The number of unique prompts to generate as stimulus. (default: `100`)
+The number of unique payloads to send. These will be reused until benchmarking
+is complete. (default: `100`)
 
 ##### `--output-tokens-mean <int>`
 ##### `--osl`

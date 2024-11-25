@@ -54,7 +54,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
         for file in files:
             data_rows: List[DataRow] = []
 
-            for _ in range(self.config.num_prompts):
+            for _ in range(self.config.num_payloads):
                 row = DataRow(texts=[], images=[])
                 prompt = SyntheticPromptGenerator.create_synthetic_prompt(
                     self.config.tokenizer,
