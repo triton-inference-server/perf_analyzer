@@ -18,28 +18,35 @@ from genai_perf.record.gpu_record import IncreasingGPURecord
 
 
 @total_ordering
-class GPUTotalMemory(IncreasingGPURecord):
+class GPUUtilizationBase(IncreasingGPURecord):
     """
-    GPU's total memory metric
+    A base class for the GPU's utilization percentage metric
     """
 
-    tag = "total_gpu_memory"
+    base_tag = "gpu_utilization"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
 
     @staticmethod
-    def header(aggregation_tag=False) -> str:
-        return ("Max " if aggregation_tag else "") + "GPU Memory Available (GB)"
+    def aggregation_function():
+        def average(seq):
+            return sum(seq[1:], start=seq[0]) / len(seq)
 
-    def __eq__(self, other: "GPUTotalMemory") -> bool:  # type: ignore
+        return average
+
+    @staticmethod
+    def header(aggregation_tag=False):
+        return ("Average " if aggregation_tag else "") + "GPU Utilization (%)"
+
+    def __eq__(self, other: "GPUUtilizationBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "GPUTotalMemory") -> bool:
+    def __lt__(self, other: "GPUUtilizationBase") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other: "GPUTotalMemory") -> "GPUTotalMemory":
-        return GPUTotalMemory(device_uuid=None, value=(self.value() + other.value()))
+    def __add__(self, other: "GPUUtilizationBase") -> "GPUUtilizationBase":
+        return self.__class__(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(self, other: "GPUTotalMemory") -> "GPUTotalMemory":
-        return GPUTotalMemory(device_uuid=None, value=(self.value() - other.value()))
+    def __sub__(self, other: "GPUUtilizationBase") -> "GPUUtilizationBase":
+        return self.__class__(device_uuid=None, value=(self.value() - other.value()))

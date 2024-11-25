@@ -1,4 +1,4 @@
-# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,20 +14,20 @@
 
 from functools import total_ordering
 
-from genai_perf.record.types.request_latency_base import RequestLatencyBase
+from genai_perf.record.types.gpu_utilization_base import GPUUtilizationBase
 
 
 @total_ordering
-class RequestLatencyP50(RequestLatencyBase):
+class GpuUtilizationAvg(GPUUtilizationBase):
     """
-    A record for p50 request latency metric
+    A record for avg GPU Utilization metric
     """
 
-    tag = RequestLatencyBase.base_tag + "_p50"
+    tag = GPUUtilizationBase.base_tag + "_avg"
 
-    def __init__(self, value, timestamp=0):
-        super().__init__(value, timestamp)
+    def __init__(self, value, device_uuid=None, timestamp=0):
+        super().__init__(value, device_uuid, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p50 Request Latency (ms)"
+        return "Avg. GPU Utilization (%)"
