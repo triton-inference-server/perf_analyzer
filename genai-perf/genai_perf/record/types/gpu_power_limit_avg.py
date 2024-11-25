@@ -18,7 +18,7 @@ from genai_perf.record.types.gpu_power_limit_base import GPUPowerLimitBase
 
 
 @total_ordering
-class GpuPowerLimitAvg(GPUPowerLimitBase):
+class GPUPowerLimitAvg(GPUPowerLimitBase):
     """
     A record for avg GPU Power Limit metric
     """

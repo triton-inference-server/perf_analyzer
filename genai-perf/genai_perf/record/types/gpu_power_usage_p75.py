@@ -18,7 +18,7 @@ from genai_perf.record.types.gpu_power_usage_base import GPUPowerUsageBase
 
 
 @total_ordering
-class GpuPowerUsageP75(GPUPowerUsageBase):
+class GPUPowerUsageP75(GPUPowerUsageBase):
     """
     A record for p75 GPU Power Usage metric
     """

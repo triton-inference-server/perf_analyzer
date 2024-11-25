@@ -18,7 +18,7 @@ from genai_perf.record.types.gpu_utilization_base import GPUUtilizationBase
 
 
 @total_ordering
-class GpuUtilizationMax(GPUUtilizationBase):
+class GPUUtilizationMax(GPUUtilizationBase):
     """
     A record for max GPU Utilization metric
     """

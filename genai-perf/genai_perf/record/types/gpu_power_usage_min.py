@@ -18,7 +18,7 @@ from genai_perf.record.types.gpu_power_usage_base import GPUPowerUsageBase
 
 
 @total_ordering
-class GpuPowerUsageMin(GPUPowerUsageBase):
+class GPUPowerUsageMin(GPUPowerUsageBase):
     """
     A record for min GPU Power Usage metric
     """
