@@ -32,7 +32,7 @@ from typing import Any, DefaultDict, Dict, List
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
-from genai_perf.record.record import Record, RecordType
+from genai_perf.record.record import RecordType
 from genai_perf.types import GpuRecords
 
 
