@@ -34,6 +34,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <string>
 
 namespace triton { namespace perfanalyzer { namespace clientbackend {
 namespace openai {

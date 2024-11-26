@@ -26,6 +26,7 @@
 #pragma once
 
 #include <queue>
+#include <stdexcept>
 
 #include "ictx_id_tracker.h"
 
