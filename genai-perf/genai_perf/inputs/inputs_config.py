@@ -78,7 +78,7 @@ class InputsConfig:
     input_filename: Optional[Path] = Path("")
 
     # TODO
-    schedule_file: Optional[Path] = None
+    schedule_file: Optional[str] = None
 
     # TODO
     block_size: int = 512

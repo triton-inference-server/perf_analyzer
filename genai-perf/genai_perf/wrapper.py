@@ -65,7 +65,7 @@ class Profiler:
             cmd += ["--request-rate-range", f"{args.request_rate}"]
 
         if args.schedule_file is not None:
-            assert args.request_rate, "Must use request rate with fixed schedule"
+            # assert args.request_rate, "Must use request rate with fixed schedule"
             timings = []
             with open(args.schedule_file, "r") as f:
                 for j, line in enumerate(f):
@@ -87,6 +87,7 @@ class Profiler:
             "backend",
             "batch_size_image",
             "batch_size_text",
+            "block_size",
             "concurrency",
             "endpoint_type",
             "extra_inputs",
@@ -112,6 +113,7 @@ class Profiler:
             "prompt_source",
             "random_seed",
             "request_rate",
+            "schedule_file",
             "server_metrics_url",
             # The 'streaming' passed in to this script is to determine if the
             # LLM response should be streaming. That is different than the

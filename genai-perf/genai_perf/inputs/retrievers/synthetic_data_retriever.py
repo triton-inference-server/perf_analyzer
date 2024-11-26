@@ -77,7 +77,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
                     row.extra_args["max_tokens"] = prompt_desc[i].get(
                         "output_length", None
                     )
-                    row.extra_args["model"] = prompt_desc[i].get("model", None)
+                    # row.extra_args["model"] = prompt_desc[i].get("model", None)
                 else:
                     prompt = SyntheticPromptGenerator.create_synthetic_prompt(
                         self.config.tokenizer,

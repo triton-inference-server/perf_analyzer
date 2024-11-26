@@ -213,7 +213,7 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     Check inference load args
     """
     # If no concurrency or request rate is set, default to 1
-    if not args.concurrency and not args.request_rate:
+    if not args.concurrency and not args.request_rate and not args.schedule_file:
         args.concurrency = 1
     return args
 
@@ -450,7 +450,7 @@ def _add_input_args(parser):
 
     input_group.add_argument(
         "--schedule-file",
-        type=file_or_directory,
+        type=str,
         default=None,
         required=False,
         help="Fixed Schedule TODO",
