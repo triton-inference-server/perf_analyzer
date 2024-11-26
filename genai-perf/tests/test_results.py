@@ -122,23 +122,27 @@ class TestResults(unittest.TestCase):
         Check that the representation name is returned correctly when found
         """
         run_config = self._results.run_configs[4]
-        config_found, name = self._results.get_run_config_name_based_on_representation(
+        config_found = self._results.found_representation(run_config.representation())
+        run_config_name = self._results.get_run_config_name_based_on_representation(
             model_name="test_model", representation=run_config.representation()
         )
 
         self.assertTrue(config_found)
-        self.assertEqual(run_config.name, name)
+        self.assertEqual(run_config.name, run_config_name)
 
     def test_representation_name_not_found(self):
         """
         Check that if the representation name is not found a new ID is returned
         """
-        config_found, name = self._results.get_run_config_name_based_on_representation(
+        config_found = self._results.found_representation("")
+        run_config_name = self._results.get_run_config_name_based_on_representation(
             model_name="test_model", representation=""
         )
 
         self.assertFalse(config_found)
-        self.assertEqual("test_model_run_config_10", name)  # setup created 0-9
+        self.assertEqual(
+            "test_model_run_config_10", run_config_name
+        )  # setup created 0-9
 
 
 if __name__ == "__main__":

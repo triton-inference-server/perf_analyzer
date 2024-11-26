@@ -96,10 +96,9 @@ def analyze_handler(args: Namespace) -> None:
             perf_analyzer_config=perf_analyzer_config,
         ).representation()
 
-        run_config_found, run_config_name = (
-            results.get_run_config_name_based_on_representation(
-                model_name, representation
-            )
+        run_config_found = results.found_representation(representation)
+        run_config_name = results.get_run_config_name_based_on_representation(
+            model_name, representation
         )
 
         if not run_config_found:

@@ -70,8 +70,3 @@ RunConfigName: TypeAlias = str
 # Checkpoint
 ###########################################################################
 CheckpointObject: TypeAlias = Dict[str, Any]
-
-###########################################################################
-# Representation
-###########################################################################
-Representation: TypeAlias = str

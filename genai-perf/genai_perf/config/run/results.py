@@ -22,7 +22,7 @@ from genai_perf.types import (
     ModelName,
     ModelWeights,
     PerfMetricObjectives,
-    Representation,
+    RunConfigName,
 )
 
 
@@ -90,7 +90,7 @@ class Results:
 
     def get_run_config_name_based_on_representation(
         self, model_name: ModelName, representation: str
-    ) -> Tuple[bool, str]:
+    ) -> RunConfigName:
         """
         Returns the name of the RunConfig if the representation is found,
         else creates a new name by incrementing the config ID
@@ -98,13 +98,13 @@ class Results:
         max_run_config_id = ResultsDefaults.STARTING_ID
         for run_config in self.run_configs:
             if representation == run_config.representation():
-                return True, run_config.name
+                return run_config.name
             else:
                 max_run_config_id = max(
                     max_run_config_id, int(run_config.get_name_id())
                 )
 
-        return False, f"{model_name}_run_config_{max_run_config_id+1}"
+        return f"{model_name}_run_config_{max_run_config_id+1}"
 
     ###########################################################################
     # Set Accessor Methods
@@ -136,3 +136,13 @@ class Results:
     def set_constraints(self, constraints: RunConstraints) -> None:
         for run_config in self.run_configs:
             run_config.set_constraints(constraints)
+
+    ###########################################################################
+    # Misc Methods
+    ###########################################################################
+    def found_representation(self, representation: str) -> bool:
+        for run_config in self.run_configs:
+            if representation == run_config.representation():
+                return True
+
+        return False
