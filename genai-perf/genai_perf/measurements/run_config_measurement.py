@@ -70,7 +70,7 @@ class RunConfigMeasurement:
 
     def __init__(
         self,
-        gpu_metrics: GpuRecords = {},
+        gpu_metrics: Optional[GpuRecords] = None,
         run_constraints: Optional[RunConstraints] = None,
     ):
         """
@@ -82,7 +82,7 @@ class RunConfigMeasurement:
             A set of constraints (set by the user) used to determine if
             this is a valid measurement
         """
-        self._gpu_metrics = gpu_metrics
+        self._gpu_metrics = gpu_metrics if gpu_metrics else {}
         self._gpu_metric_objectives: Optional[GpuMetricObjectives] = (
             RunConfigMeasurementDefaults.METRIC_OBJECTIVE
         )
