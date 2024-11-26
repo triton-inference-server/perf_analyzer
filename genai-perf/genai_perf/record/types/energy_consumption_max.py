@@ -14,20 +14,20 @@
 
 from functools import total_ordering
 
-from genai_perf.record.types.gpu_energy_consumption_base import GPUEnergyConsumptionBase
+from genai_perf.record.types.energy_consumption_base import GPUEnergyConsumptionBase
 
 
 @total_ordering
-class GpuEnergyConsumptionP90(GPUEnergyConsumptionBase):
+class GpuEnergyConsumptionMax(GPUEnergyConsumptionBase):
     """
-    A record for p90 GPU Energy Consumption metric
+    A record for max GPU Energy Consumption metric
     """
 
-    tag = GPUEnergyConsumptionBase.base_tag + "_p90"
+    tag = GPUEnergyConsumptionBase.base_tag + "_max"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p90 GPU Energy Consumption (MJ)"
+        return "Max GPU Energy Consumption (MJ)"

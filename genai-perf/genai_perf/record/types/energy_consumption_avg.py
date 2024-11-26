@@ -14,20 +14,20 @@
 
 from functools import total_ordering
 
-from genai_perf.record.types.gpu_total_memory_base import GPUTotalMemoryBase
+from genai_perf.record.types.energy_consumption_base import GPUEnergyConsumptionBase
 
 
 @total_ordering
-class GpuTotalMemoryAvg(GPUTotalMemoryBase):
+class GpuEnergyConsumptionAvg(GPUEnergyConsumptionBase):
     """
-    A record for avg GPU Total Memory metric
+    A record for avg GPU Energy Consumption metric
     """
 
-    tag = GPUTotalMemoryBase.base_tag + "_avg"
+    tag = GPUEnergyConsumptionBase.base_tag + "_avg"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "Avg. GPU Total Memory (GB)"
+        return "Avg. GPU Energy Consumption (MJ)"

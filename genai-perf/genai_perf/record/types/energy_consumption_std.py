@@ -18,16 +18,16 @@ from genai_perf.record.types.energy_consumption_base import GPUEnergyConsumption
 
 
 @total_ordering
-class GpuEnergyConsumptionAvg(GPUEnergyConsumptionBase):
+class GpuEnergyConsumptionStd(GPUEnergyConsumptionBase):
     """
-    A record for avg GPU Energy Consumption metric
+    A record for std GPU Energy Consumption metric
     """
 
-    tag = GPUEnergyConsumptionBase.base_tag + "_avg"
+    tag = GPUEnergyConsumptionBase.base_tag + "_std"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "Avg. GPU Energy Consumption (MJ)"
+        return "Std. GPU Energy Consumption (MJ)"
