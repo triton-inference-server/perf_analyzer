@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import os
 import subprocess
 from argparse import Namespace
 from typing import List, Optional
@@ -70,8 +71,13 @@ class Profiler:
                 for j, line in enumerate(f):
                     if j == args.num_prompts:
                         break
-                    timings.append(float(json.loads(line)["timestamp"]) / 1000)
-            cmd += ["--schedule", ",".join(map(str, timings))]
+                    timings.append(float(json.loads(line)["timestamp"]) * 1000)
+            with open(os.path.join(args.artifact_dir, "timing.txt"), "w") as f:
+                f.write("\n".join(map(str, timings)))
+            cmd += [
+                "--request-intervals",
+                os.path.join(args.artifact_dir, "timing.txt"),
+            ]
         return cmd
 
     @staticmethod

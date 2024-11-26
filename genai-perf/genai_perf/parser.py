@@ -448,7 +448,7 @@ def _add_input_args(parser):
         'in JSONL format. Example: {"text": "Your prompt here"}',
     )
 
-    prompt_source_group.add_argument(
+    input_group.add_argument(
         "--schedule-file",
         type=file_or_directory,
         default=None,
@@ -456,7 +456,7 @@ def _add_input_args(parser):
         help="Fixed Schedule TODO",
     )
 
-    prompt_source_group.add_argument(
+    input_group.add_argument(
         "--block-size",
         type=int,
         default=512,

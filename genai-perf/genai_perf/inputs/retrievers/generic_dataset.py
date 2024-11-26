@@ -40,7 +40,7 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 class DataRow:
     texts: List[str] = field(default_factory=list)
     images: List[str] = field(default_factory=list)
-    extra_args: Dict[str, Any] = {}
+    extra_args: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> DataRowDict:
         """
