@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List
 
@@ -18,9 +19,16 @@ from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.types import (
     CheckpointObject,
     GpuMetricObjectives,
+    ModelName,
     ModelWeights,
     PerfMetricObjectives,
+    RunConfigName,
 )
+
+
+@dataclass(frozen=True)
+class ResultsDefaults:
+    STARTING_ID = -1
 
 
 @dataclass
@@ -80,11 +88,29 @@ class Results:
 
         return failing_results
 
+    def get_run_config_name_based_on_representation(
+        self, model_name: ModelName, representation: str
+    ) -> RunConfigName:
+        """
+        Returns the name of the RunConfig if the representation is found,
+        else creates a new name by incrementing the config ID
+        """
+        max_run_config_id = ResultsDefaults.STARTING_ID
+        for run_config in self.run_configs:
+            if representation == run_config.representation():
+                return run_config.name
+            else:
+                max_run_config_id = max(
+                    max_run_config_id, int(run_config.get_name_id())
+                )
+
+        return f"{model_name}_run_config_{max_run_config_id+1}"
+
     ###########################################################################
     # Set Accessor Methods
     ###########################################################################
     def add_run_config(self, run_config: RunConfig) -> None:
-        self.run_configs.append(run_config)
+        self.run_configs.append(deepcopy(run_config))
         self.run_configs.sort(reverse=True)
 
     def set_gpu_metric_objectives(
@@ -110,3 +136,13 @@ class Results:
     def set_constraints(self, constraints: RunConstraints) -> None:
         for run_config in self.run_configs:
             run_config.set_constraints(constraints)
+
+    ###########################################################################
+    # Misc Methods
+    ###########################################################################
+    def found_representation(self, representation: str) -> bool:
+        for run_config in self.run_configs:
+            if representation == run_config.representation():
+                return True
+
+        return False

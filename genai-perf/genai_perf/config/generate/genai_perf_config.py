@@ -89,6 +89,18 @@ class GenAIPerfConfig:
         return obj_args
 
     ###########################################################################
+    # Representation Methods
+    ###########################################################################
+    def representation(self) -> str:
+        """
+        A string representation of the GAP options which will be
+        used when determining if a previous (checkpointed) run can be used
+        """
+        representation = " ".join([self.input.__str__(), self.output_tokens.__str__()])
+
+        return representation
+
+    ###########################################################################
     # Checkpoint Methods
     ###########################################################################
     def create_checkpoint_object(self) -> CheckpointObject:
