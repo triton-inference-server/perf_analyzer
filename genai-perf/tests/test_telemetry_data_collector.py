@@ -103,7 +103,7 @@ class TestTelemetryDataCollector:
 
         result = collector._fetch_metrics()
 
-        mock_requests_get.assert_called_once_with(self.TEST_SERVER_URL)
+        mock_requests_get.assert_called_once_with(self.TEST_SERVER_URL, timeout=5)
 
         assert result == self.TRITON_METRICS_RESPONSE
 

@@ -39,6 +39,7 @@
 #include "concurrency_manager.h"
 #include "constants.h"
 #include "custom_load_manager.h"
+#include "custom_request_schedule_manager.h"
 #include "metrics.h"
 #include "metrics_manager.h"
 #include "model_parser.h"
@@ -47,7 +48,7 @@
 #include "profile_data_collector.h"
 #include "request_rate_manager.h"
 
-namespace triton { namespace perfanalyzer {
+namespace triton::perfanalyzer {
 
 #ifndef DOCTEST_CONFIG_DISABLE
 class NaggyMockInferenceProfiler;
@@ -443,6 +444,7 @@ class InferenceProfiler {
       std::vector<PerfStatus>& perf_statuses, bool& meets_threshold,
       bool& is_stable);
 
+
   /// A helper function for profiling functions.
   /// \param status_summary Returns the summary of the measurement.
   /// \param request_count The number of requests to generate when profiling. If
@@ -829,4 +831,4 @@ class InferenceProfiler {
 #endif
 };
 
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer

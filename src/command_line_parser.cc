@@ -53,7 +53,7 @@ SplitString(const std::string& str, const std::string& delimiter = ":")
   std::vector<std::string> substrs;
   size_t pos = 0;
   while (pos != std::string::npos) {
-    size_t colon_pos = str.find(":", pos);
+    size_t colon_pos = str.find(delimiter, pos);
     substrs.push_back(str.substr(pos, colon_pos - pos));
     if (colon_pos == std::string::npos) {
       pos = colon_pos;
@@ -138,6 +138,8 @@ CLParser::Usage(const std::string& msg)
             << std::endl;
   std::cerr << "\t--percentile <percentile>" << std::endl;
   std::cerr << "\t--request-count <number of requests>" << std::endl;
+  std::cerr << "\t--warmup-request-count <number of warmup requests>"
+            << std::endl;
   std::cerr << "\tDEPRECATED OPTIONS" << std::endl;
   std::cerr << "\t-t <number of concurrent requests>" << std::endl;
   std::cerr << "\t-c <maximum concurrency>" << std::endl;
@@ -472,6 +474,12 @@ CLParser::Usage(const std::string& msg)
              "until stabilization is detected.",
              18)
       << std::endl;
+  std::cerr << FormatMessage(
+                   " --warmup-request-count: Specifies the number of warmup "
+                   "requests to send before benchmarking. The default is 0, "
+                   "which means that no warmup requests will be sent.",
+                   18)
+            << std::endl;
   std::cerr << FormatMessage(
                    " --serial-sequences: Enables serial sequence mode "
                    "where a maximum of one request is outstanding at a time "
@@ -908,6 +916,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"endpoint", required_argument, 0, long_option_idx_base + 61},
       {"request-count", required_argument, 0, long_option_idx_base + 62},
       {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
+      {"schedule", required_argument, 0, long_option_idx_base + 64},
       {0, 0, 0, 0}};
 
   // Parse commandline...
@@ -1647,7 +1656,9 @@ CLParser::ParseCommandLine(int argc, char** argv)
           if (std::stoi(optarg) < 0) {
             Usage("Failed to parse --request-count. The value must be > 0.");
           }
-          params_->request_count = std::stoi(optarg);
+          if (params_->request_count == 0) {
+            params_->request_count = std::stoi(optarg);
+          }
           break;
         }
         case long_option_idx_base + 63: {
@@ -1657,6 +1668,17 @@ CLParser::ParseCommandLine(int argc, char** argv)
                 "0.");
           }
           params_->warmup_request_count = std::stoi(optarg);
+          break;
+        }
+        case long_option_idx_base + 64: {
+          std::vector<float> schedule;
+          std::string arg = optarg;
+          std::vector<std::string> float_strings = SplitString(optarg, ",");
+          for (const std::string& str : float_strings) {
+            schedule.push_back(std::stof(str));
+          }
+          params_->schedule = schedule;
+          params_->request_count = schedule.size();
           break;
         }
         case 'v':
@@ -1977,9 +1999,13 @@ CLParser::VerifyOptions()
       Usage(
           "perf_analyzer supports only grpc protocol for TensorFlow Serving.");
     } else if (params_->streaming) {
-      Usage("perf_analyzer does not support streaming for TensorFlow Serving.");
+      Usage(
+          "perf_analyzer does not support streaming for TensorFlow "
+          "Serving.");
     } else if (params_->async) {
-      Usage("perf_analyzer does not support async API for TensorFlow Serving.");
+      Usage(
+          "perf_analyzer does not support async API for TensorFlow "
+          "Serving.");
     } else if (!params_->using_batch_size) {
       params_->batch_size = 0;
     }
@@ -2008,7 +2034,8 @@ CLParser::VerifyOptions()
     if (params_->async && params_->streaming &&
         params_->shared_memory_type != SharedMemoryType::NO_SHARED_MEMORY) {
       Usage(
-          "Cannot use --shared-memory=system or --shared-memory=cuda with "
+          "Cannot use --shared-memory=system or --shared-memory=cuda "
+          "with "
           "--service-kind=triton_c_api and --async and --streaming.");
     }
 

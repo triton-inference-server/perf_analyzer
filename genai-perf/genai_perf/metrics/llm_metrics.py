@@ -86,9 +86,11 @@ class LLMMetrics(Metrics):
 
         # add base name mapping
         self._base_names["time_to_first_tokens"] = "time_to_first_token"
-        self._base_names["inter_token_latencies"] = "inter_token_latency"
-        self._base_names["output_token_throughputs"] = "output_token_throughput"
-        self._base_names["output_token_throughputs_per_request"] = (
+        self._base_names["inter_token_latencies"] = "inter_token_latency"  # nosec
+        self._base_names["output_token_throughputs"] = (  # nosec
+            "output_token_throughput"
+        )
+        self._base_names["output_token_throughputs_per_request"] = (  # nosec
             "output_token_throughput_per_request"
         )
         self._base_names["output_sequence_lengths"] = "output_sequence_length"

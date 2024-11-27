@@ -54,6 +54,9 @@ You can use GenAI-Perf to run performance benchmarks on
 - [Ranking Models](docs/rankings.md)
 - [Multiple LoRA Adapters](docs/lora.md)
 
+You can also use GenAI-Perf to run benchmarks on your
+[custom APIs](docs/customizable_frontends.md).
+
 > [!Note]
 > GenAI-Perf is currently in early release and under rapid development. While we
 > will try to remain consistent, command line options and functionality are
@@ -306,6 +309,26 @@ inference. Other modes such as the [embeddings](docs/embeddings.md) and
 [rankings](docs/rankings.md) endpoints support client-side batching, where
 `--batch-size-text N` means that each request sent will include the inputs for
 `N` separate inferences, allowing them to be processed together.
+
+</br>
+
+<!--
+======================
+AUTHENTICATION
+======================
+-->
+
+## Authentication
+
+GenAI-Perf can benchmark secure endpoints such as OpenAI, which require API
+key authentication. To do so, you must add your API key directly in the command.
+At the end of your command, append the below flags. Replace the key with your
+API key. The `--` flag allows arguments to pass directly into Perf Analyzer in
+superuser mode. The `-H` flag is used to add HTTP headers.
+
+```bash
+-- -H "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
+```
 
 </br>
 

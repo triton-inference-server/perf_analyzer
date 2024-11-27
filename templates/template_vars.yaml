@@ -13,6 +13,11 @@ compare:
   template: genai-perf-templates/compare_template
   output_dir: ../genai-perf/docs/
 
+customizable_frontends:
+  filename: customizable_frontends.md
+  template: genai-perf-templates/customizable_fronetnds_template
+  output_dir: ../genai-perf/docs/
+
 embeddings:
   filename: embeddings.md
   template: genai-perf-templates/embeddings_template

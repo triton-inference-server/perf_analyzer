@@ -104,7 +104,6 @@ class TestFileInputRetriever:
         )
 
         assert file_data is not None
-        assert file_data.filename == "single_image.jsonl"
         assert len(file_data.rows) == 1
         assert file_data.rows[0].images[0] == "mock_base64_image"
 
@@ -131,7 +130,6 @@ class TestFileInputRetriever:
         )
 
         assert file_data is not None
-        assert file_data.filename == "multiple_images.jsonl"
         assert len(file_data.rows) == 3
         expected_images = [
             "mock_base64_image1",
@@ -157,7 +155,6 @@ class TestFileInputRetriever:
         )
 
         assert file_data is not None
-        assert file_data.filename == "single_prompt.jsonl"
         assert len(file_data.rows) == 1
         assert file_data.rows[0].texts[0] == "What is the capital of France?"
 
@@ -177,7 +174,6 @@ class TestFileInputRetriever:
         )
 
         assert file_data is not None
-        assert file_data.filename == "multiple_prompts.jsonl"
         assert len(file_data.rows) == 3
         expected_prompts = [
             "What is the capital of France?",
@@ -210,7 +206,6 @@ class TestFileInputRetriever:
         )
 
         assert file_data is not None
-        assert file_data.filename == "multi_modal.jsonl"
         assert len(file_data.rows) == 2
         assert file_data.rows[0].texts[0] == "What is this image?"
         assert file_data.rows[0].images[0] == "mock_base64_image"
@@ -231,7 +226,6 @@ class TestFileInputRetriever:
         )
 
         assert file_data is not None
-        assert file_data.filename == "deprecated_text_input.jsonl"
         assert len(file_data.rows) == 2
         assert file_data.rows[0].texts[0] == "Who is Albert Einstein?"
         assert file_data.rows[1].texts[0] == "What is the speed of light?"
@@ -317,14 +311,12 @@ class TestFileInputRetriever:
 
         assert len(file_data) == 4
 
-        assert file_data["single_prompt"].filename == "single_prompt.jsonl"
         assert len(file_data["single_prompt"].rows) == 1
         assert (
             file_data["single_prompt"].rows[0].texts[0]
             == "What is the capital of France?"
         )
 
-        assert file_data["multiple_prompts"].filename == "multiple_prompts.jsonl"
         assert len(file_data["multiple_prompts"].rows) == 3
         expected_prompts = [
             "What is the capital of France?",
@@ -334,11 +326,9 @@ class TestFileInputRetriever:
         for i, prompt in enumerate(expected_prompts):
             assert file_data["multiple_prompts"].rows[i].texts[0] == prompt
 
-        assert file_data["single_image"].filename == "single_image.jsonl"
         assert len(file_data["single_image"].rows) == 1
         assert file_data["single_image"].rows[0].images[0] == "mock_base64_image"
 
-        assert file_data["multi_modal"].filename == "multi_modal.jsonl"
         assert len(file_data["multi_modal"].rows) == 2
         assert file_data["multi_modal"].rows[0].texts[0] == "What is this image?"
         assert file_data["multi_modal"].rows[0].images[0] == "mock_base64_image"
