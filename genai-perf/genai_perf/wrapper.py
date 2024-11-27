@@ -87,7 +87,7 @@ class Profiler:
             "input_format",
             "model",
             "model_selection_strategy",
-            "num_payloads",
+            "num_dataset_entries",
             "output_format",
             "output_tokens_mean",
             "output_tokens_mean_deterministic",

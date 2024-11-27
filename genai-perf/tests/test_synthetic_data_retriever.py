@@ -28,15 +28,15 @@ class TestSyntheticDataRetriever:
         return_value="test prompt",
     )
     @pytest.mark.parametrize(
-        "batch_size_text, num_payloads",
+        "batch_size_text, num_dataset_entries",
         [
             (1, 3),
             (2, 2),
         ],
     )
-    def test_synthetic_text(self, mock_prompt, batch_size_text, num_payloads):
+    def test_synthetic_text(self, mock_prompt, batch_size_text, num_dataset_entries):
         config = InputsConfig(
-            num_payloads=num_payloads,
+            num_dataset_entries=num_dataset_entries,
             batch_size_text=batch_size_text,
             output_format=OutputFormat.OPENAI_COMPLETIONS,
             synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
@@ -47,7 +47,8 @@ class TestSyntheticDataRetriever:
 
         synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
         assert (
-            len(dataset.files_data[synthetic_input_filenames[0]].rows) == num_payloads
+            len(dataset.files_data[synthetic_input_filenames[0]].rows)
+            == num_dataset_entries
         )
         for row in dataset.files_data[synthetic_input_filenames[0]].rows:
             assert len(row.texts) == batch_size_text
@@ -62,7 +63,7 @@ class TestSyntheticDataRetriever:
         return_value="data:image/jpeg;base64,test_base64_encoding",
     )
     @pytest.mark.parametrize(
-        "batch_size_text, batch_size_image, num_payloads",
+        "batch_size_text, batch_size_image, num_dataset_entries",
         [
             (1, 1, 3),
             (2, 1, 2),
@@ -70,10 +71,15 @@ class TestSyntheticDataRetriever:
         ],
     )
     def test_synthetic_text_and_image(
-        self, mock_prompt, mock_image, batch_size_text, batch_size_image, num_payloads
+        self,
+        mock_prompt,
+        mock_image,
+        batch_size_text,
+        batch_size_image,
+        num_dataset_entries,
     ):
         config = InputsConfig(
-            num_payloads=num_payloads,
+            num_dataset_entries=num_dataset_entries,
             batch_size_text=batch_size_text,
             batch_size_image=batch_size_image,
             output_format=OutputFormat.OPENAI_VISION,
@@ -85,7 +91,8 @@ class TestSyntheticDataRetriever:
 
         synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
         assert (
-            len(dataset.files_data[synthetic_input_filenames[0]].rows) == num_payloads
+            len(dataset.files_data[synthetic_input_filenames[0]].rows)
+            == num_dataset_entries
         )
 
         for row in dataset.files_data[synthetic_input_filenames[0]].rows:
@@ -110,7 +117,7 @@ class TestSyntheticDataRetriever:
         Test synthetic data generation when multiple synthetic files are specified.
         """
         config = InputsConfig(
-            num_payloads=2,
+            num_dataset_entries=2,
             batch_size_text=1,
             batch_size_image=1,
             synthetic_input_filenames=["file1.jsonl", "file2.jsonl"],

@@ -240,7 +240,7 @@ class FileInputRetriever(BaseInputRetriever):
                 self.config.batch_size_image > DEFAULT_BATCH_SIZE
                 or self.config.batch_size_text > DEFAULT_BATCH_SIZE
             ):
-                for _ in range(self.config.num_payloads):
+                for _ in range(self.config.num_dataset_entries):
                     sampled_texts = random.sample(prompts, self.config.batch_size_text)
                     sampled_images = random.sample(images, self.config.batch_size_image)
                     data_rows.append(
@@ -255,7 +255,7 @@ class FileInputRetriever(BaseInputRetriever):
                     "Batch size for texts cannot be larger than the number of available texts"
                 )
             if self.config.batch_size_text > DEFAULT_BATCH_SIZE:
-                for _ in range(self.config.num_payloads):
+                for _ in range(self.config.num_dataset_entries):
                     sampled_texts = random.sample(prompts, self.config.batch_size_text)
                     data_rows.append(DataRow(texts=sampled_texts, images=[]))
             else:
@@ -268,7 +268,7 @@ class FileInputRetriever(BaseInputRetriever):
                 )
 
             if self.config.batch_size_image > DEFAULT_BATCH_SIZE:
-                for _ in range(self.config.num_payloads):
+                for _ in range(self.config.num_dataset_entries):
                     sampled_images = random.sample(images, self.config.batch_size_image)
                     data_rows.append(DataRow(texts=[], images=sampled_images))
             else:

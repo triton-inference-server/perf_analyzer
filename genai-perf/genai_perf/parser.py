@@ -468,12 +468,12 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
-        "--num-payloads",
+        "--num-dataset-entries",
         "--num-prompts",
         type=positive_integer,
-        default=ic.DEFAULT_NUM_PAYLOADS,
+        default=ic.DEFAULT_NUM_DATASET_ENTRIES,
         required=False,
-        help=f"The number of unique payloads to send. "
+        help=f"The number of unique payloads to sample from. "
         "These will be reused until benchmarking is complete.",
     )
 
@@ -523,8 +523,8 @@ def _add_input_args(parser):
         default=ic.DEFAULT_REQUEST_COUNT,
         required=False,
         help="The number of requests to use for measurement."
-        "By default, the measurement will continue until stabilization is "
-        "detected.",
+        "By default, the benchmark does not terminate based on request count. "
+        "Instead, it continues until stabilization is detected.",
     )
 
     input_group.add_argument(

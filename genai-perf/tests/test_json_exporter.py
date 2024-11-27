@@ -223,7 +223,7 @@ class TestJsonExporter:
           "server_metrics_url": null,
           "streaming": true,
           "u": null,
-          "num_payloads": 100,
+          "num_dataset_entries": 100,
           "output_tokens_mean": -1,
           "output_tokens_mean_deterministic": false,
           "output_tokens_stddev": 0,

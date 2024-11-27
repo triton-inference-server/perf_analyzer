@@ -276,7 +276,7 @@ GenAI-Perf supports model input prompts from either synthetically generated
 inputs, or from a dataset defined via a file.
 
 When the dataset is synthetic, you can specify the following options:
-* `--num-payloads <int>`: The number of unique payloads to send.
+* `--num-dataset-entries <int>`: The number of unique payloads to sample from.
   These will be reused until benchmarking is complete.
 * `--synthetic-input-tokens-mean <int>`: The mean of number of tokens in the
   generated prompts when using synthetic data, >= 1.
@@ -448,17 +448,18 @@ Alternatively, a string representing a json formatted dict can be provided.
 ##### `--input-file <path>`
 
 The input file or directory containing the content to use for
-profiling. To use synthetic files for a converter that needs
+profiling. Each line should be a JSON object with a 'text' or 'image' field
+in JSONL format. Example: {\"text\": \"Your prompt here\"}"
+To use synthetic files for a converter that needs
 multiple files, prefix the path with 'synthetic:', followed by a
 comma-separated list of filenames. The synthetic filenames should not have
 extensions. For example, 'synthetic:queries,passages'.
-Each line should be a JSON object with a 'text' or 'image' field
-in JSONL format. Example: {\"text\": \"Your prompt here\"}"
+(default: `None`)
 
-##### `--num-payloads <int>`
+##### `--num-dataset-entries <int>`
 
-The number of unique payloads to send. These will be reused until benchmarking
-is complete. (default: `100`)
+The number of unique payloads to sample from. These will be reused until
+benchmarking is complete. (default: `100`)
 
 ##### `--output-tokens-mean <int>`
 ##### `--osl`
@@ -486,8 +487,9 @@ The seed used to generate random values. (default: `0`)
 
 ##### `--request-count <int>`
 
-The number of requests to use for measurement. By default, the measurement
-will continue until stabilization is detected. (default: 0)
+The number of requests to use for measurement.
+By default, the benchmark does not terminate based on request count.
+Instead, it continues until stabilization is detected. (default: `0`)
 
 ##### `--synthetic-input-tokens-mean <int>`
 ##### `--isl`
