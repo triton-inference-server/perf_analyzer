@@ -45,7 +45,7 @@ class TestRunConfig(unittest.TestCase):
         self._baseline_rcm.add_perf_metrics("test_model", self._perf_metrics)
 
         self._run_config = RunConfig(
-            name="test_run_config",
+            name="test_run_config_1",
             genai_perf_config=self._baseline_genai_perf_config,
             perf_analyzer_config=self._baseline_perf_analyzer_config,
             measurement=self._baseline_rcm,
@@ -53,6 +53,18 @@ class TestRunConfig(unittest.TestCase):
 
     def tearDown(self):
         patch.stopall()
+
+    ###########################################################################
+    # Name ID test
+    ###########################################################################
+    def test_get_name_id(self):
+        """
+        Check to ensure name ID is returned correctly
+        """
+        expected_name_id = "1"
+        name_id = self._run_config.get_name_id()
+
+        self.assertEqual(expected_name_id, name_id)
 
     ###########################################################################
     # Checkpoint Tests
