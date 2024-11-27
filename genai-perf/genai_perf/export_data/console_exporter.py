@@ -84,14 +84,13 @@ class ConsoleExporter:
             metric_str += f" ({metric.unit})" if metric.unit != "tokens" else ""
             row_values = [metric_str]
             for stat in self.STAT_COLUMN_KEYS:
-                value = self._stats[metric.name][stat]
-                row_values.append(f"{value:,.2f}")
+                value = self._stats[metric.name].get(stat, None)
+                row_values.append(f"{value:,.2f}" if value else "N/A")
 
             table.add_row(*row_values)
 
         for metric in self._metrics.system_metrics:
             metric_str = metric.name.replace("_", " ").capitalize()
-            # metric_str = metric_str.replace("throughput", "tput")
             if metric.name == "request_goodput":
                 if not self._args.goodput:
                     continue
