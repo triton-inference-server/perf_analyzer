@@ -90,63 +90,79 @@ def analyze_handler(args: Namespace) -> None:
         obj_args = perf_analyzer_config.get_obj_args()
 
         #
-        # Create Input/Artifacts
-        input_config_options = create_config_options(obj_args)
-        create_artifacts_dirs(obj_args)
-        tokenizer = get_tokenizer(
-            obj_args.tokenizer,
-            obj_args.tokenizer_trust_remote_code,
-            obj_args.tokenizer_revision,
-        )
-        generate_inputs(input_config_options)
-
-        #
-        # Run PA
-        run_perf_analyzer(
-            args=obj_args,
-            perf_analyzer_config=perf_analyzer_config,
-            telemetry_data_collector=telemetry_data_collector,
-        )
-
-        #
-        # Extract Perf Metrics
-        infer_mode, load_level = _determine_infer_mode_and_load_level(
-            obj_args, objectives, model_name
-        )
-        data_parser = calculate_metrics(obj_args, tokenizer)
-        perf_stats = data_parser.get_statistics(infer_mode, load_level)
-        perf_metrics = perf_stats.create_records()
-
-        #
-        # Extract Telemetry Metrics
-        # FIXME: Once I'm able to collect telemetry records will need
-        # to write a method to hook this up
-        # telemetry_stats = (
-        #     telemetry_data_collector.get_statistics()
-        #     if telemetry_data_collector
-        #     else None
-        # )
-        gpu_metrics: GpuRecords = {}
-
-        #
-        # Create RunConfigMeasurement
-        run_config_measurement = RunConfigMeasurement(gpu_metrics)
-        run_config_measurement.add_perf_metrics(model_name, perf_metrics)
-
-        #
-        # Create RunConfig
-        run_config_name = model_name + "_run_config_" + str(count)
-        run_config = RunConfig(
-            name=run_config_name,
+        # Check if this configuration has already been profiled (is in the checkpoint)
+        representation = RunConfig(
             genai_perf_config=genai_perf_config,
             perf_analyzer_config=perf_analyzer_config,
-            measurement=run_config_measurement,
+        ).representation()
+
+        run_config_found = results.found_representation(representation)
+        run_config_name = results.get_run_config_name_based_on_representation(
+            model_name, representation
         )
 
-        #
-        # Add to results and write checkpoint
-        results.add_run_config(run_config)
-        checkpoint.create_checkpoint_object()
+        if not run_config_found:
+            #
+            # Create Input/Artifacts
+            input_config_options = create_config_options(obj_args)
+            create_artifacts_dirs(obj_args)
+            tokenizer = get_tokenizer(
+                obj_args.tokenizer,
+                obj_args.tokenizer_trust_remote_code,
+                obj_args.tokenizer_revision,
+            )
+            generate_inputs(input_config_options)
+
+            #
+            # Run PA
+            run_perf_analyzer(
+                args=obj_args,
+                perf_analyzer_config=perf_analyzer_config,
+                telemetry_data_collector=telemetry_data_collector,
+            )
+
+            #
+            # Extract Perf Metrics
+            infer_mode, load_level = _determine_infer_mode_and_load_level(
+                obj_args, objectives, model_name
+            )
+            data_parser = calculate_metrics(obj_args, tokenizer)
+            perf_stats = data_parser.get_statistics(infer_mode, load_level)
+            perf_metrics = perf_stats.create_records()
+
+            #
+            # Extract Telemetry Metrics
+            # FIXME: Once I'm able to collect telemetry records will need
+            # to write a method to hook this up
+            # telemetry_stats = (
+            #     telemetry_data_collector.get_statistics()
+            #     if telemetry_data_collector
+            #     else None
+            # )
+            gpu_metrics: GpuRecords = {}
+
+            #
+            # Create RunConfigMeasurement
+            run_config_measurement = RunConfigMeasurement(gpu_metrics)
+            run_config_measurement.add_perf_metrics(model_name, perf_metrics)
+
+            #
+            # Create RunConfig
+            run_config = RunConfig(
+                name=run_config_name,
+                genai_perf_config=genai_perf_config,
+                perf_analyzer_config=perf_analyzer_config,
+                measurement=run_config_measurement,
+            )
+
+            #
+            # Add to results and write checkpoint
+            results.add_run_config(run_config)
+            checkpoint.create_checkpoint_object()
+        else:
+            logger.info(
+                f"{run_config_name} found in checkpoint - skipping profiling..."
+            )
 
 
 def _setup_config(args: Namespace) -> ConfigCommand:

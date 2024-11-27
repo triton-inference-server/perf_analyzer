@@ -75,6 +75,20 @@ class TestGenAIPerfConfig(unittest.TestCase):
         )
 
     ###########################################################################
+    # Test Representation
+    ###########################################################################
+    def test_representation(self):
+        """
+        Test that the representation is created correctly
+        """
+        expected_representation = " ".join(
+            [ConfigInput(num_prompts=50).__str__(), ConfigOutputTokens().__str__()]
+        )
+        representation = self._default_genai_perf_config.representation()
+
+        self.assertEqual(expected_representation, representation)
+
+    ###########################################################################
     # Checkpoint Tests
     ###########################################################################
     def test_checkpoint_methods(self):
