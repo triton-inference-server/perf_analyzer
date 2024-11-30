@@ -213,7 +213,7 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     Check inference load args
     """
     # If no concurrency or request rate is set, default to 1
-    if not args.concurrency and not args.request_rate:
+    if not args.concurrency and not args.request_rate and not args.schedule_file:
         args.concurrency = 1
     return args
 
@@ -446,6 +446,22 @@ def _add_input_args(parser):
         "not have extensions. For example, 'synthetic:queries,passages'. "
         "Each line should be a JSON object with a 'text' or 'image' field "
         'in JSONL format. Example: {"text": "Your prompt here"}',
+    )
+
+    input_group.add_argument(
+        "--schedule-file",
+        type=str,
+        default=None,
+        required=False,
+        help="Fixed Schedule TODO",
+    )
+
+    input_group.add_argument(
+        "--block-size",
+        type=int,
+        default=512,
+        required=False,
+        help="Fixed Schedule TODO",
     )
 
     input_group.add_argument(
