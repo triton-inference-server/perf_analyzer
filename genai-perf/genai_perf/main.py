@@ -76,7 +76,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         input_filename=args.input_file,
         synthetic_input_filenames=args.synthetic_input_files,
         starting_index=DEFAULT_STARTING_INDEX,
-        length=args.num_prompts,
+        length=args.num_dataset_entries,
         prompt_tokens_mean=args.synthetic_input_tokens_mean,
         prompt_tokens_stddev=args.synthetic_input_tokens_stddev,
         output_tokens_mean=args.output_tokens_mean,
@@ -88,7 +88,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         image_height_stddev=args.image_height_stddev,
         image_format=args.image_format,
         random_seed=args.random_seed,
-        num_prompts=args.num_prompts,
+        num_dataset_entries=args.num_dataset_entries,
         add_stream=args.streaming,
         tokenizer=get_tokenizer(
             args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
