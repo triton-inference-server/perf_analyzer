@@ -29,7 +29,6 @@ import os
 import sys
 import traceback
 from argparse import Namespace
-from pathlib import Path
 from typing import Optional
 
 import genai_perf.logging as logging
