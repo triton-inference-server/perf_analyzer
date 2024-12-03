@@ -77,11 +77,12 @@ class VLLMConverter(BaseConverter):
                     lower=1,  # output token must be >= 1
                 )
             )
-            sampling_parameters = {
+            sampling_parameters: Dict[Any, Any] = {
                 "max_tokens": f"{number_of_tokens}",
             }
             if config.output_tokens_deterministic:
                 sampling_parameters["min_tokens"] = f"{number_of_tokens}"
+                sampling_parameters["ignore_eos"] = True
             sampling_parameters_str = json.dumps(sampling_parameters)
             payload["sampling_parameters"] = [sampling_parameters_str]
         for key, value in config.extra_inputs.items():
