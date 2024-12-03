@@ -108,6 +108,7 @@ class Profiler:
             "tokenizer",
             "tokenizer_trust_remote_code",
             "tokenizer_revision",
+            "triton_converter_apply_chat_template"
         ]
 
         utils.remove_file(args.profile_export_file)

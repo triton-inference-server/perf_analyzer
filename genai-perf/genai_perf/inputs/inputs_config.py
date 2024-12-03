@@ -142,3 +142,6 @@ class InputsConfig:
 
     # Seed used to generate random values
     random_seed: int = DEFAULT_RANDOM_SEED
+
+    # whether to apply chat template in triton converter
+    apply_chat_template: bool = False

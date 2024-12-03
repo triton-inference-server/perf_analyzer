@@ -68,6 +68,9 @@ class Tokenizer:
     def encode(self, text, **kwargs) -> List[int]:
         self._encode_args.update(kwargs)
         return self._tokenizer.encode(text, **self._encode_args)
+    
+    def apply_chat_template(self, text) -> List[int]:
+        return self._tokenizer.encode(self._tokenizer.apply_chat_template([{"role": "user", "content": text}], tokenize=False), add_special_tokens=False)
 
     def decode(self, token_ids, **kwargs) -> str:
         self._decode_args.update(kwargs)

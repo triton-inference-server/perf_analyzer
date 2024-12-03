@@ -52,7 +52,10 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = config.tokenizer.encode(row.texts[0])
+                if not config.apply_chat_template:
+                    token_ids = config.tokenizer.encode(row.texts[0])
+                else:
+                    token_ids = config.tokenizer.apply_chat_template(row.texts[0])
                 payload = {
                     "input_ids": {
                         "content": token_ids,
@@ -82,4 +85,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 payload["min_length"] = [num_tokens]
 
         for key, value in config.extra_inputs.items():
-            payload[key] = [value]
+            if key == "triton_converter_set_end_id" and value:
+                payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
+            else:
+                payload[key] = [value]

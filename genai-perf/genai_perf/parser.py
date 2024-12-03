@@ -597,6 +597,13 @@ def _add_image_input_args(parser):
         "If format is not selected, format of generated image is selected at random",
     )
 
+    input_group.add_argument(
+        "--triton-converter-apply-chat-template",
+        action="store_true",
+        required=False,
+        help="If specified, the input to trtllm engines in triton server will "
+        "be wrapped with chat template."
+    )
 
 def _add_profile_args(parser):
     profile_group = parser.add_argument_group("Profiling")
