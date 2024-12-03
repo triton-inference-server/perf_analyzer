@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import pathlib
 import random
 from concurrent.futures import ThreadPoolExecutor
@@ -59,15 +60,17 @@ class SyntheticPromptGenerator:
         Args:
             tokenizer: Tokenizer for tokenizing the corpus.
         """
-        farewell_path = pathlib.Path(__file__).parent / "sonnets.txt"
+        corpus_path = pathlib.Path(__file__).parent / "sonnets.txt"
 
-        with open(farewell_path, "r") as f:
+        with open(corpus_path, "r") as f:
             lines = f.readlines()
 
         def tokenize_chunk(chunk):
             return tokenizer.encode(" ".join(chunk))
 
-        num_threads = 150
+        num_threads = os.cpu_count()
+        if num_threads is None:
+            num_threads = 4
         chunk_size = len(lines) // num_threads
         chunks = [lines[i : i + chunk_size] for i in range(0, len(lines), chunk_size)]
 
