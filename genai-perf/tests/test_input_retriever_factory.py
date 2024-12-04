@@ -47,7 +47,7 @@ class TestInputRetrieverFactory:
         """
         config = InputsConfig(
             input_type=PromptSource.SYNTHETIC,
-            num_prompts=10,
+            num_dataset_entries=10,
             tokenizer=get_empty_tokenizer(),
         )
         with patch(

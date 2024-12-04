@@ -140,9 +140,6 @@ class TestCsvExporter:
         Collect LLM metrics from profile export data and confirm correct values are
         printed in csv.
         """
-        artifacts_dir = "artifacts/model_name-openai-chat-concurrency1"
-        custom_filename = "custom_export.json"
-        expected_filename = f"custom_export_genai_perf.csv"
         argv = [
             "genai-perf",
             "profile",
@@ -153,7 +150,7 @@ class TestCsvExporter:
             "--endpoint-type",
             "chat",
             "--profile-export-file",
-            custom_filename,
+            "custom_export.json",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
@@ -169,6 +166,7 @@ class TestCsvExporter:
         exporter = CsvExporter(config)
         exporter.export()
 
+        expected_filename = f"custom_export_genai_perf.csv"
         expected_content = [
             "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
             "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
@@ -394,6 +392,60 @@ class TestCsvExporter:
             data
             for filename, data in mock_read_write
             if os.path.basename(filename) == expected_filename
+        ]
+
+        assert returned_data == expected_content
+
+    def test_missing_data(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch, llm_metrics: LLMMetrics
+    ) -> None:
+        """
+        Test if missing data does not throw an error and are marked as "N/A".
+        """
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+            "--profile-export-file",
+            "custom_export.json",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        stats = Statistics(metrics=llm_metrics)
+
+        config = ExporterConfig()
+        config.stats = stats.stats_dict
+        config.metrics = stats.metrics
+        config.artifact_dir = Path(".")
+        config.args = args
+
+        # Missing data
+        del config.stats["request_latency"]["avg"]
+        del config.stats["output_sequence_length"]["max"]
+        del config.stats["input_sequence_length"]
+
+        exporter = CsvExporter(config)
+        exporter.export()
+
+        expected_filename = f"custom_export_genai_perf.csv"
+        expected_content = [
+            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
+            "Request Latency (ms),N/A,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
+            "Output Sequence Length,2.00,1.00,N/A,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
+            "Input Sequence Length,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A\r\n",
+            "\r\n",
+            "Metric,Value\r\n",
+            "Output Token Throughput (per sec),456.00\r\n",
+            "Request Throughput (per sec),123.00\r\n",
+        ]
+        returned_data = [
+            data for filename, data in mock_read_write if filename == expected_filename
         ]
 
         assert returned_data == expected_content
