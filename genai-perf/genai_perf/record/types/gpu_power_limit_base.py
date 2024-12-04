@@ -1,4 +1,4 @@
-# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,16 @@
 
 from functools import total_ordering
 
-from genai_perf.record.gpu_record import DecreasingGPURecord
+from genai_perf.record.gpu_record import IncreasingGPURecord
 
 
 @total_ordering
-class GPUPowerUsage(DecreasingGPURecord):
+class GPUPowerLimitBase(IncreasingGPURecord):
     """
-    GPU's power usage metric
+    A base class for the GPU's power limit metric
     """
 
-    tag = "gpu_power_usage"
+    base_tag = "gpu_power_limit"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
@@ -37,16 +37,16 @@ class GPUPowerUsage(DecreasingGPURecord):
 
     @staticmethod
     def header(aggregation_tag=False):
-        return ("Average " if aggregation_tag else "") + "GPU Power Usage (W)"
+        return ("Average " if aggregation_tag else "") + "GPU Power Limit (W)"
 
-    def __eq__(self, other: "GPUPowerUsage") -> bool:  # type: ignore
+    def __eq__(self, other: "GPUPowerLimitBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "GPUPowerUsage") -> bool:
-        return other.value() < self.value()
+    def __lt__(self, other: "GPUPowerLimitBase") -> bool:
+        return self.value() < other.value()
 
-    def __add__(self, other: "GPUPowerUsage") -> "GPUPowerUsage":
-        return GPUPowerUsage(device_uuid=None, value=(self.value() + other.value()))
+    def __add__(self, other: "GPUPowerLimitBase") -> "GPUPowerLimitBase":
+        return self.__class__(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(self, other: "GPUPowerUsage") -> "GPUPowerUsage":
-        return GPUPowerUsage(device_uuid=None, value=(other.value() - self.value()))
+    def __sub__(self, other: "GPUPowerLimitBase") -> "GPUPowerLimitBase":
+        return self.__class__(device_uuid=None, value=(self.value() - other.value()))

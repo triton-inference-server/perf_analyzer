@@ -1,4 +1,4 @@
-# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ from genai_perf.record.gpu_record import DecreasingGPURecord
 
 
 @total_ordering
-class GPUEnergyConsumption(DecreasingGPURecord):
+class GPUEnergyConsumptionBase(DecreasingGPURecord):
     """
-    GPU's energy consumption metric
+    A base class for the GPU's energy consumption metric
     """
 
-    tag = "energy_consumption"
+    base_tag = "energy_consumption"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
@@ -39,18 +39,14 @@ class GPUEnergyConsumption(DecreasingGPURecord):
     def header(aggregation_tag=False):
         return ("Average " if aggregation_tag else "") + "GPU Energy Consumption (MJ)"
 
-    def __eq__(self, other: "GPUEnegryConsumption") -> bool:  # type: ignore
+    def __eq__(self, other: "GPUEnegryConsumptionBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "GPUEnergyConsumption") -> bool:
+    def __lt__(self, other: "GPUEnergyConsumptionBase") -> bool:
         return other.value() < self.value()
 
-    def __add__(self, other: "GPUEnergyConsumption") -> "GPUEnergyConsumption":
-        return GPUEnergyConsumption(
-            device_uuid=None, value=(self.value() + other.value())
-        )
+    def __add__(self, other: "GPUEnergyConsumptionBase") -> "GPUEnergyConsumptionBase":
+        return self.__class__(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(self, other: "GPUEnergyConsumption") -> "GPUEnergyConsumption":
-        return GPUEnergyConsumption(
-            device_uuid=None, value=(other.value() - self.value())
-        )
+    def __sub__(self, other: "GPUEnergyConsumptionBase") -> "GPUEnergyConsumptionBase":
+        return self.__class__(device_uuid=None, value=(other.value() - self.value()))

@@ -21,8 +21,8 @@ from genai_perf.measurements.model_config_measurement import ModelConfigMeasurem
 from genai_perf.measurements.model_constraints import ModelConstraints
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.measurements.run_constraints import RunConstraints
-from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
-from genai_perf.record.types.gpu_utilization import GPUUtilization
+from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
+from genai_perf.record.types.gpu_utilization_p99 import GPUUtilizationP99
 from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
 from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 
@@ -41,37 +41,37 @@ class TestRunConfigMeasurement(unittest.TestCase):
     def _create_gpu_metrics(self) -> None:
         #
         # Record A
-        self.gpu_power_recordA = GPUPowerUsage(120)
-        self.gpu_util_recordA = GPUUtilization(50)
+        self.gpu_power_recordA = GPUPowerUsageP99(120)
+        self.gpu_util_recordA = GPUUtilizationP99(50)
 
         self.gpu_metricsA = {
             "0": {
-                GPUPowerUsage.tag: self.gpu_power_recordA,
-                GPUUtilization.tag: self.gpu_util_recordA,
+                GPUPowerUsageP99.tag: self.gpu_power_recordA,
+                GPUUtilizationP99.tag: self.gpu_util_recordA,
             }
         }
 
         #
         # Record B
-        self.gpu_power_recordB = GPUPowerUsage(60)
-        self.gpu_util_recordB = GPUUtilization(50)
+        self.gpu_power_recordB = GPUPowerUsageP99(60)
+        self.gpu_util_recordB = GPUUtilizationP99(50)
 
         self.gpu_metricsB = {
             "0": {
-                GPUPowerUsage.tag: self.gpu_power_recordB,
-                GPUUtilization.tag: self.gpu_util_recordB,
+                GPUPowerUsageP99.tag: self.gpu_power_recordB,
+                GPUUtilizationP99.tag: self.gpu_util_recordB,
             }
         }
 
         #
         # Record MM
-        self.gpu_power_recordMM = GPUPowerUsage(120)
-        self.gpu_util_recordMM = GPUUtilization(50)
+        self.gpu_power_recordMM = GPUPowerUsageP99(120)
+        self.gpu_util_recordMM = GPUUtilizationP99(50)
 
         self.gpu_metricsMM = {
             "0": {
-                GPUPowerUsage.tag: self.gpu_power_recordMM,
-                GPUUtilization.tag: self.gpu_util_recordMM,
+                GPUPowerUsageP99.tag: self.gpu_power_recordMM,
+                GPUUtilizationP99.tag: self.gpu_util_recordMM,
             }
         }
 
@@ -151,9 +151,11 @@ class TestRunConfigMeasurement(unittest.TestCase):
         self.assertEqual(rcmA.get_all_gpu_metrics(), self.gpu_metricsA)
 
         expected_gpu_metric = {
-            "0": {GPUPowerUsage.tag: self.gpu_metricsA["0"].get(GPUPowerUsage.tag)}
+            "0": {
+                GPUPowerUsageP99.tag: self.gpu_metricsA["0"].get(GPUPowerUsageP99.tag)
+            }
         }
-        self.assertEqual(expected_gpu_metric, rcmA.get_gpu_metric(GPUPowerUsage.tag))
+        self.assertEqual(expected_gpu_metric, rcmA.get_gpu_metric(GPUPowerUsageP99.tag))
 
         #
         # MCM accessors
@@ -206,8 +208,8 @@ class TestRunConfigMeasurement(unittest.TestCase):
         """
         rcmMM = self._create_multi_model_rcm()
         gpu_metric_objectives = {
-            "modelMM_0": {GPUPowerUsage.tag: 1},
-            "modelMM_1": {GPUUtilization.tag: 1},
+            "modelMM_0": {GPUPowerUsageP99.tag: 1},
+            "modelMM_1": {GPUUtilizationP99.tag: 1},
         }
 
         rcmMM.set_gpu_metric_objectives(gpu_metric_objectives)
@@ -275,8 +277,8 @@ class TestRunConfigMeasurement(unittest.TestCase):
         rcmA = self._create_rcmA()
         rcmB = self._create_rcmB()
 
-        rcmA.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
-        rcmB.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
+        rcmA.set_gpu_metric_objectives({"test_model": {GPUPowerUsageP99.tag: 1}})
+        rcmB.set_gpu_metric_objectives({"test_model": {GPUPowerUsageP99.tag: 1}})
         rcmA.set_perf_metric_objectives({"test_model": {}})
         rcmB.set_perf_metric_objectives({"test_model": {}})
 
@@ -299,8 +301,8 @@ class TestRunConfigMeasurement(unittest.TestCase):
 
         # Now we'll add in GPU Power, this has equal weighting with perf metrics
         # rcmA = 120, rcmB = 60
-        rcmA.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
-        rcmB.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
+        rcmA.set_gpu_metric_objectives({"test_model": {GPUPowerUsageP99.tag: 1}})
+        rcmB.set_gpu_metric_objectives({"test_model": {GPUPowerUsageP99.tag: 1}})
         self.assertEqual(rcmA.calculate_weighted_percentage_gain(rcmB), 25)
         self.assertEqual(rcmB.calculate_weighted_percentage_gain(rcmA), 25)
 
@@ -331,12 +333,12 @@ class TestRunConfigMeasurement(unittest.TestCase):
         rcmA = self._create_rcmA()
 
         # RCMA's power is 120
-        model_constraints = ModelConstraints({GPUPowerUsage.tag: 50})
+        model_constraints = ModelConstraints({GPUPowerUsageP99.tag: 50})
         run_constraints = RunConstraints({"test_model": model_constraints})
         rcmA.set_constraints(run_constraints)
         self.assertFalse(rcmA.is_passing_constraints())
 
-        model_constraints = ModelConstraints({GPUPowerUsage.tag: 150})
+        model_constraints = ModelConstraints({GPUPowerUsageP99.tag: 150})
         run_constraints = RunConstraints({"test_model": model_constraints})
         rcmA.set_constraints(run_constraints)
         self.assertTrue(rcmA.is_passing_constraints())
