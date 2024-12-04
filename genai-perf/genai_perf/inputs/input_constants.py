@@ -55,6 +55,7 @@ class OutputFormat(Enum):
     OPENAI_VISION = auto()
     RANKINGS = auto()
     TENSORRTLLM_ENGINE = auto()
+    TRITON_GENERATE = auto()
 
     def to_lowercase(self):
         return self.name.lower()

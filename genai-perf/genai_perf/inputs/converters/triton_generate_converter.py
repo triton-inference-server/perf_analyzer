@@ -44,8 +44,7 @@ class TritonGenerateConverter(BaseConverter):
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
-            for index, row in enumerate(file_data.rows):
-                model_name = self._select_model_name(config, index)
+            for _, row in enumerate(file_data.rows):
                 prompt = row.texts
 
                 payload = {
