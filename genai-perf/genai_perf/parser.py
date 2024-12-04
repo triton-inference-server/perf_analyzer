@@ -274,6 +274,22 @@ def _check_goodput_args(args):
     return args
 
 
+def _check_session_args(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> argparse.Namespace:
+    """
+    Check if session args are used correctly
+    """
+    if args.num_sessions > 0:
+        if not args.session_concurrency and not args.session_rate:
+            args.session_concurrency = ic.DEFAULT_SESSION_CONCURRENCY
+
+        if args.session_concurrency > args.num_sessions:
+            parser.error("--session-concurrency cannot be greater than --num-sessions.")
+
+    return args
+
+
 def _process_sweep_args(args):
     """
     Process the sweep args which can either be a list or
@@ -583,6 +599,61 @@ def _add_compare_args(parser):
         help="List of paths to the profile export JSON files. Users can specify "
         "this option instead of the `--config` option if they would like "
         "GenAI-Perf to generate default plots as well as initial YAML config file.",
+    )
+
+
+def _add_session_args(parser):
+
+    input_group = parser.add_argument_group(
+        "Session",
+        description=(
+            "These arguments control session simulation. They are only applied if "
+            "--num-sessions is greater than 0; otherwise, each request is treated as a new session."
+        ),
+    )
+    session_load_management_group = input_group.add_mutually_exclusive_group(
+        required=False
+    )
+
+    input_group.add_argument(
+        "--num-sessions",
+        type=int,
+        default=ic.DEFAULT_NUM_SESSIONS,
+        help="The number of sessions to simulate. When set to 0, each request is treated as a new session.",
+    )
+
+    session_load_management_group.add_argument(
+        "--session-concurrency",
+        type=int,
+        help="The number of concurrent sessions to simulate.",
+    )
+    session_load_management_group.add_argument(
+        "--session-rate", type=int, help="The rate at which sessions are started."
+    )
+
+    input_group.add_argument(
+        "--session-turn-delay-mean",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
+        help="The mean delay (in ms) between turns in a session.",
+    )
+    input_group.add_argument(
+        "--session-turn-delay-stddev",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
+        help="The standard deviation (in ms) of the delay between turns in a session.",
+    )
+    input_group.add_argument(
+        "--turns-per-session-mean",
+        type=int,
+        default=ic.DEFAULT_TURNS_PER_SESSION_MEAN,
+        help="The mean number of turns per session.",
+    )
+    input_group.add_argument(
+        "--turns-per-session-stddev",
+        type=int,
+        default=ic.DEFAULT_TURNS_PER_SESSION_STDDEV,
+        help="The standard deviation of the number of turns per session.",
     )
 
 
@@ -1038,6 +1109,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(profile)
     _add_output_args(profile)
     _add_profile_args(profile)
+    _add_session_args(profile)
     _add_tokenizer_args(profile)
     profile.set_defaults(func=profile_handler)
     return profile
@@ -1110,6 +1182,7 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
+        args = _check_session_args(parser, args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
         args = _infer_prompt_source(args)
