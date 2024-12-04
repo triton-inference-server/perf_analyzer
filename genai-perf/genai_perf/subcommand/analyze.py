@@ -132,14 +132,12 @@ def analyze_handler(args: Namespace) -> None:
 
             #
             # Extract Telemetry Metrics
-            # FIXME: Once I'm able to collect telemetry records will need
-            # to write a method to hook this up
-            # telemetry_stats = (
-            #     telemetry_data_collector.get_statistics()
-            #     if telemetry_data_collector
-            #     else None
-            # )
-            gpu_metrics: GpuRecords = {}
+            telemetry_stats = (
+                telemetry_data_collector.get_statistics()
+                if telemetry_data_collector
+                else None
+            )
+            gpu_metrics = telemetry_stats.create_records() if telemetry_stats else {}
 
             #
             # Create RunConfigMeasurement

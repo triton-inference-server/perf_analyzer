@@ -24,7 +24,7 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.run.results import Results
 from genai_perf.measurements.run_constraints import ModelConstraints, RunConstraints
-from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
+from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
 from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
 from tests.test_utils import create_run_config
 
@@ -92,7 +92,9 @@ class TestResults(unittest.TestCase):
         self.assertEqual("test_model_run_config_9", self._results.run_configs[0].name)
 
         # Changing the objective to GPU Power will result in config_0 being best
-        self._results.set_gpu_metric_objectives({"test_model": {GPUPowerUsage.tag: 1}})
+        self._results.set_gpu_metric_objectives(
+            {"test_model": {GPUPowerUsageP99.tag: 1}}
+        )
         self._results.set_perf_metric_objectives({"test_model": {}})
         self.assertEqual("test_model_run_config_0", self._results.run_configs[0].name)
 
@@ -102,7 +104,7 @@ class TestResults(unittest.TestCase):
         """
 
         # GPU Power ranges from 510 -> 590, this will make the first 5 pass
-        model_constraints = ModelConstraints({GPUPowerUsage.tag: 550})
+        model_constraints = ModelConstraints({GPUPowerUsageP99.tag: 550})
         run_constraints = RunConstraints({"test_model": model_constraints})
         self._results.set_constraints(run_constraints)
 

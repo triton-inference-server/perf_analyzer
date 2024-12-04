@@ -18,12 +18,12 @@ from genai_perf.record.gpu_record import IncreasingGPURecord
 
 
 @total_ordering
-class GPUMemoryUsed(IncreasingGPURecord):
+class GPUMemoryUsedBase(IncreasingGPURecord):
     """
-    GPU's used memory metric
+    A base class for the GPU's memory used metric
     """
 
-    tag = "gpu_memory_used"
+    base_tag = "gpu_memory_used"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
@@ -32,14 +32,14 @@ class GPUMemoryUsed(IncreasingGPURecord):
     def header(aggregation_tag=False) -> str:
         return ("Max " if aggregation_tag else "") + "GPU Memory Used (GB)"
 
-    def __eq__(self, other: "GPUMemoryUsed") -> bool:  # type: ignore
+    def __eq__(self, other: "GPUMemoryUsedBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "GPUMemoryUsed") -> bool:
+    def __lt__(self, other: "GPUMemoryUsedBase") -> bool:
         return self.value() < other.value()
 
-    def __add__(self, other: "GPUMemoryUsed") -> "GPUMemoryUsed":
-        return GPUMemoryUsed(device_uuid=None, value=(self.value() + other.value()))
+    def __add__(self, other: "GPUMemoryUsedBase") -> "GPUMemoryUsedBase":
+        return self.__class__(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(self, other: "GPUMemoryUsed") -> "GPUMemoryUsed":
-        return GPUMemoryUsed(device_uuid=None, value=(self.value() - other.value()))
+    def __sub__(self, other: "GPUMemoryUsedBase") -> "GPUMemoryUsedBase":
+        return self.__class__(device_uuid=None, value=(self.value() - other.value()))

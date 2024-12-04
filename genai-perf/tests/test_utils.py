@@ -34,8 +34,8 @@ from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.statistics import Statistics
-from genai_perf.record.types.gpu_power_usage import GPUPowerUsage
-from genai_perf.record.types.gpu_utilization import GPUUtilization
+from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
+from genai_perf.record.types.gpu_utilization_p99 import GPUUtilizationP99
 from genai_perf.record.types.input_sequence_length_p99 import InputSequenceLengthP99
 from genai_perf.record.types.output_sequence_length_p99 import OutputSequenceLengthP99
 from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
@@ -92,13 +92,13 @@ def create_perf_metrics(
 def create_run_config_measurement(
     gpu_power: int, gpu_utilization: int, gpu_id: GpuId = "0"
 ) -> RunConfigMeasurement:
-    gpu_power_record = GPUPowerUsage(gpu_power)
-    gpu_util_record = GPUUtilization(gpu_utilization)
+    gpu_power_record = GPUPowerUsageP99(gpu_power)
+    gpu_util_record = GPUUtilizationP99(gpu_utilization)
 
     gpu_metrics = {
         gpu_id: {
-            GPUPowerUsage.tag: gpu_power_record,
-            GPUUtilization.tag: gpu_util_record,
+            GPUPowerUsageP99.tag: gpu_power_record,
+            GPUUtilizationP99.tag: gpu_util_record,
         }
     }
 
