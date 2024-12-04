@@ -35,7 +35,7 @@ import pandas as pd
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.metrics import Metrics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
-from genai_perf.record.record import Record, RecordType
+from genai_perf.record.record import RecordType
 from genai_perf.types import PerfRecords
 
 
