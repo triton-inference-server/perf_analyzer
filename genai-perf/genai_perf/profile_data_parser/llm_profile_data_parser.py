@@ -213,7 +213,7 @@ class LLMProfileDataParser(ProfileDataParser):
                     "text_output" not in merged_response
                 ):
                     merged_response["text_output"] = ""
-                    
+
                 for r in responses[1:]:
                     if self._response_format == ResponseFormat.TRITON_GENERATE:
                         text = self._extract_generate_text_output(r)
@@ -226,9 +226,7 @@ class LLMProfileDataParser(ProfileDataParser):
             # Remove responses without any content
             indices_to_remove = []
             for idx, out in enumerate(res_outputs):
-                if not out["response"] or self._is_empty_response(
-                    out["response"]
-                ):
+                if not out["response"] or self._is_empty_response(out["response"]):
                     indices_to_remove.append(idx)
             indices_to_remove.sort(reverse=True)
             for index in indices_to_remove:
@@ -261,9 +259,7 @@ class LLMProfileDataParser(ProfileDataParser):
             content = payload["messages"][0]["content"]
             return " ".join(c["text"] for c in content if c["type"] == "text")
         else:
-            raise ValueError(
-                "Failed to parse request input in profile export file."
-            )
+            raise ValueError("Failed to parse request input in profile export file.")
 
     def _get_output_token_counts(
         self, res_outputs: List[Dict]
@@ -320,7 +316,7 @@ class LLMProfileDataParser(ProfileDataParser):
         encodings = self._tokenizer(["!" + txt for txt in output_texts])
         return [out[1:] for out in encodings.data["input_ids"]]
 
-     def _extract_generate_text_output(self, response: str) -> str:
+    def _extract_generate_text_output(self, response: str) -> str:
         response = remove_sse_prefix(response)
         if response == "":
             return response
