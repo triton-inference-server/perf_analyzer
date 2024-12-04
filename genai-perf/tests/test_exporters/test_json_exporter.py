@@ -254,6 +254,8 @@ class TestJsonExporter:
           "tokenizer": "hf-internal-testing/llama-tokenizer",
           "tokenizer_revision": "main",
           "tokenizer_trust_remote_code": false,
+          "turns_per_session_mean": 1,
+          "turns_per_session_stddev": 0,
           "verbose": false,
           "goodput": null,
           "header": null,
