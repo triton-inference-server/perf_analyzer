@@ -641,6 +641,37 @@ def _add_profile_args(parser):
     )
 
 
+def _add_session_args(parser):
+    input_group = parser.add_argument_group("Session")
+
+    input_group.add_argument(
+        "--num-sessions",
+        type=int,
+        default=ic.DEFAULT_NUM_SESSIONS,
+        required=False,
+        help=f"The number of sessions to simulate. "
+        "When this is set to 0, each request is treated as a new session.",
+    )
+
+    input_group.add_argument(
+        "--turns-per-session-mean",
+        type=int,
+        default=ic.DEFAULT_TURNS_PER_SESSION_MEAN,
+        required=False,
+        help=f"The mean number of turns per session."
+        "This is only used when --num-sessions is provided.",
+    )
+
+    input_group.add_argument(
+        "--turns-per-session-stddev",
+        type=int,
+        default=ic.DEFAULT_TURNS_PER_SESSION_STDDEV,
+        required=False,
+        help=f"The standard deviation of the number of turns per session. "
+        "This is only used when --turns-per-session-mean is provided.",
+    )
+
+
 def _add_endpoint_args(parser):
     endpoint_group = parser.add_argument_group("Endpoint")
 
@@ -885,6 +916,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     _add_input_args(profile)
     _add_image_input_args(profile)
     _add_profile_args(profile)
+    _add_session_args(profile)
     _add_output_args(profile)
     _add_other_args(profile)
     profile.set_defaults(func=profile_handler)

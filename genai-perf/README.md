@@ -531,6 +531,26 @@ stable. The measurement is considered as stable if the ratio of max / min from
 the recent 3 measurements is within (stability percentage) in terms of both
 infer per second and latency. (default: `999`)
 
+### Session Options
+
+##### `--num-sessions`
+
+The number of sessions to simulate.
+When this is set to 0, each request is treated as a new session.
+(default: `0`)
+
+##### `--turns-per-session-mean`
+
+The mean number of turns per session.
+This is only used when --num-sessions is provided.
+(default: `1`)
+
+##### `--turns-per-session-stddev`
+
+The standard deviation of the number of turns per session.
+This is only used when --turns-per-session-mean is provided.
+(default: `0`)
+
 ### Output Options
 
 ##### `--artifact-dir`
