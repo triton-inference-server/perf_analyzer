@@ -193,6 +193,7 @@ class TestCLIArguments:
             ),
             (["--num-dataset-entries", "101"], {"num_dataset_entries": 101}),
             (["--num-prompts", "101"], {"num_dataset_entries": 101}),
+            (["--num-sessions", "102"], {"num_sessions": 102}),
             (["--num-prefix-prompts", "101"], {"num_prefix_prompts": 101}),
             (
                 ["--output-tokens-mean", "6"],
@@ -270,6 +271,8 @@ class TestCLIArguments:
             (["--image-format", "png"], {"image_format": ImageFormat.PNG}),
             (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
             (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
+            (["--turns-per-session-mean", "5"], {"turns_per_session_mean": 5}),
+            (["--turns-per-session-stddev", "6"], {"turns_per_session_stddev": 6}),
             (["-v"], {"verbose": True}),
             (["--verbose"], {"verbose": True}),
             (["-u", "test_url"], {"u": "test_url"}),
