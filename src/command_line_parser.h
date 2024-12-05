@@ -159,6 +159,8 @@ struct PerfAnalyzerParameters {
   size_t warmup_request_count{0};
 
   std::vector<float> schedule{};
+  size_t session_concurrency{0};
+  bool is_session_concurrency_mode{false};
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;

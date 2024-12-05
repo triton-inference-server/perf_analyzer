@@ -70,12 +70,12 @@ struct RequestRecord {
       std::vector<RequestInput> request_inputs = {},
       std::vector<ResponseOutput> response_outputs = {},
       bool sequence_end = true, bool delayed = false, uint64_t sequence_id = 0,
-      bool has_null_last_response = false)
+      bool has_null_last_response = false, uint64_t session_id = 0)
       : start_time_(start_time), response_timestamps_(response_timestamps),
         request_inputs_(request_inputs), response_outputs_(response_outputs),
         sequence_end_(sequence_end), delayed_(delayed),
         sequence_id_(sequence_id),
-        has_null_last_response_(has_null_last_response)
+        has_null_last_response_(has_null_last_response), session_id_(session_id)
   {
   }
   // The timestamp of when the request was started.
@@ -94,6 +94,8 @@ struct RequestRecord {
   uint64_t sequence_id_;
   // Whether the last response is null
   bool has_null_last_response_;
+  // Session ID of the request
+  uint64_t session_id_{0};
 };
 
 }}  // namespace triton::perfanalyzer

@@ -194,6 +194,7 @@ set(
   periodic_concurrency_worker.h
   thread_config.h
   cuda_runtime_library_manager.h
+  session_concurrency_manager.h
 )
 
 add_executable(

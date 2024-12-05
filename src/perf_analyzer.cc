@@ -31,6 +31,7 @@
 #include "periodic_concurrency_manager.h"
 #include "report_writer.h"
 #include "request_rate_manager.h"
+#include "session_concurrency_manager.h"
 
 namespace pa = triton::perfanalyzer;
 
@@ -257,6 +258,12 @@ PerfAnalyzer::CreateAnalyzerObjects()
           "failed to create request rate manager");
     }
 
+  } else if (params_->is_session_concurrency_mode) {
+    manager = std::make_unique<pa::SessionConcurrencyManager>(
+        params_->async, params_->streaming, params_->batch_size,
+        params_->max_threads, params_->shared_memory_type,
+        params_->output_shm_size, parser_, factory, params_->request_parameters,
+        params_->session_concurrency);
   } else {
     if ((params_->sequence_id_range != 0) &&
         (params_->sequence_id_range < params_->num_of_sequences)) {
