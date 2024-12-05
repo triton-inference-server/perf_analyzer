@@ -82,6 +82,9 @@ class InputsConfig:
     # The filenames used for synthetic data generation
     synthetic_input_filenames: Optional[List[str]] = field(default_factory=list)
 
+    # The filename where payload input data is available
+    payload_input_filename: Optional[Path] = Path("")
+
     # The compression format of the images.
     image_format: ImageFormat = ImageFormat.PNG
 

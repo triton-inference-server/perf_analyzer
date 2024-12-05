@@ -24,13 +24,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
 from argparse import Namespace
 from typing import List, Optional
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL
-from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON, PromptSource
 from genai_perf.inputs.inputs import OutputFormat
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
@@ -60,6 +61,29 @@ class Profiler:
             cmd += ["--concurrency-range", f"{args.concurrency}"]
         elif args.request_rate:
             cmd += ["--request-rate-range", f"{args.request_rate}"]
+        return cmd
+
+    @staticmethod
+    def add_payload_args(args: Namespace) -> List[str]:
+        cmd = []
+        timings = []
+
+        if args.prompt_source == PromptSource.PAYLOAD:
+            try:
+                with open(args.payload_input_file, "r") as file:
+                    for line in file:
+                        try:
+                            timestamp = float(json.loads(line)["timestamp"])
+                            timings.append(timestamp)
+                        except (KeyError, ValueError) as e:
+                            raise ValueError(
+                                f"Invalid line in payload file: {line.strip()}. Details: {e}"
+                            )
+                cmd += ["--schedule", ",".join(map(str, timings))]
+            except FileNotFoundError:
+                raise FileNotFoundError(
+                    f"Payload input file not found: {args.payload_input_file}"
+                )
         return cmd
 
     @staticmethod
@@ -124,6 +148,7 @@ class Profiler:
         ]
         cmd += Profiler.add_protocol_args(args)
         cmd += Profiler.add_inference_load_args(args)
+        cmd += Profiler.add_payload_args(args)
 
         for arg, value in vars(args).items():
             if arg in skip_args:
