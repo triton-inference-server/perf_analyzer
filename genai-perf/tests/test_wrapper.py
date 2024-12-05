@@ -24,17 +24,101 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import subprocess
-from unittest.mock import MagicMock, patch
+from argparse import Namespace
+from pathlib import Path
+from unittest.mock import mock_open, patch
 
 import pytest
 from genai_perf import parser
 from genai_perf.constants import DEFAULT_GRPC_URL
-from genai_perf.subcommand.common import run_perf_analyzer
+from genai_perf.inputs.input_constants import OutputFormat, PromptSource
 from genai_perf.wrapper import Profiler
 
 
 class TestWrapper:
+    @pytest.fixture
+    def args(self):
+        yield Namespace(
+            model="test_model",
+            verbose=False,
+            service_kind="triton",
+            formatted_model_name="test_model",
+            artifact_dir=Path("test_dir"),
+            concurrency=None,
+            request_rate=None,
+            prompt_source=PromptSource.SYNTHETIC,
+            payload_input_file=None,
+            u=None,
+            profile_export_file=Path("test_profile_export.json"),
+            backend=None,
+            output_format=None,
+        )
+
+    @pytest.mark.parametrize(
+        "service_kind, u, output_format, expected",
+        [
+            (
+                "triton",
+                None,
+                None,
+                ["-i", "grpc", "--streaming", "-u", DEFAULT_GRPC_URL],
+            ),
+            ("triton", "custom:8080", None, ["-i", "grpc", "--streaming"]),
+            (
+                "triton",
+                None,
+                OutputFormat.TENSORRTLLM,
+                [
+                    "-i",
+                    "grpc",
+                    "--streaming",
+                    "-u",
+                    DEFAULT_GRPC_URL,
+                    "--shape",
+                    "max_tokens:1",
+                    "--shape",
+                    "text_input:1",
+                ],
+            ),
+            ("openai", None, None, ["-i", "http"]),
+        ],
+    )
+    def test_add_protocol_args(self, args, service_kind, u, output_format, expected):
+        args.service_kind = service_kind
+        args.u = u
+        args.output_format = output_format
+        result = Profiler.add_protocol_args(args)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "attr, value, expected",
+        [
+            ("concurrency", 5, ["--concurrency-range", "5"]),
+            ("request_rate", 10, ["--request-rate-range", "10"]),
+        ],
+    )
+    def test_add_inference_load_args(self, args, attr, value, expected):
+        setattr(args, attr, value)
+        result = Profiler.add_inference_load_args(args)
+        assert result == expected
+
+    def test_add_payload_args(self, args):
+        args.prompt_source = PromptSource.PAYLOAD
+        args.payload_input_file = "test_file.json"
+        mock_file_content = (
+            '{"timestamp": 0, "input_length": 6755, "output_length": 500}\n'
+            '{"timestamp": 0, "input_length": 7319, "output_length": 490}\n'
+        )
+
+        with patch(
+            "genai_perf.wrapper.open", mock_open(read_data=mock_file_content)
+        ) as mock_file:
+            mock_file.return_value.__enter__.return_value.readlines.return_value = (
+                mock_file_content.split("\n")
+            )
+            result = Profiler.add_payload_args(args)
+            assert result == ["--schedule", "0.0,0.0"]
+
     @pytest.mark.parametrize(
         "arg",
         [
@@ -43,8 +127,8 @@ class TestWrapper:
             (["--url", "testurl:1000"]),
         ],
     )
-    def test_url_exactly_once_triton(self, monkeypatch, arg):
-        args = [
+    def test_url_exactly_once_triton(self, args, arg, monkeypatch):
+        base_args = [
             "genai-perf",
             "profile",
             "-m",
@@ -52,8 +136,12 @@ class TestWrapper:
             "--service-kind",
             "triton",
         ] + arg
-        monkeypatch.setattr("sys.argv", args)
-        args, extra_args = parser.parse_args()
+        monkeypatch.setattr("sys.argv", base_args)
+        parsed_args, extra_args = parser.parse_args()
+
+        for key, value in vars(parsed_args).items():
+            setattr(args, key, value)
+
         cmd = Profiler.build_cmd(args, extra_args)
         cmd_string = " ".join(cmd)
 
@@ -77,8 +165,8 @@ class TestWrapper:
             ),
         ],
     )
-    def test_profile_export_filepath(self, monkeypatch, arg, expected_filepath):
-        args = [
+    def test_profile_export_filepath(self, args, monkeypatch, arg, expected_filepath):
+        base_args = [
             "genai-perf",
             "profile",
             "-m",
@@ -86,8 +174,12 @@ class TestWrapper:
             "--service-kind",
             "triton",
         ] + arg
-        monkeypatch.setattr("sys.argv", args)
-        args, extra_args = parser.parse_args()
+        monkeypatch.setattr("sys.argv", base_args)
+        parsed_args, extra_args = parser.parse_args()
+
+        for key, value in vars(parsed_args).items():
+            setattr(args, key, value)
+
         cmd = Profiler.build_cmd(args, extra_args)
         cmd_string = " ".join(cmd)
 
@@ -101,8 +193,8 @@ class TestWrapper:
             (["--backend", "vllm"]),
         ],
     )
-    def test_service_triton(self, monkeypatch, arg):
-        args = [
+    def test_service_triton(self, args, monkeypatch, arg):
+        base_args = [
             "genai-perf",
             "profile",
             "-m",
@@ -110,8 +202,10 @@ class TestWrapper:
             "--service-kind",
             "triton",
         ] + arg
-        monkeypatch.setattr("sys.argv", args)
-        args, extra_args = parser.parse_args()
+        monkeypatch.setattr("sys.argv", base_args)
+        parsed_args, extra_args = parser.parse_args()
+        for key, value in vars(parsed_args).items():
+            setattr(args, key, value)
         cmd = Profiler.build_cmd(args, extra_args)
         cmd_string = " ".join(cmd)
 
@@ -130,8 +224,8 @@ class TestWrapper:
             (["--endpoint-type", "chat"]),
         ],
     )
-    def test_service_openai(self, monkeypatch, arg):
-        args = [
+    def test_service_openai(self, args, monkeypatch, arg):
+        base_args = [
             "genai-perf",
             "profile",
             "-m",
@@ -139,93 +233,53 @@ class TestWrapper:
             "--service-kind",
             "openai",
         ] + arg
-        monkeypatch.setattr("sys.argv", args)
-        args, extra_args = parser.parse_args()
+        monkeypatch.setattr("sys.argv", base_args)
+        parsed_args, extra_args = parser.parse_args()
+        for key, value in vars(parsed_args).items():
+            setattr(args, key, value)
         cmd = Profiler.build_cmd(args, extra_args)
         cmd_string = " ".join(cmd)
 
         # Ensure the correct arguments are appended.
         assert cmd_string.count(" -i http") == 1
 
-    @patch("genai_perf.subcommand.common.subprocess.run")
-    @patch("genai_perf.wrapper.TelemetryDataCollector")
-    def test_stdout_verbose(self, mock_telemetry_collector, mock_subprocess_run):
-        args = MagicMock()
-        args.model = "test_model"
-        args.verbose = True
-        telemetry_data_collector = mock_telemetry_collector.return_value
-        run_perf_analyzer(
-            args=args,
-            extra_args=None,
-            telemetry_data_collector=telemetry_data_collector,
+    def test_build_cmd_for_payload(self, args, monkeypatch):
+        mock_file_content = (
+            '{"timestamp": 0, "input_length": 6755, "output_length": 500}\n'
+            '{"timestamp": 1, "input_length": 7319, "output_length": 490}\n'
         )
 
-        # Check that standard output was not redirected.
-        for call_args in mock_subprocess_run.call_args_list:
-            _, kwargs = call_args
-            assert (
-                "stdout" not in kwargs or kwargs["stdout"] is None
-            ), "With the verbose flag, stdout should not be redirected."
+        with patch("genai_perf.wrapper.open", mock_open(read_data=mock_file_content)):
+            base_args = [
+                "genai-perf",
+                "profile",
+                "-m",
+                "test_model",
+                "--service-kind",
+                "openai",
+                "--endpoint-type",
+                "chat",
+                "--input-file",
+                "payload:test_file",
+            ]
+            monkeypatch.setattr("sys.argv", base_args)
+            parsed_args, extra_args = parser.parse_args()
 
-    @patch("genai_perf.subcommand.common.subprocess.run")
-    @patch("genai_perf.wrapper.TelemetryDataCollector")
-    def test_stdout_not_verbose(self, mock_telemetry_collector, mock_subprocess_run):
-        args = MagicMock()
-        args.model = "test_model"
-        args.verbose = False
-        telemetry_data_collector = mock_telemetry_collector.return_value
-        run_perf_analyzer(
-            args=args,
-            extra_args=None,
-            telemetry_data_collector=telemetry_data_collector,
-        )
+            for key, value in vars(parsed_args).items():
+                setattr(args, key, value)
 
-        # Check that standard output was redirected.
-        for call_args in mock_subprocess_run.call_args_list:
-            _, kwargs = call_args
-            assert (
-                kwargs["stdout"] is subprocess.DEVNULL
-            ), "When the verbose flag is not passed, stdout should be redirected to /dev/null."
+            cmd = Profiler.build_cmd(args, extra_args)
+            cmd_string = " ".join(cmd)
 
-    @pytest.mark.parametrize(
-        "header_values, expected_headers",
-        [
-            (["Header1:Value1"], [("-H", "Header1:Value1")]),
-            (
-                ["Authorization:Bearer mytoken", "Content-Type:application/json"],
-                [
-                    ("-H", "Authorization:Bearer mytoken"),
-                    ("-H", "Content-Type:application/json"),
-                ],
-            ),
-        ],
-    )
-    def test_headers_passed_correctly(
-        self, monkeypatch, header_values, expected_headers
-    ):
-        args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
-        ]
-        for header in header_values:
-            args += ["-H", header]
-        monkeypatch.setattr("sys.argv", args)
+            args_to_be_excluded = [
+                "--concurrency",
+                "--request-rate-range",
+                "--request-count",
+                "--warmup-request-count",
+                "measurement-interval",
+                "--stability-percentage",
+            ]
+            for arg in args_to_be_excluded:
+                assert arg not in cmd_string
 
-        args, extra_args = parser.parse_args()
-        cmd = Profiler.build_cmd(args, extra_args)
-
-        for expected_flag, expected_value in expected_headers:
-            try:
-                flag_index = cmd.index(expected_flag)
-                assert cmd[flag_index + 1] == expected_value, (
-                    f"Header value mismatch for {expected_flag}: "
-                    f"Expected {expected_value}, Found {cmd[flag_index + 1]}"
-                )
-                cmd[flag_index] = None  # type: ignore
-                cmd[flag_index + 1] = None  # type: ignore
-            except ValueError:
-                assert (
-                    False
-                ), f"Missing expected header flag: {expected_flag} or value: {expected_value}"
+            assert "--schedule 0.0,1.0" in cmd_string

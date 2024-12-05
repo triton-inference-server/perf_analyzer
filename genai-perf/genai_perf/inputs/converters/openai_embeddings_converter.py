@@ -53,7 +53,13 @@ class OpenAIEmbeddingsConverter(BaseConverter):
                     "model": model_name,
                     "input": row.texts,
                 }
+
                 self._add_request_params(payload, config)
-                request_body["data"].append({"payload": [payload]})
+                self._add_payload_params(payload, row.optional_data)
+                record: Dict[str, Any] = {"payload": [payload]}
+                if row.timestamp:
+                    record["timestamp"] = [row.timestamp]
+
+                request_body["data"].append(record)
 
         return request_body

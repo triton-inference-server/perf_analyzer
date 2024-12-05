@@ -80,7 +80,12 @@ class RankingsConverter(BaseConverter):
                 }
 
             self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+            self._add_payload_params(payload, passage_entry.optional_data)
+            record: Dict[str, Any] = {"payload": [payload]}
+            if passage_entry.timestamp:
+                record["timestamp"] = [passage_entry.timestamp]
+
+            request_body["data"].append(record)
 
         return request_body
 

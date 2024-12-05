@@ -62,7 +62,11 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 payload = self._create_payload(index, row, config)
-                request_body["data"].append({"payload": [payload]})
+                record: Dict[str, Any] = {"payload": [payload]}
+                if row.timestamp:
+                    record["timestamp"] = [row.timestamp]
+
+                request_body["data"].append(record)
 
         return request_body
 
@@ -83,6 +87,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         }
 
         self._add_request_params(payload, config)
+        self._add_payload_params(payload, row.optional_data)
         return payload
 
     def _retrieve_content(

@@ -56,6 +56,11 @@ class ImageRetrievalConverter(BaseConverter):
                 payload = {
                     "input": [{"type": "image_url", "url": img} for img in row.images]
                 }
-                request_body["data"].append({"payload": [payload]})
+                self._add_payload_params(payload, row.optional_data)
+                record: Dict[str, Any] = {"payload": [payload]}
+                if row.timestamp:
+                    record["timestamp"] = [row.timestamp]
+
+                request_body["data"].append(record)
 
         return request_body
