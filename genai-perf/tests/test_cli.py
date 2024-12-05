@@ -493,6 +493,45 @@ class TestCLIArguments:
         "args, expected_output",
         [
             (
+                ["genai-perf",
+                 "profile",
+                 "-m",
+                 "test_model",
+                 "--endpoint-type",
+                 "chat",
+                 "--service-kind",
+                 "triton",
+                 ],
+                "Invalid service-kind triton for endpoint-type chat. service-kind is now inferred from endpoint-type and the argument will be removed in a future release."
+            ),
+
+            (
+                ["genai-perf",
+                 "profile",
+                 "-m",
+                 "test_model",
+                 "--endpoint-type",
+                 "kserve",
+                 "--service-kind",
+                 "openai",
+                 ],
+                "Invalid service-kind openai for endpoint-type kserve. service-kind is now inferred from endpoint-type and the argument will be removed in a future release."
+            ),
+
+            (
+                ["genai-perf",
+                 "profile",
+                 "-m",
+                 "test_model",
+                 "--endpoint-type",
+                 "tensorrtllm_engine",
+                 "--service-kind",
+                 "openai",
+                 ],
+                "Invalid service-kind openai for endpoint-type tensorrtllm_engine. service-kind is now inferred from endpoint-type and the argument will be removed in a future release."
+            ),
+            
+            (
                 [
                     "genai-perf",
                     "profile",

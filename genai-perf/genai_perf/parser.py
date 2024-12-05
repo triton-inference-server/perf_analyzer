@@ -166,6 +166,9 @@ def _check_conditional_args(
 
     endpoint_config = _endpoint_type_map[args.endpoint_type]
     args.output_format = endpoint_config.output_format
+    if args.service_kind is not None and args.service_kind != endpoint_config.service_kind:
+        parser.error(f"Invalid service-kind {args.service_kind} for endpoint-type {args.endpoint_type}. service-kind is now inferred from endpoint-type and the argument will be removed in a future release.")
+        return
     args.service_kind = endpoint_config.service_kind
 
     if args.endpoint is not None:
@@ -501,7 +504,7 @@ def _add_input_args(parser):
         help=f"When using --output-tokens-mean, this flag can be set to "
         "improve precision by setting the minimum number of tokens "
         "equal to the requested number of tokens. This is currently "
-        "supported with the Triton service-kind. "
+        "supported with the 'kserve' endpoint-type. "
         "Note that there is still some variability in the requested number "
         "of output tokens, but GenAi-Perf attempts its best effort with your "
         "model to get the right number of output tokens. ",
@@ -699,16 +702,14 @@ def _add_endpoint_args(parser):
         help=f"The endpoint-type for requests. Inputs will be formatted and outputs processed according to endpoint-type.",
     )
 
-    # endpoint_group.add_argument(
-    #     "--service-kind",
-    #     type=str,
-    #     choices=["triton", "openai", "tensorrtllm_engine"],
-    #     default="triton",
-    #     required=False,
-    #     help="The kind of service perf_analyzer will "
-    #     'generate load for. In order to use "openai", '
-    #     "you must specify an api via --endpoint-type.",
-    # )
+    endpoint_group.add_argument(
+        "--service-kind",
+        type=str,
+        choices=["triton", "openai", "tensorrtllm_engine"],
+        required=False,
+        help="The kind of service perf_analyzer will "
+        "generate load for. This argument is deprecated and the service kind is inferred from endpoint-type",
+    )
 
     endpoint_group.add_argument(
         "--server-metrics-url",
