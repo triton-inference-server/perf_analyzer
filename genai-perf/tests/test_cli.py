@@ -844,7 +844,7 @@ class TestCLIArguments:
         assert str(exc_info.value) == expected_error
 
     @pytest.mark.parametrize(
-        "args, expected_prompt_source, expected_payload_input_file, expect_error",
+        "args, expected_prompt_source, expected_input_file, expect_error",
         [
             ([], PromptSource.SYNTHETIC, None, False),
             (["--input-file", "prompt.txt"], PromptSource.FILE, None, False),
@@ -855,14 +855,14 @@ class TestCLIArguments:
                 False,
             ),
             (
-                ["--input-file", "payload:test.jsonl"],
+                ["--input-file", "payload:test"],
                 PromptSource.PAYLOAD,
-                ["test.jsonl"],
+                Path("test.jsonl"),
                 False,
             ),
             (["--input-file", "payload:"], PromptSource.PAYLOAD, [], True),
             (
-                ["--input-file", "synthetic:test.jsonl"],
+                ["--input-file", "synthetic:test"],
                 PromptSource.SYNTHETIC,
                 None,
                 False,
@@ -876,7 +876,7 @@ class TestCLIArguments:
         mocker,
         args,
         expected_prompt_source,
-        expected_payload_input_file,
+        expected_input_file,
         expect_error,
     ):
         mocker.patch.object(Path, "is_file", return_value=True)
@@ -891,8 +891,8 @@ class TestCLIArguments:
 
             assert args.prompt_source == expected_prompt_source
 
-            if expected_payload_input_file is not None:
-                assert args.payload_input_file == expected_payload_input_file
+            if expected_input_file is not None:
+                assert args.payload_input_file == expected_input_file
 
     @pytest.mark.parametrize(
         "args",

@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
 from genai_perf import parser
@@ -229,3 +229,44 @@ class TestWrapper:
                 assert (
                     False
                 ), f"Missing expected header flag: {expected_flag} or value: {expected_value}"
+
+    def test_build_cmd_for_payload(self, monkeypatch):
+        mock_file_content = (
+            '{"timestamp": 0, "input_length": 6755, "output_length": 500}\n'
+            '{"timestamp": 1, "input_length": 7319, "output_length": 490}\n'
+        )
+        args = MagicMock()
+
+        with patch("genai_perf.wrapper.open", mock_open(read_data=mock_file_content)):
+            base_args = [
+                "genai-perf",
+                "profile",
+                "-m",
+                "test_model",
+                "--service-kind",
+                "openai",
+                "--endpoint-type",
+                "chat",
+                "--input-file",
+                "payload:test_file",
+            ]
+            monkeypatch.setattr("sys.argv", base_args)
+            parsed_args, extra_args = parser.parse_args()
+            for key, value in vars(parsed_args).items():
+                setattr(args, key, value)
+
+            cmd = Profiler.build_cmd(args, extra_args)
+            cmd_string = " ".join(cmd)
+
+            args_to_be_excluded = [
+                "--concurrency",
+                "--request-rate-range",
+                "--request-count",
+                "--warmup-request-count",
+                "measurement-interval",
+                "--stability-percentage",
+            ]
+            for arg in args_to_be_excluded:
+                assert arg not in cmd_string
+
+            assert "--schedule 0.0,1.0" in cmd_string
