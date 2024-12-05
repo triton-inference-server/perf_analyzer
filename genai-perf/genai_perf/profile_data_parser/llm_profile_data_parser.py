@@ -209,10 +209,10 @@ class LLMProfileDataParser(ProfileDataParser):
                         is None
                     ):
                         merged_response["choices"][0]["delta"]["content"] = ""
-                elif (self._response_format == ResponseFormat.TRITON_GENERATE) and (
-                    "text_output" not in merged_response
-                ):
-                    merged_response["text_output"] = ""
+                    elif (self._response_format == ResponseFormat.TRITON_GENERATE) and (
+                        "text_output" not in merged_response
+                    ):
+                        merged_response["text_output"] = ""
 
                 for r in responses[1:]:
                     if self._response_format == ResponseFormat.TRITON_GENERATE:
@@ -250,7 +250,7 @@ class LLMProfileDataParser(ProfileDataParser):
         """Tokenize the request input texts."""
         payload = load_json_str(req_inputs["payload"])
         if self._response_format == ResponseFormat.TRITON_GENERATE:
-            return payload["text_input"]
+            return " ".join(payload["text_input"])
         elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
             return payload["messages"][0]["content"]
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:

@@ -93,7 +93,7 @@ _endpoint_type_map = {
         "v2/models/{MODEL_NAME}/generate", "openai", ic.OutputFormat.TRITON_GENERATE
     ),
     "kserve": EndpointConfig("v2/models/{MODEL_NAME}/infer", "triton", None),
-    "inproc-tensorrtllm": EndpointConfig(
+    "tensorrtllm_engine": EndpointConfig(
         "", "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
     ),
 }
@@ -183,7 +183,7 @@ def _check_conditional_args(
     else:
         if args.backend is not ic.DEFAULT_BACKEND:
             parser.error(
-                "The --backend option should only be used when using the 'triton' service-kind."
+                "The --backend option should only be used when using the 'kserve' endpoint-type."
             )
 
     if args.service_kind == "tensorrtllm_engine":
@@ -204,7 +204,7 @@ def _check_conditional_args(
         if args.output_tokens_mean_deterministic:
             parser.error(
                 "The --output-tokens-mean-deterministic option is only supported "
-                "with the Triton and TensorRT-LLM Engine service-kind."
+                "with the 'kserve' and 'tensorrtllm_engine' endpoint-types."
             )
 
     if args.output_format in [

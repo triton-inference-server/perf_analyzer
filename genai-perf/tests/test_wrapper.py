@@ -48,8 +48,8 @@ class TestWrapper:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "triton",
+            "--endpoint-type",
+            "kserve",
         ] + arg
         monkeypatch.setattr("sys.argv", args)
         args, extra_args = parser.parse_args()
@@ -82,8 +82,8 @@ class TestWrapper:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "triton",
+            "--endpoint-type",
+            "kserve",
         ] + arg
         monkeypatch.setattr("sys.argv", args)
         args, extra_args = parser.parse_args()
@@ -106,8 +106,8 @@ class TestWrapper:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "triton",
+            "--endpoint-type",
+            "kserve",
         ] + arg
         monkeypatch.setattr("sys.argv", args)
         args, extra_args = parser.parse_args()
@@ -135,8 +135,6 @@ class TestWrapper:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "openai",
         ] + arg
         monkeypatch.setattr("sys.argv", args)
         args, extra_args = parser.parse_args()
