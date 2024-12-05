@@ -53,6 +53,30 @@ class TestVLLMConverter:
             }
         )
 
+    @staticmethod
+    def create_generic_dataset_with_payload_parameters():
+        optional_data_1 = {"timestamp": "0", "session_id": "abcd"}
+        optional_data_2 = {
+            "timestamp": "2345",
+            "session_id": "dfwe",
+            "input_length": "6755",
+            "output_length": "500",
+        }
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    rows=[
+                        DataRow(
+                            texts=["text input one"], optional_data=optional_data_1
+                        ),
+                        DataRow(
+                            texts=["text input two"], optional_data=optional_data_2
+                        ),
+                    ],
+                )
+            }
+        )
+
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
@@ -204,4 +228,41 @@ class TestVLLMConverter:
         result = vllm_converter.convert(generic_dataset, config)
 
         expected_result = {"data": []}
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self):
+        generic_dataset = self.create_generic_dataset_with_payload_parameters()
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.VLLM,
+            tokenizer=get_empty_tokenizer(),
+        )
+
+        vllm_converter = VLLMConverter()
+        result = vllm_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "model": "test_model",
+                    "text_input": ["text input one"],
+                    "exclude_input_in_output": [True],
+                    "timestamp": "0",
+                    "session_id": "abcd",
+                },
+                {
+                    "model": "test_model",
+                    "text_input": ["text input two"],
+                    "exclude_input_in_output": [True],
+                    "timestamp": "2345",
+                    "session_id": "dfwe",
+                    "input_length": "6755",
+                    "output_length": "500",
+                },
+            ]
+        }
+
         assert result == expected_result
