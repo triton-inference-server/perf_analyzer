@@ -31,8 +31,9 @@ from typing import Dict, List, Tuple, cast
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
-from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
+from genai_perf.inputs.retrievers.base_file_input_retriever import (
+    BaseFileInputRetriever,
+)
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -43,7 +44,7 @@ from genai_perf.utils import load_json_str
 from PIL import Image
 
 
-class FileInputRetriever(BaseInputRetriever):
+class FileInputRetriever(BaseFileInputRetriever):
     """
     A input retriever class that handles input data provided by the user through
     file and directories.
@@ -116,23 +117,6 @@ class FileInputRetriever(BaseInputRetriever):
         self._verify_file(filename)
         prompts, images = self._get_content_from_input_file(filename)
         return self._convert_content_to_data_file(prompts, images, filename)
-
-    def _verify_file(self, filename: Path) -> None:
-        """
-        Verifies that the file exists.
-
-        Args
-        ----------
-        filename : Path
-            The file path to verify.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the file does not exist.
-        """
-        if not filename.exists():
-            raise FileNotFoundError(f"The file '{filename}' does not exist.")
 
     def _get_content_from_input_file(
         self, filename: Path
