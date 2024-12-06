@@ -27,6 +27,7 @@
 import argparse
 import os
 import sys
+from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 from typing import Optional, Tuple
@@ -41,7 +42,6 @@ from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
-from dataclasses import dataclass
 
 from . import __version__
 
@@ -82,19 +82,24 @@ _endpoint_type_map = {
     "embeddings": EndpointConfig(
         "v1/embeddings", "openai", ic.OutputFormat.OPENAI_EMBEDDINGS
     ),
-    "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    "vision": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
-    ),
     "image_retrieval": EndpointConfig(
         "v1/infer", "openai", ic.OutputFormat.IMAGE_RETRIEVAL
+    ),
+    "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
+    "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
+    # (TMA-1986) deduce vision format from chat completions + image CLI
+    # because there's no openai vision endpoint.
+    "vision": EndpointConfig(
+        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
     ),
     "generate": EndpointConfig(
         "v2/models/{MODEL_NAME}/generate", "openai", ic.OutputFormat.TRITON_GENERATE
     ),
-    "kserve": EndpointConfig("v2/models/{MODEL_NAME}/infer", "triton", None),
+    "kserve": EndpointConfig(
+        "v2/models/{MODEL_NAME}/infer", "triton", ic.OutputFormat.TENSORRTLLM
+    ),
     "tensorrtllm_engine": EndpointConfig(
-        "", "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
+        "tensorrtllm_engine", "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
     ),
 }
 
@@ -162,14 +167,16 @@ def _check_conditional_args(
 
     if args.endpoint_type not in _endpoint_type_map:
         parser.error(f"Invalid endpoint type {args.endpoint_type}")
-        return
 
     endpoint_config = _endpoint_type_map[args.endpoint_type]
     args.output_format = endpoint_config.output_format
-    if args.service_kind is not None and args.service_kind != endpoint_config.service_kind:
-        parser.error(f"Invalid service-kind {args.service_kind} for endpoint-type {args.endpoint_type}. service-kind is now inferred from endpoint-type and the argument will be removed in a future release.")
-        return
-    args.service_kind = endpoint_config.service_kind
+
+    # Endpoint and output format checks
+    if args.service_kind == "openai":
+        if args.endpoint_type is None:
+            parser.error(
+                "The --endpoint-type option is required when using the 'openai' service-kind."
+            )
 
     if args.endpoint is not None:
         args.endpoint = args.endpoint.lstrip(" /")
@@ -180,14 +187,18 @@ def _check_conditional_args(
             model_name = ""
         args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
 
-    if args.service_kind == "triton":
+    if args.service_kind == "triton" and args.endpoint_type == "kserve":
         args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
         args.output_format = args.backend
     else:
         if args.backend is not ic.DEFAULT_BACKEND:
             parser.error(
-                "The --backend option should only be used when using the 'kserve' endpoint-type."
+                "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type."
             )
+
+    if args.service_kind == "triton" and args.endpoint_type == "generate":
+        # TODO: infer service_kind from endpoint_type and deprecate service_kind argument
+        args.service_kind = "openai"
 
     if args.service_kind == "tensorrtllm_engine":
         args.output_format = ic.OutputFormat.TENSORRTLLM_ENGINE
@@ -207,7 +218,7 @@ def _check_conditional_args(
         if args.output_tokens_mean_deterministic:
             parser.error(
                 "The --output-tokens-mean-deterministic option is only supported "
-                "with the 'kserve' and 'tensorrtllm_engine' endpoint-types."
+                "with the Triton and TensorRT-LLM Engine service-kind."
             )
 
     if args.output_format in [
@@ -504,7 +515,7 @@ def _add_input_args(parser):
         help=f"When using --output-tokens-mean, this flag can be set to "
         "improve precision by setting the minimum number of tokens "
         "equal to the requested number of tokens. This is currently "
-        "supported with the 'kserve' endpoint-type. "
+        "supported with the Triton service-kind. "
         "Note that there is still some variability in the requested number "
         "of output tokens, but GenAi-Perf attempts its best effort with your "
         "model to get the right number of output tokens. ",
@@ -676,10 +687,10 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--backend",
         type=str,
-        choices=["vllm", "tensorrtllm"],
+        choices=utils.get_enum_names(ic.OutputFormat)[0:2],
         default=ic.DEFAULT_BACKEND,
         required=False,
-        help=f'When using the "kserve" endpoint, '
+        help=f'When using the "triton" service-kind, '
         "this is the backend of the model. "
         "For the TENSORRT-LLM backend, you currently must set "
         "'exclude_input_in_output' to true in the model config to "
@@ -690,25 +701,27 @@ def _add_endpoint_args(parser):
         "--endpoint",
         type=str,
         required=False,
-        help=f"Set a custom endpoint that differs from defaults.",
+        help=f"Set a custom endpoint that differs from the OpenAI defaults.",
     )
 
     endpoint_group.add_argument(
         "--endpoint-type",
         type=str,
         choices=list(_endpoint_type_map.keys()),
-        required=False,
         default="kserve",
-        help=f"The endpoint-type for requests. Inputs will be formatted and outputs processed according to endpoint-type.",
+        required=False,
+        help=f"The endpoint-type to send requests to on the " "server.",
     )
 
     endpoint_group.add_argument(
         "--service-kind",
         type=str,
         choices=["triton", "openai", "tensorrtllm_engine"],
+        default="triton",
         required=False,
         help="The kind of service perf_analyzer will "
-        "generate load for. This argument is deprecated and the service kind is inferred from endpoint-type",
+        'generate load for. In order to use "openai", '
+        "you must specify an api via --endpoint-type.",
     )
 
     endpoint_group.add_argument(
