@@ -24,7 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import csv
+import os
 from argparse import Namespace
+from csv import writer
 from typing import List, Tuple
 
 import genai_perf.logging as logging
@@ -38,6 +41,19 @@ from genai_perf.config.run.run_config import RunConfig
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
+from genai_perf.record.types.energy_consumption_p99 import GpuEnergyConsumptionP99
+from genai_perf.record.types.gpu_memory_used_p99 import GpuMemoryUsedP99
+from genai_perf.record.types.gpu_power_limit_avg import GPUPowerLimitAvg
+from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
+from genai_perf.record.types.gpu_utilization_p99 import GPUUtilizationP99
+from genai_perf.record.types.input_sequence_length_p99 import InputSequenceLengthP99
+from genai_perf.record.types.inter_token_latency_p99 import InterTokenLatencyP99
+from genai_perf.record.types.output_sequence_length_p99 import OutputSequenceLengthP99
+from genai_perf.record.types.output_token_throughput_avg import OutputTokenThroughputAvg
+from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
+from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
+from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
 from genai_perf.subcommand.common import (
     calculate_metrics,
     create_artifacts_dirs,
@@ -52,6 +68,9 @@ from genai_perf.types import GpuRecords, ModelObjectiveParameters
 logger = logging.getLogger(__name__)
 
 
+###########################################################################
+# Analyze Handler
+###########################################################################
 def analyze_handler(args: Namespace) -> None:
     """
     Handles `analyze` subcommand workflow
@@ -61,10 +80,49 @@ def analyze_handler(args: Namespace) -> None:
     analyze.report()
 
 
+###########################################################################
+# Analyze Class
+###########################################################################
 class Analyze:
     """
     Contains all the methods needed to run the analyze subcommand
     """
+
+    PERF_METRICS_HEADER = [
+        TimeToFirstTokenP99.header(),
+        InterTokenLatencyP99.header(),
+        RequestLatencyP99.header(),
+        OutputSequenceLengthP99.header(),
+        OutputTokenThroughputAvg.header(),
+        RequestThroughputAvg.header(),
+    ]
+    PERF_METRICS_TAGS = [
+        TimeToFirstTokenP99.tag,
+        InterTokenLatencyP99.tag,
+        RequestLatencyP99.tag,
+        OutputSequenceLengthP99.tag,
+        OutputTokenThroughputAvg.tag,
+        RequestThroughputAvg.tag,
+    ]
+
+    GPU_METRICS_HEADER = [
+        "Config Name",
+        "GPU",
+        GPUPowerUsageP99.header(),
+        GpuEnergyConsumptionP99.header(),
+        GPUUtilizationP99.header(),
+        GpuMemoryUsedP99.header(),
+        GPUPowerLimitAvg.header(),
+        GPUTotalMemoryAvg.header(),
+    ]
+    GPU_METRICS_TAGS = [
+        GPUPowerUsageP99.tag,
+        GpuEnergyConsumptionP99.tag,
+        GPUUtilizationP99.tag,
+        GpuMemoryUsedP99.tag,
+        GPUPowerLimitAvg.tag,
+        GPUTotalMemoryAvg.tag,
+    ]
 
     def __init__(self, args: Namespace) -> None:
         self._args = args
@@ -82,6 +140,21 @@ class Analyze:
         self._checkpoint = Checkpoint(self._config)
         self._results = self._checkpoint.results
 
+    def _setup_config(self, args: Namespace) -> ConfigCommand:
+        config = ConfigCommand(model_names=args.model)
+
+        if args.sweep_list:
+            config.analyze.sweep_parameters = {args.sweep_type: args.sweep_list}
+        else:
+            config.analyze.sweep_parameters = {
+                args.sweep_type: Range(min=args.sweep_min, max=args.sweep_max)
+            }
+
+        return config
+
+    ###########################################################################
+    # Sweep Methods
+    ###########################################################################
     def sweep(self) -> None:
         """
         Sweeps over the objectives
@@ -191,76 +264,13 @@ class Analyze:
                     f"{run_config_name}:{objective}{value} found in checkpoint - skipping profiling..."
                 )
 
+    ###########################################################################
+    # Report Methods
+    ###########################################################################
     def report(self) -> None:
         """
         Creates a CSV report based on checkpointed results
         """
-        import csv
-        import os
-
-        from genai_perf.record.types.energy_consumption_p99 import (
-            GpuEnergyConsumptionP99,
-        )
-        from genai_perf.record.types.gpu_memory_used_p99 import GpuMemoryUsedP99
-        from genai_perf.record.types.gpu_power_limit_avg import GPUPowerLimitAvg
-        from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
-        from genai_perf.record.types.gpu_utilization_p99 import GPUUtilizationP99
-        from genai_perf.record.types.input_sequence_length_p99 import (
-            InputSequenceLengthP99,
-        )
-        from genai_perf.record.types.inter_token_latency_p99 import InterTokenLatencyP99
-        from genai_perf.record.types.output_sequence_length_p99 import (
-            OutputSequenceLengthP99,
-        )
-        from genai_perf.record.types.output_token_throughput_avg import (
-            OutputTokenThroughputAvg,
-        )
-        from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
-        from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
-        from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
-        from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
-
-        infer_type = self._determine_infer_type()
-        infer_header = "Concurrency" if infer_type == "concurrency" else "Request Rate"
-
-        STIMULUS_HEADER = ["Config Name", infer_header, "ISL", "Num Prompts"]
-
-        PERF_METRICS_HEADER = [
-            TimeToFirstTokenP99.header(),
-            InterTokenLatencyP99.header(),
-            RequestLatencyP99.header(),
-            OutputSequenceLengthP99.header(),
-            OutputTokenThroughputAvg.header(),
-            RequestThroughputAvg.header(),
-        ]
-        PERF_METRICS_TAGS = [
-            TimeToFirstTokenP99.tag,
-            InterTokenLatencyP99.tag,
-            RequestLatencyP99.tag,
-            OutputSequenceLengthP99.tag,
-            OutputTokenThroughputAvg.tag,
-            RequestThroughputAvg.tag,
-        ]
-
-        GPU_METRICS_HEADER = [
-            "Config Name",
-            "GPU",
-            GPUPowerUsageP99.header(),
-            GpuEnergyConsumptionP99.header(),
-            GPUUtilizationP99.header(),
-            GpuMemoryUsedP99.header(),
-            GPUPowerLimitAvg.header(),
-            GPUTotalMemoryAvg.header(),
-        ]
-        GPU_METRICS_TAGS = [
-            GPUPowerUsageP99.tag,
-            GpuEnergyConsumptionP99.tag,
-            GPUUtilizationP99.tag,
-            GpuMemoryUsedP99.tag,
-            GPUPowerLimitAvg.tag,
-            GPUTotalMemoryAvg.tag,
-        ]
-
         filename = os.getcwd() + "/analyze_export_genai_perf.csv"
         logger.info(f"Generating {filename}")
 
@@ -269,71 +279,85 @@ class Analyze:
 
             #
             # Perf Metrics
-            csv_writer.writerow(STIMULUS_HEADER + PERF_METRICS_HEADER)
-            for run_config in self._results.run_configs:
-                #
-                # Stimulus
-                pa_cmd = run_config.perf_analyzer_config.create_command()
-                infer_option = (
-                    "--concurrency-range"
-                    if infer_type == "concurrency"
-                    else "--request-rate-range"
-                )
-                infer_index = pa_cmd.index(infer_option) + 1
-                infer_value = int(pa_cmd[infer_index])
-
-                isl = int(
-                    run_config.get_model_perf_metric_value(
-                        self._model_name, InputSequenceLengthP99.tag
-                    )
-                )
-                num_prompts = run_config.genai_perf_config.input.num_prompts
-
-                metrics = []
-                for tag in PERF_METRICS_TAGS:
-                    metric = run_config.get_model_perf_metric_value(
-                        self._model_name, tag
-                    )
-                    metrics.append(f"{metric:.2f}")
-
-                row = [run_config.name, infer_value, isl, num_prompts] + metrics
-                csv_writer.writerow(row)
-
+            self._write_perf_metrics_header(csv_writer)
+            self._write_perf_metrics_body(csv_writer)
             csv_writer.writerow("")
 
             #
             # GPU Metrics
-            gpu_power_usage = self._results.run_configs[0].get_gpu_metric(
-                GPUPowerUsageP99.tag
+            self._write_gpu_metrics_header(csv_writer)
+            self._write_gpu_metrics_body(csv_writer)
+
+    ###########################################################################
+    # Report - Perf Metrics Methods
+    ###########################################################################
+    def _create_stimulus_header(self) -> List[str]:
+        infer_type = self._determine_infer_type()
+        infer_header = "Concurrency" if infer_type == "concurrency" else "Request Rate"
+
+        stimulus_header = ["Config Name", infer_header, "ISL", "Num Prompts"]
+
+        return stimulus_header
+
+    def _write_perf_metrics_header(self, csv_writer) -> None:
+        stimulus_header = self._create_stimulus_header()
+        csv_writer.writerow(stimulus_header + Analyze.PERF_METRICS_HEADER)
+
+    def _write_perf_metrics_body(self, csv_writer) -> None:
+        for run_config in self._results.run_configs:
+            #
+            # Stimulus
+            infer_value = run_config.perf_analyzer_config.get_inference_value()
+
+            isl = int(
+                run_config.get_model_perf_metric_value(
+                    self._model_name, InputSequenceLengthP99.tag
+                )
             )
-            gpus = []
-            if gpu_power_usage:
-                gpus = list(gpu_power_usage.keys())
+            num_prompts = run_config.genai_perf_config.input.num_prompts
 
-            csv_writer.writerow(GPU_METRICS_HEADER)
-            for gpu in gpus:
-                for run_config in self._results.run_configs:
-                    gpu_metrics = []
-                    for tag in GPU_METRICS_TAGS:
-                        gpu_metric = run_config.get_gpu_metric_value(gpu, tag)
-                        gpu_metrics.append(f"{gpu_metric:.2f}")
+            metrics = []
+            for tag in Analyze.PERF_METRICS_TAGS:
+                metric = run_config.get_model_perf_metric_value(self._model_name, tag)
+                metrics.append(f"{metric:.2f}")
 
-                    row = [run_config.name, gpu]
-                    row.extend(gpu_metrics)
-                    csv_writer.writerow(row)
+            row = [run_config.name, infer_value, isl, num_prompts] + metrics
+            csv_writer.writerow(row)
 
-    def _setup_config(self, args: Namespace) -> ConfigCommand:
-        config = ConfigCommand(model_names=args.model)
+    ###########################################################################
+    # Report - GPU Metrics Methods
+    ###########################################################################
+    def _write_gpu_metrics_header(self, csv_writer) -> None:
+        csv_writer.writerow(Analyze.GPU_METRICS_HEADER)
 
-        if args.sweep_list:
-            config.analyze.sweep_parameters = {args.sweep_type: args.sweep_list}
-        else:
-            config.analyze.sweep_parameters = {
-                args.sweep_type: Range(min=args.sweep_min, max=args.sweep_max)
-            }
+    def _write_gpu_metrics_body(self, csv_writer) -> None:
+        gpus = self._get_list_of_gpus()
 
-        return config
+        for gpu in gpus:
+            for run_config in self._results.run_configs:
+                gpu_metrics = []
+                for tag in Analyze.GPU_METRICS_TAGS:
+                    gpu_metric = run_config.get_gpu_metric_value(gpu, tag)
+                    gpu_metrics.append(f"{gpu_metric:.2f}")
 
+                row = [run_config.name, gpu]
+                row.extend(gpu_metrics)
+                csv_writer.writerow(row)
+
+    def _get_list_of_gpus(self) -> List[str]:
+        gpu_power_usage = self._results.run_configs[0].get_gpu_metric(
+            GPUPowerUsageP99.tag
+        )
+
+        gpus = []
+        if gpu_power_usage:
+            gpus = list(gpu_power_usage.keys())
+
+        return gpus
+
+    ###########################################################################
+    # Inference Determination Methods
+    ###########################################################################
     def _determine_infer_mode_and_load_level(
         self, args: Namespace, objectives: ModelObjectiveParameters, model_name: str
     ) -> Tuple[str, str]:
