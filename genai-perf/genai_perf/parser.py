@@ -165,18 +165,25 @@ def _check_conditional_args(
     Check for conditional args and raise an error if they are not set.
     """
 
-    if args.endpoint_type not in _endpoint_type_map:
-        parser.error(f"Invalid endpoint type {args.endpoint_type}")
-
-    endpoint_config = _endpoint_type_map[args.endpoint_type]
-    args.output_format = endpoint_config.output_format
-
     # Endpoint and output format checks
     if args.service_kind == "openai":
+        print(args.endpoint_type)
         if args.endpoint_type is None:
             parser.error(
                 "The --endpoint-type option is required when using the 'openai' service-kind."
             )
+
+    if args.service_kind == "triton" and args.endpoint_type is None:
+        args.endpoint_type = "kserve"
+
+    if args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
+        args.endpoint_type = "tensorrtllm_engine"
+
+    if args.endpoint_type and args.endpoint_type not in _endpoint_type_map:
+        parser.error(f"Invalid endpoint type {args.endpoint_type}")
+
+    endpoint_config = _endpoint_type_map[args.endpoint_type]
+    args.output_format = endpoint_config.output_format
 
     if args.endpoint is not None:
         args.endpoint = args.endpoint.lstrip(" /")
@@ -708,7 +715,6 @@ def _add_endpoint_args(parser):
         "--endpoint-type",
         type=str,
         choices=list(_endpoint_type_map.keys()),
-        default="kserve",
         required=False,
         help=f"The endpoint-type to send requests to on the " "server.",
     )
