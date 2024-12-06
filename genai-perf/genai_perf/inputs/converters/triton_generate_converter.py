@@ -26,13 +26,13 @@
 
 import random
 from copy import deepcopy
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from genai_perf.inputs.converters.base_converter import BaseConverter
+from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.utils import sample_bounded_normal
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 
 
 class TritonGenerateConverter(BaseConverter):
