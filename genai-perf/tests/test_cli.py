@@ -672,6 +672,38 @@ class TestCLIArguments:
                 ],
                 "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type.",
             ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'rankings' for service-kind 'triton'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "tensorrtllm_engine",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'rankings' for service-kind 'tensorrtllm_engine'.",
+            ),
+
+
         ],
     )
     def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):

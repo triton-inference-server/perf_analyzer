@@ -175,8 +175,18 @@ def _check_conditional_args(
     if args.service_kind == "triton" and args.endpoint_type is None:
         args.endpoint_type = "kserve"
 
+    if args.service_kind == "triton" and args.endpoint_type not in ["kserve","generate"]:
+        parser.error(
+            f"Invalid endpoint-type '{args.endpoint_type}' for service-kind '{args.service_kind}'."
+        )
+
     if args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
         args.endpoint_type = "tensorrtllm_engine"
+
+    if args.service_kind == "tensorrtllm_engine" and args.endpoint_type != "tensorrtllm_engine":
+        parser.error(
+            f"Invalid endpoint-type '{args.endpoint_type}' for service-kind '{args.service_kind}'."
+        )
 
     if args.endpoint_type and args.endpoint_type not in _endpoint_type_map:
         parser.error(f"Invalid endpoint type {args.endpoint_type}")
