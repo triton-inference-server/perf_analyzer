@@ -96,6 +96,8 @@ def create_config_options(args: Namespace) -> InputsConfig:
         batch_size_image=args.batch_size_image,
         batch_size_text=args.batch_size_text,
         output_dir=args.artifact_dir,
+        num_system_prompts=args.num_system_prompts,
+        system_prompt_length=args.system_prompt_length,
     )
 
 

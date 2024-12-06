@@ -139,3 +139,41 @@ class TestSyntheticDataRetriever:
                 assert len(row.images) == 1
                 assert row.texts[0] == "test prompt"
                 assert row.images[0] == "data:image/jpeg;base64,test_base64_encoding"
+
+    @patch(
+        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        return_value="test prompt",
+    )
+    @patch(
+        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_system_prompts_pool"
+    )
+    @patch(
+        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.get_random_system_prompt",
+        return_value="system prompt",
+    )
+    def test_synthetic_with_system_prompts(
+        self,
+        mock_random_system_prompt,
+        mock_create_system_prompts_pool,
+        mock_create_synthetic_prompt,
+    ):
+        config = InputsConfig(
+            num_dataset_entries=3,
+            batch_size_text=1,
+            output_format=OutputFormat.OPENAI_COMPLETIONS,
+            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
+            tokenizer=get_empty_tokenizer(),
+            num_system_prompts=3,
+            system_prompt_length=20,
+        )
+        synthetic_retriever = SyntheticDataRetriever(config)
+        dataset = synthetic_retriever.retrieve_data()
+
+        synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
+        assert (
+            len(dataset.files_data[synthetic_input_filenames[0]].rows)
+            == config.num_dataset_entries
+        )
+        mock_create_system_prompts_pool.assert_called_once()
+        for row in dataset.files_data[synthetic_input_filenames[0]].rows:
+            assert row.texts[0].startswith("system prompt ")

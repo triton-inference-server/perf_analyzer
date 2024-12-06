@@ -478,6 +478,17 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
+        "--num-system-prompts",
+        type=int,
+        default=ic.DEFAULT_PROMPT_TOKENS_STDDEV,
+        required=False,
+        help=f"The number of system prompts to select from. "
+        "If this value is not zero, these are prompts that are "
+        "prepended to input prompts. This is useful for "
+        "benchmarking models that use a K-V cache.",
+    )
+
+    input_group.add_argument(
         "--output-tokens-mean",
         "--osl",
         type=int,
@@ -542,6 +553,17 @@ def _add_input_args(parser):
         default=ic.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
+    )
+
+    input_group.add_argument(
+        "--system-prompt-length",
+        type=int,
+        default=ic.DEFAULT_SYSTEM_PROMPT_LENGTH,
+        required=False,
+        help=f"The number of tokens in each system prompt. This value is only "
+        "used if --num-system-prompts is positive. Note that due to "
+        "the system and user prompts being concatenated, the number of tokens "
+        "in the final prompt may be off by one.",
     )
 
     input_group.add_argument(
