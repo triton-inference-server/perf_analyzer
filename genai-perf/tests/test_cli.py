@@ -703,7 +703,21 @@ class TestCLIArguments:
                 "Invalid endpoint-type 'rankings' for service-kind 'tensorrtllm_engine'.",
             ),
 
-
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
+                    "kserve",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'kserve' for service-kind 'openai'.",
+            ),
         ],
     )
     def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):
