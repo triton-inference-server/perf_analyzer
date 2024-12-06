@@ -702,7 +702,6 @@ class TestCLIArguments:
                 ],
                 "Invalid endpoint-type 'rankings' for service-kind 'tensorrtllm_engine'.",
             ),
-
             (
                 [
                     "genai-perf",
