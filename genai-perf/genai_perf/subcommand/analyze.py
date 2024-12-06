@@ -27,7 +27,6 @@
 import csv
 import os
 from argparse import Namespace
-from csv import writer
 from typing import List, Tuple
 
 import genai_perf.logging as logging
@@ -305,8 +304,6 @@ class Analyze:
 
     def _write_perf_metrics_body(self, csv_writer) -> None:
         for run_config in self._results.run_configs:
-            #
-            # Stimulus
             infer_value = run_config.perf_analyzer_config.get_inference_value()
 
             isl = int(
