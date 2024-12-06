@@ -64,7 +64,6 @@ class ProfileDataParser:
 
     def _get_profile_metadata(self, data: dict) -> None:
         self._service_kind = data["service_kind"]
-        self._endpoint = data["endpoint"]
         if self._service_kind == "openai":
             if data["endpoint"] == "rerank":
                 self._response_format = ResponseFormat.HUGGINGFACE_RANKINGS
