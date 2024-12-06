@@ -92,6 +92,7 @@ class Profiler:
             "output_tokens_mean",
             "output_tokens_mean_deterministic",
             "output_tokens_stddev",
+            "payload_input_file",
             "prompt_source",
             "random_seed",
             "request_rate",
