@@ -60,6 +60,7 @@ class TestOutputReporter:
         "profile_export_file": ".",
         "artifact_dir": ".",
         "extra_inputs": ["max_tokens:200"],
+        "subcommand": "profile",
     }
     args_namespace = Namespace(**args)
 

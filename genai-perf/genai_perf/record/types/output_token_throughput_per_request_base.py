@@ -14,7 +14,7 @@
 
 from functools import total_ordering
 
-from genai_perf.record.record import IncreasingRecord
+from genai_perf.record.record import IncreasingRecord, ReductionFactor
 from genai_perf.types import RecordValue
 
 
@@ -25,6 +25,7 @@ class OutputTokenThroughputPerRequestBase(IncreasingRecord):
     """
 
     base_tag = "output_token_throughput_per_request"
+    reduction_factor = ReductionFactor.NONE
 
     def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
         super().__init__(value, timestamp)

@@ -30,4 +30,4 @@ class GPUUtilizationP25(GPUUtilizationBase):
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p25 GPU Utilization (W)"
+        return "p25 GPU Utilization (%)"

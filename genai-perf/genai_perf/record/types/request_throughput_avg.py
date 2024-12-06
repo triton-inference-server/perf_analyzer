@@ -14,7 +14,7 @@
 
 from functools import total_ordering
 
-from genai_perf.record.record import IncreasingRecord
+from genai_perf.record.record import IncreasingRecord, ReductionFactor
 
 
 @total_ordering
@@ -24,6 +24,7 @@ class RequestThroughputAvg(IncreasingRecord):
     """
 
     tag = "request_throughput_avg"
+    reduction_factor = ReductionFactor.NONE
 
     def __init__(self, value, timestamp=0):
         super().__init__(value, timestamp)

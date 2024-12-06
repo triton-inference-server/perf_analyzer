@@ -15,11 +15,21 @@
 import importlib
 import os
 from abc import ABCMeta, abstractmethod
+from dataclasses import dataclass
 from statistics import mean
 from typing import Dict, Union
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.types import RecordValue
+
+
+@dataclass(frozen=True)
+class ReductionFactor:
+    NS_TO_MS = 6
+    NJ_TO_MJ = 6
+    B_TO_GB = 9
+    PERCENTAGE = -2
+    NONE = 0
 
 
 class RecordType(ABCMeta):
@@ -145,6 +155,16 @@ class Record(metaclass=RecordType):
         -------
         str
             the name tag of the record type.
+        """
+
+    @property
+    @abstractmethod
+    def reduction_factor(self) -> int:
+        """
+        Returns
+        -------
+        int
+            the factor (of 10) that the value should be reduced by
         """
 
     def create_checkpoint_object(self):

@@ -22,7 +22,10 @@ from genai_perf.config.generate.objective_parameter import (
     ObjectiveCategory,
     ObjectiveParameter,
 )
-from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.generate.perf_analyzer_config import (
+    InferenceType,
+    PerfAnalyzerConfig,
+)
 from genai_perf.config.generate.search_parameters import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
 
@@ -164,6 +167,21 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         representation = self._default_perf_analyzer_config.representation()
 
         self.assertEqual(expected_representation, representation)
+
+    ###########################################################################
+    # Test Inference Methods
+    ###########################################################################
+    def test_get_inference_type(self):
+        infer_type = self._default_perf_analyzer_config.get_inference_type()
+        expected_infer_type = InferenceType.CONCURRENCY
+
+        self.assertEqual(expected_infer_type, infer_type)
+
+    def test_get_inference_value(self):
+        infer_value = self._default_perf_analyzer_config.get_inference_value()
+        expected_infer_value = 64
+
+        self.assertEqual(expected_infer_value, infer_value)
 
     ###########################################################################
     # Checkpoint Tests
