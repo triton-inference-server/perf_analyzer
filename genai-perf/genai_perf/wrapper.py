@@ -72,12 +72,7 @@ class Profiler:
                     if j == args.num_prompts:
                         break
                     timings.append(float(json.loads(line)["timestamp"]) * 1000)
-            with open(os.path.join(args.artifact_dir, "timing.txt"), "w") as f:
-                f.write("\n".join(map(str, timings)))
-            cmd += [
-                "--request-intervals",
-                os.path.join(args.artifact_dir, "timing.txt"),
-            ]
+            cmd += ["--schedule", ",".join(map(str, timings))]
         return cmd
 
     @staticmethod
