@@ -217,7 +217,7 @@ class TestJsonExporter:
           "backend": "vllm",
           "batch_size_image": 1,
           "batch_size_text": 1,
-          "endpoint": "v2/models/gpt2_vllm/infer",
+          "endpoint": null,
           "endpoint_type": "kserve",
           "service_kind": "triton",
           "server_metrics_url": null,

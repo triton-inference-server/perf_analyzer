@@ -67,7 +67,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class EndpointConfig:
-    endpoint: str
+    endpoint: Optional[str]
     service_kind: str
     output_format: ic.OutputFormat
 
@@ -95,11 +95,9 @@ _endpoint_type_map = {
     "generate": EndpointConfig(
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
     ),
-    "kserve": EndpointConfig(
-        "v2/models/{MODEL_NAME}/infer", "triton", ic.OutputFormat.TENSORRTLLM
-    ),
+    "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
     "tensorrtllm_engine": EndpointConfig(
-        "tensorrtllm_engine", "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
+        None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
     ),
 }
 
@@ -196,7 +194,8 @@ def _check_conditional_args(
             model_name = args.model[0]
         else:
             model_name = ""
-        args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
+        if endpoint_config.endpoint:
+            args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
 
     if args.service_kind == "triton" and args.endpoint_type == "kserve":
         args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
