@@ -55,6 +55,7 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
+  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --synthetic-input-tokens-mean 200 \
@@ -62,7 +63,9 @@ genai-perf profile \
   --output-tokens-mean 100 \
   --output-tokens-stddev 0 \
   --output-tokens-mean-deterministic \
-  --streaming
+  --streaming \
+  --request-count 50 \
+  --warmup-request-count 10
 ```
 
 Example output:
@@ -94,6 +97,7 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
+  --tokenizer gpt2 \
   --service-kind triton \
   --backend vllm \
   --synthetic-input-tokens-mean 200 \
@@ -101,7 +105,9 @@ genai-perf profile \
   --output-tokens-mean 100 \
   --output-tokens-stddev 0 \
   --output-tokens-mean-deterministic \
-  --streaming
+  --streaming \
+  --request-count 50 \
+  --warmup-request-count 10
 ```
 
 Example output:
@@ -136,6 +142,7 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m HuggingFaceH4/zephyr-7b-beta \
+  --tokenizer HuggingFaceH4/zephyr-7b-beta \
   --service-kind openai \
   --endpoint-type chat \
   --synthetic-input-tokens-mean 200 \
@@ -143,7 +150,8 @@ genai-perf profile \
   --output-tokens-mean 100 \
   --output-tokens-stddev 0 \
   --streaming \
-  --tokenizer HuggingFaceH4/zephyr-7b-beta
+  --request-count 50 \
+  --warmup-request-count 10
 ```
 
 Example output:
@@ -178,12 +186,15 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
+  --tokenizer gpt2 \
   --service-kind openai \
   --endpoint-type completions \
   --synthetic-input-tokens-mean 200 \
   --synthetic-input-tokens-stddev 0 \
   --output-tokens-mean 100 \
-  --output-tokens-stddev 0
+  --output-tokens-stddev 0 \
+  --request-count 50 \
+  --warmup-request-count 10
 ```
 
 Example output:
@@ -200,4 +211,3 @@ Example output:
 │      Request throughput (per sec) │   2.28 │    N/A │    N/A │    N/A │    N/A │    N/A │
 └───────────────────────────────────┴────────┴────────┴────────┴────────┴────────┴────────┘
 ```
-
