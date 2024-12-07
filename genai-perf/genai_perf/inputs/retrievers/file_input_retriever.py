@@ -39,6 +39,9 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     GenericDataset,
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
+    SyntheticPromptGenerator,
+)
 from genai_perf.utils import load_json_str
 from PIL import Image
 
@@ -152,6 +155,15 @@ class FileInputRetriever(BaseInputRetriever):
         """
         prompts = []
         images = []
+
+        use_system_prompts = self.config.num_system_prompts > 0
+        if use_system_prompts:
+            SyntheticPromptGenerator.create_system_prompts_pool(
+                self.config.tokenizer,
+                self.config.num_system_prompts,
+                self.config.system_prompt_length,
+            )
+
         with open(filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
@@ -164,7 +176,13 @@ class FileInputRetriever(BaseInputRetriever):
                             "Each data entry must have only one of 'text_input' or 'text' key name."
                         )
                     prompt = prompt if prompt else prompt_alt
-                    prompts.append(prompt.strip() if prompt else prompt)
+                    if use_system_prompts:
+                        system_prompt = (
+                            SyntheticPromptGenerator.get_random_system_prompt()
+                        )
+                        prompt = f"{system_prompt} {prompt}"
+                    if prompt is not None:
+                        prompts.append(prompt.strip())
                     image = data.get("image")
                     if image is not None:
                         image = self._encode_image(image.strip())

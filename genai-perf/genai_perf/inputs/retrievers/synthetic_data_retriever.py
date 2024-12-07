@@ -51,17 +51,30 @@ class SyntheticDataRetriever(BaseInputRetriever):
         files = self.config.synthetic_input_filenames or [DEFAULT_SYNTHETIC_FILENAME]
         synthetic_dataset = GenericDataset(files_data={})
 
+        use_system_prompts = self.config.num_system_prompts > 0
+        if use_system_prompts:
+            SyntheticPromptGenerator.create_system_prompts_pool(
+                self.config.tokenizer,
+                self.config.num_system_prompts,
+                self.config.system_prompt_length,
+            )
+
         for file in files:
             data_rows: List[DataRow] = []
 
             for _ in range(self.config.num_dataset_entries):
                 row = DataRow(texts=[], images=[])
-                prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                    self.config.tokenizer,
-                    self.config.prompt_tokens_mean,
-                    self.config.prompt_tokens_stddev,
-                )
                 for _ in range(self.config.batch_size_text):
+                    prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                        self.config.tokenizer,
+                        self.config.prompt_tokens_mean,
+                        self.config.prompt_tokens_stddev,
+                    )
+                    if use_system_prompts:
+                        system_prompt = (
+                            SyntheticPromptGenerator.get_random_system_prompt()
+                        )
+                        prompt = f"{system_prompt} {prompt}"
                     row.texts.append(prompt)
 
                 for _ in range(self.config.batch_size_image):
