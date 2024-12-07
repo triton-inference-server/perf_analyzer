@@ -44,6 +44,7 @@ class ResponseFormat(Enum):
     RANKINGS = auto()
     IMAGE_RETRIEVAL = auto()
     TRITON = auto()
+    TRITON_GENERATE = auto()
 
 
 class ProfileDataParser:
@@ -84,6 +85,8 @@ class ProfileDataParser:
                 self._response_format = ResponseFormat.RANKINGS
             elif data["endpoint"] == "v1/infer":
                 self._response_format = ResponseFormat.IMAGE_RETRIEVAL
+            elif "generate" in data["endpoint"]:
+                self._response_format = ResponseFormat.TRITON_GENERATE
             else:
                 # (TPA-66) add PA metadata to handle this case
                 # When endpoint field is either empty or custom endpoint, fall
