@@ -87,8 +87,6 @@ _endpoint_type_map = {
     ),
     "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
     "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    # (TMA-1986) deduce vision format from chat completions + image CLI
-    # because there's no openai vision endpoint.
     "vision": EndpointConfig(
         "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
     ),
