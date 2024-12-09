@@ -156,7 +156,7 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
                 "model_batch_size": 4,
                 "runtime_batch_size": 1,
                 "instance_count": 2,
-                "num_prompts": 100,
+                "num_dataset_entries": 100,
                 "concurrency": 6,
             }
         }
@@ -186,7 +186,7 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
                     ObjectiveCategory.INTEGER,
                     RunConfigDefaults.PA_BATCH_SIZE,
                 ),
-                "num_prompts": ObjectiveParameter(
+                "num_dataset_entries": ObjectiveParameter(
                     SearchUsage.RUNTIME_GAP,
                     ObjectiveCategory.INTEGER,
                     RunConfigDefaults.NUM_PROMPTS,

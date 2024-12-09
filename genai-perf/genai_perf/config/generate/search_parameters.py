@@ -41,7 +41,7 @@ class SearchParameters:
         "input_sequence_length",
     ]
 
-    linear_range_parameters = ["instance_count", "num_prompts"]
+    linear_range_parameters = ["instance_count", "num_dataset_entries"]
 
     model_parameters = [
         "model_batch_size",
@@ -51,7 +51,7 @@ class SearchParameters:
 
     runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
 
-    runtime_gap_parameters = ["num_prompts", "input_sequence_length"]
+    runtime_gap_parameters = ["num_dataset_entries", "input_sequence_length"]
 
     all_parameters = model_parameters + runtime_pa_parameters + runtime_gap_parameters
 
@@ -198,20 +198,20 @@ class SearchParameters:
     # GenAI Perf Parameters
     ###########################################################################
     def _populate_genai_perf_parameters(self) -> None:
-        self._populate_genai_perf_num_prompts()
+        self._populate_genai_perf_num_dataset_entries()
 
-    def _populate_genai_perf_num_prompts(self) -> None:
-        if isinstance(self._config.genai_perf.num_prompts, list):
+    def _populate_genai_perf_num_dataset_entries(self) -> None:
+        if isinstance(self._config.genai_perf.num_dataset_entries, list):
             self._populate_list_parameter(
-                parameter_name="num_prompts",
-                parameter_list=list(self._config.genai_perf.num_prompts),
+                parameter_name="num_dataset_entries",
+                parameter_list=list(self._config.genai_perf.num_dataset_entries),
                 parameter_category=SearchCategory.INT_LIST,
             )
-        elif isinstance(self._config.genai_perf.num_prompts, Range):
+        elif isinstance(self._config.genai_perf.num_dataset_entries, Range):
             self._populate_range_parameter(
-                parameter_name="num_prompts",
-                parameter_min_value=self._config.genai_perf.num_prompts.min,
-                parameter_max_value=self._config.genai_perf.num_prompts.max,
+                parameter_name="num_dataset_entries",
+                parameter_min_value=self._config.genai_perf.num_dataset_entries.min,
+                parameter_max_value=self._config.genai_perf.num_dataset_entries.max,
             )
 
     ###########################################################################

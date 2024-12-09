@@ -294,7 +294,7 @@ class Analyze:
         infer_type = self._determine_infer_type()
         infer_header = "Concurrency" if infer_type == "concurrency" else "Request Rate"
 
-        stimulus_header = ["Config Name", infer_header, "ISL", "Num Prompts"]
+        stimulus_header = ["Config Name", infer_header, "ISL", "Num Dataset Entries"]
 
         return stimulus_header
 
@@ -311,14 +311,14 @@ class Analyze:
                     self._model_name, InputSequenceLengthP99.tag
                 )
             )
-            num_prompts = run_config.genai_perf_config.input.num_prompts
+            num_dataset_entries = run_config.genai_perf_config.input.num_dataset_entries
 
             metrics = []
             for tag in Analyze.PERF_METRICS_TAGS:
                 metric = run_config.get_model_perf_metric_value(self._model_name, tag)
                 metrics.append(f"{metric:.2f}")
 
-            row = [run_config.name, infer_value, isl, num_prompts] + metrics
+            row = [run_config.name, infer_value, isl, num_dataset_entries] + metrics
             csv_writer.writerow(row)
 
     ###########################################################################
@@ -368,7 +368,7 @@ class Analyze:
             load_level = f"{float(objectives[model_name][infer_mode].get_value_based_on_category())}"
         elif (
             args.sweep_type == "input_sequence_length"
-            or args.sweep_type == "num_prompts"
+            or args.sweep_type == "num_dataset_entries"
         ):
             if args.concurrency:
                 infer_mode = "concurrency"
