@@ -79,7 +79,7 @@ class DynamicGrpcClientBackend : public ClientBackend {
   DynamicGrpcClientBackend(
       const grpc_compression_algorithm compression_algorithm,
       std::shared_ptr<Headers> http_headers)
-      : ClientBackend(BackendKind::GRPC),
+      : ClientBackend(BackendKind::DYNAMIC_GRPC),
         compression_algorithm_(compression_algorithm),
         http_headers_(http_headers)
   {

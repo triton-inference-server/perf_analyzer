@@ -222,7 +222,7 @@ class DynamicGrpcClient {
 
   // TODO: update
   // GRPC end point.
-  std::shared_ptr<inference::GRPCInferenceService::Stub> stub_;
+  // std::shared_ptr<inference::GRPCInferenceService::Stub> stub_;
 
   // TODO: update
   // request for GRPC call, one request object can be used for multiple calls

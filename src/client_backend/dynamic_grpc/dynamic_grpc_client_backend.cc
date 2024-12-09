@@ -112,7 +112,7 @@ DynamicGrpcInferRequestedOutput::Create(
 
 DynamicGrpcInferRequestedOutput::DynamicGrpcInferRequestedOutput(
     const std::string& name)
-    : InferRequestedOutput(BackendKind::GRPC, name)
+    : InferRequestedOutput(BackendKind::DYNAMIC_GRPC, name)
 {
 }
 

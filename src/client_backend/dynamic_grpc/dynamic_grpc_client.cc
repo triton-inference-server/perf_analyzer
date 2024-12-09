@@ -33,21 +33,21 @@
 namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 
 Error
-GrpcInferResult::RequestStatus() const
+DynamicGrpcInferResult::RequestStatus() const
 {
   // TODO: Not required for synchronous streaming?
   return Error("Not implemented yet.");
 }
 
 Error
-GrpcInferResult::Id(std::string* id) const
+DynamicGrpcInferResult::Id(std::string* id) const
 {
   // TODO: Not required for synchronous streaming?
   return Error("Not implemented yet.");
 }
 
 Error
-GrpcInferResult::RawData(
+DynamicGrpcInferResult::RawData(
     const std::string& output_name, const uint8_t** buf,
     size_t* byte_size) const
 {
@@ -57,7 +57,7 @@ GrpcInferResult::RawData(
 
 //==============================================================================
 //
-GrpcClient::GrpcClient(
+DynamicGrpcClient::DynamicGrpcClient(
     const std::string& url, bool verbose, bool use_ssl,
     const SslOptions& ssl_options)
     : verbose_(verbose)
@@ -67,7 +67,7 @@ GrpcClient::GrpcClient(
   throw PerfAnalyzerException(GENERIC_ERROR);
 }
 
-GrpcClient::~GrpcClient()
+DynamicGrpcClient::~DynamicGrpcClient()
 {
   // TODO
   std::cerr << "Not implemented yet." << std::endl;
@@ -75,7 +75,7 @@ GrpcClient::~GrpcClient()
 }
 
 Error
-GrpcClient::BidiStreamRPC(
+DynamicGrpcClient::BidiStreamRPC(
     InferResult** result, const InferOptions& options,
     const std::vector<InferInput*>& inputs,
     const std::vector<const InferRequestedOutput*>& outputs,
@@ -86,7 +86,7 @@ GrpcClient::BidiStreamRPC(
 }
 
 Error
-GrpcClient::StartStream(
+DynamicGrpcClient::StartStream(
     OnCompleteFn callback, bool enable_stats, uint32_t stream_timeout,
     const Headers& headers, grpc_compression_algorithm compression_algorithm)
 {
@@ -95,14 +95,14 @@ GrpcClient::StartStream(
 }
 
 Error
-GrpcClient::StopStream()
+DynamicGrpcClient::StopStream()
 {
   // TODO
   return Error("Not implemented yet.");
 }
 
 Error
-GrpcClient::PreRunProcessing(
+DynamicGrpcClient::PreRunProcessing(
     const InferOptions& options, const std::vector<InferInput*>& inputs,
     const std::vector<const InferRequestedOutput*>& outputs)
 {
@@ -111,7 +111,7 @@ GrpcClient::PreRunProcessing(
 }
 
 Error
-GrpcClient::UpdateInferStat(const tc::RequestTimers& timer)
+DynamicGrpcClient::UpdateInferStat(const tc::RequestTimers& timer)
 {
   // TODO
   return Error("Not implemented yet.");
