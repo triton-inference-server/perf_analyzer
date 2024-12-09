@@ -32,6 +32,11 @@
 #include "triton_c_api/triton_c_api_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_C_API
 
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+// TODO: uncomment
+// #include "grpc/grpc_client_backend.h"
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
+
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
 #include "openai/openai_client_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_OPENAI
@@ -92,6 +97,9 @@ BackendKindToString(const BackendKind kind)
       break;
     case OPENAI:
       return std::string("OPENAI");
+      break;
+    case DYNAMIC_GRPC:
+      return std::string("DYNAMIC_GRPC");
       break;
     default:
       return std::string("UNKNOWN");
@@ -180,6 +188,11 @@ ClientBackend::Create(
         metrics_url, input_tensor_format, output_tensor_format,
         &local_backend));
   }
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+  else if (kind == DYNAMIC_GRPC) {
+    Error("Dynamic gRPC client is not implemented yet.")
+  }
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
   else if (kind == OPENAI) {
     RETURN_IF_CB_ERROR(openai::OpenAiClientBackend::Create(
@@ -435,6 +448,11 @@ InferInput::Create(
     RETURN_IF_CB_ERROR(tritonremote::TritonInferInput::Create(
         infer_input, name, dims, datatype));
   }
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+  else if (kind == DYNAMIC_GRPC) {
+    Error("Dynamic gRPC client is not implemented yet.")
+  }
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
   else if (kind == OPENAI) {
     RETURN_IF_CB_ERROR(
@@ -534,6 +552,11 @@ InferRequestedOutput::Create(
     RETURN_IF_CB_ERROR(tritonremote::TritonInferRequestedOutput::Create(
         infer_output, name, class_count, datatype));
   }
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+  else if (kind == DYNAMIC_GRPC) {
+    Error("Dynamic gRPC client is not implemented yet.")
+  }
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
   else if (kind == OPENAI) {
     RETURN_IF_CB_ERROR(openai::OpenAiInferRequestedOutput::Create(

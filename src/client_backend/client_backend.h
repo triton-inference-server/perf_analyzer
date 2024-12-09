@@ -136,7 +136,8 @@ enum BackendKind {
   TENSORFLOW_SERVING = 1,
   TORCHSERVE = 2,
   TRITON_C_API = 3,
-  OPENAI = 4
+  OPENAI = 4,
+  DYNAMIC_GRPC = 5
 };
 std::string BackendKindToString(const BackendKind kind);
 

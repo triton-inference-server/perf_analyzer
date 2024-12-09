@@ -1213,6 +1213,8 @@ CLParser::ParseCommandLine(int argc, char** argv)
             params_->kind = cb::TRITON_C_API;
           } else if (arg.compare("openai") == 0) {
             params_->kind = cb::OPENAI;
+          } else if (arg.compare("dynamic_grpc") == 0) {
+            params_->kind = cb::DYNAMIC_GRPC;
           } else {
             Usage(
                 "Failed to parse --service-kind. Unsupported type provided: '" +
