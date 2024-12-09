@@ -124,6 +124,26 @@ class RunConfigMeasurement:
 
         return gpu_metrics
 
+    def get_gpu_metric_value(
+        self,
+        gpu_id: str,
+        name: str,
+        return_value: int = 0,
+    ) -> Any:
+        gpu_metrics = self.get_gpu_metric(name)
+
+        gpu_metric = None
+        if gpu_metrics:
+            if gpu_id in gpu_metrics:
+                if name in gpu_metrics[gpu_id]:
+                    gpu_metric = gpu_metrics[gpu_id][name]
+
+        return (
+            gpu_metric.value() / (10**gpu_metric.reduction_factor)
+            if gpu_metric
+            else return_value
+        )
+
     def get_model_config_measurements(self) -> ModelConfigMeasurements:
         return self._model_config_measurements
 

@@ -15,6 +15,7 @@
 from functools import total_ordering
 
 from genai_perf.record.gpu_record import IncreasingGPURecord
+from genai_perf.record.record import ReductionFactor
 
 
 @total_ordering
@@ -24,6 +25,7 @@ class GPUTotalMemoryBase(IncreasingGPURecord):
     """
 
     base_tag = "total_gpu_memory"
+    reduction_factor = ReductionFactor.B_TO_GB
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)

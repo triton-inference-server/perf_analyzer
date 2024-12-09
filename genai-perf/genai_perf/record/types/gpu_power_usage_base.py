@@ -15,6 +15,7 @@
 from functools import total_ordering
 
 from genai_perf.record.gpu_record import DecreasingGPURecord
+from genai_perf.record.record import ReductionFactor
 
 
 @total_ordering
@@ -24,6 +25,7 @@ class GPUPowerUsageBase(DecreasingGPURecord):
     """
 
     base_tag = "gpu_power_usage"
+    reduction_factor = ReductionFactor.NONE
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)

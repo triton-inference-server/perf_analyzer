@@ -15,6 +15,7 @@
 from argparse import Namespace
 from copy import deepcopy
 from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -86,6 +87,11 @@ perf_analyzer_ignore_args = [
     "tokenizer_trust_remote_code",
     "tokenizer_revision",
 ]
+
+
+class InferenceType(Enum):
+    CONCURRENCY = auto()
+    REQUEST_RATE = auto()
 
 
 @dataclass
@@ -310,6 +316,37 @@ class PerfAnalyzerConfig:
             obj_args.batch_size = self._parameters["runtime_batch_size"]
 
         return obj_args
+
+    def get_inference_type(self) -> InferenceType:
+        """
+        Returns the type of inferencing: concurrency or request-rate
+        """
+        cmd = self.create_command()
+        if "--concurrency-range" in cmd:
+            return InferenceType.CONCURRENCY
+        elif "--request-rate-range" in cmd:
+            return InferenceType.REQUEST_RATE
+        else:
+            raise GenAIPerfException(
+                f"An inference type (either concurrency or request-rate) was not found."
+            )
+
+    def get_inference_value(self) -> int:
+        """
+        Returns the value that we are inferencing
+        """
+        infer_type = self.get_inference_type()
+        infer_cmd_option = (
+            "--concurrency-range"
+            if infer_type == InferenceType.CONCURRENCY
+            else "--request-rate-range"
+        )
+
+        cmd = self.create_command()
+        infer_value_index = cmd.index(infer_cmd_option) + 1
+        infer_value = int(cmd[infer_value_index])
+
+        return infer_value
 
     ###########################################################################
     # CLI String Creation Methods
