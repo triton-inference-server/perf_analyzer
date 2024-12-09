@@ -33,8 +33,7 @@
 #endif  // TRITON_ENABLE_PERF_ANALYZER_C_API
 
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
-// TODO: uncomment
-// #include "grpc/dynamic_grpc_client_backend.h"
+#include "grpc/dynamic_grpc_client_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
@@ -190,7 +189,9 @@ ClientBackend::Create(
   }
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
   else if (kind == DYNAMIC_GRPC) {
-    Error("Dynamic gRPC client is not implemented yet.")
+    RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcClientBackend::Create(
+        url, protocol, BackendToGrpcType(compression_algorithm), http_headers,
+        verbose, &local_backend));
   }
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
@@ -450,7 +451,8 @@ InferInput::Create(
   }
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
   else if (kind == DYNAMIC_GRPC) {
-    Error("Dynamic gRPC client is not implemented yet.")
+    RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcInferInput::Create(
+        infer_input, name, dims, datatype));
   }
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
@@ -554,7 +556,8 @@ InferRequestedOutput::Create(
   }
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
   else if (kind == DYNAMIC_GRPC) {
-    Error("Dynamic gRPC client is not implemented yet.")
+    RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcInferRequestedOutput::Create(
+        infer_output, name));
   }
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
