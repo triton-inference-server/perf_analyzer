@@ -39,7 +39,7 @@ class TestGenAIPerfConfig(unittest.TestCase):
 
         self._objective_parameters = {
             "test_model": {
-                "num_prompts": ObjectiveParameter(
+                "num_dataset_entries": ObjectiveParameter(
                     SearchUsage.RUNTIME_GAP,
                     ObjectiveCategory.INTEGER,
                     50,
@@ -64,7 +64,7 @@ class TestGenAIPerfConfig(unittest.TestCase):
         at __init__
         """
         expected_input_config = ConfigInput()
-        expected_input_config.num_prompts = 50
+        expected_input_config.num_dataset_entries = 50
 
         self.assertEqual(expected_input_config, self._default_genai_perf_config.input)
 
@@ -82,7 +82,10 @@ class TestGenAIPerfConfig(unittest.TestCase):
         Test that the representation is created correctly
         """
         expected_representation = " ".join(
-            [ConfigInput(num_prompts=50).__str__(), ConfigOutputTokens().__str__()]
+            [
+                ConfigInput(num_dataset_entries=50).__str__(),
+                ConfigOutputTokens().__str__(),
+            ]
         )
         representation = self._default_genai_perf_config.representation()
 

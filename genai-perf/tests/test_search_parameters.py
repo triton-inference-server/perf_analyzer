@@ -328,7 +328,7 @@ class TestSearchParameters(unittest.TestCase):
         """
         config = deepcopy(self.config)
         config.analyze.sweep_parameters = {
-            "num_prompts": [10, 50, 100],
+            "num_dataset_entries": [10, 50, 100],
             "request_rate": Range(
                 min=RunConfigDefaults.MIN_REQUEST_RATE,
                 max=RunConfigDefaults.MAX_REQUEST_RATE,
@@ -338,10 +338,10 @@ class TestSearchParameters(unittest.TestCase):
             config=config, subcommand=Subcommand.ANALYZE
         )
 
-        num_prompts = search_parameters.get_parameter("num_prompts")
-        self.assertEqual(SearchUsage.RUNTIME_GAP, num_prompts.usage)
-        self.assertEqual(SearchCategory.INT_LIST, num_prompts.category)
-        self.assertEqual([10, 50, 100], num_prompts.enumerated_list)
+        num_dataset_entries = search_parameters.get_parameter("num_dataset_entries")
+        self.assertEqual(SearchUsage.RUNTIME_GAP, num_dataset_entries.usage)
+        self.assertEqual(SearchCategory.INT_LIST, num_dataset_entries.category)
+        self.assertEqual([10, 50, 100], num_dataset_entries.enumerated_list)
 
         request_rate = search_parameters.get_parameter("request_rate")
         self.assertEqual(SearchUsage.RUNTIME_PA, request_rate.usage)

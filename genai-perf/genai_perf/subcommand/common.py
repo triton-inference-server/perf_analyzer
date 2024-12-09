@@ -162,7 +162,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         input_filename=args.input_file,
         synthetic_input_filenames=args.synthetic_input_files,
         starting_index=DEFAULT_STARTING_INDEX,
-        length=args.num_prompts,
+        length=args.num_dataset_entries,
         prompt_tokens_mean=args.synthetic_input_tokens_mean,
         prompt_tokens_stddev=args.synthetic_input_tokens_stddev,
         output_tokens_mean=args.output_tokens_mean,

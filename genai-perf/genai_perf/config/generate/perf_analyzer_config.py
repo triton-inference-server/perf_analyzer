@@ -20,7 +20,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
-from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
+from genai_perf.config.input.config_command import (
+    ConfigCommand,
+    ConfigPerfAnalyzer,
+    RunConfigDefaults,
+)
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
@@ -58,7 +62,9 @@ perf_analyzer_ignore_args = [
     "input_format",
     "model",
     "model_selection_strategy",
-    "num_prompts",
+    "num_dataset_entries",
+    "request_count",
+    "warmup_request_count",
     "output_format",
     "output_tokens_mean",
     "output_tokens_mean_deterministic",
@@ -90,6 +96,7 @@ perf_analyzer_ignore_args = [
 
 
 class InferenceType(Enum):
+    NONE = auto()
     CONCURRENCY = auto()
     REQUEST_RATE = auto()
 
@@ -228,11 +235,11 @@ class PerfAnalyzerConfig:
                 parameters["input_sequence_length"].get_value_based_on_category()
             )
             stimulus = [f"input_sequence_length{input_sequence_length}"]
-        elif "num_prompts" in parameters:
+        elif "num_dataset_entries" in parameters:
             input_sequence_length = str(
-                parameters["num_prompts"].get_value_based_on_category()
+                parameters["num_dataset_entries"].get_value_based_on_category()
             )
-            stimulus = [f"num_prompts{input_sequence_length}"]
+            stimulus = [f"num_dataset_entries{input_sequence_length}"]
 
         return stimulus
 
@@ -327,24 +334,26 @@ class PerfAnalyzerConfig:
         elif "--request-rate-range" in cmd:
             return InferenceType.REQUEST_RATE
         else:
-            raise GenAIPerfException(
-                f"An inference type (either concurrency or request-rate) was not found."
-            )
+            return InferenceType.NONE
 
     def get_inference_value(self) -> int:
         """
         Returns the value that we are inferencing
         """
         infer_type = self.get_inference_type()
-        infer_cmd_option = (
-            "--concurrency-range"
-            if infer_type == InferenceType.CONCURRENCY
-            else "--request-rate-range"
-        )
 
-        cmd = self.create_command()
-        infer_value_index = cmd.index(infer_cmd_option) + 1
-        infer_value = int(cmd[infer_value_index])
+        if infer_type == InferenceType.NONE:
+            infer_value = RunConfigDefaults.MIN_CONCURRENCY
+        else:
+            infer_cmd_option = (
+                "--concurrency-range"
+                if infer_type == InferenceType.CONCURRENCY
+                else "--request-rate-range"
+            )
+
+            cmd = self.create_command()
+            infer_value_index = cmd.index(infer_cmd_option) + 1
+            infer_value = int(cmd[infer_value_index])
 
         return infer_value
 

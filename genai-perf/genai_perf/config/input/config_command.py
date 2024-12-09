@@ -149,7 +149,9 @@ class ConfigOptimizePerfAnalyzer:
 
 @dataclass
 class ConfigOptimizeGenAIPerf:
-    num_prompts: ConfigRangeOrList = default_field([RunConfigDefaults.NUM_PROMPTS])
+    num_dataset_entries: ConfigRangeOrList = default_field(
+        [RunConfigDefaults.NUM_PROMPTS]
+    )
 
 
 @dataclass
@@ -200,7 +202,7 @@ class ConfigSyntheticTokens:
 class ConfigInput:
     dataset: str = default_field(RunConfigDefaults.DATASET)
     file: str = default_field(RunConfigDefaults.FILE)
-    num_prompts: int = default_field(RunConfigDefaults.NUM_PROMPTS)
+    num_dataset_entries: int = default_field(RunConfigDefaults.NUM_PROMPTS)
     seed: int = default_field(RunConfigDefaults.SEED)
     synthetic_tokens: ConfigSyntheticTokens = ConfigSyntheticTokens()
 

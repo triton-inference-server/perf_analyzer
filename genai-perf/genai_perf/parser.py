@@ -938,7 +938,12 @@ def _add_analyze_args(parser):
         "--sweep-type",
         type=str,
         default=RunConfigDefaults.STIMULUS_TYPE,
-        choices=["concurrency", "num_prompts", "input_sequence_length", "request_rate"],
+        choices=[
+            "concurrency",
+            "num_dataset_entries",
+            "input_sequence_length",
+            "request_rate",
+        ],
         required=False,
         help=f"The stimulus type that GAP will sweep.",
     )

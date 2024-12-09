@@ -83,8 +83,8 @@ class GenAIPerfConfig:
             obj_args.synthetic_input_tokens_mean = self._parameters[
                 "input_sequence_length"
             ]
-        if "num_prompts" in self._parameters:
-            obj_args.num_prompts = self._parameters["num_prompts"]
+        if "num_dataset_entries" in self._parameters:
+            obj_args.num_dataset_entries = self._parameters["num_dataset_entries"]
 
         return obj_args
 
