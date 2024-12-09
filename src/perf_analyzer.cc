@@ -111,9 +111,8 @@ PerfAnalyzer::CreateAnalyzerObjects()
             params_->bls_composing_models, params_->input_shapes, backend_),
         "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
-    // TODO: Not implemented yet. Use InitOpenAI as placeholder.
     FAIL_IF_ERR(
-        parser_->InitOpenAI(
+        parser_->InitDynamicGrpc(
             params_->model_name, params_->model_version, params_->batch_size),
         "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::OPENAI) {

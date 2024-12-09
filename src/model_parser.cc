@@ -270,6 +270,15 @@ ModelParser::InitTFServe(
 }
 
 cb::Error
+ModelParser::InitDynamicGrpc(
+    const std::string& model_name, const std::string& model_version,
+    const int32_t batch_size)
+{
+  // TODO
+  return cb::Error::Error;
+}
+
+cb::Error
 ModelParser::InitOpenAI(
     const std::string& model_name, const std::string& model_version,
     const int32_t batch_size)
