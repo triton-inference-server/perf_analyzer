@@ -17,7 +17,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import (

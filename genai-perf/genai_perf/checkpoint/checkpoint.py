@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.results import Results
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.types import CheckpointObject
 
 
 @dataclass(frozen=True)

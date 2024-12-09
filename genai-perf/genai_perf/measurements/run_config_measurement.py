@@ -24,7 +24,6 @@ from genai_perf.measurements.model_config_measurement import (
     ModelConfigMeasurements,
 )
 from genai_perf.measurements.run_constraints import RunConstraints
-from genai_perf.record.gpu_record import GPURecord
 from genai_perf.record.record import Record
 from genai_perf.types import (
     CheckpointObject,
@@ -33,7 +32,6 @@ from genai_perf.types import (
     GpuId,
     GpuMetricObjectives,
     GpuRecords,
-    MetricObjectives,
     ModelName,
     ModelWeights,
     PerfMetricName,
