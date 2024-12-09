@@ -242,7 +242,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
     if (!params_->schedule.empty()) {
       FAIL_IF_ERR(
           pa::CustomRequestScheduleManager::Create(
-              params_, parser_, factory, &manager),
+              *params_, parser_, factory, &manager),
           "failed to create custom request schedule manager");
     } else {
       FAIL_IF_ERR(
