@@ -14,7 +14,7 @@
 
 from functools import total_ordering
 
-from genai_perf.record.record import DecreasingRecord
+from genai_perf.record.record import DecreasingRecord, ReductionFactor
 from genai_perf.types import RecordValue
 
 
@@ -25,6 +25,7 @@ class TimeToFirstTokenBase(DecreasingRecord):
     """
 
     base_tag = "time_to_first_token"
+    reduction_factor = ReductionFactor.NS_TO_MS
 
     def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
         super().__init__(value, timestamp)

@@ -78,7 +78,9 @@ class ModelConfigMeasurement:
 
     def get_perf_metric_value(self, name: PerfMetricName, return_value: int = 0) -> Any:
         metric = self.get_perf_metric(name)
-        return metric.value() if metric else return_value
+        return (
+            metric.value() / (10**metric.reduction_factor) if metric else return_value
+        )
 
     def get_weighted_score(self, other: "ModelConfigMeasurement") -> float:
         """

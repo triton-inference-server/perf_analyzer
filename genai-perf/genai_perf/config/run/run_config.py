@@ -111,6 +111,11 @@ class RunConfig:
     def get_gpu_metric(self, name: str) -> Optional[GpuRecords]:
         return self.measurement.get_gpu_metric(name)
 
+    def get_gpu_metric_value(
+        self, gpu_id: str, name: str, return_value: int = 0
+    ) -> Any:
+        return self.measurement.get_gpu_metric_value(gpu_id, name, return_value)
+
     def get_all_perf_metrics(self) -> Dict[ModelName, PerfRecords]:
         return self.measurement.get_all_perf_metrics()
 
