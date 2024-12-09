@@ -209,9 +209,9 @@ class DynamicGrpcClient {
   // std::thread stream_worker_;
 
   // TODO: update
-  std::shared_ptr<grpc::ClientReaderWriter<
-      inference::ModelInferRequest, inference::ModelStreamInferResponse>>
-      grpc_stream_;
+  // std::shared_ptr<grpc::ClientReaderWriter<
+  //     inference::ModelInferRequest, inference::ModelStreamInferResponse>>
+  //     grpc_stream_;
   grpc::ClientContext grpc_context_;
 
   bool enable_stream_stats_;
