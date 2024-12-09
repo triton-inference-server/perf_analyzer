@@ -38,12 +38,24 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 class DataRow:
     texts: List[str] = field(default_factory=list)
     images: List[str] = field(default_factory=list)
+    optional_data: Dict = field(default_factory=dict)
+    session_id: str = ""
 
     def to_dict(self) -> DataRowDict:
         """
         Converts the DataRow object to a dictionary.
         """
-        return {"texts": self.texts, "images": self.images}
+        datarow_dict = {}
+
+        if self.texts:
+            datarow_dict["texts"] = self.texts
+        if self.images:
+            datarow_dict["images"] = self.images
+        if self.optional_data:
+            datarow_dict["optional_data"] = self.optional_data
+        if self.session_id:
+            datarow_dict["session_id"] = self.session_id
+        return datarow_dict
 
 
 @dataclass
@@ -55,8 +67,8 @@ class FileData:
         Converts the FileData object to a list.
         Output format example for two payloads from a file:
         [
-            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2']},
-            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4']}
+            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'optional_data': {}, 'session_id': 'session_id1'},
+            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4'], 'optional_data': {}, 'session_id': 'session_id2'},
         ]
         """
         return [row.to_dict() for row in self.rows]
@@ -71,8 +83,8 @@ class GenericDataset:
         Converts the entire DataStructure object to a dictionary.
         Output format example for one payload from two files:
         {
-            'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}],
-            'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}]
+            'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'optional_data': {}, 'session_id': 'session_id1'}],
+            'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'optional_data': {}, 'session_id': 'session_id2'}],
         }
         """
         return {
