@@ -34,7 +34,7 @@
 
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
 // TODO: uncomment
-// #include "grpc/grpc_client_backend.h"
+// #include "grpc/dynamic_grpc_client_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI

@@ -26,20 +26,19 @@
 
 cmake_minimum_required (VERSION 3.18)
 
-# TODO: uncomment after adding these files
-#set(
-#    DGRPC_CLIENT_BACKEND_SRCS
-#    dynamic_grpc_client.cc
-#    dynamic_grpc_client_backend.cc
-#    dynamic_grpc_infer_input.cc
-#)
-#
-#set(
-#    DGRPC_CLIENT_BACKEND_HDRS
-#    dynamic_grpc_client.h
-#    dynamic_grpc_client_backend.h
-#    dynamic_grpc_infer_input.h
-#)
+set(
+    DGRPC_CLIENT_BACKEND_SRCS
+    dynamic_grpc_client.cc
+    dynamic_grpc_client_backend.cc
+    dynamic_grpc_infer_input.cc
+)
+
+set(
+    DGRPC_CLIENT_BACKEND_HDRS
+    dynamic_grpc_client.h
+    dynamic_grpc_client_backend.h
+    dynamic_grpc_infer_input.h
+)
 
 add_library(
     dgrpc-client-backend-library  EXCLUDE_FROM_ALL OBJECT
