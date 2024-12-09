@@ -275,7 +275,7 @@ ModelParser::InitDynamicGrpc(
     const int32_t batch_size)
 {
   // TODO
-  return cb::Error::Error;
+  return cb::Error::Failure;
 }
 
 cb::Error
