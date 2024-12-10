@@ -204,23 +204,29 @@ class LLMProfileDataParser(ProfileDataParser):
                 responses = response.strip().split("\n\n")
                 if len(responses) > 1:
                     merged_response = load_json_str(remove_sse_prefix(responses[0]))
-                    if (
+                    if (self._response_format != ResponseFormat.TRITON_GENERATE) and (
                         merged_response["choices"][0]["delta"].get("content", None)
                         is None
                     ):
                         merged_response["choices"][0]["delta"]["content"] = ""
-                    for r in responses[1:]:
+                    elif (self._response_format == ResponseFormat.TRITON_GENERATE) and (
+                        "text_output" not in merged_response
+                    ):
+                        merged_response["text_output"] = ""
+
+                for r in responses[1:]:
+                    if self._response_format == ResponseFormat.TRITON_GENERATE:
+                        text = self._extract_generate_text_output(r)
+                        merged_response["text_output"] += text
+                    else:
                         text = self._extract_openai_text_output(r)
                         merged_response["choices"][0]["delta"]["content"] += text
-
                     res_outputs[i] = {"response": json.dumps(merged_response)}
 
             # Remove responses without any content
             indices_to_remove = []
             for idx, out in enumerate(res_outputs):
-                if not out["response"] or self._is_openai_empty_response(
-                    out["response"]
-                ):
+                if not out["response"] or self._is_empty_response(out["response"]):
                     indices_to_remove.append(idx)
             indices_to_remove.sort(reverse=True)
             for index in indices_to_remove:
@@ -234,16 +240,18 @@ class LLMProfileDataParser(ProfileDataParser):
         elif self._service_kind == "triton_c_api":
             return len(req_inputs["input_ids"])  # no tokenizer required
         elif self._service_kind == "openai":
-            input_text = self._get_openai_input_text(req_inputs)
+            input_text = self._get_input_text(req_inputs)
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
         return len(self._tokenizer.encode(input_text))
 
-    def _get_openai_input_text(self, req_inputs: dict) -> str:
-        """Tokenize the OpenAI request input texts."""
+    def _get_input_text(self, req_inputs: dict) -> str:
+        """Tokenize the request input texts."""
         payload = load_json_str(req_inputs["payload"])
-        if self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
+        if self._response_format == ResponseFormat.TRITON_GENERATE:
+            return " ".join(payload["text_input"])
+        elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
             return payload["messages"][0]["content"]
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
             return " ".join(payload["prompt"])
@@ -251,9 +259,7 @@ class LLMProfileDataParser(ProfileDataParser):
             content = payload["messages"][0]["content"]
             return " ".join(c["text"] for c in content if c["type"] == "text")
         else:
-            raise ValueError(
-                "Failed to parse OpenAI request input in profile export file."
-            )
+            raise ValueError("Failed to parse request input in profile export file.")
 
     def _get_output_token_counts(
         self, res_outputs: List[Dict]
@@ -265,7 +271,7 @@ class LLMProfileDataParser(ProfileDataParser):
             # No tokenizer is need to get the token counts.
             return self._get_tensorrtllm_engine_token_counts(res_outputs)
         elif self._service_kind == "openai":
-            output_texts = self._get_openai_output_tokens(res_outputs)
+            output_texts = self._get_text_output_tokens(res_outputs)
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
@@ -290,11 +296,14 @@ class LLMProfileDataParser(ProfileDataParser):
         """Return a list of Triton response texts."""
         return [r["text_output"] for r in res_outputs]
 
-    def _get_openai_output_tokens(self, res_outputs: List[Dict]) -> List[str]:
-        """Return a list of OpenAI response texts."""
+    def _get_text_output_tokens(self, res_outputs: List[Dict]) -> List[str]:
+        """Return a list of LLM response texts."""
         output_texts = []
         for output in res_outputs:
-            text = self._extract_openai_text_output(output["response"])
+            if self._response_format == ResponseFormat.TRITON_GENERATE:
+                text = self._extract_generate_text_output(output["response"])
+            else:
+                text = self._extract_openai_text_output(output["response"])
             output_texts.append(text)
         return output_texts
 
@@ -306,6 +315,13 @@ class LLMProfileDataParser(ProfileDataParser):
         # are returned by the model
         encodings = self._tokenizer(["!" + txt for txt in output_texts])
         return [out[1:] for out in encodings.data["input_ids"]]
+
+    def _extract_generate_text_output(self, response: str) -> str:
+        response = remove_sse_prefix(response)
+        if response == "":
+            return response
+        data = json.loads(response)
+        return data["text_output"]
 
     def _extract_openai_text_output(self, response: str) -> str:
         """Extracts text/content of the OpenAI response object."""
@@ -334,9 +350,12 @@ class LLMProfileDataParser(ProfileDataParser):
             raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
         return text_output
 
-    def _is_openai_empty_response(self, response: str) -> bool:
-        """Returns true if the response is an openai response with no content (or empty content)"""
-        text = self._extract_openai_text_output(response)
+    def _is_empty_response(self, response: str) -> bool:
+        """Returns true if the response is an LLM response with no content (or empty content)"""
+        if self._response_format == ResponseFormat.TRITON_GENERATE:
+            text = self._extract_generate_text_output(response)
+        else:
+            text = self._extract_openai_text_output(response)
         if text:
             return False
         return True

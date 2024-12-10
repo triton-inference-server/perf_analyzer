@@ -32,6 +32,7 @@ from .openai_embeddings_converter import OpenAIEmbeddingsConverter
 from .rankings_converter import RankingsConverter
 from .tensorrtllm_converter import TensorRTLLMConverter
 from .tensorrtllm_engine_converter import TensorRTLLMEngineConverter
+from .triton_generate_converter import TritonGenerateConverter
 from .vllm_converter import VLLMConverter
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "TensorRTLLMConverter",
     "TensorRTLLMEngineConverter",
     "VLLMConverter",
+    "TritonGenerateConverter",
 ]

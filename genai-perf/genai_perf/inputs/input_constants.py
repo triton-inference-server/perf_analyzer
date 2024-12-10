@@ -55,6 +55,7 @@ class OutputFormat(Enum):
     OPENAI_VISION = auto()
     RANKINGS = auto()
     TENSORRTLLM_ENGINE = auto()
+    TRITON_GENERATE = auto()
 
     def to_lowercase(self):
         return self.name.lower()
@@ -84,6 +85,8 @@ DEFAULT_PROMPT_TOKENS_STDDEV = 0
 DEFAULT_OUTPUT_TOKENS_MEAN = -1
 DEFAULT_OUTPUT_TOKENS_STDDEV = 0
 DEFAULT_NUM_DATASET_ENTRIES = 100
+DEFAULT_NUM_PREFIX_PROMPTS = 0
+DEFAULT_PREFIX_PROMPT_LENGTH = 100
 
 ###########################
 # Default Image Parameters
