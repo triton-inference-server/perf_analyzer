@@ -14,7 +14,7 @@
 
 import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from genai_perf import parser
 from genai_perf.checkpoint.checkpoint import checkpoint_encoder

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple, TypeAlias, Union
+from typing import Optional
 
 from genai_perf.types import ConstraintName, Constraints
 

@@ -16,10 +16,9 @@ import json
 import os
 from dataclasses import dataclass
 
-from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_command import ConfigCommand, default_field
 from genai_perf.config.run.results import Results
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.types import CheckpointObject
 
 
 @dataclass(frozen=True)
@@ -38,7 +37,7 @@ class Checkpoint:
     config: ConfigCommand
 
     # Every top-level class that needs to store state is passed in
-    results: Results = Results()
+    results: Results = default_field(Results())
 
     def __post_init__(self):
         self._create_class_from_checkpoint()

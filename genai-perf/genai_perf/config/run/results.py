@@ -14,6 +14,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List
 
+from genai_perf.config.input.config_command import default_field
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.types import (
@@ -38,7 +39,7 @@ class Results:
     for adding configs, and setting objectives, weights or constraints
     """
 
-    run_configs: List[RunConfig] = field(default_factory=list)
+    run_configs: List[RunConfig] = default_field([])
 
     ###########################################################################
     # Checkpoint Methods

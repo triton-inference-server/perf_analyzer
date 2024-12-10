@@ -164,9 +164,11 @@ class ConfigOptimize:
     number_of_trials: Range = default_field(RunConfigDefaults.NUMBER_OF_TRIALS)
     early_exit_threshold: int = default_field(RunConfigDefaults.EARLY_EXIT_THRESHOLD)
 
-    model_config: ConfigModelConfig = ConfigModelConfig()
-    perf_analyzer: ConfigOptimizePerfAnalyzer = ConfigOptimizePerfAnalyzer()
-    genai_perf: ConfigOptimizeGenAIPerf = ConfigOptimizeGenAIPerf()
+    model_config: ConfigModelConfig = default_field(ConfigModelConfig())
+    perf_analyzer: ConfigOptimizePerfAnalyzer = default_field(
+        ConfigOptimizePerfAnalyzer()
+    )
+    genai_perf: ConfigOptimizeGenAIPerf = default_field(ConfigOptimizeGenAIPerf())
 
     def is_request_rate_specified(self) -> bool:
         return self.perf_analyzer.is_request_rate_specified()
@@ -204,7 +206,7 @@ class ConfigInput:
     file: str = default_field(RunConfigDefaults.FILE)
     num_dataset_entries: int = default_field(RunConfigDefaults.NUM_PROMPTS)
     seed: int = default_field(RunConfigDefaults.SEED)
-    synthetic_tokens: ConfigSyntheticTokens = ConfigSyntheticTokens()
+    synthetic_tokens: ConfigSyntheticTokens = default_field(ConfigSyntheticTokens())
 
 
 @dataclass
@@ -218,11 +220,11 @@ class ConfigOutputTokens:
 class ConfigCommand:
     model_names: List[ModelName]
     checkpoint_directory: str = default_field(RunConfigDefaults.CHECKPOINT_DIRECTORY)
-    optimize: ConfigOptimize = ConfigOptimize()
-    analyze: ConfigAnalyze = ConfigAnalyze()
-    perf_analyzer: ConfigPerfAnalyzer = ConfigPerfAnalyzer()
-    input: ConfigInput = ConfigInput()
-    output_tokens: ConfigOutputTokens = ConfigOutputTokens()
+    optimize: ConfigOptimize = default_field(ConfigOptimize())
+    analyze: ConfigAnalyze = default_field(ConfigAnalyze())
+    perf_analyzer: ConfigPerfAnalyzer = default_field(ConfigPerfAnalyzer())
+    input: ConfigInput = default_field(ConfigInput())
+    output_tokens: ConfigOutputTokens = default_field(ConfigOutputTokens())
 
     def get_max(self, config_value: ConfigRangeOrList) -> int:
         if type(config_value) is list:

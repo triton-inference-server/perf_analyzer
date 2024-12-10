@@ -62,7 +62,7 @@ from genai_perf.subcommand.common import (
     run_perf_analyzer,
 )
 from genai_perf.tokenizer import get_tokenizer
-from genai_perf.types import GpuRecords, ModelObjectiveParameters
+from genai_perf.types import ModelObjectiveParameters
 
 logger = logging.getLogger(__name__)
 
