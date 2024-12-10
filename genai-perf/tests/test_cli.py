@@ -192,6 +192,7 @@ class TestCLIArguments:
             ),
             (["--num-dataset-entries", "101"], {"num_dataset_entries": 101}),
             (["--num-prompts", "101"], {"num_dataset_entries": 101}),
+            (["--num-prefix-prompts", "101"], {"num_prefix_prompts": 101}),
             (
                 ["--output-tokens-mean", "6"],
                 {"output_tokens_mean": 6},
@@ -244,6 +245,10 @@ class TestCLIArguments:
             (
                 ["--synthetic-input-tokens-stddev", "7"],
                 {"synthetic_input_tokens_stddev": 7},
+            ),
+            (
+                ["--prefix-prompt-length", "6"],
+                {"prefix_prompt_length": 6},
             ),
             (
                 ["--image-width-mean", "123"],
