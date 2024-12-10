@@ -293,6 +293,9 @@ options:
   filepaths to images to use for benchmarking as JSON objects.
 
 For any dataset, you can specify the following options:
+* `--num-prefix-prompts <int>`: The number of synthetic prefix prompts to
+  sample from. If this value is >0, synthetic prefix prompts will be prepended
+  to user prompts.
 * `--output-tokens-mean <int>`: The mean number of tokens in each output. Ensure
   the `--tokenizer` value is set correctly, >= 1.
 * `--output-tokens-stddev <int>`: The standard deviation of the number of tokens
@@ -303,6 +306,8 @@ For any dataset, you can specify the following options:
   Triton service-kind. Note that there is still some variability in the
   requested number of output tokens, but GenAi-Perf attempts its best effort
   with your model to get the right number of output tokens.
+* `--prefix-prompt-length <int>`: The number of tokens to include in each
+  prefix prompt. This value is only used if --num-prefix-prompts is positive.
 
 You can optionally set additional model inputs with the following option:
 * `--extra-inputs <input_name>:<value>`: An additional input for use with the
@@ -461,6 +466,12 @@ extensions. For example, 'synthetic:queries,passages'.
 The number of unique payloads to sample from. These will be reused until
 benchmarking is complete. (default: `100`)
 
+##### `--num-prefix-prompts <int>`
+
+The number of prefix prompts to select from. If this value is not zero, these
+are prompts that are prepended to input prompts. This is useful for
+benchmarking models that use a K-V cache. (default: `0`)
+
 ##### `--output-tokens-mean <int>`
 ##### `--osl`
 
@@ -501,6 +512,13 @@ data. (default: `550`)
 
 The standard deviation of number of tokens in the generated prompts when
 using synthetic data. (default: `0`)
+
+##### `--prefix-prompt-length <int>`
+
+The number of tokens in each prefix prompt. This value is only used if
+--num-prefix-prompts is positive. Note that due to the prefix and user prompts
+being concatenated, the number of tokens in the final prompt may be off by one.
+(default: `100`)
 
 ##### `--warmup-request-count <int>`
 

@@ -346,3 +346,39 @@ class TestFileInputRetriever:
         )
         with pytest.raises(ValueError, match="No JSONL files found in directory"):
             _ = file_retriever._get_input_datasets_from_dir()
+
+    @patch("builtins.open", side_effect=open_side_effect)
+    @patch(
+        "genai_perf.inputs.retrievers.file_input_retriever.SyntheticPromptGenerator.create_prefix_prompts_pool"
+    )
+    @patch(
+        "genai_perf.inputs.retrievers.file_input_retriever.SyntheticPromptGenerator.get_random_prefix_prompt",
+        return_value="prefix prompt",
+    )
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_get_input_file_multiple_prompts_with_prefix_prompts(
+        self,
+        mock_exists,
+        mock_random_prefix_prompt,
+        mock_create_prefix_prompts_pool,
+        mock_file,
+    ):
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                tokenizer=get_empty_tokenizer(),
+                model_name=["test_model_A"],
+                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+                input_filename=Path("multiple_prompts.jsonl"),
+                num_prefix_prompts=3,
+                prefix_prompt_length=15,
+            )
+        )
+        file_data = file_retriever._get_input_dataset_from_file(
+            Path("multiple_prompts.jsonl")
+        )
+
+        assert file_data is not None
+        assert len(file_data.rows) == 3
+        mock_create_prefix_prompts_pool.assert_called_once()
+        for row in file_data.rows:
+            assert row.texts[0].startswith("prefix prompt ")

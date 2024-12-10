@@ -507,6 +507,17 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
+        "--num-prefix-prompts",
+        type=int,
+        default=ic.DEFAULT_NUM_PREFIX_PROMPTS,
+        required=False,
+        help=f"The number of prefix prompts to select from. "
+        "If this value is not zero, these are prompts that are "
+        "prepended to input prompts. This is useful for "
+        "benchmarking models that use a K-V cache.",
+    )
+
+    input_group.add_argument(
         "--output-tokens-mean",
         "--osl",
         type=int,
@@ -571,6 +582,17 @@ def _add_input_args(parser):
         default=ic.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
+    )
+
+    input_group.add_argument(
+        "--prefix-prompt-length",
+        type=int,
+        default=ic.DEFAULT_PREFIX_PROMPT_LENGTH,
+        required=False,
+        help=f"The number of tokens in each prefix prompt. This value is only "
+        "used if --num-prefix-prompts is positive. Note that due to "
+        "the prefix and user prompts being concatenated, the number of tokens "
+        "in the final prompt may be off by one.",
     )
 
     input_group.add_argument(

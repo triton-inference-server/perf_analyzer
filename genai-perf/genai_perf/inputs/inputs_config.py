@@ -35,8 +35,10 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_IMAGE_WIDTH_STDDEV,
     DEFAULT_LENGTH,
     DEFAULT_NUM_DATASET_ENTRIES,
+    DEFAULT_NUM_PREFIX_PROMPTS,
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_OUTPUT_TOKENS_STDDEV,
+    DEFAULT_PREFIX_PROMPT_LENGTH,
     DEFAULT_PROMPT_TOKENS_MEAN,
     DEFAULT_PROMPT_TOKENS_STDDEV,
     DEFAULT_RANDOM_SEED,
@@ -142,3 +144,9 @@ class InputsConfig:
 
     # Seed used to generate random values
     random_seed: int = DEFAULT_RANDOM_SEED
+
+    # The number of prefix prompts to generate and pool from
+    num_prefix_prompts: int = DEFAULT_NUM_PREFIX_PROMPTS
+
+    # The length of the prefix prompts to generate
+    prefix_prompt_length: int = DEFAULT_PREFIX_PROMPT_LENGTH
