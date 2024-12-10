@@ -27,6 +27,7 @@
 import argparse
 import os
 import sys
+from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 from typing import Optional, Tuple
@@ -63,14 +64,39 @@ class Subcommand(Enum):
 
 logger = logging.getLogger(__name__)
 
+
+@dataclass
+class EndpointConfig:
+    endpoint: Optional[str]
+    service_kind: str
+    output_format: ic.OutputFormat
+
+
 _endpoint_type_map = {
-    "chat": "v1/chat/completions",
-    "completions": "v1/completions",
-    "embeddings": "v1/embeddings",
-    "image_retrieval": "v1/infer",
-    "nvclip": "v1/embeddings",
-    "rankings": "v1/ranking",
-    "vision": "v1/chat/completions",
+    "chat": EndpointConfig(
+        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_CHAT_COMPLETIONS
+    ),
+    "completions": EndpointConfig(
+        "v1/completions", "openai", ic.OutputFormat.OPENAI_COMPLETIONS
+    ),
+    "embeddings": EndpointConfig(
+        "v1/embeddings", "openai", ic.OutputFormat.OPENAI_EMBEDDINGS
+    ),
+    "image_retrieval": EndpointConfig(
+        "v1/infer", "openai", ic.OutputFormat.IMAGE_RETRIEVAL
+    ),
+    "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
+    "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
+    "vision": EndpointConfig(
+        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
+    ),
+    "generate": EndpointConfig(
+        "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
+    ),
+    "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
+    "tensorrtllm_engine": EndpointConfig(
+        None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
+    ),
 }
 
 
@@ -141,42 +167,46 @@ def _check_conditional_args(
             parser.error(
                 "The --endpoint-type option is required when using the 'openai' service-kind."
             )
-        else:
-            if args.endpoint_type == "chat":
-                args.output_format = ic.OutputFormat.OPENAI_CHAT_COMPLETIONS
-            elif args.endpoint_type == "completions":
-                args.output_format = ic.OutputFormat.OPENAI_COMPLETIONS
-            elif args.endpoint_type == "embeddings":
-                args.output_format = ic.OutputFormat.OPENAI_EMBEDDINGS
-            elif args.endpoint_type == "rankings":
-                args.output_format = ic.OutputFormat.RANKINGS
-            elif args.endpoint_type == "image_retrieval":
-                args.output_format = ic.OutputFormat.IMAGE_RETRIEVAL
 
-            # (TMA-1986) deduce vision format from chat completions + image CLI
-            # because there's no openai vision endpoint.
-            elif args.endpoint_type == "vision":
-                args.output_format = ic.OutputFormat.OPENAI_VISION
-            elif args.endpoint_type == "nvclip":
-                args.output_format = ic.OutputFormat.NVCLIP
+    if args.service_kind == "triton" and args.endpoint_type is None:
+        args.endpoint_type = "kserve"
 
-            if args.endpoint is not None:
-                args.endpoint = args.endpoint.lstrip(" /")
-            else:
-                args.endpoint = _endpoint_type_map[args.endpoint_type]
-    elif args.endpoint_type is not None:
+    if args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
+        args.endpoint_type = "tensorrtllm_engine"
+
+    if args.endpoint_type and args.endpoint_type not in _endpoint_type_map:
+        parser.error(f"Invalid endpoint type {args.endpoint_type}")
+
+    endpoint_config = _endpoint_type_map[args.endpoint_type]
+    args.output_format = endpoint_config.output_format
+
+    if endpoint_config.service_kind != args.service_kind:
         parser.error(
-            "The --endpoint-type option should only be used when using the 'openai' service-kind."
+            f"Invalid endpoint-type '{args.endpoint_type}' for service-kind '{args.service_kind}'."
         )
 
-    if args.service_kind == "triton":
+    if args.endpoint is not None:
+        args.endpoint = args.endpoint.lstrip(" /")
+    else:
+        if args.model:
+            model_name = args.model[0]
+        else:
+            model_name = ""
+        if endpoint_config.endpoint:
+            args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
+
+    if args.service_kind == "triton" and args.endpoint_type == "kserve":
         args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
         args.output_format = args.backend
     else:
         if args.backend is not ic.DEFAULT_BACKEND:
             parser.error(
-                "The --backend option should only be used when using the 'triton' service-kind."
+                "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type."
             )
+
+    if args.service_kind == "triton" and args.endpoint_type == "generate":
+        # TODO: infer service_kind from endpoint_type and deprecate service_kind argument
+        args.service_kind = "openai"
 
     if args.service_kind == "tensorrtllm_engine":
         args.output_format = ic.OutputFormat.TENSORRTLLM_ENGINE
@@ -351,7 +381,6 @@ def parse_goodput(values):
 
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
-
     args.synthetic_input_files = None
 
     if args.input_file:
@@ -708,18 +737,9 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--endpoint-type",
         type=str,
-        choices=[
-            "chat",
-            "completions",
-            "embeddings",
-            "nvclip",
-            "image_retrieval",
-            "rankings",
-            "vision",
-        ],
+        choices=list(_endpoint_type_map.keys()),
         required=False,
-        help=f"The endpoint-type to send requests to on the "
-        'server. This is only used with the "openai" service-kind.',
+        help=f"The endpoint-type to send requests to on the " "server.",
     )
 
     endpoint_group.add_argument(
