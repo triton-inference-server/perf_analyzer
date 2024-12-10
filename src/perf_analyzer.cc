@@ -110,6 +110,11 @@ PerfAnalyzer::CreateAnalyzerObjects()
             model_metadata, model_config, params_->model_version,
             params_->bls_composing_models, params_->input_shapes, backend_),
         "failed to create model parser");
+  } else if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
+    FAIL_IF_ERR(
+        parser_->InitDynamicGrpc(
+            params_->model_name, params_->model_version, params_->batch_size),
+        "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::OPENAI) {
     FAIL_IF_ERR(
         parser_->InitOpenAI(
