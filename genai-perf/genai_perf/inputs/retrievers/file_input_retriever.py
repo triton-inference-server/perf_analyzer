@@ -42,7 +42,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.utils import load_json_str
 from PIL import Image
-from typing_extensions import override
 
 
 class FileInputRetriever(BaseFileInputRetriever):
@@ -190,7 +189,6 @@ class FileInputRetriever(BaseFileInputRetriever):
         payload = f"data:image/{img.format.lower()};base64,{img_base64}"
         return payload
 
-    @override
     def _convert_content_to_data_file(
         self, prompts: List[str], filename: Path, images: List[str] = []
     ) -> FileData:
