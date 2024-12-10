@@ -156,12 +156,12 @@ class FileInputRetriever(BaseInputRetriever):
         prompts = []
         images = []
 
-        use_system_prompts = self.config.num_system_prompts > 0
-        if use_system_prompts:
-            SyntheticPromptGenerator.create_system_prompts_pool(
+        use_prefix_prompts = self.config.num_prefix_prompts > 0
+        if use_prefix_prompts:
+            SyntheticPromptGenerator.create_prefix_prompts_pool(
                 self.config.tokenizer,
-                self.config.num_system_prompts,
-                self.config.system_prompt_length,
+                self.config.num_prefix_prompts,
+                self.config.prefix_prompt_length,
             )
 
         with open(filename, mode="r", newline=None) as file:
@@ -176,11 +176,11 @@ class FileInputRetriever(BaseInputRetriever):
                             "Each data entry must have only one of 'text_input' or 'text' key name."
                         )
                     prompt = prompt if prompt else prompt_alt
-                    if use_system_prompts:
-                        system_prompt = (
-                            SyntheticPromptGenerator.get_random_system_prompt()
+                    if use_prefix_prompts:
+                        prefix_prompt = (
+                            SyntheticPromptGenerator.get_random_prefix_prompt()
                         )
-                        prompt = f"{system_prompt} {prompt}"
+                        prompt = f"{prefix_prompt} {prompt}"
                     if prompt is not None:
                         prompts.append(prompt.strip())
                     image = data.get("image")
