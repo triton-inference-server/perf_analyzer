@@ -76,23 +76,16 @@ CustomRequestScheduleManager::ChangeRequestRate(
 {
   PauseWorkers();
   ConfigureThreads(request_count);
-  GenerateSchedule(request_rate);
+  GenerateSchedule();
   ResumeWorkers();
 
   return cb::Error::Success;
 }
 
 void
-CustomRequestScheduleManager::GenerateSchedule(const double request_rate)
+CustomRequestScheduleManager::GenerateSchedule()
 {
-  std::vector<float> scaled_schedule;
-  scaled_schedule.reserve(schedule_.size());
-  if (schedule_.size() > 0) {
-    for (const auto& value : schedule_) {
-      scaled_schedule.push_back(value / static_cast<float>(request_rate));
-    }
-  }
-  auto worker_schedules = CreateWorkerSchedules(scaled_schedule);
+  auto worker_schedules = CreateWorkerSchedules(schedule);
   GiveSchedulesToWorkers(worker_schedules);
 }
 

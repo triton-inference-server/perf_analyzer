@@ -91,10 +91,8 @@ class CustomRequestScheduleManager : public RequestRateManager {
       const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory);
 
-  /// Generates and updates the request schedule as per the given request rate
-  /// and schedule \param request_rate The request rate to use for new schedule
-  /// \param schedule The vector containing the schedule for requests
-  void GenerateSchedule(const double request_rate);
+  /// Generates and updates the request schedule as per the given schedule
+  void GenerateSchedule();
 
   /// Creates worker schedules based on the provided schedule
   /// \param duration The maximum duration for the schedule

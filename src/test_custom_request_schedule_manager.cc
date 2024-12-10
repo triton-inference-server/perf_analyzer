@@ -34,8 +34,6 @@
 
 namespace triton::perfanalyzer {
 
-/// Class to test CustomRequestScheduleManager
-///
 class TestCustomRequestScheduleManager : public TestLoadManagerBase,
                                          public CustomRequestScheduleManager {
  public:
@@ -49,21 +47,19 @@ class TestCustomRequestScheduleManager : public TestLoadManagerBase,
   {
   }
 
-  void TestSchedule(double request_rate, PerfAnalyzerParameters params)
+  void TestSchedule(PerfAnalyzerParameters params)
   {
     int request_count = schedule_.size();
     PauseWorkers();
     ConfigureThreads(request_count);
-    GenerateSchedule(request_rate);
+    GenerateSchedule();
 
     std::vector<std::chrono::nanoseconds> expected_timestamps;
     std::chrono::nanoseconds timestamp(0);
 
     for (float schedule_value : schedule_) {
-      float scaled_value = schedule_value / static_cast<float>(request_rate);
-
       timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::duration<float>(scaled_value));
+          std::chrono::duration<float>(schedule_value));
 
       expected_timestamps.push_back(timestamp);
     }
@@ -89,47 +85,26 @@ TEST_CASE("custom_request_schedule")
   bool is_sequence = false;
   bool is_decoupled = false;
   bool use_mock_infer = true;
-  double request_rate;
-
-  const auto& ParameterizeRequestRate{[&]() {
-    SUBCASE("rate 1")
-    {
-      request_rate = 1;
-    }
-    SUBCASE("rate 10")
-    {
-      request_rate = 10;
-    }
-    SUBCASE("rate 100")
-    {
-      request_rate = 100;
-    }
-  }};
 
   const auto& ParameterizeSchedule{[&]() {
     SUBCASE("schedule A")
     {
-      ParameterizeRequestRate();
       params.schedule = {1.0, 2.0, 3.0, 4.0, 5.0};
     }
     SUBCASE("schedule B")
     {
-      ParameterizeRequestRate();
       params.schedule = {0.5, 2.0, 3.5};
     }
     SUBCASE("schedule C")
     {
-      ParameterizeRequestRate();
       params.schedule = {0.1, 0.3, 0.8, 1.5};
     }
     SUBCASE("schedule D")
     {
-      ParameterizeRequestRate();
-      params.schedule = {1.0, 5.0, 10.0};
+      params.schedule = {0.0, 5.0, 10.0};
     }
     SUBCASE("schedule E")
     {
-      ParameterizeRequestRate();
       params.schedule = {1.0};
     }
   }};
@@ -138,6 +113,6 @@ TEST_CASE("custom_request_schedule")
   TestCustomRequestScheduleManager tcrsm(
       params, is_sequence, is_decoupled, use_mock_infer);
 
-  tcrsm.TestSchedule(request_rate, params);
+  tcrsm.TestSchedule(params);
 }
 }  // namespace triton::perfanalyzer
