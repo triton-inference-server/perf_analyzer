@@ -70,3 +70,9 @@ class BaseConverter:
     ) -> None:
         for key, value in config.extra_inputs.items():
             payload[key] = value
+
+    def _add_payload_params(
+            self, payload: Dict[Any, Any], session_id: str, optional_data: Dict[Any, Any]
+    ) -> None:
+        payload[session_id] = session_id
+        payload[optional_data] = optional_data

@@ -24,11 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import random
-from pathlib import Path
-from typing import List, Tuple
 
-from genai_perf import utils
+from pathlib import Path
+from typing import List, Tuple, Union, Dict, Any
+
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
@@ -71,18 +70,19 @@ class BaseFileInputRetriever(BaseInputRetriever):
         """
         if not filename.exists():
             raise FileNotFoundError(f"The file '{filename}' does not exist.")
-
+    
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Tuple[List[str], List[str]]:
+    ) -> Union[Tuple[List[str], List[str]], Tuple[List[str], Dict[Any, Any], str]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
         """
         raise NotImplementedError("This method should be implemented by subclasses.")
+    
 
     def _convert_content_to_data_file(
-        self, prompts: List[str], images: List[str], filename: Path
+        self, prompts: List[str]
     ) -> FileData:
         """
         Converts the content to a DataFile.

@@ -24,13 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import random
 from pathlib import Path
-from typing import Dict, List, Tuple, cast
+from typing import Dict, List, Tuple, Any, cast
 
-from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
     BaseFileInputRetriever,
 )
@@ -87,12 +84,12 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         self._verify_file(filename)
         prompts, optional_data, session_id = self._get_content_from_input_file(filename)
         return self._convert_content_to_data_file(
-            prompts, optional_data, session_id, filename
+            prompts, optional_data, session_id
         )
 
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Tuple[List[str], Dict, str]:
+    ) -> Tuple[List[str], Dict[Any, Any], str]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -129,10 +126,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                     prompt = prompt if prompt else prompt_alt
                     prompts.append(prompt.strip() if prompt else prompt)
                     optional_data = self._check_for_optional_data(data)
-                    session_id = data.get("session_id")
+                    session_id = data.get("session_id", "")
         return prompts, optional_data, session_id
 
-    def _check_for_optional_data(self, data: str) -> None:
+    def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any,Any]:
         """
         Checks if there is any optional data in the file to pass in the payload.
         """
@@ -143,9 +140,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                     "The optional_data field must be a dictionary."
                 )
             return optional_data
+        return {}
 
     def _convert_content_to_data_file(
-        self, prompts: List[str], optional_data: Dict, session_id: str, filename: Path
+        self, prompts: List[str], optional_data: Dict, session_id: str
     ) -> FileData:
         """
         Converts the content to a DataFile.

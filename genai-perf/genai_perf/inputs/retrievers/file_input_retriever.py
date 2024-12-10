@@ -27,6 +27,7 @@
 import random
 from pathlib import Path
 from typing import Dict, List, Tuple, cast
+from typing_extensions import override
 
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
@@ -116,7 +117,7 @@ class FileInputRetriever(BaseFileInputRetriever):
         """
         self._verify_file(filename)
         prompts, images = self._get_content_from_input_file(filename)
-        return self._convert_content_to_data_file(prompts, images, filename)
+        return self._convert_content_to_data_file(prompts, images)
 
     def _get_content_from_input_file(
         self, filename: Path
@@ -188,9 +189,10 @@ class FileInputRetriever(BaseFileInputRetriever):
         img_base64 = utils.encode_image(img, img.format)
         payload = f"data:image/{img.format.lower()};base64,{img_base64}"
         return payload
-
+    
+    @override
     def _convert_content_to_data_file(
-        self, prompts: List[str], images: List[str], filename: Path
+        self, prompts: List[str], images: List[str]
     ) -> FileData:
         """
         Converts the content to a DataFile.
