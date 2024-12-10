@@ -206,7 +206,7 @@ class ConfigInput:
     file: str = default_field(RunConfigDefaults.FILE)
     num_dataset_entries: int = default_field(RunConfigDefaults.NUM_PROMPTS)
     seed: int = default_field(RunConfigDefaults.SEED)
-    synthetic_tokens: ConfigSyntheticTokens = ConfigSyntheticTokens()
+    synthetic_tokens: ConfigSyntheticTokens = default_field(ConfigSyntheticTokens())
 
 
 @dataclass
