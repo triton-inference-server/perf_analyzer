@@ -11,7 +11,7 @@
 # limitations under the License.
 
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List
 
 from genai_perf.config.input.config_command import default_field
