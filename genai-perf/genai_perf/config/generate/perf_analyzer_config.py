@@ -63,6 +63,8 @@ perf_analyzer_ignore_args = [
     "model",
     "model_selection_strategy",
     "num_dataset_entries",
+    "num_prefix_prompts",
+    "prefix_prompt_length",
     "request_count",
     "warmup_request_count",
     "output_format",
