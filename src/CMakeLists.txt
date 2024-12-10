@@ -35,6 +35,7 @@ option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF
 option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_DGRPC "Enable Dynamic gRPC support for Performance Analyzer" OFF)
 
 #
 # Feature Options
@@ -285,6 +286,14 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_OPENAI=1
   )
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAI
+
+if(TRITON_ENABLE_PERF_ANALYZER_DGRPC)
+  target_compile_definitions(
+    client-backend-library
+    PUBLIC TRITON_ENABLE_PERF_ANALYZER_DGRPC=1
+  )
+endif() # TRITON_ENABLE_PERF_ANALYZER_DGRPC
+
 
 install(
   TARGETS perf_analyzer

@@ -66,6 +66,10 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
   add_subdirectory(openai)
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAI
 
+if(TRITON_ENABLE_PERF_ANALYZER_DGRPC)
+  add_subdirectory(dynamic_grpc)
+endif() # TRITON_ENABLE_PERF_ANALYZER_DGRPC
+
 set(
   CLIENT_BACKEND_SRCS
   client_backend.cc
@@ -100,6 +104,12 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
   set(OPENAI_TARGET_INCLUDE_DIRECTORY PRIVATE $<TARGET_PROPERTY:openai-client-backend-library,INCLUDE_DIRECTORIES>)
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAIs
 
+if(TRITON_ENABLE_PERF_ANALYZER_DGRPC)
+  set(DGRPC_LIBRARY $<TARGET_OBJECTS:dgrpc-client-backend-library>)
+  set(DGRPC_TARGET_LINK_LIBRARY PUBLIC $<TARGET_PROPERTY:dgrpc-client-backend-library,LINK_LIBRARIES>)
+  set(DGRPC_TARGET_INCLUDE_DIRECTORY PRIVATE $<TARGET_PROPERTY:dgrpc-client-backend-library,INCLUDE_DIRECTORIES>)
+endif() # TRITON_ENABLE_PERF_ANALYZER_DGRPC
+
 add_library(
   client-backend-library
   ${CLIENT_BACKEND_SRCS}
@@ -109,6 +119,7 @@ add_library(
   ${TFS_LIBRARY}
   ${TS_LIBRARY}
   ${OPENAI_LIBRARY}
+  ${DGRPC_LIBRARY}
 )
 
 target_link_libraries(
@@ -121,6 +132,7 @@ target_link_libraries(
       ${TFS_TARGET_LINK_LIBRARY}
       ${TS_TARGET_LINK_LIBRARY}
       ${OPENAI_TARGET_LINK_LIBRARY}
+      ${DGRPC_TARGET_LINK_LIBRARY}
 )
 
 target_include_directories(
@@ -131,5 +143,6 @@ target_include_directories(
     ${TFS_TARGET_INCLUDE_DIRECTORY}
     ${TS_TARGET_INCLUDE_DIRECTORY}
     ${OPENAI_TARGET_INCLUDE_DIRECTORY}
+    ${DGRPC_TARGET_INCLUDE_DIRECTORY}
 )
 
