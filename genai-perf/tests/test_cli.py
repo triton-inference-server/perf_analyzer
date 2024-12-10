@@ -892,25 +892,55 @@ class TestCLIArguments:
         assert str(exc_info.value) == expected_error
 
     @pytest.mark.parametrize(
-        "args, expected_prompt_source",
+        "args, expected_prompt_source, expected_payload_input_file, expect_error",
         [
-            ([], PromptSource.SYNTHETIC),
-            (["--input-file", "prompt.txt"], PromptSource.FILE),
+            ([], PromptSource.SYNTHETIC, None, False),
+            (["--input-file", "prompt.txt"], PromptSource.FILE, None, False),
             (
                 ["--input-file", "prompt.txt", "--synthetic-input-tokens-mean", "10"],
                 PromptSource.FILE,
+                None,
+                False,
             ),
+            (
+                ["--input-file", "payload:test.jsonl"],
+                PromptSource.PAYLOAD,
+                ["test.jsonl"],
+                False,
+            ),
+            (["--input-file", "payload:"], PromptSource.PAYLOAD, [], True),
+            (
+                ["--input-file", "synthetic:test.jsonl"],
+                PromptSource.SYNTHETIC,
+                None,
+                False,
+            ),
+            (["--input-file", "invalidinput"], PromptSource.FILE, None, False),
         ],
     )
     def test_inferred_prompt_source(
-        self, monkeypatch, mocker, args, expected_prompt_source
+        self,
+        monkeypatch,
+        mocker,
+        args,
+        expected_prompt_source,
+        expected_payload_input_file,
+        expect_error,
     ):
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
 
-        assert args.prompt_source == expected_prompt_source
+        if expect_error:
+            with pytest.raises(ValueError):
+                parser.parse_args()
+        else:
+            args, _ = parser.parse_args()
+
+            assert args.prompt_source == expected_prompt_source
+
+            if expected_payload_input_file is not None:
+                assert args.payload_input_file == expected_payload_input_file
 
     @pytest.mark.parametrize(
         "args",
