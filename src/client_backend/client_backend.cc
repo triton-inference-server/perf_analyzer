@@ -33,7 +33,7 @@
 #endif  // TRITON_ENABLE_PERF_ANALYZER_C_API
 
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
-#include "grpc/dynamic_grpc_client_backend.h"
+#include "dynamic_grpc/dynamic_grpc_client_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
@@ -190,8 +190,8 @@ ClientBackend::Create(
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
   else if (kind == DYNAMIC_GRPC) {
     RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcClientBackend::Create(
-        url, protocol, BackendToGrpcType(compression_algorithm), http_headers,
-        verbose, &local_backend));
+        url, protocol, ssl_options, BackendToGrpcType(compression_algorithm),
+        http_headers, verbose, &local_backend));
   }
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI

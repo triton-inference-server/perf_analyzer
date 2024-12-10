@@ -30,6 +30,7 @@
 #include "../../perf_utils.h"
 #include "../client_backend.h"
 #include "dynamic_grpc_client.h"
+#include "dynamic_grpc_infer_input.h"
 
 #define RETURN_IF_TRITON_ERROR(S)       \
   do {                                  \
@@ -52,6 +53,7 @@ class DynamicGrpcClientBackend : public ClientBackend {
   /// arbitrary grpc service.
   /// \param url The grpc service url and port.
   /// \param protocol The protocol type used.
+  /// \param ssl_options The SSL options used with client backend.
   /// \param compression_algorithm The compression algorithm to be used
   /// on the grpc requests.
   /// \param http_headers Map of HTTP headers. The map key/value indicates
@@ -62,6 +64,7 @@ class DynamicGrpcClientBackend : public ClientBackend {
   /// \return Error object indicating success or failure.
   static Error Create(
       const std::string& url, const ProtocolType protocol,
+      const SslOptionsBase& ssl_options,
       const grpc_compression_algorithm compression_algorithm,
       std::shared_ptr<Headers> http_headers, const bool verbose,
       std::unique_ptr<ClientBackend>* client_backend);
@@ -70,7 +73,7 @@ class DynamicGrpcClientBackend : public ClientBackend {
   Error StreamInfer(
       cb::InferResult** result, const InferOptions& options,
       const std::vector<InferInput*>& inputs,
-      const std::vector<const InferRequestedOutput*>& outputs) override;
+      const std::vector<const InferRequestedOutput*>& outputs);
 
   /// See ClientBackend::ClientInferStat()
   Error ClientInferStat(InferStat* infer_stat) override;

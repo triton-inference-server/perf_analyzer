@@ -47,6 +47,7 @@ ParseGrpcSslOptions(const cb::SslOptionsBase& ssl_options)
 Error
 DynamicGrpcClientBackend::Create(
     const std::string& url, const ProtocolType protocol,
+    const SslOptionsBase& ssl_options,
     const grpc_compression_algorithm compression_algorithm,
     std::shared_ptr<Headers> http_headers, const bool verbose,
     std::unique_ptr<ClientBackend>* client_backend)
@@ -77,8 +78,8 @@ DynamicGrpcClientBackend::StreamInfer(
     const std::vector<InferInput*>& inputs,
     const std::vector<const InferRequestedOutput*>& outputs)
 {
-  RETURN_IF_CB_ERROR(grpc_client_->Infer(
-      &result, options, inputs, outputs, *http_headers_,
+  RETURN_IF_CB_ERROR(grpc_client_->BidiStreamRPC(
+      result, options, inputs, outputs, *http_headers_,
       compression_algorithm_));
 
   return Error::Success;

@@ -77,6 +77,8 @@ struct KeepAliveOptions {
   int http2_max_pings_without_data;
 };
 
+class DynamicGrpcClient;
+
 //==============================================================================
 // An DynamicGrpcRequest represents an inflght request on gRPC.
 //
