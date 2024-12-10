@@ -465,14 +465,27 @@ def parse_goodput(values):
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
     args.synthetic_input_files = None
+    args.payload_input_file = None
 
     if args.input_file:
-        if str(args.input_file).startswith("synthetic:"):
+        input_file_str = str(args.input_file)
+        if input_file_str.startswith("synthetic:"):
             args.prompt_source = ic.PromptSource.SYNTHETIC
-            synthetic_input_files_str = str(args.input_file).split(":", 1)[1]
+            synthetic_input_files_str = input_file_str.split(":", 1)[1]
             args.synthetic_input_files = synthetic_input_files_str.split(",")
             logger.debug(
                 f"Input source is synthetic data: {args.synthetic_input_files}"
+            )
+        elif input_file_str.startswith("payload:"):
+            args.prompt_source = ic.PromptSource.PAYLOAD
+            payload_input_file_str = input_file_str.split(":", 1)[1]
+            if not payload_input_file_str:
+                raise ValueError(
+                    f"Invalid payload input: '{input_file_str}' is missing the file path"
+                )
+            args.payload_input_file = payload_input_file_str.split(",")
+            logger.debug(
+                f"Input source is a payload file with timing information in the following path: {args.payload_input_file}"
             )
         else:
             args.prompt_source = ic.PromptSource.FILE
@@ -496,7 +509,7 @@ def _convert_str_to_enum_entry(args, option, enum):
 
 
 def file_or_directory(value: str) -> Path:
-    if value.startswith("synthetic:"):
+    if value.startswith("synthetic:") or value.startswith("payload:"):
         return Path(value)
     else:
         path = Path(value)
@@ -768,12 +781,17 @@ def _add_input_args(parser):
         required=False,
         help="The input file or directory containing the content to use for "
         "profiling. Each line should be a JSON object with a 'text' or "
-        "'image' field 'in JSONL format. Example: {\"text\":"
-        ' "Your prompt here"}\'. To use synthetic files for a converter that '
+        "'image' field in JSONL format. Example: {\"text\": "
+        '"Your prompt here"}. To use synthetic files for a converter that '
         "needs multiple files, prefix the path with 'synthetic:', followed "
         "by a comma-separated list of filenames. The synthetic filenames "
         "should not have extensions. For example, "
-        "'synthetic:queries,passages'. ",
+        "'synthetic:queries,passages'. For payload data, prefix the path with 'payload:', "
+        "followed by a JSON string representing a payload object. The payload should "
+        "contain fields such as 'timestamp', 'input_length', 'output_length', "
+        "and you can optionally add 'text_input', 'session_id', 'hash_ids', and 'priority'. "
+        'Example: \'payload:{"timestamp": 123.45, "input_length": 10, "output_length": 12, '
+        '"session_id": 1, "priority": 5, "text_input": "Your prompt here"}\'.',
     )
 
     input_group.add_argument(
