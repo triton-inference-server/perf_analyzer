@@ -36,6 +36,7 @@ class ModelSelectionStrategy(Enum):
 class PromptSource(Enum):
     SYNTHETIC = auto()
     FILE = auto()
+    PAYLOAD = auto()
 
 
 class OutputFormat(Enum):
