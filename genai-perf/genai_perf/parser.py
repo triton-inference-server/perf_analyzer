@@ -465,14 +465,27 @@ def parse_goodput(values):
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
     args.synthetic_input_files = None
+    args.payload_input_file = None
 
     if args.input_file:
-        if str(args.input_file).startswith("synthetic:"):
+        input_file_str = str(args.input_file)
+        if input_file_str.startswith("synthetic:"):
             args.prompt_source = ic.PromptSource.SYNTHETIC
-            synthetic_input_files_str = str(args.input_file).split(":", 1)[1]
+            synthetic_input_files_str = input_file_str.split(":", 1)[1]
             args.synthetic_input_files = synthetic_input_files_str.split(",")
             logger.debug(
                 f"Input source is synthetic data: {args.synthetic_input_files}"
+            )
+        elif input_file_str.startswith("payload:"):
+            args.prompt_source = ic.PromptSource.PAYLOAD
+            payload_input_file_str = input_file_str.split(":", 1)[1]
+            if not payload_input_file_str:
+                raise ValueError(
+                    f"Invalid payload input: '{input_file_str}' is missing the file path"
+                )
+            args.payload_input_file = payload_input_file_str.split(",")
+            logger.debug(
+                f"Input source is a payload file with timing information in the following path: {args.payload_input_file}"
             )
         else:
             args.prompt_source = ic.PromptSource.FILE
@@ -496,7 +509,7 @@ def _convert_str_to_enum_entry(args, option, enum):
 
 
 def file_or_directory(value: str) -> Path:
-    if value.startswith("synthetic:"):
+    if value.startswith("synthetic:") or value.startswith("payload:"):
         return Path(value)
     else:
         path = Path(value)
