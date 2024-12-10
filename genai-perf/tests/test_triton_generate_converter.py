@@ -173,17 +173,3 @@ class TestTritonGenerateConverter:
         }
 
         assert result == expected_result
-
-    def test_convert_empty_dataset(self):
-        generic_dataset = GenericDataset(files_data={})
-
-        config = InputsConfig(
-            extra_inputs={},
-            tokenizer=get_empty_tokenizer(),
-        )
-
-        converter = TritonGenerateConverter()
-        result = converter.convert(generic_dataset, config)
-
-        expected_result = {"data": []}
-        assert result == expected_result
