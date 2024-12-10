@@ -85,7 +85,7 @@ CustomRequestScheduleManager::ChangeRequestRate(
 void
 CustomRequestScheduleManager::GenerateSchedule()
 {
-  auto worker_schedules = CreateWorkerSchedules(schedule);
+  auto worker_schedules = CreateWorkerSchedules(schedule_);
   GiveSchedulesToWorkers(worker_schedules);
 }
 
