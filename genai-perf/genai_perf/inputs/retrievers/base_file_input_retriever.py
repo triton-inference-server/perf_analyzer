@@ -26,13 +26,10 @@
 
 
 from pathlib import Path
-from typing import List, Tuple, Union, Dict, Any
+from typing import Any, Dict, List, Tuple, Union
 
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
-from genai_perf.inputs.retrievers.generic_dataset import (
-    FileData,
-    GenericDataset,
-)
+from genai_perf.inputs.retrievers.generic_dataset import FileData, GenericDataset
 
 
 class BaseFileInputRetriever(BaseInputRetriever):
@@ -70,7 +67,7 @@ class BaseFileInputRetriever(BaseInputRetriever):
         """
         if not filename.exists():
             raise FileNotFoundError(f"The file '{filename}' does not exist.")
-    
+
     def _get_content_from_input_file(
         self, filename: Path
     ) -> Union[Tuple[List[str], List[str]], Tuple[List[str], Dict[Any, Any], str]]:
@@ -79,10 +76,9 @@ class BaseFileInputRetriever(BaseInputRetriever):
 
         """
         raise NotImplementedError("This method should be implemented by subclasses.")
-    
 
     def _convert_content_to_data_file(
-        self, prompts: List[str]
+        self, prompts: List[str], filename: Path
     ) -> FileData:
         """
         Converts the content to a DataFile.

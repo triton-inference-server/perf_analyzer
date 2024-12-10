@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
-from typing import Dict, List, Tuple, Any, cast
+from typing import Any, Dict, List, Tuple, cast
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
@@ -84,7 +84,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         self._verify_file(filename)
         prompts, optional_data, session_id = self._get_content_from_input_file(filename)
         return self._convert_content_to_data_file(
-            prompts, optional_data, session_id
+            prompts, filename, optional_data, session_id
         )
 
     def _get_content_from_input_file(
@@ -129,7 +129,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                     session_id = data.get("session_id", "")
         return prompts, optional_data, session_id
 
-    def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any,Any]:
+    def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """
         Checks if there is any optional data in the file to pass in the payload.
         """
@@ -143,7 +143,11 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         return {}
 
     def _convert_content_to_data_file(
-        self, prompts: List[str], optional_data: Dict, session_id: str
+        self,
+        prompts: List[str],
+        filename: Path,
+        optional_data: Dict[Any, Any] = {},
+        session_id: str = "",
     ) -> FileData:
         """
         Converts the content to a DataFile.

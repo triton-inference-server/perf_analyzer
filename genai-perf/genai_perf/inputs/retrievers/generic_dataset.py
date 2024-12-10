@@ -25,12 +25,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from dataclasses import dataclass, field
-from typing import Dict, List, TypeAlias
+from typing import Any, Dict, List, TypeAlias, Union
 
 Filename: TypeAlias = str
 TypeOfData: TypeAlias = str
 ListOfData: TypeAlias = List[str]
-DataRowDict: TypeAlias = Dict[TypeOfData, ListOfData]
+DataRowDict: TypeAlias = Dict[str, Union[List[str], Dict[str, Any], str]]
 GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 
 
@@ -38,14 +38,14 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 class DataRow:
     texts: List[str] = field(default_factory=list)
     images: List[str] = field(default_factory=list)
-    optional_data: Dict = field(default_factory=dict)
+    optional_data: Dict[str, Any] = field(default_factory=dict)
     session_id: str = ""
 
     def to_dict(self) -> DataRowDict:
         """
         Converts the DataRow object to a dictionary.
         """
-        datarow_dict = {}
+        datarow_dict: DataRowDict = {}
 
         if self.texts:
             datarow_dict["texts"] = self.texts

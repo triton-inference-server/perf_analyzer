@@ -59,9 +59,11 @@ class NVClipConverter(BaseConverter):
                     "model": model_name,
                     "input": input_items,
                 }
+                session_id = row.session_id
+                optional_data = row.optional_data
 
                 self._add_request_params(payload, config)
-                self._add_payload_params(payload,session_id, optional_data)
+                self._add_payload_params(payload, session_id, optional_data)
                 request_body["data"].append({"payload": [payload]})
 
         return request_body
