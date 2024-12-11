@@ -24,17 +24,28 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Union
+from typing import Optional, Union
 
 import pytest
 from genai_perf import utils
+from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.run.run_config import RunConfig
+from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.statistics import Statistics
+from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
+from genai_perf.record.types.gpu_utilization_p99 import GPUUtilizationP99
+from genai_perf.record.types.input_sequence_length_p99 import InputSequenceLengthP99
+from genai_perf.record.types.output_sequence_length_p99 import OutputSequenceLengthP99
+from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
+from genai_perf.types import GpuId, ModelObjectiveParameters, PerfRecords
+
 
 ###########################################################
 # Library of utility functions for other unit test scripts.
 ###########################################################
-
-
 def ns_to_sec(ns: int) -> Union[int, float]:
     """Convert from nanosecond to second."""
     return ns / 1e9
@@ -47,6 +58,96 @@ def check_statistics(s1: Statistics, s2: Statistics) -> None:
         for stat_name, value in s1_dict[metric].items():
             if stat_name != "unit":
                 assert s2_dict[metric][stat_name] == pytest.approx(value)
+
+
+###########################################################################
+# Perf Metrics Constructor
+###########################################################################
+def create_perf_metrics(
+    throughput: Optional[int] = None,
+    latency: Optional[int] = None,
+    input_seq_length: Optional[int] = None,
+    output_seq_length: Optional[int] = None,
+) -> PerfRecords:
+    perf_metrics: PerfRecords = {}
+    if throughput:
+        perf_metrics[RequestThroughputAvg.tag] = RequestThroughputAvg(throughput)
+    if latency:
+        perf_metrics[RequestLatencyP99.tag] = RequestLatencyP99(latency)
+    if input_seq_length:
+        perf_metrics[InputSequenceLengthP99.tag] = InputSequenceLengthP99(
+            input_seq_length
+        )
+    if output_seq_length:
+        perf_metrics[OutputSequenceLengthP99.tag] = OutputSequenceLengthP99(
+            output_seq_length
+        )
+
+    return perf_metrics
+
+
+###########################################################################
+# RCM Constructor
+###########################################################################
+def create_run_config_measurement(
+    gpu_power: int, gpu_utilization: int, gpu_id: GpuId = "0"
+) -> RunConfigMeasurement:
+    gpu_power_record = GPUPowerUsageP99(gpu_power)
+    gpu_util_record = GPUUtilizationP99(gpu_utilization)
+
+    gpu_metrics = {
+        gpu_id: {
+            GPUPowerUsageP99.tag: gpu_power_record,
+            GPUUtilizationP99.tag: gpu_util_record,
+        }
+    }
+
+    return RunConfigMeasurement(gpu_metrics)
+
+
+###########################################################################
+# RunConfig Constructor
+###########################################################################
+def create_run_config(
+    run_config_name: str,
+    model_name: str = "test_model",
+    model_objective_parameters: ModelObjectiveParameters = {},
+    gpu_power: int = 0,
+    gpu_utilization: int = 0,
+    gpu_id: GpuId = "0",
+    throughput: int = 0,
+    latency: int = 0,
+    input_seq_length: int = 0,
+    output_seq_length: int = 0,
+) -> RunConfig:
+    config = ConfigCommand([model_name])
+    genai_perf_config = GenAIPerfConfig(
+        config=config, model_objective_parameters=model_objective_parameters
+    )
+    perf_analyzer_config = PerfAnalyzerConfig(
+        model_name=model_name,
+        config=config,
+        model_objective_parameters=model_objective_parameters,
+    )
+
+    rcm = create_run_config_measurement(gpu_power, gpu_utilization, gpu_id)
+
+    perf_metrics = create_perf_metrics(
+        throughput=throughput,
+        latency=latency,
+        input_seq_length=input_seq_length,
+        output_seq_length=output_seq_length,
+    )
+    rcm.add_perf_metrics(model_name=model_name, perf_metrics=perf_metrics)
+
+    run_config = RunConfig(
+        name=run_config_name,
+        genai_perf_config=genai_perf_config,
+        perf_analyzer_config=perf_analyzer_config,
+        measurement=rcm,
+    )
+
+    return run_config
 
 
 class TestUtils:
