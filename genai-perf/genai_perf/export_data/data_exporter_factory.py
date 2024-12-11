@@ -24,18 +24,24 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List
+from typing import Any, List
 
 from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 
-DataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
+ProfileDataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
+AnalyzeDataExporterList = [CsvExporter]
 
 
 class DataExporterFactory:
-    def create_data_exporters(self, config: ExporterConfig) -> List:
+    def create_data_exporters(self, config: ExporterConfig) -> List[Any]:
+        if config.args.subcommand == "analyze":
+            DataExporterList: List[Any] = AnalyzeDataExporterList
+        else:
+            DataExporterList = ProfileDataExporterList
+
         data_exporters = []
         for exporter in DataExporterList:
             data_exporters.append(exporter(config))

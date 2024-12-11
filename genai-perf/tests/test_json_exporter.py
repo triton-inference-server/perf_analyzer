@@ -33,6 +33,7 @@ import genai_perf.parser as parser
 import pytest
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
 class TestJsonExporter:
@@ -305,7 +306,7 @@ class TestJsonExporter:
         config = ExporterConfig()
         config.stats = self.stats
         config.args = args
-        config.extra_inputs = parser.get_extra_inputs_as_dict(args)
+        config.extra_inputs = get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
         assert json_exporter._stats_and_args == json.loads(self.expected_json_output)
@@ -347,7 +348,7 @@ class TestJsonExporter:
         config = ExporterConfig()
         config.stats = self.stats
         config.args = args
-        config.extra_inputs = parser.get_extra_inputs_as_dict(args)
+        config.extra_inputs = get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
         json_exporter.export()
@@ -492,7 +493,7 @@ class TestJsonExporter:
         config = ExporterConfig()
         config.stats = valid_goodput_stats
         config.args = args
-        config.extra_inputs = parser.get_extra_inputs_as_dict(args)
+        config.extra_inputs = get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
         assert json_exporter._stats_and_args["request_goodput"] == json.loads(
@@ -649,7 +650,7 @@ class TestJsonExporter:
         config = ExporterConfig()
         config.stats = invalid_goodput_stats
         config.args = args
-        config.extra_inputs = parser.get_extra_inputs_as_dict(args)
+        config.extra_inputs = get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
         assert json_exporter._stats_and_args["request_goodput"] == json.loads(
@@ -835,7 +836,7 @@ class TestJsonExporter:
         config.stats = self.stats
         config.telemetry_stats = telemetry_stats
         config.args = args
-        config.extra_inputs = parser.get_extra_inputs_as_dict(args)
+        config.extra_inputs = get_extra_inputs_as_dict(args)
         config.artifact_dir = args.artifact_dir
         json_exporter = JsonExporter(config)
         assert json_exporter._stats_and_args["telemetry_stats"] == json.loads(

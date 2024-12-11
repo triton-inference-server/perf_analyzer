@@ -28,7 +28,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
-from genai_perf.main import create_artifacts_dirs
+from genai_perf.subcommand.common import create_artifacts_dirs
 
 
 @pytest.fixture

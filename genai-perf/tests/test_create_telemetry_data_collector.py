@@ -30,7 +30,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
-from genai_perf.main import create_telemetry_data_collector
+from genai_perf.subcommand.common import create_telemetry_data_collector
 from genai_perf.telemetry_data import TritonTelemetryDataCollector
 from requests import codes as http_codes
 
@@ -85,7 +85,7 @@ class TestCreateTelemetryDataCollector:
 
         assert telemetry_data_collector is None
 
-    @patch("genai_perf.main.TritonTelemetryDataCollector")
+    @patch("genai_perf.subcommand.common.TritonTelemetryDataCollector")
     @patch("requests.get")
     def test_create_telemetry_data_collector_service_kind_not_triton(
         self,
