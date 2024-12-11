@@ -34,6 +34,13 @@ from genai_perf.utils import sample_bounded_normal
 
 
 class TritonGenerateConverter(BaseConverter):
+
+    def check_config(self, config: InputsConfig) -> None:
+        if config.output_tokens_deterministic:
+            raise ValueError(
+                "The --output-tokens-deterministic flag is not supported for Triton Generate."
+            )
+
     def convert(
         self,
         generic_dataset: GenericDataset,
