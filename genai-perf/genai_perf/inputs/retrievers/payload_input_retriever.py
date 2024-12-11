@@ -82,14 +82,12 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             read from the file.
         """
         self._verify_file(filename)
-        prompts, optional_data, session_id = self._get_content_from_input_file(filename)
-        return self._convert_content_to_data_file(
-            prompts, filename, optional_data, session_id
-        )
+        prompts, optional_data = self._get_content_from_input_file(filename)
+        return self._convert_content_to_data_file(prompts, optional_data)
 
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Tuple[List[str], Dict[Any, Any], str]:
+    ) -> Tuple[List[str], Dict[Any, Any]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -101,7 +99,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         Returns
         -------
         Tuple[List[str], Dict, str]
-            A list of prompts, optional data, and a session_id.
+            A list of prompts, and optional data.
         """
         prompts = []
         with open(filename, mode="r", newline=None) as file:
@@ -126,28 +124,22 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                     prompt = prompt if prompt else prompt_alt
                     prompts.append(prompt.strip() if prompt else prompt)
                     optional_data = self._check_for_optional_data(data)
-                    session_id = data.get("session_id", "")
-        return prompts, optional_data, session_id
+        return prompts, optional_data
 
     def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """
         Checks if there is any optional data in the file to pass in the payload.
         """
-        optional_data = data.get("optional_data")
-        if optional_data:
-            if not isinstance(optional_data, dict):
-                raise GenAIPerfException(
-                    "The optional_data field must be a dictionary."
-                )
-            return optional_data
-        return {}
+        optional_data = {}
+        for k, v in data.items():
+            if k not in ["text", "text_input"]:
+                optional_data[k] = v
+        return optional_data
 
     def _convert_content_to_data_file(
         self,
         prompts: List[str],
-        filename: Path,
         optional_data: Dict[Any, Any] = {},
-        session_id: str = "",
     ) -> FileData:
         """
         Converts the content to a DataFile.
@@ -158,10 +150,6 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             The list of prompts to convert.
         optional_data : Dict
             The optional data included in every payload.
-        session_id: str
-            The session_id for the payload.
-        filename : Path
-            The filename to use for the DataFile.
 
         Returns
         -------
@@ -176,7 +164,6 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                     DataRow(
                         texts=[prompt],
                         optional_data=optional_data,
-                        session_id=session_id,
                     )
                 )
         return FileData(data_rows)

@@ -83,7 +83,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         }
 
         self._add_request_params(payload, config)
-        self._add_payload_params(payload, row.session_id, row.optional_data)
+        self._add_payload_params(payload, row.optional_data)
         return payload
 
     def _retrieve_content(

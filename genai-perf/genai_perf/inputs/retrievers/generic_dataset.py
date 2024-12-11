@@ -39,7 +39,6 @@ class DataRow:
     texts: List[str] = field(default_factory=list)
     images: List[str] = field(default_factory=list)
     optional_data: Dict[str, Any] = field(default_factory=dict)
-    session_id: str = ""
 
     def to_dict(self) -> DataRowDict:
         """
@@ -53,8 +52,6 @@ class DataRow:
             datarow_dict["images"] = self.images
         if self.optional_data:
             datarow_dict["optional_data"] = self.optional_data
-        if self.session_id:
-            datarow_dict["session_id"] = self.session_id
         return datarow_dict
 
 

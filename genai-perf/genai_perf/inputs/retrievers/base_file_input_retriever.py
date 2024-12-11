@@ -70,18 +70,9 @@ class BaseFileInputRetriever(BaseInputRetriever):
 
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Union[Tuple[List[str], List[str]], Tuple[List[str], Dict[Any, Any], str]]:
+    ) -> Union[Tuple[List[str], List[str]], Tuple[List[str], Dict[Any, Any]]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
-
-        """
-        raise NotImplementedError("This method should be implemented by subclasses.")
-
-    def _convert_content_to_data_file(
-        self, prompts: List[str], filename: Path
-    ) -> FileData:
-        """
-        Converts the content to a DataFile.
 
         """
         raise NotImplementedError("This method should be implemented by subclasses.")

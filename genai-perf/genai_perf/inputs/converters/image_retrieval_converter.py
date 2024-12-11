@@ -56,7 +56,7 @@ class ImageRetrievalConverter(BaseConverter):
                 payload = {
                     "input": [{"type": "image_url", "url": img} for img in row.images]
                 }
-                self._add_payload_params(payload, row.session_id, row.optional_data)
+                self._add_payload_params(payload, row.optional_data)
                 request_body["data"].append({"payload": [payload]})
 
         return request_body
