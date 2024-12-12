@@ -119,6 +119,7 @@ class CsvExporter:
         streaming_metrics = [
             "inter_token_latency",
             "time_to_first_token",
+            "time_to_second_token",
         ]
         if not self._args.streaming and metric_name in streaming_metrics:
             return True
