@@ -185,6 +185,15 @@ See [Tutorial](docs/tutorial.md) for additional examples.
 </br>
 
 <!--
+=====================
+Analyze Subcommand
+====================
+-->
+## Analyze
+GenAI-Perf can be used to sweep through PA or GenAI-Perf stimulus allowing the user to profile multiple scenarios with a single command.
+See [Analyze](docs/analyze.md) for details on how this subcommand can be utilized.
+
+<!--
 ======================
 VISUALIZATION
 ======================
