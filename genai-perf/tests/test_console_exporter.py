@@ -62,6 +62,7 @@ class TestConsoleExporter:
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
             time_to_first_tokens=[7, 8, 9],
+            time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
@@ -83,8 +84,9 @@ class TestConsoleExporter:
             "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
             "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
             "│          Time to first token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
+            "│         Time to second token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│              Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
+            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
             "│            Output sequence length │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│             Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
@@ -113,6 +115,7 @@ class TestConsoleExporter:
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
             time_to_first_tokens=[4, 5, 6],  # same as request_latency
+            time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[],  # no ITL
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
@@ -207,6 +210,7 @@ class TestConsoleExporter:
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
             time_to_first_tokens=[7, 8, 9],
+            time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
@@ -229,8 +233,9 @@ class TestConsoleExporter:
             "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
             "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
             "│          Time to first token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
+            "│         Time to second token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│              Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
+            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
             "│            Output sequence length │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│             Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
@@ -262,6 +267,7 @@ class TestConsoleExporter:
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
             time_to_first_tokens=[7, 8, 9],
+            time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
@@ -285,8 +291,9 @@ class TestConsoleExporter:
             "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
             "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
             "│          Time to first token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
+            "│         Time to second token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│              Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
+            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
             "│            Output sequence length │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│             Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
@@ -364,6 +371,7 @@ class TestConsoleExporter:
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
             time_to_first_tokens=[7, 8, 9],
+            time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
@@ -397,8 +405,9 @@ class TestConsoleExporter:
             "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
             "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
             "│          Time to first token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
+            "│         Time to second token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│              Request latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
+            "│          Inter token latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
             "│            Output sequence length │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
             "│             Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
@@ -478,6 +487,7 @@ class TestConsoleExporter:
             request_throughputs=[123],
             request_latencies=[4, 5, 6],
             time_to_first_tokens=[4, 5, 6],  # same as request_latency
+            time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[],  # no ITL
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
