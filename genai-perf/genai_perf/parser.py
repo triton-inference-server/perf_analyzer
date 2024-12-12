@@ -804,10 +804,7 @@ def _add_endpoint_args(parser):
         default=ic.DEFAULT_BACKEND,
         required=False,
         help=f'When using the "triton" service-kind, '
-        "this is the backend of the model. "
-        "For the TENSORRT-LLM backend, you currently must set "
-        "'exclude_input_in_output' to true in the model config to "
-        "not echo the input tokens in the output.",
+        "this is the backend of the model. ",
     )
 
     endpoint_group.add_argument(
