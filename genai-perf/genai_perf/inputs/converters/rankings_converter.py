@@ -82,6 +82,7 @@ class RankingsConverter(BaseConverter):
                 }
 
             self._add_request_params(payload, config)
+            self._add_payload_params(payload, passage_entry.optional_data)
             request_body["data"].append({"payload": [payload]})
 
         return request_body
