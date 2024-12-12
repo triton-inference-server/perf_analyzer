@@ -332,6 +332,7 @@ add_executable(
   test_request_rate_manager.cc
   test_concurrency_manager.cc
   test_custom_load_manager.cc
+  test_custom_request_schedule_manager.cc
   test_sequence_manager.cc
   test_infer_context.cc
   test_ctx_id_tracker.cc
