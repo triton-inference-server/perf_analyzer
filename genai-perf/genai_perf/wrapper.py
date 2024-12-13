@@ -100,7 +100,8 @@ class Profiler:
             "input_format",
             "model",
             "model_selection_strategy",
-            "num_prompts",
+            "num_dataset_entries",
+            "num_prefix_prompts",
             "output_format",
             "output_tokens_mean",
             "output_tokens_mean_deterministic",
@@ -119,6 +120,7 @@ class Profiler:
             "synthetic_input_files",
             "synthetic_input_tokens_mean",
             "synthetic_input_tokens_stddev",
+            "prefix_prompt_length",
             "tokenizer",
             "tokenizer_trust_remote_code",
             "tokenizer_revision",
@@ -164,22 +166,3 @@ class Profiler:
             for arg in extra_args:
                 cmd += [f"{arg}"]
         return cmd
-
-    @staticmethod
-    def run(
-        args: Namespace,
-        extra_args: Optional[List[str]],
-        telemetry_data_collector: Optional[TelemetryDataCollector] = None,
-    ) -> None:
-        try:
-            if telemetry_data_collector is not None:
-                telemetry_data_collector.start()
-            cmd = Profiler.build_cmd(args, extra_args)
-            logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
-            if args and args.verbose:
-                subprocess.run(cmd, check=True, stdout=None)  # nosec
-            else:
-                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
-        finally:
-            if telemetry_data_collector is not None:
-                telemetry_data_collector.stop()

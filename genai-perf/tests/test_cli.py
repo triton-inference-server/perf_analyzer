@@ -37,6 +37,7 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.parser import PathType
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
 class TestCLIArguments:
@@ -190,7 +191,9 @@ class TestCLIArguments:
                 ["--model-selection-strategy", "random"],
                 {"model_selection_strategy": ModelSelectionStrategy.RANDOM},
             ),
-            (["--num-prompts", "101"], {"num_prompts": 101}),
+            (["--num-dataset-entries", "101"], {"num_dataset_entries": 101}),
+            (["--num-prompts", "101"], {"num_dataset_entries": 101}),
+            (["--num-prefix-prompts", "101"], {"num_prefix_prompts": 101}),
             (
                 ["--output-tokens-mean", "6"],
                 {"output_tokens_mean": 6},
@@ -217,6 +220,8 @@ class TestCLIArguments:
                 },
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
+            (["--request-count", "100"], {"request_count": 100}),
+            (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
             (["--request-rate", "9.0"], {"request_rate": 9.0}),
             (["-s", "99.5"], {"stability_percentage": 99.5}),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
@@ -241,6 +246,10 @@ class TestCLIArguments:
             (
                 ["--synthetic-input-tokens-stddev", "7"],
                 {"synthetic_input_tokens_stddev": 7},
+            ),
+            (
+                ["--prefix-prompt-length", "6"],
+                {"prefix_prompt_length": 6},
             ),
             (
                 ["--image-width-mean", "123"],
@@ -638,7 +647,7 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--num-prompts",
+                    "--num-dataset-entries",
                     "0",
                 ],
                 "The value must be greater than zero.",
@@ -649,10 +658,70 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--num-prompts",
+                    "--num-dataset-entries",
                     "not_number",
                 ],
                 "The value must be an integer.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'rankings' for service-kind 'triton'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "tensorrtllm_engine",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'rankings' for service-kind 'tensorrtllm_engine'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
+                    "kserve",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'kserve' for service-kind 'openai'.",
             ),
         ],
     )
@@ -744,7 +813,7 @@ class TestCLIArguments:
         parsed_args, _ = parser.parse_args()
 
         with pytest.raises(ValueError) as exc_info:
-            parser.get_extra_inputs_as_dict(parsed_args)
+            get_extra_inputs_as_dict(parsed_args)
 
         assert str(exc_info.value) == expected_error
 
@@ -887,7 +956,7 @@ class TestCLIArguments:
     def test_get_extra_inputs_as_dict(self, extra_inputs_list, expected_dict):
         namespace = argparse.Namespace()
         namespace.extra_inputs = extra_inputs_list
-        actual_dict = parser.get_extra_inputs_as_dict(namespace)
+        actual_dict = get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
 
     test_triton_metrics_url = "http://tritonmetrics.com:8002/metrics"

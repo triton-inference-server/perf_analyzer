@@ -29,8 +29,11 @@
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, List
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+from genai_perf.record.record import RecordType
+from genai_perf.types import GpuRecords
 
 
 class TelemetryStatistics:
@@ -76,6 +79,34 @@ class TelemetryStatistics:
                     if key != "unit":
                         for stat, value in gpu_data.items():
                             self._stats_dict[metric][key][stat] = value * factor
+
+    def create_records(self) -> GpuRecords:
+        """
+        Populates and returns a list of Records
+        """
+        telemetry_records: GpuRecords = {}
+        for metric_base_name, metric_info in self.stats_dict.items():
+            for gpu_id, gpu_info in metric_info.items():
+                if gpu_id == "unit":
+                    continue
+                elif gpu_id not in telemetry_records:
+                    telemetry_records[gpu_id] = {}
+
+                for metric_post_name, metric_value in gpu_info.items():
+                    metric_name = metric_base_name + "_" + metric_post_name
+
+                    try:
+                        new_record = RecordType.get_all_record_types()[metric_name](
+                            metric_value, gpu_id
+                        )
+                    except KeyError:
+                        raise GenAIPerfException(
+                            f"{metric_name} is not a valid Record tag."
+                        )
+
+                    telemetry_records[gpu_id][metric_name] = new_record
+
+        return telemetry_records
 
     def _should_skip(self, data: Dict[str, List[float]]) -> bool:
         if len(data) == 0:

@@ -53,7 +53,7 @@ repos:
   - id: codespell
     additional_dependencies: [tomli]
     args: ["--toml", "pyproject.toml"]
-    exclude: (?x)^(.*stemmer.*|.*stop_words.*|^CHANGELOG.md$)
+    exclude: (?x)^(.*stemmer.*|.*stop_words.*|^CHANGELOG.md$|.*sonnets.txt)
 # More details about these pre-commit hooks here:
 # https://pre-commit.com/hooks.html
 - repo: https://github.com/pre-commit/pre-commit-hooks

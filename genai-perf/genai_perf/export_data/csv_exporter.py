@@ -87,8 +87,8 @@ class CsvExporter:
             metric_str += f" ({metric.unit})" if metric.unit != "tokens" else ""
             row_values = [metric_str]
             for stat in self.REQUEST_METRICS_HEADER[1:]:
-                value = self._stats[metric.name][stat]
-                row_values.append(f"{value:,.2f}")
+                value = self._stats[metric.name].get(stat, None)
+                row_values.append(f"{value:,.2f}" if value else "N/A")
 
             csv_writer.writerow(row_values)
 
@@ -119,6 +119,7 @@ class CsvExporter:
         streaming_metrics = [
             "inter_token_latency",
             "time_to_first_token",
+            "time_to_second_token",
         ]
         if not self._args.streaming and metric_name in streaming_metrics:
             return True

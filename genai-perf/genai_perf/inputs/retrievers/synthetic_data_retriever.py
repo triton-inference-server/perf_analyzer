@@ -56,36 +56,48 @@ class SyntheticDataRetriever(BaseInputRetriever):
         if self.config.schedule_file is not None:
             with open(self.config.schedule_file, "r") as f:
                 for j, line in enumerate(f):
-                    if j == self.config.num_prompts:
+                    if j == self.config.num_dataset_entries:
                         break
                     prompt_desc.append(json.loads(line))
+        use_prefix_prompts = self.config.num_prefix_prompts > 0
+        if use_prefix_prompts:
+            SyntheticPromptGenerator.create_prefix_prompts_pool(
+                self.config.tokenizer,
+                self.config.num_prefix_prompts,
+                self.config.prefix_prompt_length,
+            )
 
         for file in files:
             data_rows: List[DataRow] = []
 
-            for i in range(self.config.num_prompts):
+            for i in range(self.config.num_dataset_entries):
                 row = DataRow(texts=[], images=[])
-                if prompt_desc:
-                    prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                        self.config.tokenizer,
-                        prompt_desc[i]["input_length"],
-                        0,
-                        prompt_desc[i].get("hash_ids", None),
-                        self.config.block_size,
-                    )
-                    # Generic processing needed here probably
-                    row.extra_args["max_tokens"] = prompt_desc[i].get(
-                        "output_length", None
-                    )
-                    # row.extra_args["model"] = prompt_desc[i].get("model", None)
-                else:
-                    prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                        self.config.tokenizer,
-                        self.config.prompt_tokens_mean,
-                        self.config.prompt_tokens_stddev,
-                    )
 
                 for _ in range(self.config.batch_size_text):
+                    if prompt_desc:
+                        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                            self.config.tokenizer,
+                            prompt_desc[i]["input_length"],
+                            0,
+                            prompt_desc[i].get("hash_ids", None),
+                            self.config.block_size,
+                        )
+                        # Generic processing needed here probably
+                        row.extra_args["max_tokens"] = prompt_desc[i].get(
+                            "output_length", None
+                        )
+                        # row.extra_args["model"] = prompt_desc[i].get("model", None)
+                    else:
+                        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                            self.config.tokenizer,
+                            self.config.prompt_tokens_mean,
+                            self.config.prompt_tokens_stddev,
+                        )
+                    if use_prefix_prompts:
+                        prefix_prompt = (
+                            SyntheticPromptGenerator.get_random_prefix_prompt()
+                        )
+                        prompt = f"{prefix_prompt} {prompt}"
                     row.texts.append(prompt)
 
                 for _ in range(self.config.batch_size_image):

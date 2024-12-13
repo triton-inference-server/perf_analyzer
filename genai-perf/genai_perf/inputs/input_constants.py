@@ -55,6 +55,7 @@ class OutputFormat(Enum):
     OPENAI_VISION = auto()
     RANKINGS = auto()
     TENSORRTLLM_ENGINE = auto()
+    TRITON_GENERATE = auto()
 
     def to_lowercase(self):
         return self.name.lower()
@@ -65,8 +66,10 @@ class OutputFormat(Enum):
 ###########################
 DEFAULT_INPUT_DATA_JSON = "inputs.json"
 DEFAULT_RANDOM_SEED = 0
+DEFAULT_REQUEST_COUNT = 0
 DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
-
+DEFAULT_WARMUP_REQUEST_COUNT = 0
+DEFAULT_BACKEND = "tensorrtllm"
 
 ###########################
 # Default Prompt Parameters
@@ -81,7 +84,9 @@ DEFAULT_PROMPT_TOKENS_MEAN = 550
 DEFAULT_PROMPT_TOKENS_STDDEV = 0
 DEFAULT_OUTPUT_TOKENS_MEAN = -1
 DEFAULT_OUTPUT_TOKENS_STDDEV = 0
-DEFAULT_NUM_PROMPTS = 100
+DEFAULT_NUM_DATASET_ENTRIES = 100
+DEFAULT_NUM_PREFIX_PROMPTS = 0
+DEFAULT_PREFIX_PROMPT_LENGTH = 100
 
 ###########################
 # Default Image Parameters

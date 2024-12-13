@@ -33,6 +33,7 @@ generative AI models as served through an inference server.
 For large language models (LLMs), GenAI-Perf provides metrics such as
 [output token throughput](#output_token_throughput_metric),
 [time to first token](#time_to_first_token_metric),
+[time to second token](#time_to_second_token_metric),
 [inter token latency](#inter_token_latency_metric), and
 [request throughput](#request_throughput_metric).
 For a full list of metrics please see the [Metrics section](#metrics).
@@ -274,12 +275,16 @@ GenAI-Perf supports model input prompts from either synthetically generated
 inputs, or from a dataset defined via a file.
 
 When the dataset is synthetic, you can specify the following options:
-* `--num-prompts <int>`: The number of unique prompts to generate as stimulus, >= 1.
+* `--num-dataset-entries <int>`: The number of unique payloads to sample from.
+  These will be reused until benchmarking is complete.
 * `--synthetic-input-tokens-mean <int>`: The mean of number of tokens in the
   generated prompts when using synthetic data, >= 1.
 * `--synthetic-input-tokens-stddev <int>`: The standard deviation of number of
   tokens in the generated prompts when using synthetic data, >= 0.
 * `--random-seed <int>`: The seed used to generate random values, >= 0.
+* `--request-count <int>`: The number of requests to benchmark
+* `--warmup-request-count <int>`: The number of requests to send before
+benchmarking
 
 When the dataset is coming from a file, you can specify the following
 options:
@@ -287,6 +292,9 @@ options:
   filepaths to images to use for benchmarking as JSON objects.
 
 For any dataset, you can specify the following options:
+* `--num-prefix-prompts <int>`: The number of synthetic prefix prompts to
+  sample from. If this value is >0, synthetic prefix prompts will be prepended
+  to user prompts.
 * `--output-tokens-mean <int>`: The mean number of tokens in each output. Ensure
   the `--tokenizer` value is set correctly, >= 1.
 * `--output-tokens-stddev <int>`: The standard deviation of the number of tokens
@@ -297,6 +305,8 @@ For any dataset, you can specify the following options:
   Triton service-kind. Note that there is still some variability in the
   requested number of output tokens, but GenAi-Perf attempts its best effort
   with your model to get the right number of output tokens.
+* `--prefix-prompt-length <int>`: The number of tokens to include in each
+  prefix prompt. This value is only used if --num-prefix-prompts is positive.
 
 You can optionally set additional model inputs with the following option:
 * `--extra-inputs <input_name>:<value>`: An additional input for use with the
@@ -346,6 +356,7 @@ the inference server.
 | Metric | Description | Aggregations |
 | - | - | - |
 | <span id="time_to_first_token_metric">Time to First Token</span> | Time between when a request is sent and when its first response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
+| <span id="time_to_second_token_metric">Time to Second Token</span> | Time between when the first streaming response is received and when the second streaming response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | <span id="inter_token_latency_metric">Inter Token Latency</span> | Time between intermediate responses for a single request divided by the number of generated tokens of the latter response, one value per response per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Request Latency | Time between when a request is sent and when its final response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Output Sequence Length | Total number of output tokens of a request, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
@@ -442,18 +453,27 @@ Alternatively, a string representing a json formatted dict can be provided.
 ##### `--input-file <path>`
 
 The input file or directory containing the content to use for
-profiling. To use synthetic files for a converter that needs
+profiling. Each line should be a JSON object with a 'text' or 'image' field
+in JSONL format. Example: {\"text\": \"Your prompt here\"}"
+To use synthetic files for a converter that needs
 multiple files, prefix the path with 'synthetic:', followed by a
 comma-separated list of filenames. The synthetic filenames should not have
 extensions. For example, 'synthetic:queries,passages'.
-Each line should be a JSON object with a 'text' or 'image' field
-in JSONL format. Example: {\"text\": \"Your prompt here\"}"
+(default: `None`)
 
-##### `--num-prompts <int>`
+##### `--num-dataset-entries <int>`
 
-The number of unique prompts to generate as stimulus. (default: `100`)
+The number of unique payloads to sample from. These will be reused until
+benchmarking is complete. (default: `100`)
+
+##### `--num-prefix-prompts <int>`
+
+The number of prefix prompts to select from. If this value is not zero, these
+are prompts that are prepended to input prompts. This is useful for
+benchmarking models that use a K-V cache. (default: `0`)
 
 ##### `--output-tokens-mean <int>`
+##### `--osl`
 
 The mean number of tokens in each output. Ensure the `--tokenizer` value is set
 correctly. (default: `-1`)
@@ -476,7 +496,14 @@ when `--output-tokens-mean` is provided. (default: `0`)
 
 The seed used to generate random values. (default: `0`)
 
+##### `--request-count <int>`
+
+The number of requests to use for measurement.
+By default, the benchmark does not terminate based on request count.
+Instead, it continues until stabilization is detected. (default: `0`)
+
 ##### `--synthetic-input-tokens-mean <int>`
+##### `--isl`
 
 The mean of number of tokens in the generated prompts when using synthetic
 data. (default: `550`)
@@ -485,6 +512,17 @@ data. (default: `550`)
 
 The standard deviation of number of tokens in the generated prompts when
 using synthetic data. (default: `0`)
+
+##### `--prefix-prompt-length <int>`
+
+The number of tokens in each prefix prompt. This value is only used if
+--num-prefix-prompts is positive. Note that due to the prefix and user prompts
+being concatenated, the number of tokens in the final prompt may be off by one.
+(default: `100`)
+
+##### `--warmup-request-count <int>`
+
+The number of warmup requests to send before benchmarking. (default: `0`)
 
 ### Profiling Options
 

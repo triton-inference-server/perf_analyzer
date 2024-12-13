@@ -32,8 +32,11 @@ from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.metrics import Metrics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+from genai_perf.record.record import RecordType
+from genai_perf.types import PerfRecords
 
 
 class Statistics:
@@ -164,6 +167,7 @@ class Statistics:
         time_metrics = [
             "inter_token_latency",
             "time_to_first_token",
+            "time_to_second_token",
             "request_latency",
             "image_latency",
         ]
@@ -192,3 +196,28 @@ class Statistics:
 
         filepath = artifact_dir / f"{filename}.gzip"
         df.to_parquet(filepath, compression="gzip")
+
+    def create_records(self) -> PerfRecords:
+        """
+        Populates and returns a list of Records
+        """
+        statistic_records = {}
+        for metric_base_name, metric_info in self.stats_dict.items():
+            for metric_post_name, metric_value in metric_info.items():
+                if metric_post_name == "unit":
+                    continue
+
+                metric_name = metric_base_name + "_" + metric_post_name
+
+                try:
+                    new_record = RecordType.get_all_record_types()[metric_name](
+                        metric_value
+                    )
+                except KeyError:
+                    raise GenAIPerfException(
+                        f"{metric_name} is not a valid Record tag."
+                    )
+
+                statistic_records[metric_name] = new_record
+
+        return statistic_records

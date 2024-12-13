@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools
-import math
+import os
 import pathlib
 import random
-import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
 from genai_perf.tokenizer import Tokenizer
@@ -24,6 +23,9 @@ from genai_perf.tokenizer import Tokenizer
 
 class SyntheticPromptGenerator:
     cache: Dict[int, str] = {}
+    _tokenized_corpus = None
+    _corpus_length = 0
+    _prefix_prompts: List[str] = []
 
     @classmethod
     def create_synthetic_prompt(
@@ -35,113 +37,122 @@ class SyntheticPromptGenerator:
         block_size: Optional[int] = None,
     ) -> str:
         """
-        Generate a prompt that randomly samples lines from
-        Washington's farewell address at farewell.txt.
+        Generate a synthetic prompt with a specific number of tokens.
 
         Args:
-            prompt_tokens_mean:
-                The mean length of the prompt to generate
-            prompt_tokens_stddev:
-                The standard deviation of the length of the prompt to generate
+            tokenizer: Tokenizer instance.
+            prompt_tokens_mean: Mean number of tokens in the prompt.
+            prompt_tokens_stddev: Standard deviation for the number of tokens in the prompt.
 
         Returns:
-            The prompt.
+            A synthetic prompt as a string.
         """
+        if cls._tokenized_corpus is None:
+            cls._initialize_corpus(tokenizer)
 
-        num_prompt_tokens = SyntheticPromptGenerator._sample_random_positive_int(
-            prompt_tokens_mean, prompt_tokens_stddev
-        )
-
-        farewell_lines = SyntheticPromptGenerator._create_farewell_lines()
-        if block_size is not None:
-            assert prompt_hash_list, "Need hash of prompt list to continue"
+        if prompt_hash_list is not None:
+            assert block_size, "Need block size to continue"
             final_prompt = []
             size_to_use = block_size
             for j, hash_index in enumerate(prompt_hash_list):
                 if j == len(prompt_hash_list) - 1:
                     size_to_use = prompt_tokens_mean - (j * block_size)
                 if hash_index not in cls.cache:
-                    prompt = SyntheticPromptGenerator._create_prompt_from_lines(
-                        size_to_use, farewell_lines, tokenizer
-                    )
+                    prompt = cls._generate_prompt(tokenizer, size_to_use)
                     cls.cache[hash_index] = prompt
 
                 final_prompt.append(cls.cache[hash_index])
             prompt = " ".join(final_prompt)
 
         else:
-            prompt = SyntheticPromptGenerator._create_prompt_from_lines(
-                num_prompt_tokens, farewell_lines, tokenizer
+            num_prompt_tokens = max(
+                1, int(random.gauss(prompt_tokens_mean, prompt_tokens_stddev))
             )
+
+            prompt = cls._generate_prompt(tokenizer, num_prompt_tokens)
 
         return prompt
 
     @classmethod
-    def _create_farewell_lines(cls) -> List[str]:
-        farewell_path = pathlib.Path(__file__).parent.resolve() / "farewell.txt"
-        with open(farewell_path, "r") as f:
-            farewell_lines = f.readlines()
-        random.shuffle(farewell_lines)
+    def _initialize_corpus(cls, tokenizer: Tokenizer):
+        """
+        Load and tokenize the corpus once, storing it for reuse.
 
-        return farewell_lines
+        Args:
+            tokenizer: Tokenizer for tokenizing the corpus.
+        """
+        corpus_path = pathlib.Path(__file__).parent / "sonnets.txt"
 
-    @classmethod
-    def _create_prompt_from_lines(
-        cls,
-        requested_prompt_tokens: int,
-        source_lines: List[str],
-        tokenizer: Tokenizer,
-    ) -> str:
-        get_token_length = lambda text: len(tokenizer.encode(text))
+        with open(corpus_path, "r") as f:
+            lines = f.readlines()
 
-        line_iterator = itertools.cycle(source_lines)
+        def tokenize_chunk(chunk):
+            return tokenizer.encode(" ".join(chunk))
 
-        def word_generator():
-            while True:
-                next_line = next(line_iterator)
-                words = re.split("[ \n]+", next_line)
-                for word in words:
-                    yield word
+        num_threads = os.cpu_count()
+        if num_threads is None:
+            num_threads = 4
+        chunk_size = len(lines) // num_threads
+        chunks = [lines[i : i + chunk_size] for i in range(0, len(lines), chunk_size)]
 
-        word_iterator = word_generator()
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            tokenized_chunks = list(executor.map(tokenize_chunk, chunks))
 
-        # Fast add lines
-        remaining_tokens = requested_prompt_tokens
-        prompt = ""
-        num_tokens_in_avg_line = get_token_length(source_lines[0] + source_lines[1]) / 2
-        num_lines_to_add_fast = math.floor(
-            0.5 * requested_prompt_tokens / num_tokens_in_avg_line
-        )
-        while num_lines_to_add_fast:
-            for _ in range(num_lines_to_add_fast):
-                next_line = next(line_iterator)
-                prompt = prompt + next_line
-
-            curr_tokens = get_token_length(prompt)
-            remaining_tokens = requested_prompt_tokens - curr_tokens
-            num_lines_to_add_fast = math.floor(
-                0.5 * remaining_tokens / num_tokens_in_avg_line
-            )
-
-        # Fast add words
-        final_line = ""
-        while get_token_length(final_line) < remaining_tokens - 3:
-            next_word = next(word_iterator)
-            final_line += next_word + " "
-        prompt += final_line
-
-        # Final tweaks
-        for _ in range(2):
-            diff = requested_prompt_tokens - get_token_length(prompt)
-            for _ in range(diff):
-                prompt = "hi " + prompt
-
-        return prompt
+        cls._tokenized_corpus = [token for chunk in tokenized_chunks for token in chunk]
+        cls._corpus_length = len(cls._tokenized_corpus)
 
     @classmethod
-    def _sample_random_positive_int(cls, mean: int, stddev: int) -> int:
-        random_pos_int = -1
-        while random_pos_int <= 0:
-            random_pos_int = int(random.gauss(mean, stddev))
+    def _generate_prompt(cls, tokenizer: Tokenizer, num_tokens: int) -> str:
+        """
+        Generate a prompt containing exactly `num_tokens` using the preloaded tokenized corpus.
 
-        return random_pos_int
+        Args:
+            tokenizer: Tokenizer for decoding tokens.
+            num_tokens: Number of tokens required in the prompt.
+
+        Returns:
+            A synthetic prompt as a string.
+
+        Raises:
+            ValueError: If the tokenized corpus is not initialized
+        """
+        if not cls._tokenized_corpus:
+            raise ValueError("Tokenized corpus is not initialized.")
+
+        start_idx = random.randrange(cls._corpus_length)
+
+        end_idx = start_idx + num_tokens
+        prompt_tokens = cls._tokenized_corpus[start_idx:end_idx]
+        if end_idx > cls._corpus_length:
+            prompt_tokens += cls._tokenized_corpus[: end_idx - cls._corpus_length]
+
+        return tokenizer.decode(prompt_tokens)
+
+    @classmethod
+    def create_prefix_prompts_pool(
+        cls, tokenizer: Tokenizer, num_prompts: int, prompt_length: int
+    ) -> None:
+        """
+        Generate a pool of prefix prompts.
+
+        Args:
+            tokenizer: Tokenizer instance.
+            num_prompts: Number of prefix prompts to generate.
+            prompt_length: Number of tokens per prefix prompt.
+        """
+        if cls._tokenized_corpus is None:
+            cls._initialize_corpus(tokenizer)
+
+        cls._prefix_prompts = [
+            cls._generate_prompt(tokenizer, prompt_length) for _ in range(num_prompts)
+        ]
+
+    @classmethod
+    def get_random_prefix_prompt(cls) -> str:
+        """
+        Fetch a random prefix prompt from the pool.
+
+        Returns:
+            A random prefix prompt.
+        """
+        return random.choice(cls._prefix_prompts)

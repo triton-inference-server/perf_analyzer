@@ -55,7 +55,8 @@ class CustomRequestScheduleManager : public RequestRateManager {
   /// object
   ///
   static cb::Error Create(
-      const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+      const PerfAnalyzerParameters& params,
+      const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager);
 
@@ -86,14 +87,12 @@ class CustomRequestScheduleManager : public RequestRateManager {
   /// object
   ///
   CustomRequestScheduleManager(
-      const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+      const PerfAnalyzerParameters& params,
+      const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory);
 
-  /// Generates and updates the request schedule as per the given request rate
-  /// and schedule \param request_rate The request rate to use for new schedule
-  /// \param schedule The vector containing the schedule for requests
-  void GenerateSchedule(
-      const double request_rate, const std::vector<float>& schedule);
+  /// Generates and updates the request schedule as per the given schedule
+  void GenerateSchedule();
 
   /// Creates worker schedules based on the provided schedule
   /// \param duration The maximum duration for the schedule
