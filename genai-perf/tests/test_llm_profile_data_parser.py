@@ -42,6 +42,7 @@ def check_llm_metrics(m1: LLMMetrics, m2: LLMMetrics) -> None:
     assert m1.request_latencies == m2.request_latencies
     assert m1.request_throughputs == pytest.approx(m2.request_throughputs)
     assert m1.time_to_first_tokens == m2.time_to_first_tokens
+    assert m1.time_to_second_tokens == m2.time_to_second_tokens
     assert m1.inter_token_latencies == m2.inter_token_latencies
     assert m1.output_token_throughputs_per_request == pytest.approx(
         m2.output_token_throughputs_per_request
@@ -134,6 +135,7 @@ class TestLLMProfileDataParser:
                     "request_latencies": [7, 9],
                     "request_throughputs": [1 / ns_to_sec(5)],
                     "time_to_first_tokens": [2, 2],
+                    "time_to_second_tokens": [2, 3],
                     "inter_token_latencies": [2, 1],
                     "output_token_throughputs_per_request": [
                         3 / ns_to_sec(7),
@@ -151,6 +153,7 @@ class TestLLMProfileDataParser:
                     "request_latencies": [13, 8],
                     "request_throughputs": [2 / ns_to_sec(15)],
                     "time_to_first_tokens": [2, 3],
+                    "time_to_second_tokens": [1, 2],
                     "inter_token_latencies": [4, 1],
                     "output_token_throughputs_per_request": [
                         4 / ns_to_sec(13),
@@ -182,6 +185,9 @@ class TestLLMProfileDataParser:
         * time to first tokens
             - experiment 1: [3 - 1, 4 - 2] = [2, 2]
             - experiment 2: [7 - 5, 6 - 3] = [2, 3]
+        * time to second tokens
+            - experiment 1: [5-3, 7-4] = [2, 3]
+            - experiment 2: [8-7, 6-2] = [1, 2]
         * inter token latencies
             - experiment 1: [((8 - 1) - 2)/(3 - 1), ((11 - 2) - 2)/(6 - 1)]
                           : [2.5, 1.4]
@@ -310,6 +316,7 @@ class TestLLMProfileDataParser:
                     "request_latencies": [11, 13],
                     "request_throughputs": [1 / ns_to_sec(7)],
                     "time_to_first_tokens": [4, 5],
+                    "time_to_second_tokens": [3, 4],
                     "inter_token_latencies": [4, 2],
                     "output_token_throughputs_per_request": [
                         3 / ns_to_sec(11),
@@ -338,6 +345,8 @@ class TestLLMProfileDataParser:
             - experiment 1: [2/(15 - 1)] = [1/7]
         * time to first tokens
             - experiment 1: [5 - 1, 7 - 2] = [4, 5]
+        * time to second tokens
+            - experiment 1: [8 - 5, 11 - 7] = [3, 4]
         * inter token latencies
             - experiment 1: [((12 - 1) - 4)/(3 - 1), ((15 - 2) - 5)/(6 - 1)]
                           : [3.5, 1.6]
@@ -454,6 +463,7 @@ class TestLLMProfileDataParser:
                     "request_latencies": [11, 13],
                     "request_throughputs": [1 / ns_to_sec(7)],
                     "time_to_first_tokens": [4, 5],
+                    "time_to_second_tokens": [3, 4],
                     "inter_token_latencies": [4, 2],
                     "output_token_throughputs_per_request": [
                         3 / ns_to_sec(11),
@@ -482,6 +492,8 @@ class TestLLMProfileDataParser:
             - experiment 1: [2/(15 - 1)] = [1/7]
         * time to first tokens
             - experiment 1: [5 - 1, 7 - 2] = [4, 5]
+        * time to second tokens
+            - experiment 1: [8 - 5, 11 - 7] = [3, 4]
         * inter token latencies
             - experiment 1: [((12 - 1) - 4)/(3 - 1), ((15 - 2) - 5)/(6 - 1)]
                           : [3.5, 1.6]
@@ -675,6 +687,7 @@ class TestLLMProfileDataParser:
                     "request_latencies": [7, 9],
                     "request_throughputs": [1 / ns_to_sec(5)],
                     "time_to_first_tokens": [2, 2],
+                    "time_to_second_tokens": [2, 3],
                     "inter_token_latencies": [2, 4],
                     "output_token_throughputs_per_request": [
                         3 / ns_to_sec(7),
@@ -692,6 +705,7 @@ class TestLLMProfileDataParser:
                     "request_latencies": [13, 8],
                     "request_throughputs": [2 / ns_to_sec(15)],
                     "time_to_first_tokens": [2, 3],
+                    "time_to_second_tokens": [1, 2],
                     "inter_token_latencies": [4, 2],
                     "output_token_throughputs_per_request": [
                         4 / ns_to_sec(13),
@@ -723,6 +737,9 @@ class TestLLMProfileDataParser:
         * time to first tokens
             - experiment 1: [3 - 1, 4 - 2] = [2, 2]
             - experiment 2: [7 - 5, 6 - 3] = [2, 3]
+        * time to second tokens
+            - experiment 1: [5 - 3, 7 - 4] = [2, 3]
+            - experiment 2: [8 - 7, 8 - 6] = [1, 2]
         * inter token latencies
             - experiment 1: [((8 - 1) - 2)/(3 - 1), ((11 - 2) - 2)/(3 - 1)]
                           : [2.5, 3.5]

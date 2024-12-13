@@ -167,6 +167,7 @@ class Statistics:
         time_metrics = [
             "inter_token_latency",
             "time_to_first_token",
+            "time_to_second_token",
             "request_latency",
             "image_latency",
         ]

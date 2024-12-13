@@ -120,6 +120,9 @@ class PlotConfigParser:
         elif name == "time_to_first_tokens":
             ttfts = stats.metrics.data[name]
             return [scale(x, (1 / 1e6)) for x in ttfts]  # ns to ms
+        elif name == "time_to_second_tokens":
+            ttsts = stats.metrics.data[name]
+            return [scale(x, (1 / 1e6)) for x in ttsts]  # ns to ms
         elif name == "request_latencies":
             req_latencies = stats.metrics.data[name]
             return [scale(x, (1 / 1e6)) for x in req_latencies]  # ns to ms

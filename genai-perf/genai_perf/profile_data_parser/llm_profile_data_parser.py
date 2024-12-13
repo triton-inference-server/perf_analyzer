@@ -79,6 +79,7 @@ class LLMProfileDataParser(ProfileDataParser):
         min_req_timestamp, max_res_timestamp = float("inf"), 0
         request_latencies = []
         time_to_first_tokens = []
+        time_to_second_tokens = []
         inter_token_latencies = []
         output_token_throughputs_per_request = []
         input_sequence_lengths = []
@@ -110,6 +111,11 @@ class LLMProfileDataParser(ProfileDataParser):
             # time to first token
             ttft = res_timestamps[0] - req_timestamp
             time_to_first_tokens.append(ttft)
+
+            # time to second token (if available)
+            if len(res_timestamps) > 1:
+                ttst = res_timestamps[1] - res_timestamps[0]
+                time_to_second_tokens.append(ttst)
 
             # number of input tokens
             input_seq_len = self._get_input_token_count(req_inputs)
@@ -154,6 +160,7 @@ class LLMProfileDataParser(ProfileDataParser):
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
+            time_to_second_tokens,
             inter_token_latencies,
             output_token_throughputs,
             output_token_throughputs_per_request,

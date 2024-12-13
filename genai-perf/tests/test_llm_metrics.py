@@ -44,19 +44,21 @@ class TestLLMMetrics:
             request_goodputs=[9.88, 10.22],
         )
         req_metrics = m.request_metrics
-        assert len(req_metrics) == 6
+        assert len(req_metrics) == 7
         assert req_metrics[0].name == "time_to_first_token"
         assert req_metrics[0].unit == "ms"
-        assert req_metrics[1].name == "inter_token_latency"
+        assert req_metrics[1].name == "time_to_second_token"
         assert req_metrics[1].unit == "ms"
         assert req_metrics[2].name == "request_latency"
         assert req_metrics[2].unit == "ms"
-        assert req_metrics[3].name == "output_token_throughput_per_request"
-        assert req_metrics[3].unit == "tokens/sec"
-        assert req_metrics[4].name == "output_sequence_length"
-        assert req_metrics[4].unit == "tokens"
-        assert req_metrics[5].name == "input_sequence_length"
+        assert req_metrics[3].name == "inter_token_latency"
+        assert req_metrics[3].unit == "ms"
+        assert req_metrics[4].name == "output_token_throughput_per_request"
+        assert req_metrics[4].unit == "tokens/sec"
+        assert req_metrics[5].name == "output_sequence_length"
         assert req_metrics[5].unit == "tokens"
+        assert req_metrics[6].name == "input_sequence_length"
+        assert req_metrics[6].unit == "tokens"
 
     def test_request_time_metrics(self) -> None:
         m = LLMMetrics(
@@ -71,13 +73,15 @@ class TestLLMMetrics:
             request_goodputs=[9.88, 10.22],
         )
         req_metrics = m.request_time_metrics
-        assert len(req_metrics) == 3
+        assert len(req_metrics) == 4
         assert req_metrics[0].name == "time_to_first_token"
         assert req_metrics[0].unit == "ms"
-        assert req_metrics[1].name == "inter_token_latency"
+        assert req_metrics[1].name == "time_to_second_token"
         assert req_metrics[1].unit == "ms"
-        assert req_metrics[2].name == "request_latency"
+        assert req_metrics[2].name == "inter_token_latency"
         assert req_metrics[2].unit == "ms"
+        assert req_metrics[3].name == "request_latency"
+        assert req_metrics[3].unit == "ms"
 
     def test_request_throughput_metrics(self) -> None:
         m = LLMMetrics(
