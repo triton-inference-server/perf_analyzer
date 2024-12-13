@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -127,7 +127,7 @@ class LoadManager {
   /// \param user_data The vector containing path/paths to user-provided data
   /// that can be a directory or path to a json data file.
   /// \return cb::Error object indicating success or failure.
-  cb::Error InitManagerInputs(
+  virtual cb::Error InitManagerInputs(
       const size_t string_length, const std::string& string_data,
       const bool zero_input, std::vector<std::string>& user_data);
 
