@@ -71,8 +71,8 @@ class Profiler:
                 for j, line in enumerate(f):
                     if j == args.num_prompts:
                         break
-                    timings.append(float(json.loads(line)["timestamp"]) * 1000)
-            cmd += ["--schedule", ",".join(map(str, timings))]
+                    timings.append(float(json.loads(line)["timestamp"]) / 1000)
+            cmd += ["--request-rate-range 1 --schedule", ",".join(map(str, timings))]
         return cmd
 
     @staticmethod
