@@ -34,7 +34,7 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
@@ -62,6 +62,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
                     "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 }
                 self._add_request_params(payload, config)
+                self._override_extra(payload, row)
                 request_body["data"].append(payload)
 
         return request_body
@@ -83,3 +84,9 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         for key, value in config.extra_inputs.items():
             payload[key] = [value]
+
+    def _override_extra(self, payload: Dict, row: DataRow) -> None:
+        for key, value in row.extra_args.items():
+            if key == "max_tokens":
+                payload["request_output_len"] = [value]
+                payload["min_length"] = [value]
