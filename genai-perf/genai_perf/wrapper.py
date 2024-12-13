@@ -69,10 +69,11 @@ class Profiler:
             timings = []
             with open(args.schedule_file, "r") as f:
                 for j, line in enumerate(f):
-                    if j == args.num_prompts:
+                    if j == args.num_dataset_entries:
                         break
                     timings.append(float(json.loads(line)["timestamp"]) / 1000)
-            cmd += ["--request-rate-range 1 --schedule", ",".join(map(str, timings))]
+            cmd += ["--request-rate-range", "1"]
+            cmd += ["--schedule", ",".join(map(str, timings))]
         return cmd
 
     @staticmethod
