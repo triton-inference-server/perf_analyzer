@@ -70,7 +70,7 @@ class BaseFileInputRetriever(BaseInputRetriever):
 
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Union[Tuple[List[str], List[str]], Tuple[List[str], Dict[Any, Any]]]:
+    ) -> Union[Tuple[List[str], List[str]], Tuple[List[str], List[Dict[Any, Any]]]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 

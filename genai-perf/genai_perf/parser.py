@@ -365,12 +365,12 @@ def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
             )
         elif input_file_str.startswith("payload:"):
             args.prompt_source = ic.PromptSource.PAYLOAD
-            payload_input_file_str = input_file_str.split(":", 1)[1]
-            if not payload_input_file_str:
+            input_file_str = input_file_str.split(":", 1)[1]
+            args.payload_input_file = Path(f"{input_file_str}.jsonl")
+            if not args.payload_input_file:
                 raise ValueError(
                     f"Invalid payload input: '{input_file_str}' is missing the file path"
                 )
-            args.payload_input_file = payload_input_file_str.split(",")
             logger.debug(
                 f"Input source is a payload file with timing information in the following path: {args.payload_input_file}"
             )

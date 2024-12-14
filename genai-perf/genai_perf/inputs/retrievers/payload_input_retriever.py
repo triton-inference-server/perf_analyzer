@@ -59,10 +59,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
 
         files_data: Dict[str, FileData] = {}
-        self.config.payload_input_filename = cast(
-            Path, self.config.payload_input_filename
-        )
-        input_file = self.config.payload_input_filename
+        input_file = cast(Path, self.config.payload_input_filename)
         file_data = self._get_input_dataset_from_file(input_file)
         files_data = {str(input_file): file_data}
 
@@ -84,12 +81,12 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             read from the file.
         """
         self._verify_file(filename)
-        prompts, optional_data = self._get_content_from_input_file(filename)
-        return self._convert_content_to_data_file(prompts, optional_data)
+        prompts, optional_datas = self._get_content_from_input_file(filename)
+        return self._convert_content_to_data_file(prompts, optional_datas)
 
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Tuple[List[str], Dict[Any, Any]]:
+    ) -> Tuple[List[str], List[Dict[Any, Any]]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -104,6 +101,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             A list of prompts, and optional data.
         """
         prompts = []
+        optional_datas = []
         with open(filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
@@ -126,7 +124,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                     prompt = prompt if prompt else prompt_alt
                     prompts.append(prompt.strip() if prompt else prompt)
                     optional_data = self._check_for_optional_data(data)
-        return prompts, optional_data
+                    optional_datas.append(optional_data)
+        return prompts, optional_datas
 
     def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """
@@ -141,7 +140,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
     def _convert_content_to_data_file(
         self,
         prompts: List[str],
-        optional_data: Dict[Any, Any] = {},
+        optional_datas: List[Dict[Any, Any]] = [{}],
     ) -> FileData:
         """
         Converts the content to a DataFile.
@@ -161,11 +160,11 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         data_rows: List[DataRow] = []
 
         if prompts:
-            for _, prompt in enumerate(prompts):
+            for index, prompt in enumerate(prompts):
                 data_rows.append(
                     DataRow(
                         texts=[prompt],
-                        optional_data=optional_data,
+                        optional_data=optional_datas[index],
                     )
                 )
         return FileData(data_rows)
