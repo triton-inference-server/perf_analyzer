@@ -72,11 +72,9 @@ class RankingsConverter(BaseConverter):
                 passages = passage_entry.texts
                 payload = {"query": query, "texts": passages}
             else:
-                passages = [
-                    {"text_input": p} for p in passage_entry.texts if p is not None
-                ]
+                passages = [{"text": p} for p in passage_entry.texts if p is not None]
                 payload = {
-                    "query": query,
+                    "query": {"text": query},
                     "passages": passages,
                     "model": model_name,
                 }
