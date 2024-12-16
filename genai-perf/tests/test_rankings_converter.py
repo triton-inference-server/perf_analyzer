@@ -81,10 +81,10 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": "query 1",
+                            "query": {"text": "query 1"},
                             "passages": [
-                                {"text_input": "passage 1"},
-                                {"text_input": "passage 2"},
+                                {"text": "passage 1"},
+                                {"text": "passage 2"},
                             ],
                             "model": "test_model",
                         }
@@ -93,10 +93,10 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": "query 2",
+                            "query": {"text": "query 2"},
                             "passages": [
-                                {"text_input": "passage 3"},
-                                {"text_input": "passage 4"},
+                                {"text": "passage 3"},
+                                {"text": "passage 4"},
                             ],
                             "model": "test_model",
                         }
@@ -135,10 +135,10 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": "query 1",
+                            "query": {"text": "query 1"},
                             "passages": [
-                                {"text_input": "passage 1"},
-                                {"text_input": "passage 2"},
+                                {"text": "passage 1"},
+                                {"text": "passage 2"},
                             ],
                             "model": "test_model",
                             "encoding_format": "base64",
@@ -150,10 +150,10 @@ class TestRankingsConverter:
                 {
                     "payload": [
                         {
-                            "query": "query 2",
+                            "query": {"text": "query 2"},
                             "passages": [
-                                {"text_input": "passage 3"},
-                                {"text_input": "passage 4"},
+                                {"text": "passage 3"},
+                                {"text": "passage 4"},
                             ],
                             "model": "test_model",
                             "encoding_format": "base64",
@@ -266,8 +266,8 @@ class TestRankingsConverter:
                         {
                             "payload": [
                                 {
-                                    "query": "query 1",
-                                    "passages": [{"text_input": "passage 1"}],
+                                    "query": {"text": "query 1"},
+                                    "passages": [{"text": "passage 1"}],
                                     "model": "test_model",
                                 }
                             ]
@@ -275,8 +275,8 @@ class TestRankingsConverter:
                         {
                             "payload": [
                                 {
-                                    "query": "query 2",
-                                    "passages": [{"text_input": "passage 2"}],
+                                    "query": {"text": "query 2"},
+                                    "passages": [{"text": "passage 2"}],
                                     "model": "test_model",
                                 }
                             ]
@@ -293,8 +293,8 @@ class TestRankingsConverter:
                         {
                             "payload": [
                                 {
-                                    "query": "query 1",
-                                    "passages": [{"text_input": "passage 1"}],
+                                    "query": {"text": "query 1"},
+                                    "passages": [{"text": "passage 1"}],
                                     "model": "test_model",
                                 }
                             ]
