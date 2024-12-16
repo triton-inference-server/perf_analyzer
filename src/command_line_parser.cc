@@ -1805,10 +1805,6 @@ CLParser::VerifyOptions()
         "Failed to parse -i (protocol). The value should be either HTTP or "
         "gRPC.");
   }
-  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC &&
-                             params_->kind != cb::BackendKind::TRITON_C_API)) {
-    Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
-  }
   if (params_->using_grpc_compression &&
       (params_->protocol != cb::ProtocolType::GRPC)) {
     Usage("Using compression algorithm is only allowed with gRPC protocol.");
@@ -2061,6 +2057,19 @@ CLParser::VerifyOptions()
     }
   }
 
+  // Sanity checks for Dynamic gRPC client backend
+  if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
+    if (params_->user_data.empty()) {
+      Usage("Must supply --input-data for Dynamic gRPC service kind.");
+    }
+    if (params_->protocol != cb::ProtocolType::GRPC) {
+      std::cerr << "WARNING: Dynamic gRPC is a *gRPC-only* protocol. Perf "
+                   "Analyzer will automatically set the protocol as gRPC."
+                << std::endl;
+      params_->protocol = cb::ProtocolType::GRPC;
+    }
+  }
+
   if (params_->should_collect_metrics &&
       params_->kind != cb::BackendKind::TRITON) {
     Usage(
@@ -2079,6 +2088,10 @@ CLParser::VerifyOptions()
     Usage(
         "Must specify --collect-metrics when using the --metrics-interval "
         "option.");
+  }
+  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC &&
+                             params_->kind != cb::BackendKind::TRITON_C_API)) {
+    Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
   }
 
   if (params_->should_collect_metrics && !params_->metrics_url_specified) {

@@ -272,6 +272,18 @@ ClientBackend::Infer(
 }
 
 Error
+ClientBackend::StreamInfer(
+    InferResult** result, const InferOptions& options,
+    const std::vector<InferInput*>& inputs,
+    const std::vector<const InferRequestedOutput*>& outputs)
+{
+  return Error(
+      "client backend of kind " + BackendKindToString(kind_) +
+          " does not support StreamInfer API",
+      pa::GENERIC_ERROR);
+}
+
+Error
 ClientBackend::AsyncInfer(
     OnCompleteFn callback, const InferOptions& options,
     const std::vector<InferInput*>& inputs,

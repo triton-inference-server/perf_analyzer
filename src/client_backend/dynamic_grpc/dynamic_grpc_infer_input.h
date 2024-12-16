@@ -45,27 +45,17 @@ class DynamicGrpcInferInput : public InferInput {
       const std::vector<int64_t>& dims, const std::string& datatype);
   /// See InferInput::Shape()
   const std::vector<int64_t>& Shape() const override { return shape_; }
-  /// See InferInput::SetShape()
-  Error SetShape(const std::vector<int64_t>& shape) override;
-  /// See InferInput::Reset()
-  Error Reset() override;
   /// See InferInput::AppendRaw()
   Error AppendRaw(const uint8_t* input, size_t input_byte_size) override;
-  /// Gets the size of data added into this input in bytes.
-  /// \param byte_size The size of data added in bytes.
-  /// \return Error object indicating success or failure.
-  Error ByteSize(size_t* byte_size) const;
   /// Resets the heads to start providing data from the beginning.
   Error PrepareForRequest();
-  /// Get the next chunk of data if available.
-  Error GetNext(const uint8_t** buf, size_t* input_bytes, bool* end_of_input);
 
  private:
   explicit DynamicGrpcInferInput(
       const std::string& name, const std::vector<int64_t>& dims,
       const std::string& datatype);
 
-  std::vector<int64_t> shape_;
+  std::vector<int64_t> shape_;  // TODO: remove?
   size_t byte_size_{0};
 
   size_t bufs_idx_, buf_pos_;

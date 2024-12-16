@@ -41,46 +41,24 @@ DynamicGrpcInferInput::Create(
 }
 
 Error
-DynamicGrpcInferInput::SetShape(const std::vector<int64_t>& shape)
-{
-  // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
-}
-
-Error
-DynamicGrpcInferInput::Reset()
-{
-  // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
-}
-
-Error
 DynamicGrpcInferInput::AppendRaw(const uint8_t* input, size_t input_byte_size)
 {
   // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
-}
+  byte_size_ += input_byte_size;
 
-Error
-DynamicGrpcInferInput::ByteSize(size_t* byte_size) const
-{
-  // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
+  bufs_.push_back(input);
+  buf_byte_sizes_.push_back(input_byte_size);
+  return Error::Success;
 }
 
 Error
 DynamicGrpcInferInput::PrepareForRequest()
 {
   // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
-}
-
-Error
-DynamicGrpcInferInput::GetNext(
-    const uint8_t** buf, size_t* input_bytes, bool* end_of_input)
-{
-  // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
+  // Reset position so request sends entire input.
+  bufs_idx_ = 0;
+  buf_pos_ = 0;
+  return Error::Success;
 }
 
 DynamicGrpcInferInput::DynamicGrpcInferInput(

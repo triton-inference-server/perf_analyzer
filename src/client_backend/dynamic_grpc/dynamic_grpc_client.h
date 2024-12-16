@@ -25,14 +25,25 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <google/protobuf/compiler/parser.h>
+#include <google/protobuf/descriptor.h>
+#include <google/protobuf/dynamic_message.h>
+#include <grpcpp/generic/generic_stub.h>
 #include <grpcpp/grpcpp.h>
 
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <queue>
+#include <sstream>
+#include <string>
 
 #include "../client_backend.h"
 #include "common.h"
 
 namespace tc = triton::client;
+namespace pb = google::protobuf;
 
 namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 
@@ -160,7 +171,6 @@ class DynamicGrpcClient {
       const std::vector<InferInput*>& inputs,
       const std::vector<const InferRequestedOutput*>& outputs =
           std::vector<const InferRequestedOutput*>(),
-      const Headers& headers = Headers(),
       grpc_compression_algorithm compression_algorithm = GRPC_COMPRESS_NONE);
 
   /// Starts a grpc bi-directional stream to send streaming inferences.
@@ -171,10 +181,6 @@ class DynamicGrpcClient {
   /// The library does not support client side statistics for decoupled
   /// streaming. Set this option false when there is no 1:1 mapping between
   /// request and response on the stream.
-  /// \param stream_timeout Specifies the end-to-end timeout for the streaming
-  /// connection in microseconds. The default value is 0 which means that
-  /// there is no limitation on deadline. The stream will be closed once
-  /// the specified time elapses.
   /// \param headers Optional map specifying additional HTTP headers to
   /// include in the metadata of gRPC request.
   /// \param compression_algorithm The compression algorithm to be used
@@ -182,7 +188,7 @@ class DynamicGrpcClient {
   /// \return Error object indicating success or failure of the request.
   Error StartStream(
       OnCompleteFn callback, bool enable_stats = true,
-      uint32_t stream_timeout = 0, const Headers& headers = Headers(),
+      const Headers& headers = Headers(),
       grpc_compression_algorithm compression_algorithm = GRPC_COMPRESS_NONE);
 
   /// Stops an active grpc bi-directional stream, if one available.
@@ -210,11 +216,13 @@ class DynamicGrpcClient {
   // Required to support the grpc bi-directional streaming API.
   // std::thread stream_worker_;
 
-  // TODO: update
-  // std::shared_ptr<grpc::ClientReaderWriter<
-  //     inference::ModelInferRequest, inference::ModelStreamInferResponse>>
-  //     grpc_stream_;
+  // Generic bi-directional stream using dynamic protobuf message.
+  // std::shared_ptr<grpc::ClientReaderWriter<grpc::ByteBuffer,
+  // grpc::ByteBuffer>>
+  //    bidi_stream_;
+  std::shared_ptr<grpc::GenericClientAsyncReaderWriter> bidi_stream_;
   grpc::ClientContext grpc_context_;
+  grpc::CompletionQueue completion_queue_;
 
   bool enable_stream_stats_;
   std::queue<std::unique_ptr<tc::RequestTimers>> ongoing_stream_request_timers_;
@@ -222,9 +230,8 @@ class DynamicGrpcClient {
   // TODO: not needed since we are using synchronous stream?
   // std::mutex stream_mutex_;
 
-  // TODO: update
-  // GRPC end point.
-  // std::shared_ptr<inference::GRPCInferenceService::Stub> stub_;
+  // Generic gRPC stub for dynamic calls.
+  std::unique_ptr<grpc::GenericStub> stub_;
 
   // TODO: update
   // request for GRPC call, one request object can be used for multiple calls

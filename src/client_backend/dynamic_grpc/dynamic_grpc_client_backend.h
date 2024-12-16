@@ -75,6 +75,9 @@ class DynamicGrpcClientBackend : public ClientBackend {
       const std::vector<InferInput*>& inputs,
       const std::vector<const InferRequestedOutput*>& outputs);
 
+  /// See ClientBackend::StartStream()
+  Error StartStream(OnCompleteFn callback, bool enable_stats) override;
+
   /// See ClientBackend::ClientInferStat()
   Error ClientInferStat(InferStat* infer_stat) override;
 

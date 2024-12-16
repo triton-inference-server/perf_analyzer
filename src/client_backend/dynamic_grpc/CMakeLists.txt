@@ -53,10 +53,6 @@ target_include_directories(
     ${CMAKE_INSTALL_PREFIX}/include
 )
 
-target_link_libraries(
-  dgrpc-client-backend-library
-)
-
 if(${TRITON_ENABLE_GPU})
   target_include_directories(dgrpc-client-backend-library
                              PUBLIC ${CUDAToolkit_INCLUDE_DIRS})

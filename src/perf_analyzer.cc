@@ -168,7 +168,8 @@ PerfAnalyzer::CreateAnalyzerObjects()
       std::cerr << "can not use streaming with synchronous API" << std::endl;
       throw pa::PerfAnalyzerException(pa::GENERIC_ERROR);
     }
-    params_->async = true;
+    // TODO: I don't think this is still valid today.
+    // params_->async = true;
   }
 
   if (parser_->IsDecoupled() &&

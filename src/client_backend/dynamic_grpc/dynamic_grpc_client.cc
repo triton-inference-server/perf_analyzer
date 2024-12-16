@@ -26,9 +26,6 @@
 
 #include "dynamic_grpc_client.h"
 
-#include <chrono>
-#include <cstdint>
-#include <string>
 
 namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 
@@ -61,16 +58,25 @@ DynamicGrpcClient::DynamicGrpcClient(
     const SslOptions& ssl_options)
     : verbose_(verbose)
 {
-  // TODO
-  std::cerr << "Not implemented yet." << std::endl;
-  throw PerfAnalyzerException(GENERIC_ERROR);
+  if (verbose) {
+    std::cout << "Creating new channel with url: " << url << std::endl;
+  }
+
+  // TODO: set ssl credentials
+  grpc::ChannelArguments arguments;
+  std::shared_ptr<grpc::ChannelCredentials> credentials;
+  credentials = grpc::InsecureChannelCredentials();
+
+  std::shared_ptr<grpc::Channel> channel =
+      grpc::CreateCustomChannel(url, credentials, arguments);
+
+  // Create a generic stub for dynamic calls
+  stub_ = std::make_unique<grpc::GenericStub>(channel);
 }
 
 DynamicGrpcClient::~DynamicGrpcClient()
 {
-  // TODO
-  std::cerr << "Not implemented yet." << std::endl;
-  throw PerfAnalyzerException(GENERIC_ERROR);
+  StopStream();
 }
 
 Error
@@ -78,7 +84,7 @@ DynamicGrpcClient::BidiStreamRPC(
     InferResult** result, const InferOptions& options,
     const std::vector<InferInput*>& inputs,
     const std::vector<const InferRequestedOutput*>& outputs,
-    const Headers& headers, grpc_compression_algorithm compression_algorithm)
+    grpc_compression_algorithm compression_algorithm)
 {
   // TODO
   return Error("Not implemented yet.");
@@ -86,18 +92,38 @@ DynamicGrpcClient::BidiStreamRPC(
 
 Error
 DynamicGrpcClient::StartStream(
-    OnCompleteFn callback, bool enable_stats, uint32_t stream_timeout,
-    const Headers& headers, grpc_compression_algorithm compression_algorithm)
+    OnCompleteFn callback, bool enable_stats, const Headers& headers,
+    grpc_compression_algorithm compression_algorithm)
 {
-  // TODO
-  return Error("Not implemented yet.");
+  // Set grpc contexts
+  for (const auto& it : headers) {
+    grpc_context_.AddMetadata(it.first, it.second);
+  }
+  grpc_context_.set_compression_algorithm(compression_algorithm);
+
+  // TODO: what is this used for?
+  enable_stream_stats_ = enable_stats;
+
+  // TODO: need method name (& completion queue?)
+  bidi_stream_ =
+      stub_->PrepareCall(&grpc_context_, "Animate", &completion_queue_);
+  bidi_stream_->StartCall(nullptr);
+
+  if (verbose_) {
+    std::cout << "Started stream..." << std::endl;
+  }
+
+  return Error::Success;
 }
 
 Error
 DynamicGrpcClient::StopStream()
 {
-  // TODO
-  return Error("Not implemented yet.");
+  bidi_stream_->WritesDone(nullptr);
+  if (verbose_) {
+    std::cout << "Stopped stream..." << std::endl;
+  }
+  return Error::Success;
 }
 
 Error

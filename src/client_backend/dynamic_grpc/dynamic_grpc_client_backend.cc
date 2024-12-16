@@ -79,8 +79,16 @@ DynamicGrpcClientBackend::StreamInfer(
     const std::vector<const InferRequestedOutput*>& outputs)
 {
   RETURN_IF_CB_ERROR(grpc_client_->BidiStreamRPC(
-      result, options, inputs, outputs, *http_headers_,
-      compression_algorithm_));
+      result, options, inputs, outputs, compression_algorithm_));
+
+  return Error::Success;
+}
+
+Error
+DynamicGrpcClientBackend::StartStream(OnCompleteFn callback, bool enable_stats)
+{
+  RETURN_IF_CB_ERROR(grpc_client_->StartStream(
+      callback, enable_stats, *http_headers_, compression_algorithm_));
 
   return Error::Success;
 }

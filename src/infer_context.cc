@@ -145,14 +145,20 @@ InferContext::SendRequest(
 
     total_ongoing_requests_++;
   } else {
+    cb::InferResult* results = nullptr;
     std::chrono::time_point<std::chrono::system_clock> start_time_sync,
         end_time_sync;
     thread_stat_->idle_timer.Start();
     start_time_sync = std::chrono::system_clock::now();
-    cb::InferResult* results = nullptr;
-    thread_stat_->status_ = infer_backend_->Infer(
-        &results, *(infer_data_.options_), infer_data_.valid_inputs_,
-        infer_data_.outputs_);
+    if (streaming_) {
+      thread_stat_->status_ = infer_backend_->StreamInfer(
+          &results, *(infer_data_.options_), infer_data_.valid_inputs_,
+          infer_data_.outputs_);
+    } else {
+      thread_stat_->status_ = infer_backend_->Infer(
+          &results, *(infer_data_.options_), infer_data_.valid_inputs_,
+          infer_data_.outputs_);
+    }
     thread_stat_->idle_timer.Stop();
     RequestRecord::ResponseOutput response_outputs{};
     if (results != nullptr) {
