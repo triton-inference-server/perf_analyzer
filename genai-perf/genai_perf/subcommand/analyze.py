@@ -392,7 +392,9 @@ class Analyze:
         else:
             if self._args.concurrency:
                 infer_type = "concurrency"
-            else:
+            elif self._args.request_rate:
                 infer_type = "request_rate"
+            else:
+                infer_type = "concurrency"
 
         return infer_type
