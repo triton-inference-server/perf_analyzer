@@ -796,14 +796,14 @@ class TestCLIArguments:
                 False,
             ),
             (
-                ["--input-file", "payload:test.jsonl"],
+                ["--input-file", "payload:test"],
                 PromptSource.PAYLOAD,
-                ["test.jsonl"],
+                Path("test.jsonl"),
                 False,
             ),
             (["--input-file", "payload:"], PromptSource.PAYLOAD, [], True),
             (
-                ["--input-file", "synthetic:test.jsonl"],
+                ["--input-file", "synthetic:test"],
                 PromptSource.SYNTHETIC,
                 None,
                 False,
