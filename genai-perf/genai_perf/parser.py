@@ -1073,6 +1073,36 @@ def _add_session_args(parser):
     )
 
     input_group.add_argument(
+        "--session-turn-delay-mean",
+        type=int,
+        required=False,
+        help=f"The mean delay (ms) between turns in a session. ",
+    )
+
+    input_group.add_argument(
+        "--session-turn-delay-stddev",
+        type=int,
+        required=False,
+        help=f"The standard deviation of the delay (ms) between turns in a " "session.",
+    )
+
+    input_group.add_argument(
+        "--session-concurrency",
+        type=int,
+        required=False,
+        help=f"The number of concurrent sessions to simulate. "
+        "This is only used when sessions are enabled.",
+    )
+
+    input_group.add_argument(
+        "--session-rate",
+        type=int,
+        required=False,
+        help=f"The rate at which sessions are started. "
+        "This is only used when sessions are enabled.",
+    )
+
+    input_group.add_argument(
         "--turns-per-session-mean",
         type=int,
         default=ic.DEFAULT_TURNS_PER_SESSION_MEAN,
