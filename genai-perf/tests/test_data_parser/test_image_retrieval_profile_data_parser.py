@@ -32,8 +32,7 @@ from unittest.mock import mock_open, patch
 import pytest
 from genai_perf.metrics import ImageRetrievalMetrics, Statistics
 from genai_perf.profile_data_parser import ImageRetrievalProfileDataParser
-
-from .test_utils import check_statistics, ns_to_sec
+from tests.test_utils import check_statistics, ns_to_sec
 
 
 def check_image_retrieval_metrics(

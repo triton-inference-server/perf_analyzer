@@ -34,8 +34,7 @@ from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
 from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
-
-from .test_utils import check_statistics, ns_to_sec
+from tests.test_utils import check_statistics, ns_to_sec
 
 
 def check_llm_metrics(m1: LLMMetrics, m2: LLMMetrics) -> None:
