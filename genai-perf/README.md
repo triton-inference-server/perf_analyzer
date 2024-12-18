@@ -346,7 +346,7 @@ key authentication. To do so, you must add your API key directly in the command.
 Add the following flag to your command.
 
 ```bash
--h "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
+-H "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
 ```
 
 </br>
@@ -467,7 +467,7 @@ Alternatively, a string representing a json formatted dict can be provided.
 (default: `None`)
 
 ##### `--header <str>`
-##### `--h <str>`
+##### `--H <str>`
 Add a custom header to the requests. Headers must be specified as
 'Header:Value'. You can repeat this flag for multiple headers.
 (default: `None`)

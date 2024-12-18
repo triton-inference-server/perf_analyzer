@@ -753,7 +753,7 @@ def _add_input_args(parser):
 
     input_group.add_argument(
         "--header",
-        "-h",
+        "-H",
         action="append",
         help="Add a custom header to the requests. "
         "Headers must be specified as 'Header:Value'. "

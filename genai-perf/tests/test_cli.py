@@ -186,7 +186,7 @@ class TestCLIArguments:
                     ]
                 },
             ),
-            (["-h", "header_name:value"], {"header": ["header_name:value"]}),
+            (["-H", "header_name:value"], {"header": ["header_name:value"]}),
             (["--header", "header_name:value"], {"header": ["header_name:value"]}),
             (
                 ["--header", "header_name:value", "--header", "header_name_2:value_2"],
