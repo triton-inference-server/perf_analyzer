@@ -996,3 +996,22 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", args_list)
         args, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
+
+    def test_tokenizer_args(self, monkeypatch):
+        args = [
+            "genai-perf",
+            "profile",
+            "--model",
+            "test_model",
+            "--tokenizer",
+            "test_tokenizer",
+            "--tokenizer-trust-remote-code",
+            "--tokenizer-revision",
+            "test_revision",
+        ]
+        monkeypatch.setattr("sys.argv", args)
+        parsed_args, _ = parser.parse_args()
+
+        assert parsed_args.tokenizer == "test_tokenizer"
+        assert parsed_args.tokenizer_trust_remote_code
+        assert parsed_args.tokenizer_revision == "test_revision"

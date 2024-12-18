@@ -43,7 +43,7 @@ def compare_handler(args: Namespace) -> None:
         args.config = output_dir / "config.yaml"
 
     config_parser = PlotConfigParser(args.config)
-    plot_configs = config_parser.generate_configs()
+    plot_configs = config_parser.generate_configs(args.tokenizer)
     plot_manager = PlotManager(plot_configs)
     plot_manager.generate_plots()
 
