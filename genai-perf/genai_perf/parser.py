@@ -519,6 +519,193 @@ def positive_integer(value: str) -> int:
 ### Parsers ###
 
 
+def _add_analyze_args(parser):
+    analyze_group = parser.add_argument_group("Analyze")
+
+    analyze_group.add_argument(
+        "--sweep-type",
+        type=str,
+        default=RunConfigDefaults.STIMULUS_TYPE,
+        choices=[
+            "concurrency",
+            "num_dataset_entries",
+            "input_sequence_length",
+            "request_rate",
+        ],
+        required=False,
+        help=f"The stimulus type that GAP will sweep.",
+    )
+    analyze_group.add_argument(
+        "--sweep-range",
+        type=str,
+        default=f"{RunConfigDefaults.MIN_CONCURRENCY}:{RunConfigDefaults.MAX_CONCURRENCY}",
+        required=False,
+        help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
+    )
+    analyze_group.add_argument(
+        "--sweep-list",
+        type=str,
+        default=None,
+        required=False,
+        help=f"A comma-separated list of values that stimulus will be swept over.",
+    )
+
+
+def _add_compare_args(parser):
+    compare_group = parser.add_argument_group("Input")
+    mx_group = compare_group.add_mutually_exclusive_group(required=False)
+    mx_group.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="The path to the YAML file that specifies plot configurations for "
+        "comparing multiple runs.",
+    )
+    mx_group.add_argument(
+        "-f",
+        "--files",
+        nargs="+",
+        default=[],
+        help="List of paths to the profile export JSON files. Users can specify "
+        "this option instead of the `--config` option if they would like "
+        "GenAI-Perf to generate default plots as well as initial YAML config file.",
+    )
+
+
+def _add_endpoint_args(parser):
+    endpoint_group = parser.add_argument_group("Endpoint")
+
+    endpoint_group.add_argument(
+        "-m",
+        "--model",
+        nargs="+",
+        required=True,
+        help=f"The name of the model(s) to benchmark.",
+    )
+    endpoint_group.add_argument(
+        "--model-selection-strategy",
+        type=str,
+        choices=utils.get_enum_names(ic.ModelSelectionStrategy),
+        default="round_robin",
+        required=False,
+        help=f"When multiple model are specified, this is how a specific model "
+        "should be assigned to a prompt.  round_robin means that ith prompt in the "
+        "list gets assigned to i mod len(models).  random means that assignment is "
+        "uniformly random",
+    )
+
+    endpoint_group.add_argument(
+        "--backend",
+        type=str,
+        choices=utils.get_enum_names(ic.OutputFormat)[0:2],
+        default=ic.DEFAULT_BACKEND,
+        required=False,
+        help=f'When using the "triton" service-kind, '
+        "this is the backend of the model. "
+        "For the TENSORRT-LLM backend, you currently must set "
+        "'exclude_input_in_output' to true in the model config to "
+        "not echo the input tokens in the output.",
+    )
+
+    endpoint_group.add_argument(
+        "--endpoint",
+        type=str,
+        required=False,
+        help=f"Set a custom endpoint that differs from the OpenAI defaults.",
+    )
+
+    endpoint_group.add_argument(
+        "--endpoint-type",
+        type=str,
+        choices=list(_endpoint_type_map.keys()),
+        required=False,
+        help=f"The endpoint-type to send requests to on the " "server.",
+    )
+
+    endpoint_group.add_argument(
+        "--service-kind",
+        type=str,
+        choices=["triton", "openai", "tensorrtllm_engine"],
+        default="triton",
+        required=False,
+        help="The kind of service perf_analyzer will "
+        'generate load for. In order to use "openai", '
+        "you must specify an api via --endpoint-type.",
+    )
+
+    endpoint_group.add_argument(
+        "--server-metrics-url",
+        type=str,
+        default=None,
+        required=False,
+        help="The full URL to access the server metrics endpoint. "
+        "This argument is required if the metrics are available on "
+        "a different machine than localhost (where GenAI-Perf is running).",
+    )
+
+    endpoint_group.add_argument(
+        "--streaming",
+        action="store_true",
+        required=False,
+        help=f"An option to enable the use of the streaming API.",
+    )
+
+    endpoint_group.add_argument(
+        "-u",
+        "--url",
+        type=str,
+        required=False,
+        dest="u",
+        metavar="URL",
+        help="URL of the endpoint to target for benchmarking.",
+    )
+
+
+def _add_image_input_args(parser):
+    input_group = parser.add_argument_group("Image Input")
+
+    input_group.add_argument(
+        "--image-width-mean",
+        type=int,
+        default=ic.DEFAULT_IMAGE_WIDTH_MEAN,
+        required=False,
+        help=f"The mean width of images when generating synthetic image data.",
+    )
+
+    input_group.add_argument(
+        "--image-width-stddev",
+        type=int,
+        default=ic.DEFAULT_IMAGE_WIDTH_STDDEV,
+        required=False,
+        help=f"The standard deviation of width of images when generating synthetic image data.",
+    )
+
+    input_group.add_argument(
+        "--image-height-mean",
+        type=int,
+        default=ic.DEFAULT_IMAGE_HEIGHT_MEAN,
+        required=False,
+        help=f"The mean height of images when generating synthetic image data.",
+    )
+
+    input_group.add_argument(
+        "--image-height-stddev",
+        type=int,
+        default=ic.DEFAULT_IMAGE_HEIGHT_STDDEV,
+        required=False,
+        help=f"The standard deviation of height of images when generating synthetic image data.",
+    )
+
+    input_group.add_argument(
+        "--image-format",
+        type=str,
+        choices=utils.get_enum_names(ImageFormat),
+        required=False,
+        help=f"The compression format of the images. "
+        "If format is not selected, format of generated image is selected at random",
+    )
+
+
 def _add_input_args(parser):
     input_group = parser.add_argument_group("Input")
 
@@ -687,48 +874,43 @@ def _add_input_args(parser):
     )
 
 
-def _add_image_input_args(parser):
-    input_group = parser.add_argument_group("Image Input")
+def _add_other_args(parser):
+    other_group = parser.add_argument_group("Other")
 
-    input_group.add_argument(
-        "--image-width-mean",
-        type=int,
-        default=ic.DEFAULT_IMAGE_WIDTH_MEAN,
+    other_group.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
         required=False,
-        help=f"The mean width of images when generating synthetic image data.",
+        help="An option to enable verbose mode.",
     )
 
-    input_group.add_argument(
-        "--image-width-stddev",
-        type=int,
-        default=ic.DEFAULT_IMAGE_WIDTH_STDDEV,
-        required=False,
-        help=f"The standard deviation of width of images when generating synthetic image data.",
-    )
 
-    input_group.add_argument(
-        "--image-height-mean",
-        type=int,
-        default=ic.DEFAULT_IMAGE_HEIGHT_MEAN,
-        required=False,
-        help=f"The mean height of images when generating synthetic image data.",
+def _add_output_args(parser):
+    output_group = parser.add_argument_group("Output")
+    output_group.add_argument(
+        "--artifact-dir",
+        type=Path,
+        default=Path(DEFAULT_ARTIFACT_DIR),
+        help="The directory to store all the (output) artifacts generated by "
+        "GenAI-Perf and Perf Analyzer.",
     )
-
-    input_group.add_argument(
-        "--image-height-stddev",
-        type=int,
-        default=ic.DEFAULT_IMAGE_HEIGHT_STDDEV,
+    output_group.add_argument(
+        "--generate-plots",
+        action="store_true",
         required=False,
-        help=f"The standard deviation of height of images when generating synthetic image data.",
+        help="An option to enable the generation of plots.",
     )
-
-    input_group.add_argument(
-        "--image-format",
-        type=str,
-        choices=utils.get_enum_names(ImageFormat),
-        required=False,
-        help=f"The compression format of the images. "
-        "If format is not selected, format of generated image is selected at random",
+    output_group.add_argument(
+        "--profile-export-file",
+        type=Path,
+        default=Path(DEFAULT_PROFILE_EXPORT_FILE),
+        help="The path where the perf_analyzer profile export will be "
+        "generated. By default, the profile export will be to "
+        "profile_export.json. The genai-perf file will be exported to "
+        "<profile_export_file>_genai_perf.csv. For example, if the profile "
+        "export file is profile_export.json, the genai-perf file will be "
+        "exported to profile_export_genai_perf.csv.",
     )
 
 
@@ -775,127 +957,10 @@ def _add_profile_args(parser):
     )
 
 
-def _add_endpoint_args(parser):
-    endpoint_group = parser.add_argument_group("Endpoint")
+def _add_tokenizer_args(parser):
+    tokenizer_group = parser.add_argument_group("Tokenizer")
 
-    endpoint_group.add_argument(
-        "-m",
-        "--model",
-        nargs="+",
-        required=True,
-        help=f"The name of the model(s) to benchmark.",
-    )
-    endpoint_group.add_argument(
-        "--model-selection-strategy",
-        type=str,
-        choices=utils.get_enum_names(ic.ModelSelectionStrategy),
-        default="round_robin",
-        required=False,
-        help=f"When multiple model are specified, this is how a specific model "
-        "should be assigned to a prompt.  round_robin means that ith prompt in the "
-        "list gets assigned to i mod len(models).  random means that assignment is "
-        "uniformly random",
-    )
-
-    endpoint_group.add_argument(
-        "--backend",
-        type=str,
-        choices=utils.get_enum_names(ic.OutputFormat)[0:2],
-        default=ic.DEFAULT_BACKEND,
-        required=False,
-        help=f'When using the "triton" service-kind, '
-        "this is the backend of the model. "
-        "For the TENSORRT-LLM backend, you currently must set "
-        "'exclude_input_in_output' to true in the model config to "
-        "not echo the input tokens in the output.",
-    )
-
-    endpoint_group.add_argument(
-        "--endpoint",
-        type=str,
-        required=False,
-        help=f"Set a custom endpoint that differs from the OpenAI defaults.",
-    )
-
-    endpoint_group.add_argument(
-        "--endpoint-type",
-        type=str,
-        choices=list(_endpoint_type_map.keys()),
-        required=False,
-        help=f"The endpoint-type to send requests to on the " "server.",
-    )
-
-    endpoint_group.add_argument(
-        "--service-kind",
-        type=str,
-        choices=["triton", "openai", "tensorrtllm_engine"],
-        default="triton",
-        required=False,
-        help="The kind of service perf_analyzer will "
-        'generate load for. In order to use "openai", '
-        "you must specify an api via --endpoint-type.",
-    )
-
-    endpoint_group.add_argument(
-        "--server-metrics-url",
-        type=str,
-        default=None,
-        required=False,
-        help="The full URL to access the server metrics endpoint. "
-        "This argument is required if the metrics are available on "
-        "a different machine than localhost (where GenAI-Perf is running).",
-    )
-
-    endpoint_group.add_argument(
-        "--streaming",
-        action="store_true",
-        required=False,
-        help=f"An option to enable the use of the streaming API.",
-    )
-
-    endpoint_group.add_argument(
-        "-u",
-        "--url",
-        type=str,
-        required=False,
-        dest="u",
-        metavar="URL",
-        help="URL of the endpoint to target for benchmarking.",
-    )
-
-
-def _add_output_args(parser):
-    output_group = parser.add_argument_group("Output")
-    output_group.add_argument(
-        "--artifact-dir",
-        type=Path,
-        default=Path(DEFAULT_ARTIFACT_DIR),
-        help="The directory to store all the (output) artifacts generated by "
-        "GenAI-Perf and Perf Analyzer.",
-    )
-    output_group.add_argument(
-        "--generate-plots",
-        action="store_true",
-        required=False,
-        help="An option to enable the generation of plots.",
-    )
-    output_group.add_argument(
-        "--profile-export-file",
-        type=Path,
-        default=Path(DEFAULT_PROFILE_EXPORT_FILE),
-        help="The path where the perf_analyzer profile export will be "
-        "generated. By default, the profile export will be to "
-        "profile_export.json. The genai-perf file will be exported to "
-        "<profile_export_file>_genai_perf.csv. For example, if the profile "
-        "export file is profile_export.json, the genai-perf file will be "
-        "exported to profile_export_genai_perf.csv.",
-    )
-
-
-def _add_other_args(parser):
-    other_group = parser.add_argument_group("Other")
-
-    other_group.add_argument(
+    tokenizer_group.add_argument(
         "--tokenizer",
         type=str,
         default=DEFAULT_TOKENIZER,
@@ -904,7 +969,7 @@ def _add_other_args(parser):
         "from prompts and responses. The value can be the name of a tokenizer "
         "or the filepath of the tokenizer.",
     )
-    other_group.add_argument(
+    tokenizer_group.add_argument(
         "--tokenizer-revision",
         type=str,
         default=DEFAULT_TOKENIZER_REVISION,
@@ -912,7 +977,7 @@ def _add_other_args(parser):
         help="The specific model version to use. It can be a branch name, "
         "tag name, or commit ID.",
     )
-    other_group.add_argument(
+    tokenizer_group.add_argument(
         "--tokenizer-trust-remote-code",
         action="store_true",
         required=False,
@@ -922,70 +987,14 @@ def _add_other_args(parser):
         "tokenizers stored in HuggingFace Hub. ",
     )
 
-    other_group.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        required=False,
-        help="An option to enable verbose mode.",
-    )
-
-
-def _add_analyze_args(parser):
-    analyze_group = parser.add_argument_group("Analyze")
-
-    analyze_group.add_argument(
-        "--sweep-type",
-        type=str,
-        default=RunConfigDefaults.STIMULUS_TYPE,
-        choices=[
-            "concurrency",
-            "num_dataset_entries",
-            "input_sequence_length",
-            "request_rate",
-        ],
-        required=False,
-        help=f"The stimulus type that GAP will sweep.",
-    )
-    analyze_group.add_argument(
-        "--sweep-range",
-        type=str,
-        default=f"{RunConfigDefaults.MIN_CONCURRENCY}:{RunConfigDefaults.MAX_CONCURRENCY}",
-        required=False,
-        help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
-    )
-    analyze_group.add_argument(
-        "--sweep-list",
-        type=str,
-        default=None,
-        required=False,
-        help=f"A comma-separated list of values that stimulus will be swept over.",
-    )
-
 
 def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
     compare = subparsers.add_parser(
         Subcommand.COMPARE.to_lowercase(),
         description="Subcommand to generate plots that compare multiple profile runs.",
     )
-    compare_group = compare.add_argument_group("Input")
-    mx_group = compare_group.add_mutually_exclusive_group(required=False)
-    mx_group.add_argument(
-        "--config",
-        type=Path,
-        default=None,
-        help="The path to the YAML file that specifies plot configurations for "
-        "comparing multiple runs.",
-    )
-    mx_group.add_argument(
-        "-f",
-        "--files",
-        nargs="+",
-        default=[],
-        help="List of paths to the profile export JSON files. Users can specify "
-        "this option instead of the `--config` option if they would like "
-        "GenAI-Perf to generate default plots as well as initial YAML config file.",
-    )
+    _add_compare_args(compare)
+    _add_tokenizer_args(compare)
     compare.set_defaults(func=compare_handler)
     return compare
 
@@ -996,11 +1005,12 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
         description="Subcommand to profile LLMs and Generative AI models.",
     )
     _add_endpoint_args(profile)
-    _add_input_args(profile)
     _add_image_input_args(profile)
-    _add_profile_args(profile)
-    _add_output_args(profile)
+    _add_input_args(profile)
     _add_other_args(profile)
+    _add_output_args(profile)
+    _add_profile_args(profile)
+    _add_tokenizer_args(profile)
     profile.set_defaults(func=profile_handler)
     return profile
 
@@ -1010,13 +1020,14 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
         Subcommand.ANALYZE.to_lowercase(),
         description="Subcommand to analyze LLMs and Generative AI models.",
     )
-    _add_endpoint_args(analyze)
-    _add_input_args(analyze)
-    _add_image_input_args(analyze)
-    _add_profile_args(analyze)
     _add_analyze_args(analyze)
-    _add_output_args(analyze)
+    _add_endpoint_args(analyze)
+    _add_image_input_args(analyze)
+    _add_input_args(analyze)
     _add_other_args(analyze)
+    _add_output_args(analyze)
+    _add_profile_args(analyze)
+    _add_tokenizer_args(analyze)
     analyze.set_defaults(func=analyze_handler)
     return analyze
 
