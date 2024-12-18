@@ -79,6 +79,9 @@ def _report_output(
     elif args.request_rate:
         infer_mode = "request_rate"
         load_level = f"{args.request_rate}"
+    elif args.schedule_file:
+        infer_mode = "request_rate"
+        load_level = "1.0"
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
