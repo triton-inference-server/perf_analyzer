@@ -186,6 +186,12 @@ class TestCLIArguments:
                     ]
                 },
             ),
+            (["-h", "header_name:value"], {"header": ["header_name:value"]}),
+            (["--header", "header_name:value"], {"header": ["header_name:value"]}),
+            (
+                ["--header", "header_name:value", "--header", "header_name_2:value_2"],
+                {"header": ["header_name:value", "header_name_2:value_2"]},
+            ),
             (["--measurement-interval", "100"], {"measurement_interval": 100}),
             (
                 ["--model-selection-strategy", "random"],

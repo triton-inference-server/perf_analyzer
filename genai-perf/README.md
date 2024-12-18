@@ -343,12 +343,10 @@ AUTHENTICATION
 
 GenAI-Perf can benchmark secure endpoints such as OpenAI, which require API
 key authentication. To do so, you must add your API key directly in the command.
-At the end of your command, append the below flags. Replace the key with your
-API key. The `--` flag allows arguments to pass directly into Perf Analyzer in
-superuser mode. The `-H` flag is used to add HTTP headers.
+Add the following flag to your command.
 
 ```bash
--- -H "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
+-h "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
 ```
 
 </br>
@@ -376,6 +374,13 @@ the inference server.
 | <span id="request_throughput_metric">Request Throughput</span> | Number of final responses from benchmark divided by benchmark duration | None–one value per benchmark |
 
 </br>
+
+### Telemetry Metrics
+
+When using the Triton service kind, Telemetry metrics will be reported in
+the GenAI-Perf profile export files. These include GPU power usage, GPU
+utilization, energy consumption, total GPU memory, and more. If you would like
+these to be printed as output, you can use the `--verbose` flag.
 
 <!--
 ======================
@@ -459,6 +464,12 @@ image retrieval endpoint type.
 Provide additional inputs to include with every request. You can repeat this
 flag for multiple inputs. Inputs should be in an input_name:value format.
 Alternatively, a string representing a json formatted dict can be provided.
+(default: `None`)
+
+##### `--header <str>`
+##### `--h <str>`
+Add a custom header to the requests. Headers must be specified as
+'Header:Value'. You can repeat this flag for multiple headers.
 (default: `None`)
 
 ##### `--input-file <path>`

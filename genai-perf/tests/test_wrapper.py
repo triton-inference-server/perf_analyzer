@@ -186,3 +186,46 @@ class TestWrapper:
             assert (
                 kwargs["stdout"] is subprocess.DEVNULL
             ), "When the verbose flag is not passed, stdout should be redirected to /dev/null."
+
+    @pytest.mark.parametrize(
+        "header_values, expected_headers",
+        [
+            (["Header1:Value1"], [("-H", "Header1:Value1")]),
+            (
+                ["Authorization:Bearer mytoken", "Content-Type:application/json"],
+                [
+                    ("-H", "Authorization:Bearer mytoken"),
+                    ("-H", "Content-Type:application/json"),
+                ],
+            ),
+        ],
+    )
+    def test_headers_passed_correctly(
+        self, monkeypatch, header_values, expected_headers
+    ):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+        ]
+        for header in header_values:
+            args += ["-H", header]
+        monkeypatch.setattr("sys.argv", args)
+
+        args, extra_args = parser.parse_args()
+        cmd = Profiler.build_cmd(args, extra_args)
+
+        for expected_flag, expected_value in expected_headers:
+            try:
+                flag_index = cmd.index(expected_flag)
+                assert cmd[flag_index + 1] == expected_value, (
+                    f"Header value mismatch for {expected_flag}: "
+                    f"Expected {expected_value}, Found {cmd[flag_index + 1]}"
+                )
+                cmd[flag_index] = None  # type: ignore
+                cmd[flag_index + 1] = None  # type: ignore
+            except ValueError:
+                assert (
+                    False
+                ), f"Missing expected header flag: {expected_flag} or value: {expected_value}"
