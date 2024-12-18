@@ -253,6 +253,7 @@ class TestJsonExporter:
           "tokenizer_trust_remote_code": false,
           "verbose": false,
           "goodput": null,
+          "header": null,
           "subcommand": "profile",
           "prompt_source": "synthetic",
           "extra_inputs": {

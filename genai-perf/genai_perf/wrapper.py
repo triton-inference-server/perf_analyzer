@@ -140,6 +140,9 @@ class Profiler:
             # against tensorrtllm engine.
             elif arg == "service_kind" and value == "tensorrtllm_engine":
                 cmd += ["--service-kind", "triton_c_api", "--streaming"]
+            elif arg == "header":
+                for header in value:
+                    cmd += ["-H", header]
             else:
                 if len(arg) == 1:
                     cmd += [f"-{arg}", f"{value}"]
