@@ -65,7 +65,8 @@ class ChatCompletionResult : public InferResult {
   {
     if ((http_code_ >= 400) && (http_code_ <= 599)) {
       return Error(
-          "OpenAI response returns HTTP code " + std::to_string(http_code_));
+          "OpenAI response returns HTTP code " + std::to_string(http_code_) +
+          ": " + serialized_response_);
     }
     return Error::Success;
   }
