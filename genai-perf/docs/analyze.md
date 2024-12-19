@@ -34,7 +34,7 @@ The `analyze` subcommand is used to sweep through PA or GenAI-Perf stimulus allo
 The `analyze` subcommand uses the same CLI options as `profile` with the following additional options, which are used to specify the type and ranges of the stimulus you wish to sweep:
 
 #### `--sweep-type` - The type of stimulus you wish the sweep over
-The currently support stimulus values are `concurrency`, `request_rate`, `input_sequence_length`, and `num_dataset_entries`
+The currently support stimulus values are `batch_size`, `concurrency`, `request_rate`, `input_sequence_length`, and `num_dataset_entries`
 
 #### `--sweep-range` - The range over which the stimulus will be swept
 This can be represented as `min:max` or `min:max:step`. If a `step` is not specified then we assume the range to be min/max for power-of-2 values. For example, `8:256`, would sweep `8,16,32,64,128,256`
