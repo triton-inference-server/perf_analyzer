@@ -141,15 +141,24 @@ class Analyze:
 
     def _setup_config(self, args: Namespace) -> ConfigCommand:
         config = ConfigCommand(model_names=args.model)
+        sweep_type = self._map_args_to_config_sweep_type(args.sweep_type)
 
         if args.sweep_list:
-            config.analyze.sweep_parameters = {args.sweep_type: args.sweep_list}
+            config.analyze.sweep_parameters = {sweep_type: args.sweep_list}
         else:
             config.analyze.sweep_parameters = {
-                args.sweep_type: Range(min=args.sweep_min, max=args.sweep_max)
+                sweep_type: Range(min=args.sweep_min, max=args.sweep_max)
             }
 
         return config
+
+    def _map_args_to_config_sweep_type(self, sweep_type: str) -> str:
+        # The CLI arg sweep type name doesn't have a 1:1 mapping to
+        # what was implemented in the config
+        if sweep_type == "batch_size":
+            return "runtime_batch_size"
+        else:
+            return sweep_type
 
     ###########################################################################
     # Sweep Methods
@@ -369,6 +378,7 @@ class Analyze:
         elif (
             args.sweep_type == "input_sequence_length"
             or args.sweep_type == "num_dataset_entries"
+            or args.sweep_type == "batch_size"
         ):
             if args.concurrency:
                 infer_mode = "concurrency"

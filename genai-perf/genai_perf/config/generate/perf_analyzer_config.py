@@ -242,6 +242,11 @@ class PerfAnalyzerConfig:
                 parameters["num_dataset_entries"].get_value_based_on_category()
             )
             stimulus = [f"num_dataset_entries{input_sequence_length}"]
+        elif "runtime_batch_size" in parameters:
+            runtime_batch_size = str(
+                parameters["runtime_batch_size"].get_value_based_on_category()
+            )
+            stimulus = [f"batch_size{runtime_batch_size}"]
 
         return stimulus
 
@@ -406,7 +411,7 @@ class PerfAnalyzerConfig:
 
     def _convert_objective_to_cli_option(self, objective_name: str) -> str:
         obj_to_cli_dict = {
-            "runtime_batch_size": "--batch-size",
+            "runtime_batch_size": "-b",
             "concurrency": "--concurrency-range",
             "request_rate": "--request-rate-range",
         }
