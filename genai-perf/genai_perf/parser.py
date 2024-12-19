@@ -988,14 +988,6 @@ def _add_tokenizer_args(parser):
         "tokenizers stored in HuggingFace Hub. ",
     )
 
-    other_group.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        required=False,
-        help="An option to enable verbose mode.",
-    )
-
 
 def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
     compare = subparsers.add_parser(
