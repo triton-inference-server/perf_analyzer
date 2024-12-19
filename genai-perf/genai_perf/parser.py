@@ -527,6 +527,7 @@ def _add_analyze_args(parser):
         type=str,
         default=RunConfigDefaults.STIMULUS_TYPE,
         choices=[
+            "batch_size",
             "concurrency",
             "num_dataset_entries",
             "input_sequence_length",
@@ -993,39 +994,6 @@ def _add_tokenizer_args(parser):
         action="store_true",
         required=False,
         help="An option to enable verbose mode.",
-    )
-
-
-def _add_analyze_args(parser):
-    analyze_group = parser.add_argument_group("Analyze")
-
-    analyze_group.add_argument(
-        "--sweep-type",
-        type=str,
-        default=RunConfigDefaults.STIMULUS_TYPE,
-        choices=[
-            "batch_size",
-            "concurrency",
-            "num_dataset_entries",
-            "input_sequence_length",
-            "request_rate",
-        ],
-        required=False,
-        help=f"The stimulus type that GAP will sweep.",
-    )
-    analyze_group.add_argument(
-        "--sweep-range",
-        type=str,
-        default=f"{RunConfigDefaults.MIN_CONCURRENCY}:{RunConfigDefaults.MAX_CONCURRENCY}",
-        required=False,
-        help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
-    )
-    analyze_group.add_argument(
-        "--sweep-list",
-        type=str,
-        default=None,
-        required=False,
-        help=f"A comma-separated list of values that stimulus will be swept over.",
     )
 
 
