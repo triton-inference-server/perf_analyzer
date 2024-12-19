@@ -527,6 +527,7 @@ def _add_analyze_args(parser):
         type=str,
         default=RunConfigDefaults.STIMULUS_TYPE,
         choices=[
+            "batch_size",
             "concurrency",
             "num_dataset_entries",
             "input_sequence_length",
