@@ -47,6 +47,7 @@
 #include "periodic_concurrency_manager.h"
 #include "profile_data_collector.h"
 #include "request_rate_manager.h"
+#include "session_concurrency_manager.h"
 
 namespace triton::perfanalyzer {
 
@@ -361,6 +362,16 @@ class InferenceProfiler {
     // FIXME - Refactor collector class to not need ID or window in the case of
     // periodic concurrency mode
     InferenceLoadMode id{1, 0.0};
+    collector_->AddWindow(id, 0, UINT64_MAX);
+    collector_->AddData(id, std::move(request_records));
+    return cb::Error::Success;
+  }
+
+  cb::Error BenchmarkSessionConcurrencyMode()
+  {
+    auto& manager{dynamic_cast<SessionConcurrencyManager&>(*manager_)};
+    std::vector<RequestRecord> request_records{manager.Start()};
+    InferenceLoadMode id{0, 0.0};
     collector_->AddWindow(id, 0, UINT64_MAX);
     collector_->AddData(id, std::move(request_records));
     return cb::Error::Success;

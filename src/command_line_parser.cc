@@ -116,6 +116,7 @@ CLParser::Usage(const std::string& msg)
             << std::endl;
   std::cerr << "\t--concurrency-range <start:end:step>" << std::endl;
   std::cerr << "\t--periodic-concurrency-range <start:end:step>" << std::endl;
+  std::cerr << "\t--session-concurrency <session concurrency>" << std::endl;
   std::cerr << "\t--request-period <number of responses>" << std::endl;
   std::cerr << "\t--request-rate-range <start:end:step>" << std::endl;
   std::cerr << "\t--request-distribution <\"poisson\"|\"constant\">"
@@ -337,6 +338,10 @@ CLParser::Usage(const std::string& msg)
              "'step' are 1.",
              18)
       << std::endl;
+  std::cerr << FormatMessage(
+                   " --session-concurrency <session concurrency>: Description.",
+                   18)
+            << std::endl;
   std::cerr
       << FormatMessage(
              " --request-period <n>: Indicates the number of responses that "
@@ -917,6 +922,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"request-count", required_argument, 0, long_option_idx_base + 62},
       {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
       {"schedule", required_argument, 0, long_option_idx_base + 64},
+      {"session-concurrency", required_argument, 0, long_option_idx_base + 65},
       {0, 0, 0, 0}};
 
   // Parse commandline...
@@ -1681,6 +1687,16 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->request_count = schedule.size();
           break;
         }
+        case long_option_idx_base + 65: {
+          params_->session_concurrency = std::stoull(optarg);
+          if (params_->session_concurrency == 0) {
+            Usage(
+                "Failed to parse --session-concurrency. Session concurrency "
+                "must be > 0.");
+          }
+          params_->is_session_concurrency_mode = true;
+          break;
+        }
         case 'v':
           params_->extra_verbose = params_->verbose;
           params_->verbose = true;
@@ -2088,6 +2104,12 @@ CLParser::VerifyOptions()
       params_->metrics_url =
           params_->url.substr(0, colon_pos) + ":8002/metrics";
     }
+  }
+
+  if (params_->is_session_concurrency_mode &&
+      params_->kind != cb::BackendKind::OPENAI) {
+    Usage(
+        "Session concurrency mode is only supported with OpenAI service kind.");
   }
 }
 
