@@ -735,7 +735,7 @@ def _add_input_args(parser):
         "--extra-inputs",
         action="append",
         help="Provide additional inputs to include with every request. "
-        "You can repeat this flag for multiple inputs. Inputs should be in an input_name:value format. "
+        "You can repeat this flag for multiple inputs. Inputs should be in an 'input_name:value' format. "
         "Alternatively, a string representing a json formatted dict can be provided.",
     )
 
@@ -750,6 +750,15 @@ def _add_input_args(parser):
         "either milliseconds or a throughput value per second. For example, "
         "'request_latency:300' or 'output_token_throughput_per_request:600'. "
         "Multiple key:value pairs can be provided, separated by spaces. ",
+    )
+
+    input_group.add_argument(
+        "--header",
+        "-H",
+        action="append",
+        help="Add a custom header to the requests. "
+        "Headers must be specified as 'Header:Value'. "
+        "You can repeat this flag for multiple headers.",
     )
 
     input_group.add_argument(
