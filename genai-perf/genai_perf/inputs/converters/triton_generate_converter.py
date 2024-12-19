@@ -29,7 +29,7 @@ from typing import Any, Dict
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
@@ -56,6 +56,7 @@ class TritonGenerateConverter(BaseConverter):
                     "text_input": prompt,
                 }
                 self._add_request_params(payload, config)
+                self._override_extra(payload, row)
                 request_body["data"].append({"payload": [payload]})
 
         return request_body
@@ -73,3 +74,8 @@ class TritonGenerateConverter(BaseConverter):
             )
         for key, value in config.extra_inputs.items():
             payload[key] = value
+
+    def _override_extra(self, payload: Dict, row: DataRow) -> None:
+        for key, value in row.extra_args.items():
+            if key == "max_tokens":
+                payload["max_tokens"] = value

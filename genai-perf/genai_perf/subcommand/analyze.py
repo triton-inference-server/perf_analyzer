@@ -377,7 +377,7 @@ class Analyze:
                 infer_mode = "request_rate"
                 load_level = f"{args.request_rate}"
             else:
-                infer_mode = "concurrency"
+                infer_mode = "request_rate"
                 load_level = "1"
         else:
             raise GenAIPerfException("Cannot determine infer_mode/load_level")

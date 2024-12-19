@@ -175,6 +175,8 @@ def create_config_options(args: Namespace) -> InputsConfig:
         image_format=args.image_format,
         random_seed=args.random_seed,
         num_dataset_entries=args.num_dataset_entries,
+        schedule_file=args.schedule_file,
+        block_size=args.block_size,
         add_stream=args.streaming,
         tokenizer=get_tokenizer(
             args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision

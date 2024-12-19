@@ -24,6 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import json
+import os
+import subprocess
 from argparse import Namespace
 from typing import List, Optional
 
@@ -60,6 +63,17 @@ class Profiler:
             cmd += ["--concurrency-range", f"{args.concurrency}"]
         elif args.request_rate:
             cmd += ["--request-rate-range", f"{args.request_rate}"]
+
+        if args.schedule_file is not None:
+            # assert args.request_rate, "Must use request rate with fixed schedule"
+            timings = []
+            with open(args.schedule_file, "r") as f:
+                for j, line in enumerate(f):
+                    if j == args.num_dataset_entries:
+                        break
+                    timings.append(float(json.loads(line)["timestamp"]) / 1000)
+            cmd += ["--request-rate-range", "1"]
+            cmd += ["--schedule", ",".join(map(str, timings))]
         return cmd
 
     @staticmethod
@@ -69,6 +83,7 @@ class Profiler:
             "backend",
             "batch_size_image",
             "batch_size_text",
+            "block_size",
             "concurrency",
             "endpoint_type",
             "extra_inputs",
@@ -95,6 +110,7 @@ class Profiler:
             "prompt_source",
             "random_seed",
             "request_rate",
+            "schedule_file",
             "server_metrics_url",
             # The 'streaming' passed in to this script is to determine if the
             # LLM response should be streaming. That is different than the

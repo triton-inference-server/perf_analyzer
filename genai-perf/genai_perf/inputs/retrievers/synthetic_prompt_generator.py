@@ -16,12 +16,13 @@ import os
 import pathlib
 import random
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from typing import Dict, List, Optional
 
 from genai_perf.tokenizer import Tokenizer
 
 
 class SyntheticPromptGenerator:
+    cache: Dict[int, str] = {}
     _tokenized_corpus = None
     _corpus_length = 0
     _prefix_prompts: List[str] = []
@@ -32,6 +33,8 @@ class SyntheticPromptGenerator:
         tokenizer: Tokenizer,
         prompt_tokens_mean: int = 550,
         prompt_tokens_stddev: int = 250,
+        prompt_hash_list: Optional[List[int]] = None,
+        block_size: Optional[int] = None,
     ) -> str:
         """
         Generate a synthetic prompt with a specific number of tokens.
@@ -47,11 +50,28 @@ class SyntheticPromptGenerator:
         if cls._tokenized_corpus is None:
             cls._initialize_corpus(tokenizer)
 
-        num_prompt_tokens = max(
-            1, int(random.gauss(prompt_tokens_mean, prompt_tokens_stddev))
-        )
+        if prompt_hash_list is not None:
+            assert block_size, "Need block size to continue"
+            final_prompt = []
+            size_to_use = block_size
+            for j, hash_index in enumerate(prompt_hash_list):
+                if j == len(prompt_hash_list) - 1:
+                    size_to_use = prompt_tokens_mean - (j * block_size)
+                if hash_index not in cls.cache:
+                    prompt = cls._generate_prompt(tokenizer, size_to_use)
+                    cls.cache[hash_index] = prompt
 
-        return cls._generate_prompt(tokenizer, num_prompt_tokens)
+                final_prompt.append(cls.cache[hash_index])
+            prompt = " ".join(final_prompt)
+
+        else:
+            num_prompt_tokens = max(
+                1, int(random.gauss(prompt_tokens_mean, prompt_tokens_stddev))
+            )
+
+            prompt = cls._generate_prompt(tokenizer, num_prompt_tokens)
+
+        return prompt
 
     @classmethod
     def _initialize_corpus(cls, tokenizer: Tokenizer):
