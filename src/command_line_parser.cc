@@ -1679,6 +1679,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           params_->schedule = schedule;
           params_->request_count = schedule.size();
+          params_->using_request_rate_range = true;
           break;
         }
         case 'v':
@@ -1846,6 +1847,14 @@ CLParser::VerifyOptions()
 
   if (params_->using_request_rate_range && params_->using_old_options) {
     Usage("Cannot use concurrency options with --request-rate-range.");
+  }
+
+  if (!params_->schedule.empty() && params_->warmup_request_count > 0) {
+    Usage("Cannot use warmup options with --schedule");
+  }
+
+  if (!params_->schedule.empty() && params_->using_concurrency_range) {
+    Usage("Cannot use concurrency options with --schedule");
   }
 
   std::vector<bool> load_modes{
