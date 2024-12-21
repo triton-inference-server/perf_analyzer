@@ -74,7 +74,7 @@ INSTALLATION
 ## Installation
 
 The easiest way to install GenAI-Perf is through pip.
-### Install Perf Analyzer (Ubuntu 24.04, Python 3.10+)
+### Install GenAI-Perf (Ubuntu 24.04, Python 3.10+)
 
 ```bash
 pip install genai-perf
@@ -88,14 +88,14 @@ pip install genai-perf
 
 [Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver)
 
-Install the latest release using the following command:
+Pull the latest release using the following command:
 
 ```bash
 export RELEASE="24.10"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
-# Check out genai_perf command inside the container:
+# Validate the genai-perf command works inside the container:
 genai-perf --help
 ```
 
