@@ -77,7 +77,7 @@ The easiest way to install GenAI-Perf is through pip.
 ### Install Perf Analyzer (Ubuntu 24.04, Python 3.10+)
 
 ```bash
-pip install git+https://github.com/triton-inference-server/perf_analyzer.git#subdirectory=genai-perf
+pip install genai-perf
 ```
 **NOTE**: you must already have CUDA 12 installed
 
