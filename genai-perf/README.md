@@ -85,7 +85,9 @@ pip install git+https://github.com/triton-inference-server/perf_analyzer.git#sub
 <details>
 
 <summary>Alternatively, to install the container:</summary>
-[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver).
+
+[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver)
+
 Install the latest release using the following command:
 
 ```bash
@@ -96,7 +98,6 @@ docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3
 # Check out genai_perf command inside the container:
 genai-perf --help
 ```
-
 
 You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) to use alongside GenAI-Perf as well.
 
