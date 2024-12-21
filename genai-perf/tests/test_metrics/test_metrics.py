@@ -50,11 +50,14 @@ class TestMetrics:
             request_goodputs=[9.88, 10.22],
         )
         sys_metrics = m.system_metrics
-        assert len(sys_metrics) == 2
+        assert len(sys_metrics) == 3
         assert sys_metrics[0].name == "request_throughput"
         assert sys_metrics[0].unit == "per sec"
         assert sys_metrics[1].name == "request_goodput"
         assert sys_metrics[1].unit == "per sec"
+        assert sys_metrics[2].name == "request_count"
+        assert sys_metrics[2].unit == "count"
+        assert m.data.get("request_count") == [2]
 
     def test_metrics_get_base_name(self) -> None:
         """Test get_base_name method in Metrics class."""
@@ -66,5 +69,6 @@ class TestMetrics:
         assert metrics.get_base_name("request_throughputs") == "request_throughput"
         assert metrics.get_base_name("request_latencies") == "request_latency"
         assert metrics.get_base_name("request_goodputs") == "request_goodput"
+        assert metrics.get_base_name("request_count") == "request_count"
         with pytest.raises(KeyError):
             metrics.get_base_name("hello1234")

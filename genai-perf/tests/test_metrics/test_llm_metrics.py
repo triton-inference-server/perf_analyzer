@@ -115,13 +115,16 @@ class TestLLMMetrics:
         )
 
         sys_metrics = m.system_metrics
-        assert len(sys_metrics) == 3
+        assert len(sys_metrics) == 4
         assert sys_metrics[0].name == "output_token_throughput"
         assert sys_metrics[0].unit == "per sec"
         assert sys_metrics[1].name == "request_throughput"
         assert sys_metrics[1].unit == "per sec"
         assert sys_metrics[2].name == "request_goodput"
         assert sys_metrics[2].unit == "per sec"
+        assert sys_metrics[3].name == "request_count"
+        assert sys_metrics[3].unit == "count"
+        assert m.data.get("request_count") == [2]
 
     def test_llm_metrics_get_base_name(self) -> None:
         """Test get_base_name method in LLMMetrics class."""

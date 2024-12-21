@@ -125,6 +125,7 @@ class TestCsvExporter:
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
+            "Request Count (count),3.00\r\n",
         ]
         expected_filename = "profile_export_genai_perf.csv"
         returned_data = [
@@ -178,6 +179,7 @@ class TestCsvExporter:
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
+            "Request Count (count),3.00\r\n",
         ]
         returned_data = [
             data for filename, data in mock_read_write if filename == expected_filename
@@ -222,6 +224,7 @@ class TestCsvExporter:
             "\r\n",
             "Metric,Value\r\n",
             "Request Throughput (per sec),123.00\r\n",
+            "Request Count (count),3.00\r\n",
         ]
         returned_data = [data for _, data in mock_read_write]
         assert returned_data == expected_content
@@ -275,7 +278,7 @@ class TestCsvExporter:
             if os.path.basename(filename) == expected_filename
         ]
 
-        assert returned_data[-1] == expected_content
+        assert returned_data[-2] == expected_content
 
     def test_invalid_goodput_csv_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -327,7 +330,7 @@ class TestCsvExporter:
             if os.path.basename(filename) == expected_filename
         ]
 
-        assert returned_data[-1] == expected_content
+        assert returned_data[-2] == expected_content
 
     def test_triton_telemetry_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch, llm_metrics: LLMMetrics
@@ -380,6 +383,7 @@ class TestCsvExporter:
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
+            "Request Count (count),3.00\r\n",
             "\r\n",
             "Metric,GPU,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
             "GPU Power Usage (W),gpu0,45.85,45.20,46.50,46.49,46.44,46.37,46.17,45.85,45.53\r\n",
@@ -448,6 +452,7 @@ class TestCsvExporter:
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
+            "Request Count (count),3.00\r\n",
         ]
         returned_data = [
             data for filename, data in mock_read_write if filename == expected_filename

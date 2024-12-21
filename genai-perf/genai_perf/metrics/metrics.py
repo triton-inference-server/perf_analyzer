@@ -51,6 +51,7 @@ class Metrics:
         # (TMA-1977) Make the unit consistent with statistics dict (e.g. tokens/sec)
         MetricMetadata("request_throughput", "per sec"),
         MetricMetadata("request_goodput", "per sec"),
+        MetricMetadata("request_count", "count"),
     ]
 
     def __init__(
@@ -62,10 +63,12 @@ class Metrics:
         self.request_throughputs = request_throughputs
         self.request_latencies = request_latencies
         self.request_goodputs = request_goodputs
+        self.request_count = [len(request_latencies)]
         self._base_names = {
             "request_throughputs": "request_throughput",
             "request_latencies": "request_latency",
             "request_goodputs": "request_goodput",
+            "request_count": "request_count",
         }
 
     def __repr__(self):
