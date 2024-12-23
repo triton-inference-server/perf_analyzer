@@ -91,6 +91,7 @@ class TestConsoleExporter:
             "│             Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "│      Request throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
+            "│             Request count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
         )
 
@@ -142,6 +143,7 @@ class TestConsoleExporter:
             "│             Input sequence length │  6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
             "│ Output token throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
             "│      Request throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│             Request count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
             "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
         )
 
@@ -183,6 +185,7 @@ class TestConsoleExporter:
             "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
             "│         Request latency (ms) │   5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
             "│ Request throughput (per sec) │ 123.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│        Request count (count) │   3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
             "└──────────────────────────────┴────────┴──────┴──────┴──────┴──────┴──────┘\n"
         )
 
@@ -241,6 +244,7 @@ class TestConsoleExporter:
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "│      Request throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "│         Request goodput (per sec) │ 100… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
+            "│             Request count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
         )
         returned_data = capsys.readouterr().out
@@ -299,6 +303,7 @@ class TestConsoleExporter:
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "│      Request throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "│         Request goodput (per sec) │ -1.… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
+            "│             Request count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
         )
         returned_data = capsys.readouterr().out
@@ -412,6 +417,7 @@ class TestConsoleExporter:
             "│             Input sequence length │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
             "│ Output token throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "│      Request throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
+            "│             Request count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
             "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
             "                NVIDIA GenAI-Perf | Power Metrics                \n"
             "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
@@ -519,6 +525,7 @@ class TestConsoleExporter:
             "│             Input sequence length │   N/A │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
             "│ Output token throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
             "│      Request throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│             Request count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
             "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
         )
 

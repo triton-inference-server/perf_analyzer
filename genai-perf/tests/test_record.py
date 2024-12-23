@@ -113,6 +113,7 @@ class TestRecord(unittest.TestCase):
             for t in [
                 "request_throughput_avg",
                 "request_goodput_avg",
+                "request_count_avg",
                 "output_token_throughput_avg",
                 "output_token_throughput_per_request_min",
                 "output_token_throughput_per_request_max",
