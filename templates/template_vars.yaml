@@ -1,7 +1,7 @@
 General:
-  release: 24.10
+  release: 24.12
   triton_cli_version: 0.0.11
-  genai_perf_version: 0.0.8dev
+  genai_perf_version: 0.0.9dev
 
 README:
   filename: README.md
@@ -15,7 +15,7 @@ compare:
 
 customizable_frontends:
   filename: customizable_frontends.md
-  template: genai-perf-templates/customizable_fronetnds_template
+  template: genai-perf-templates/customizable_frontends_template
   output_dir: ../genai-perf/docs/
 
 embeddings:

@@ -46,7 +46,7 @@ genai-perf/
 
 ## File Types
 Within the artifacts and docs directories, several file types are generated,
-including .gzip, .csv, .json, .html, and .jpeg. Below is a detailed
+including .csv, .json, .html, and .jpeg. Below is a detailed
 explanation of each file and its purpose.
 
 ### Artifacts Directory
@@ -54,18 +54,6 @@ explanation of each file and its purpose.
 #### Data Subdirectory
 
 The data subdirectory contains the raw and processed performance data files.
-
-##### GZIP Files
-
-- all_data.gzip: Aggregated performance data from all collected metrics.
-- input_sequence_lengths_vs_output_sequence_lengths.gzip: This contains data on
-the input sequence lengths versus the output sequence lengths for each request.
-- request_latency.gzip: This contains the latency for each request.
-- time_to_first_token.gzip: This contains the time to first token for each request.
-- token_to_token_vs_output_position.gzip: This contains the time from one token
-generation to the next versus the position of the output token for each token.
-- ttft_vs_input_sequence_lengths.gzip: This contains the time to first token
-versus the input sequence length for each request.
 
 ##### JSON Files
 
@@ -100,23 +88,6 @@ versus the input sequence lengths.
 
 To use the generated files, navigate to the artifacts/data directory. Then,
 the next steps depend on the file format you wish to work with.
-
-### GZIP Files
-
-The GZIP files contain Parquet files with calculated data, which can be read
-with Pandas in Python. For example, you can create a dataframe with these files:
-
-```
-import pandas
-df = pandas.read_partquet(path_to_file)`
-```
-
-You can then use Pandas to work with the data.
-
-```
-print(df.head())     # See the first few rows of the data.
-print(df.describe()) # Get summary statistics for the data
-```
 
 ### CSV and JSON Files
 Open .csv and .json files with spreadsheet or JSON parsing tools for structured
