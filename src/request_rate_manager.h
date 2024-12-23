@@ -103,7 +103,7 @@ class RequestRateManager : public LoadManager {
   /// \param target_request_rate The rate at which requests must be issued to
   /// the server.
   /// \param warmup_request_count The number of warmup requests to send.
-  virtual cb::Error PerformWarmup(
+  cb::Error PerformWarmup(
       double target_request_rate, size_t warmup_request_count);
 
   /// Adjusts the rate of issuing requests to be the same as 'request_rate'

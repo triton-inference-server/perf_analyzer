@@ -623,12 +623,15 @@ InferenceProfiler::Profile(
   meets_threshold = true;
 
 
-  RETURN_IF_ERROR(dynamic_cast<RequestRateManager*>(manager_.get())
-                      ->PerformWarmup(request_rate, warmup_request_count));
+  if (dynamic_cast<CustomRequestScheduleManager*>(manager_.get()) == nullptr) {
+    std::cout << "Perform Warmup" << std::endl;
+    RETURN_IF_ERROR(dynamic_cast<RequestRateManager*>(manager_.get())
+                        ->PerformWarmup(request_rate, warmup_request_count));
+    std::cout << "Request Rate: " << request_rate
+              << " inference requests per second" << std::endl;
+  }
   RETURN_IF_ERROR(dynamic_cast<RequestRateManager*>(manager_.get())
                       ->ChangeRequestRate(request_rate, request_count));
-  std::cout << "Request Rate: " << request_rate
-            << " inference requests per seconds" << std::endl;
 
   err = ProfileHelper(perf_status, request_count, &is_stable);
   if (err.IsOk()) {
