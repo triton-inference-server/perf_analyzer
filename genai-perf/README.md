@@ -73,44 +73,33 @@ INSTALLATION
 
 ## Installation
 
-The easiest way to install GenAI-Perf is through
-[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver).
-Install the latest release using the following command:
+The easiest way to install GenAI-Perf is through pip.
+### Install GenAI-Perf (Ubuntu 24.04, Python 3.10+)
 
 ```bash
-export RELEASE="24.10"
-
-docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Check out genai_perf command inside the container:
-genai-perf --help
+pip install genai-perf
 ```
+**NOTE**: you must already have CUDA 12 installed
+
 
 <details>
 
-<summary>Alternatively, to install from source:</summary>
+<summary>Alternatively, to install the container:</summary>
 
-Since GenAI-Perf depends on Perf Analyzer,
-you'll need to install the Perf Analyzer binary:
+[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver)
 
-### Install Perf Analyzer (Ubuntu, Python 3.10+)
-
-**NOTE**: you must already have CUDA 12 installed
-(checkout the [CUDA installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)).
+Pull the latest release using the following command:
 
 ```bash
-pip install tritonclient
+export RELEASE="24.12"
 
-sudo apt update && sudo apt install -y --no-install-recommends libb64-0d
+docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
+
+# Validate the genai-perf command works inside the container:
+genai-perf --help
 ```
 
-You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) as well.
-
-### Install GenAI-Perf from source
-
-```bash
-pip install git+https://github.com/triton-inference-server/perf_analyzer.git#subdirectory=genai-perf
-```
+You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) to use alongside GenAI-Perf as well.
 
 </details>
 
@@ -142,7 +131,7 @@ docker run -ti \
     --shm-size=1g --ulimit memlock=-1 \
     -v /tmp:/tmp \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.10-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:24.12-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11

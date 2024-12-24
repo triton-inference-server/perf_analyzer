@@ -73,42 +73,33 @@ INSTALLATION
 
 ## Installation
 
-The easiest way to install GenAI-Perf is through
-[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver).
-Install the latest release using the following command:
+The easiest way to install GenAI-Perf is through pip.
+### Install GenAI-Perf (Ubuntu 24.04, Python 3.10+)
+
+```bash
+pip install genai-perf
+```
+**NOTE**: you must already have CUDA 12 installed
+
+
+<details>
+
+<summary>Alternatively, to install the container:</summary>
+
+[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver)
+
+Pull the latest release using the following command:
 
 ```bash
 export RELEASE="{{ release }}"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
-# Check out genai_perf command inside the container:
+# Validate the genai-perf command works inside the container:
 genai-perf --help
 ```
 
-<details>
-
-<summary>Alternatively, to install from source:</summary>
-
-Since GenAI-Perf depends on Perf Analyzer,
-you'll need to install the Perf Analyzer binary:
-
-### Install Perf Analyzer (Ubuntu, Python 3.10+)
-
-**NOTE**: you must already have CUDA 12 installed
-(checkout the [CUDA installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)).
-
-```bash
-pip install tritonclient
-```
-
-You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) as well.
-
-### Install GenAI-Perf from source
-
-```bash
-pip install git+https://github.com/triton-inference-server/perf_analyzer.git#subdirectory=genai-perf
-```
+You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) to use alongside GenAI-Perf as well.
 
 </details>
 
@@ -181,6 +172,15 @@ Example output:
 See [Tutorial](docs/tutorial.md) for additional examples.
 
 </br>
+
+<!--
+=====================
+Analyze Subcommand
+====================
+-->
+## Analyze
+GenAI-Perf can be used to sweep through PA or GenAI-Perf stimulus allowing the user to profile multiple scenarios with a single command.
+See [Analyze](docs/analyze.md) for details on how this subcommand can be utilized.
 
 <!--
 ======================
@@ -335,7 +335,7 @@ key authentication. To do so, you must add your API key directly in the command.
 Add the following flag to your command.
 
 ```bash
--h "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
+-H "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
 ```
 
 </br>
@@ -456,7 +456,7 @@ Alternatively, a string representing a json formatted dict can be provided.
 (default: `None`)
 
 ##### `--header <str>`
-##### `--h <str>`
+##### `--H <str>`
 Add a custom header to the requests. Headers must be specified as
 'Header:Value'. You can repeat this flag for multiple headers.
 (default: `None`)
