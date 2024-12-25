@@ -33,6 +33,7 @@ from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
+from tests.test_utils import create_default_exporter_config
 
 
 class TestOutputReporter:
@@ -64,11 +65,12 @@ class TestOutputReporter:
     }
     args_namespace = Namespace(**args)
 
-    config = ExporterConfig()
-    config.stats = stats
-    config.args = args_namespace
-    config.artifact_dir = args_namespace.artifact_dir
-    config.extra_inputs = get_extra_inputs_as_dict(args_namespace)
+    config = create_default_exporter_config(
+        stats=stats,
+        args=args_namespace,
+        artifact_dir=args_namespace.artifact_dir,
+        extra_inputs=get_extra_inputs_as_dict(args_namespace),
+    )
     f = factory.DataExporterFactory()
 
     def test_return_json_exporter(self) -> None:

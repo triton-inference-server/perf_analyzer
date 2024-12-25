@@ -39,6 +39,7 @@ from genai_perf.metrics import (
     TelemetryMetrics,
     TelemetryStatistics,
 )
+from tests.test_utils import create_default_exporter_config
 
 
 class TestConsoleExporter:
@@ -69,11 +70,10 @@ class TestConsoleExporter:
             input_sequence_lengths=[5, 6, 7],
         )
         stats = Statistics(metrics=metrics)
-
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        )
 
         exporter = ConsoleExporter(config)
         exporter.export()
@@ -124,10 +124,10 @@ class TestConsoleExporter:
         )
         stats = Statistics(metrics=metrics)
 
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        )
 
         exporter = ConsoleExporter(config)
         exporter.export()
@@ -170,10 +170,10 @@ class TestConsoleExporter:
         )
         stats = Statistics(metrics=metrics)
 
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        )
 
         exporter = ConsoleExporter(config)
         exporter.export()
@@ -222,10 +222,10 @@ class TestConsoleExporter:
         )
         stats = Statistics(metrics=metrics)
 
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        )
 
         exporter = ConsoleExporter(config)
         exporter.export()
@@ -281,10 +281,10 @@ class TestConsoleExporter:
 
         stats = Statistics(metrics=metrics)
 
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        )
 
         exporter = ConsoleExporter(config)
         exporter.export()
@@ -345,10 +345,10 @@ class TestConsoleExporter:
 
         stats = Statistics(metrics=metrics)
 
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        )
 
         exporter = ConsoleExporter(config)
         exporter.export()
@@ -395,11 +395,13 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
         telemetry_stats = TelemetryStatistics(telemetry_metrics)
 
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.telemetry_stats = telemetry_stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict,
+            metrics=stats.metrics,
+            args=args,
+            telemetry_stats=telemetry_stats.stats_dict,
+        )
 
         exporter = ConsoleExporter(config)
         exporter.export()
@@ -501,10 +503,10 @@ class TestConsoleExporter:
         )
         stats = Statistics(metrics=metrics)
 
-        config = ExporterConfig()
-        config.stats = stats.stats_dict
-        config.metrics = stats.metrics
-        config.args = args
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, args=args, metrics=stats.metrics
+        )
 
         # Missing data
         del config.stats["request_latency"]["avg"]

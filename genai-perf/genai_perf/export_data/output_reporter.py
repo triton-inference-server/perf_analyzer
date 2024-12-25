@@ -29,7 +29,7 @@ from typing import Optional
 
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.metrics import Statistics, TelemetryStatistics
+from genai_perf.metrics import Metrics, Statistics, TelemetryStatistics
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
@@ -60,13 +60,18 @@ class OutputReporter:
             exporter.export()
 
     def _create_exporter_config(self) -> ExporterConfig:
-        config = ExporterConfig()
-        config.stats = self.stats.stats_dict
-        config.telemetry_stats = (
+        assert isinstance(self.stats.metrics, Metrics)
+        extra_inputs = get_extra_inputs_as_dict(self.args)
+        telemetry_stats = (
             self.telemetry_stats.stats_dict if self.telemetry_stats else None
         )
-        config.metrics = self.stats.metrics
-        config.args = self.args
-        config.artifact_dir = self.args.artifact_dir
-        config.extra_inputs = get_extra_inputs_as_dict(self.args)
+        config = ExporterConfig(
+            self.stats.stats_dict,
+            self.stats.metrics,
+            self.args,
+            extra_inputs,
+            self.args.artifact_dir,
+            telemetry_stats,
+        )
+
         return config

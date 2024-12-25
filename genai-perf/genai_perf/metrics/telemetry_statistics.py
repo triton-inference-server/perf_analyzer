@@ -48,11 +48,18 @@ class TelemetryStatistics:
         for attr, data in self._metrics.data.items():
             if self._should_skip(data):
                 continue
+
+            gpu_index = None
+            gpu_data = None
+
             for gpu_index, gpu_data in data.items():
                 self._stats_dict[attr][gpu_index]["avg"] = (
                     self._statistics._calculate_mean(gpu_data)
                 )
             if not self._is_constant_metric(attr):
+                if gpu_data is None or gpu_index is None:
+                    continue
+
                 percentile_results = self._statistics._calculate_percentiles(gpu_data)
                 for percentile_label, percentile_value in percentile_results.items():
                     self._stats_dict[attr][gpu_index][
@@ -121,5 +128,5 @@ class TelemetryStatistics:
         return attr in ["gpu_power_limit", "total_gpu_memory"]
 
     @property
-    def stats_dict(self) -> Dict:
+    def stats_dict(self) -> Dict[str, Any]:
         return self._stats_dict

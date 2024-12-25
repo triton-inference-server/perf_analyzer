@@ -27,7 +27,7 @@
 import os
 import subprocess  # nosec
 from argparse import Namespace
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import genai_perf.logging as logging
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
@@ -81,7 +81,7 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
         )
 
 
-def get_extra_inputs_as_dict(args: Namespace) -> dict:
+def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
     request_inputs = {}
     if args.extra_inputs:
         for input_str in args.extra_inputs:
