@@ -25,8 +25,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+from typing import List
+
+import genai_perf.logging as logging
 from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
+from genai_perf.metrics import MetricMetadata
 from rich.console import Console
 from rich.table import Table
 
@@ -76,32 +80,31 @@ class ConsoleExporter:
             )
 
     def _construct_table(self, table: Table) -> None:
+
         for metric in self._metrics.request_metrics:
             if self._should_skip(metric.name):
                 continue
 
-            metric_str = metric.name.replace("_", " ").capitalize()
-            metric_str += f" ({metric.unit})" if metric.unit != "tokens" else ""
+            metric_str = self.format_metric_name(metric.name, metric.unit)
             row_values = [metric_str]
+
             for stat in self.STAT_COLUMN_KEYS:
-                value = self._stats[metric.name].get(stat, None)
-                row_values.append(f"{value:,.2f}" if value else "N/A")
+                row_values.append(self.fetch_stat(metric.name, stat))
 
             table.add_row(*row_values)
 
         for metric in self._metrics.system_metrics:
-            metric_str = metric.name.replace("_", " ").capitalize()
-            if metric.name == "request_goodput":
-                if not self._args.goodput:
-                    continue
-            metric_str += f" ({metric.unit})" if metric.unit != "tokens" else ""
+            metric_str = self.format_metric_name(metric.name, metric.unit)
+            if metric.name == "request_goodput" and not self._args.goodput:
+                continue
+
             row_values = [metric_str]
             for stat in self.STAT_COLUMN_KEYS:
                 if stat == "avg":
-                    value = self._stats[metric.name]["avg"]
-                    row_values.append(f"{value:,.2f}")
+                    row_values.append(self.fetch_stat(metric.name, "avg"))
                 else:
                     row_values.append("N/A")
+
             table.add_row(*row_values)
 
     # (TMA-1976) Refactor this method as the csv exporter shares identical method.
@@ -126,3 +129,35 @@ class ConsoleExporter:
         if not self._args.streaming and metric_name in streaming_metrics:
             return True
         return False
+
+    def format_metric_name(self, name, unit):
+        metric_str = name.replace("_", " ").capitalize()
+        return f"{metric_str} ({unit})" if unit and unit != "tokens" else metric_str
+
+    def format_stat_value(self, value):
+        return f"{value:,.2f}" if isinstance(value, (int, float)) else "N/A"
+
+    def fetch_stat(self, metric_name: str, stat: str):
+        logger = logging.getLogger(__name__)
+        if metric_name not in self._stats:
+            logger.error(
+                f"Metric '{metric_name}' is missing in the provided statistics."
+            )
+            return "N/A"
+
+        metric_stats = self._stats[metric_name]
+        if not isinstance(metric_stats, dict):
+            logger.error(
+                f"Expected statistics for metric '{metric_name}' to be a dictionary. "
+                f"Got: {type(metric_stats).__name__}."
+            )
+            return "N/A"
+
+        if stat not in metric_stats:
+            logger.error(
+                f"Statistic '{stat}' for metric '{metric_name}' is missing. "
+                f"Available stats: {list(metric_stats.keys())}."
+            )
+            return "N/A"
+
+        return self.format_stat_value(metric_stats[stat])
