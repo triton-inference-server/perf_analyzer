@@ -44,6 +44,38 @@ from tests.test_utils import create_default_exporter_config
 
 class TestConsoleExporter:
 
+    @pytest.fixture
+    def exporter_config(self, monkeypatch):
+        argv = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "model_name",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+        ]
+        monkeypatch.setattr("sys.argv", argv)
+        args, _ = parser.parse_args()
+
+        metrics = LLMMetrics(
+            request_throughputs=[123],
+            request_latencies=[4, 5, 6],
+            time_to_first_tokens=[7, 8, 9],
+            time_to_second_tokens=[1, 2, 3],
+            inter_token_latencies=[10, 11, 12],
+            output_token_throughputs=[456],
+            output_sequence_lengths=[1, 2, 3],
+            input_sequence_lengths=[5, 6, 7],
+        )
+        stats = Statistics(metrics=metrics)
+        assert isinstance(stats.metrics, Metrics)
+        config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        )
+        return config
+
     def test_streaming_llm_output(self, monkeypatch, capsys) -> None:
         argv = [
             "genai-perf",
@@ -532,4 +564,79 @@ class TestConsoleExporter:
         )
 
         returned_data = capsys.readouterr().out
+        assert returned_data == expected_content
+
+    @patch("genai_perf.export_data.console_exporter.logger")
+    def test_missing_statistics(self, mock_logger, exporter_config, capsys):
+        """
+        Test behavior when specific statistics are missing from the stats dictionary.
+        """
+        # Remove specific statistics to simulate missing data
+        del exporter_config.stats["request_latency"]["avg"]
+        del exporter_config.stats["output_sequence_length"]["max"]
+
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export()
+
+        returned_data = capsys.readouterr().out
+
+        mock_logger.error.assert_any_call(
+            "Statistic 'avg' for metric 'request_latency' is missing. "
+            "Available stats: ['unit', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'max', 'std']."
+        )
+        mock_logger.error.assert_any_call(
+            "Statistic 'max' for metric 'output_sequence_length' is missing. "
+            "Available stats: ['unit', 'avg', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'std']."
+        )
+
+        # Validate output reflects missing statistics as 'N/A'
+        expected_output = (
+            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃                         Statistic ┃   avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│              Request latency (ms) │   N/A │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
+            "│            Output sequence length │  2.00 │ 1.00 │  N/A │ 2.98 │ 2.80 │ 2.50 │\n"
+            "│             Input sequence length │  6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
+            "│ Output token throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│      Request throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│             Request count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
+        )
+
+        assert returned_data == expected_output
+
+    @patch("genai_perf.export_data.console_exporter.logger")
+    def test_invalid_stat_structure(self, mock_logger, exporter_config, capsys):
+        """
+        Test behavior when the stats structure is invalid.
+        """
+        # Simulate an invalid stats structure
+        exporter_config.stats["request_latency"] = "invalid_structure"
+
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export()
+
+        returned_data = capsys.readouterr().out
+
+        # Check that the invalid structure is logged
+        mock_logger.error.assert_any_call(
+            "Expected statistics for metric 'request_latency' to be a dictionary. Got: str."
+        )
+
+        # Validate the output reflects invalid stats as 'N/A'
+        expected_content = (
+            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃                         Statistic ┃   avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│              Request latency (ms) │   N/A │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│            Output sequence length │  2.00 │ 1.00 │ 3.00 │ 2.98 │ 2.80 │ 2.50 │\n"
+            "│             Input sequence length │  6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
+            "│ Output token throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│      Request throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│             Request count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
+        )
+
         assert returned_data == expected_content

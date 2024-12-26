@@ -25,14 +25,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from typing import List
-
 import genai_perf.logging as logging
 from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.metrics import MetricMetadata
 from rich.console import Console
 from rich.table import Table
+
+logger = logging.getLogger(__name__)
 
 
 class ConsoleExporter:
@@ -131,14 +131,19 @@ class ConsoleExporter:
         return False
 
     def format_metric_name(self, name, unit):
+        """Helper to format metric name with its unit."""
         metric_str = name.replace("_", " ").capitalize()
         return f"{metric_str} ({unit})" if unit and unit != "tokens" else metric_str
 
     def format_stat_value(self, value):
+        """Helper to format a statistic value for printing."""
         return f"{value:,.2f}" if isinstance(value, (int, float)) else "N/A"
 
     def fetch_stat(self, metric_name: str, stat: str):
-        logger = logging.getLogger(__name__)
+        """
+        Fetches a statistic value for a metric.
+        Logs errors and returns 'N/A' if the value is missing
+        """
         if metric_name not in self._stats:
             logger.error(
                 f"Metric '{metric_name}' is missing in the provided statistics."

@@ -26,13 +26,12 @@
 
 import os
 from io import StringIO
-from pathlib import Path
 from typing import Any, List, Tuple
+from unittest.mock import patch
 
 import pytest
 from genai_perf import parser
 from genai_perf.export_data.csv_exporter import CsvExporter
-from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.metrics import (
     LLMMetrics,
     Metrics,
@@ -119,8 +118,8 @@ class TestCsvExporter:
             "Time To Second Token (ms),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
             "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
             "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50\r\n",
-            "Output Sequence Length,2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length,6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
+            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
@@ -172,8 +171,8 @@ class TestCsvExporter:
         expected_content = [
             "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
             "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Output Sequence Length,2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length,6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
+            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
@@ -374,8 +373,8 @@ class TestCsvExporter:
             "Time To Second Token (ms),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
             "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
             "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50\r\n",
-            "Output Sequence Length,2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length,6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
+            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
@@ -402,11 +401,16 @@ class TestCsvExporter:
 
         assert returned_data == expected_content
 
+    @patch("genai_perf.export_data.csv_exporter.logger")
     def test_missing_data(
-        self, monkeypatch, mock_read_write: pytest.MonkeyPatch, llm_metrics: LLMMetrics
+        self,
+        mock_logger,
+        monkeypatch,
+        mock_read_write: pytest.MonkeyPatch,
+        llm_metrics: LLMMetrics,
     ) -> None:
         """
-        Test if missing data does not throw an error and are marked as "N/A".
+        Test if missing data do not throw an error and are marked as "N/A".
         """
         argv = [
             "genai-perf",
@@ -438,12 +442,23 @@ class TestCsvExporter:
         exporter = CsvExporter(config)
         exporter.export()
 
+        mock_logger.error.assert_any_call(
+            "Statistic 'avg' for metric 'request_latency' is missing. "
+            "Available stats: ['unit', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'max', 'std']."
+        )
+        mock_logger.error.assert_any_call(
+            "Statistic 'max' for metric 'output_sequence_length' is missing. "
+            "Available stats: ['unit', 'avg', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'std']."
+        )
+        mock_logger.error.assert_any_call(
+            "Metric 'input_sequence_length' is missing in the provided statistics."
+        )
         expected_filename = f"custom_export_genai_perf.csv"
         expected_content = [
             "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
             "Request Latency (ms),N/A,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Output Sequence Length,2.00,1.00,N/A,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,N/A,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
+            "Input Sequence Length (tokens),N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
