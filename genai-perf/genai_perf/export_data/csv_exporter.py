@@ -101,8 +101,6 @@ class CsvExporter:
             if metric.name == "request_goodput" and not self._args.goodput:
                 continue
             value = exporter_utils.fetch_stat(self._stats, metric.name, "avg")
-            row = [metric_str, exporter_utils.format_stat_value(value)]
-            print(row)
             csv_writer.writerow([metric_str, exporter_utils.format_stat_value(value)])
 
     def _should_skip(self, metric_name: str) -> bool:

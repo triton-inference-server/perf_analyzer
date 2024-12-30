@@ -32,8 +32,14 @@ logger = logging.getLogger(__name__)
 
 def format_metric_name(name: str, unit: Optional[str]) -> str:
     """
-    Format a metric name with its unit.
-    Example: "example_metric" becomes "Example Metric (ms)" if the unit is "ms".
+    Formats a metric name into a human-readable string with an optional unit.
+
+    Args:
+        name: The raw metric name with underscores.
+        unit: The unit of the metric (e.g., 'ms').
+
+    Returns:
+        The formatted metric name with the unit if provided.
     """
     metric_str = name.replace("_", " ").title()
     return f"{metric_str} ({unit})" if unit else metric_str
@@ -41,8 +47,13 @@ def format_metric_name(name: str, unit: Optional[str]) -> str:
 
 def format_stat_value(value: Any) -> str:
     """
-    Format a statistic value for printing.
-    Example: 1234.56 becomes "1,234.56".
+    Formats a statistic value for human-readable output.
+
+    Args:
+        value: The value to format. Supports int and float types.
+
+    Returns:
+        The formatted value as a string. If not a number, returns the string representation.
     """
     return f"{value:,.2f}" if isinstance(value, (int, float)) else str(value)
 
@@ -57,12 +68,12 @@ def fetch_stat(
     Logs warnings for missing metrics or stats and returns 'N/A' if the value is missing.
 
     Args:
-        stats (dict): Dictionary containing statistics for metrics.
-        metric_name (str): The name of the metric.
-        stat (str): The statistic to fetch (e.g., 'avg', 'min', 'max').
+        stats: Dictionary containing statistics for metrics.
+        metric_name: The name of the metric.
+        stat: The statistic to fetch (e.g., 'avg', 'min', 'max').
 
     Returns:
-        str: The formatted statistic value or 'N/A' if missing.
+        The formatted statistic value or 'N/A' if missing.
     """
     if metric_name not in stats:
         logger.error(f"Metric '{metric_name}' is missing in the provided statistics.")
