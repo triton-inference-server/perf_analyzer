@@ -124,7 +124,7 @@ def _construct_telemetry_stats_subtable(
                     value = str(int(round(value)))
                 else:
                     value = f"{value:,.2f}"
-            row.append(value)
+            row.append(str(value))
         table.add_row(*row)
 
 

@@ -28,8 +28,10 @@
 import csv
 
 import genai_perf.logging as logging
-from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
-from genai_perf.export_data.exporter_config import ExporterConfig
+
+from . import exporter_utils
+from . import telemetry_data_exporter_util as telem_utils
+from .exporter_config import ExporterConfig
 
 logger = logging.getLogger(__name__)
 
@@ -83,23 +85,25 @@ class CsvExporter:
             if self._should_skip(metric.name):
                 continue
 
-            metric_str = self.format_metric_name(metric.name, metric.unit)
+            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
             row_values = [metric_str]
             for stat in self.REQUEST_METRICS_HEADER[1:]:
-                row_values.append(self.fetch_stat(metric.name, stat))
+                row_values.append(
+                    exporter_utils.fetch_stat(self._stats, metric.name, stat)
+                )
 
             csv_writer.writerow(row_values)
 
     def _write_system_metrics(self, csv_writer) -> None:
         csv_writer.writerow(self.SYSTEM_METRICS_HEADER)
         for metric in self._metrics.system_metrics:
-            metric_str = self.format_metric_name(metric.name, metric.unit)
+            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
             if metric.name == "request_goodput" and not self._args.goodput:
                 continue
-            value = self.fetch_stat(metric.name, "avg")
-            row = [metric_str, self.format_stat_value(value)]
+            value = exporter_utils.fetch_stat(self._stats, metric.name, "avg")
+            row = [metric_str, exporter_utils.format_stat_value(value)]
             print(row)
-            csv_writer.writerow([metric_str, self.format_stat_value(value)])
+            csv_writer.writerow([metric_str, exporter_utils.format_stat_value(value)])
 
     def _should_skip(self, metric_name: str) -> bool:
         if self._args.endpoint_type == "embeddings":
@@ -122,40 +126,3 @@ class CsvExporter:
         if not self._args.streaming and metric_name in streaming_metrics:
             return True
         return False
-
-    def format_metric_name(self, name, unit):
-        """Helper to format metric name with its unit."""
-        metric_str = name.replace("_", " ").title()
-        return f"{metric_str} ({unit})" if unit else metric_str
-
-    def format_stat_value(self, value):
-        """Helper to format a statistic value for printing."""
-        return f"{value:,.2f}" if isinstance(value, (int, float)) else str(value)
-
-    def fetch_stat(self, metric_name: str, stat: str):
-        """
-        Fetches a statistic value for a metric.
-        Logs errors and returns 'N/A' if the value is missing
-        """
-        if metric_name not in self._stats:
-            logger.error(
-                f"Metric '{metric_name}' is missing in the provided statistics."
-            )
-            return "N/A"
-
-        metric_stats = self._stats[metric_name]
-        if not isinstance(metric_stats, dict):
-            logger.error(
-                f"Expected statistics for metric '{metric_name}' to be a dictionary. "
-                f"Got: {type(metric_stats).__name__}."
-            )
-            return "N/A"
-
-        if stat not in metric_stats:
-            logger.error(
-                f"Statistic '{stat}' for metric '{metric_name}' is missing. "
-                f"Available stats: {list(metric_stats.keys())}."
-            )
-            return "N/A"
-
-        return self.format_stat_value(metric_stats[stat])

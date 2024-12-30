@@ -401,7 +401,7 @@ class TestCsvExporter:
 
         assert returned_data == expected_content
 
-    @patch("genai_perf.export_data.csv_exporter.logger")
+    @patch("genai_perf.export_data.exporter_utils.logger")
     def test_missing_data(
         self,
         mock_logger,

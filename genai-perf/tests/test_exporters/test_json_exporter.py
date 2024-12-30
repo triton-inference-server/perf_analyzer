@@ -275,7 +275,7 @@ class TestJsonExporter:
 
         def custom_open(filename, *args, **kwargs):
             def write(self: Any, content: str) -> int:
-                print(f"Writing to {filename}")
+                print(f"Writing to {filename}")  # To help with debugging failures
                 written_data.append((str(filename), content))
                 return len(content)
 
