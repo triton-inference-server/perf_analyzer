@@ -24,7 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Optional, Union
+from argparse import Namespace
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 import pytest
 from genai_perf import utils
@@ -32,7 +34,9 @@ from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.run_config import RunConfig
+from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
+from genai_perf.metrics.metrics import Metrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
 from genai_perf.record.types.gpu_utilization_p99 import GPUUtilizationP99
@@ -58,6 +62,27 @@ def check_statistics(s1: Statistics, s2: Statistics) -> None:
         for stat_name, value in s1_dict[metric].items():
             if stat_name != "unit":
                 assert s2_dict[metric][stat_name] == pytest.approx(value)
+
+
+###########################################################################
+# ExporterConfig Constructor
+###########################################################################
+def create_default_exporter_config(
+    stats: Optional[Dict[Any, Any]] = None,
+    metrics: Optional[Metrics] = None,
+    args: Optional[Namespace] = None,
+    extra_inputs: Optional[Dict[str, Any]] = None,
+    artifact_dir: Optional[Path] = None,
+    telemetry_stats: Optional[Dict[str, Any]] = None,
+) -> ExporterConfig:
+    return ExporterConfig(
+        stats=stats or {},
+        metrics=metrics or Metrics(),
+        args=args or Namespace(),
+        extra_inputs=extra_inputs or {},
+        artifact_dir=artifact_dir or Path("."),
+        telemetry_stats=telemetry_stats,
+    )
 
 
 ###########################################################################
