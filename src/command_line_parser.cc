@@ -1281,7 +1281,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
         case long_option_idx_base + 30: {
           std::string arg = optarg;
           int64_t start_id;
-          int64_t end_id;
+          int64_t end_id{INT64_MAX};
           size_t pos = 0;
           int index = 0;
           while (pos != std::string::npos) {
