@@ -839,6 +839,7 @@ def _add_input_args(parser):
 
     input_group.add_argument(
         "--request-count",
+        "--num-requests",
         type=int,
         default=ic.DEFAULT_REQUEST_COUNT,
         required=False,
@@ -877,6 +878,7 @@ def _add_input_args(parser):
 
     input_group.add_argument(
         "--warmup-request-count",
+        "--num-warmup-requests",
         type=int,
         default=ic.DEFAULT_WARMUP_REQUEST_COUNT,
         required=False,

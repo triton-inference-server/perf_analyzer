@@ -508,6 +508,7 @@ when `--output-tokens-mean` is provided. (default: `0`)
 The seed used to generate random values. (default: `0`)
 
 ##### `--request-count <int>`
+##### `--num-requests <int>`
 
 The number of requests to use for measurement.
 By default, the benchmark does not terminate based on request count.
@@ -532,6 +533,7 @@ being concatenated, the number of tokens in the final prompt may be off by one.
 (default: `100`)
 
 ##### `--warmup-request-count <int>`
+##### `--num-warmup-requests <int>`
 
 The number of warmup requests to send before benchmarking. (default: `0`)
 
