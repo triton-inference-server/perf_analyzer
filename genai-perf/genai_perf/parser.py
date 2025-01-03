@@ -496,7 +496,7 @@ def _convert_str_to_enum_entry(args, option, enum):
 
 
 def file_or_directory(value: str) -> Path:
-    if value.startswith("synthetic:"):
+    if value.startswith("synthetic:") or value.startswith("payload:"):
         return Path(value)
     else:
         path = Path(value)
@@ -761,6 +761,9 @@ def _add_input_args(parser):
         "You can repeat this flag for multiple headers.",
     )
 
+    ## TODO: Update this to have an option for --input-file
+    ## payload:<path_to_payload_file>. Not doing this now to
+    ## avoid making it harder to rebase the delay feature branch.
     input_group.add_argument(
         "--input-file",
         type=file_or_directory,
