@@ -897,6 +897,22 @@ def _add_other_args(parser):
         help="An option to enable verbose mode.",
     )
 
+    other_group.add_argument(
+        "--enable-prometheus",
+        action="store_true",
+        required=False,
+        help="An option to enable Prometheus metrics. If used, the "
+        "application will keep running until the user terminates it.",
+    )
+
+    other_group.add_argument(
+        "--prometheus-port",
+        type=int,
+        default=ic.DEFAULT_PROMETHEUS_PORT,
+        required=False,
+        help="The port to use for Prometheus metrics, if enabled.",
+    )
+
 
 def _add_output_args(parser):
     output_group = parser.add_argument_group("Output")

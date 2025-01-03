@@ -70,6 +70,7 @@ DEFAULT_REQUEST_COUNT = 0
 DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
 DEFAULT_WARMUP_REQUEST_COUNT = 0
 DEFAULT_BACKEND = "tensorrtllm"
+DEFAULT_PROMETHEUS_PORT = 8002
 
 ###########################
 # Default Prompt Parameters

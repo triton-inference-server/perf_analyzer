@@ -41,3 +41,6 @@ class ExporterConfig:
     extra_inputs: Dict[str, Any]
     artifact_dir: Path
     telemetry_stats: Optional[Dict[str, Any]] = None
+    # Prometheus config options
+    enable_prometheus: bool = False
+    prometheus_port: Optional[int] = None
