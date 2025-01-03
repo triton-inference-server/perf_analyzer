@@ -129,6 +129,12 @@ class InputsConfig:
     # The directory where all arifacts are saved
     output_dir: Path = Path("")
 
+    # If true, the input data is a direct payload
+    payload_mode: bool = False
+
+    # Path to the direct payload file
+    payload_path: Optional[str] = None
+
     ########################################
     # Synthetic Prompt Generation Parameters
     ########################################

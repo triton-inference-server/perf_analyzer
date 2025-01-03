@@ -18,6 +18,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import genai_perf.logging as logging
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.output_format_converter_factory import (
     OutputFormatConverterFactory,
@@ -31,6 +32,9 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.input_retriever_factory import InputRetrieverFactory
+from genai_perf.utils import load_json_str
+
+logger = logging.getLogger(__name__)
 
 
 class Inputs:
@@ -51,13 +55,24 @@ class Inputs:
         (in a JSON dictionary) to a file.
         """
         self._check_for_valid_args()
-        input_retriever = InputRetrieverFactory.create(self.config)
-        generic_dataset = input_retriever.retrieve_data()
 
-        json_in_pa_format = self._convert_generic_dataset_to_output_format(
-            generic_dataset,
-        )
-        self._write_json_to_file(json_in_pa_format)
+        if self.config.payload_mode:
+            logger.debug(
+                f"Using direct payload mode with payload: {self.config.payload_path}"
+            )
+            if self.config.payload_path is None:
+                raise GenAIPerfException(
+                    "Payload path not detected when using direct payload mode."
+                )
+            self._use_direct_payload(self.config.payload_path)
+        else:
+            input_retriever = InputRetrieverFactory.create(self.config)
+            generic_dataset = input_retriever.retrieve_data()
+
+            json_in_pa_format = self._convert_generic_dataset_to_output_format(
+                generic_dataset,
+            )
+            self._write_json_to_file(json_in_pa_format)
 
     def _check_for_valid_args(self) -> None:
         self._check_for_tokenzier_if_input_type_is_synthetic()
@@ -102,3 +117,29 @@ class Inputs:
             raise GenAIPerfException(
                 f"starting_index: {self.config.length} must be larger than {MINIMUM_LENGTH}."
             )
+
+    def _use_direct_payload(self, payload_path: str) -> None:
+        """
+        Reads the direct payload file and writes it to the output directory.
+        """
+        try:
+            with open(payload_path, "r") as file:
+                raw_lines = file.readlines()
+
+            formatted_payload: Dict[str, List] = {"data": []}
+
+            for line in raw_lines:
+                if line.strip():
+                    entry = load_json_str(line.strip())
+                    formatted_payload["data"].append({"payload": [entry]})
+
+            filename = self.config.output_dir / DEFAULT_INPUT_DATA_JSON
+            with open(filename, "w") as output_file:
+                output_file.write(json.dumps(formatted_payload, indent=2))
+
+        except FileNotFoundError:
+            raise GenAIPerfException(f"Payload file '{payload_path}' not found.")
+        except json.JSONDecodeError as e:
+            raise GenAIPerfException(f"Invalid JSONL format in payload file: {e}")
+        except Exception as e:
+            raise GenAIPerfException(f"Error processing payload file: {e}")

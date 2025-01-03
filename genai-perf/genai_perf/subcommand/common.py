@@ -154,6 +154,14 @@ def create_config_options(args: Namespace) -> InputsConfig:
     except ValueError as e:
         raise GenAIPerfException(e)
 
+    input_file = str(args.input_file)
+    if input_file.startswith("payload:"):
+        payload_mode = True
+        payload_path = input_file.split("payload:")[1]
+    else:
+        payload_mode = False
+        payload_path = None
+
     return InputsConfig(
         input_type=args.prompt_source,
         output_format=args.output_format,
@@ -185,6 +193,8 @@ def create_config_options(args: Namespace) -> InputsConfig:
         output_dir=args.artifact_dir,
         num_prefix_prompts=args.num_prefix_prompts,
         prefix_prompt_length=args.prefix_prompt_length,
+        payload_mode=payload_mode,
+        payload_path=payload_path,
     )
 
 
