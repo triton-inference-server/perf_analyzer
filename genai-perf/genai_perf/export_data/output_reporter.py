@@ -72,6 +72,8 @@ class OutputReporter:
             extra_inputs,
             self.args.artifact_dir,
             telemetry_stats,
+            self.args.enable_prometheus,
+            self.args.prometheus_port,
         )
 
         return config

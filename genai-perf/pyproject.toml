@@ -78,6 +78,8 @@ genai-perf = "genai_perf.main:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# TODO: Add prometheus_client as a dependency. Only for Prometheus mode?
+
 [tool.hatch.version]
 path = "genai_perf/__init__.py"
 
