@@ -848,6 +848,8 @@ class TestCLIArguments:
         [
             ([], PromptSource.SYNTHETIC, None, False),
             (["--input-file", "prompt.txt"], PromptSource.FILE, None, False),
+            ([], PromptSource.SYNTHETIC, None, False),
+            (["--input-file", "prompt.txt"], PromptSource.FILE, None, False),
             (
                 ["--input-file", "prompt.txt", "--synthetic-input-tokens-mean", "10"],
                 PromptSource.FILE,
