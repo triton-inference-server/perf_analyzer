@@ -135,10 +135,11 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
         Checks if there is any optional data in the file to pass in the payload.
         """
-        optional_data = {}
-        for k, v in data.items():
-            if k not in ["text", "text_input", "timestamp"]:
-                optional_data[k] = v
+        optional_data = {
+            k: v
+            for k, v in data.items()
+            if k not in ["text", "text_input", "timestamp"]
+        }
         return optional_data
 
     def _convert_content_to_data_file(
@@ -154,6 +155,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         ----------
         prompts : List[str]
             The list of prompts to convert.
+        timestamps: str
+            The timestamp at which the request should be sent.
         optional_data : Dict
             The optional data included in every payload.
 
@@ -162,15 +165,13 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         FileData
             The DataFile containing the converted data.
         """
-        data_rows: List[DataRow] = []
+        data_rows: List[DataRow] = [
+            DataRow(
+                texts=[prompt],
+                timestamp=timestamps[index],
+                optional_data=optional_datas[index],
+            )
+            for index, prompt in enumerate(prompts)
+        ]
 
-        if prompts:
-            for index, prompt in enumerate(prompts):
-                data_rows.append(
-                    DataRow(
-                        texts=[prompt],
-                        timestamp=timestamps[index],
-                        optional_data=optional_datas[index],
-                    )
-                )
         return FileData(data_rows)

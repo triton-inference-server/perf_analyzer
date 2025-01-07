@@ -74,6 +74,5 @@ class BaseConverter:
     def _add_payload_params(
         self, payload: Dict[Any, Any], optional_data: Dict[Any, Any]
     ) -> None:
-        if optional_data:
-            for key, value in optional_data.items():
-                payload[key] = value
+        for key, value in optional_data.items():
+            payload[key] = value

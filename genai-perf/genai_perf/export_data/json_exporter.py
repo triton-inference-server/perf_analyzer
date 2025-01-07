@@ -59,14 +59,17 @@ class JsonExporter:
             0
         ]
         filename = self._output_dir / f"{prefix}_genai_perf.json"
+        logger.info(f"Generating {filename}")
         with open(str(filename), "w") as f:
             f.write(json.dumps(self._stats_and_args, indent=2))
 
+    def _exclude_args(self, args_to_exclude) -> None:
+        for arg in args_to_exclude:
+            self._args.pop(arg, None)
+
     def _prepare_args_for_export(self) -> None:
-        self._args.pop("func", None)
-        self._args.pop("output_format", None)
-        self._args.pop("input_file", None)
-        self._args.pop("payload_input_file", None)
+        args_to_exclude = ["func", "output_format", "input_file", "payload_input_file"]
+        self._exclude_args(args_to_exclude)
         self._args["profile_export_file"] = str(self._args["profile_export_file"])
         self._args["artifact_dir"] = str(self._args["artifact_dir"])
         for k, v in self._args.items():

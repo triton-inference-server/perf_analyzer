@@ -37,20 +37,6 @@ class BaseFileInputRetriever(BaseInputRetriever):
     A base input retriever class that defines file input methods.
     """
 
-    def retrieve_data(self) -> GenericDataset:
-        """
-        Retrieves the dataset from a file or directory.
-        """
-        raise NotImplementedError("This method should be implemented by subclasses.")
-
-    def _get_input_dataset_from_file(self, filename: Path) -> FileData:
-        """
-        Retrieves the dataset from a specific JSONL file.
-
-        """
-
-        raise NotImplementedError("This method should be implemented by subclasses.")
-
     def _verify_file(self, filename: Path) -> None:
         """
         Verifies that the file exists.
@@ -75,5 +61,19 @@ class BaseFileInputRetriever(BaseInputRetriever):
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
+        """
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+    def _get_input_dataset_from_file(self, filename: Path) -> FileData:
+        """
+        Retrieves the dataset from a specific JSONL file.
+
+        """
+
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+    def retrieve_data(self) -> GenericDataset:
+        """
+        Retrieves the dataset from a file or directory.
         """
         raise NotImplementedError("This method should be implemented by subclasses.")

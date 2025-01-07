@@ -57,8 +57,6 @@ class Profiler:
     @staticmethod
     def add_inference_load_args(args: Namespace) -> List[str]:
         cmd: list[str] = []
-        if args.prompt_source == PromptSource.PAYLOAD:
-            return cmd
         if args.concurrency:
             cmd += ["--concurrency-range", f"{args.concurrency}"]
         elif args.request_rate:

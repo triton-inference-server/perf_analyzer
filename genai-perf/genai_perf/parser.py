@@ -106,6 +106,21 @@ _endpoint_type_map = {
 }
 
 
+def _check_payload_input_args(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> argparse.Namespace:
+    """
+    Raise an error if concurrency or request-range is set
+    """
+
+    if args.prompt_source == ic.PromptSource.PAYLOAD:
+        if args.concurrency or args.request_rate:
+            raise ValueError(
+                "Concurrency and request_rate cannot be used with payload input."
+            )
+    return args
+
+
 def _check_model_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
@@ -1104,6 +1119,7 @@ def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     if args.subcommand == Subcommand.PROFILE.to_lowercase():
+        args = _check_payload_input_args(parser, args)
         args = _infer_prompt_source(args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
