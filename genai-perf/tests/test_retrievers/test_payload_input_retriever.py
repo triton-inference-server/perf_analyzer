@@ -66,14 +66,14 @@ class TestPayloadInputRetriever:
                 '{"text": "What is AI?", "timestamp": "123", "session_id": "abc"}\n'
                 '{"text": "How does ML work?", "custom_field": "value"}\n',
                 ["What is AI?", "How does ML work?"],
-                ["123", None],
+                ["123", ""],
                 [{"session_id": "abc"}, {"custom_field": "value"}],
             ),
             (
                 '{"text_input": "Legacy prompt", "timestamp": "456"}\n'
                 '{"text": "New prompt", "session_id": "def"}\n',
                 ["Legacy prompt", "New prompt"],
-                ["456", None],
+                ["456", ""],
                 [{}, {"session_id": "def"}],
             ),
             (

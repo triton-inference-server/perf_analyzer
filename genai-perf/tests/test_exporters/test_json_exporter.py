@@ -230,7 +230,6 @@ class TestJsonExporter:
           "output_tokens_mean": -1,
           "output_tokens_mean_deterministic": false,
           "output_tokens_stddev": 0,
-          "payload_input_file": null,
           "random_seed": 0,
           "request_count": 0,
           "synthetic_input_files": null,
