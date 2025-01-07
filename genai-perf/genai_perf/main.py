@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 # to assert correct errors and messages.
 def run():
     # TMA-1900: refactor CLI handler
+    logging.init_logging()
     args, extra_args = parser.parse_args()
     if args.subcommand == "compare":
         args.func(args)
@@ -51,7 +52,6 @@ def run():
         args.func(args, extra_args)
 
     if getattr(args, "enable_prometheus", False):
-        # Fix: This doesn't actually get logged.
         logger.info("Prometheus metrics server is running. Press Ctrl+C to terminate.")
         _keep_alive()
 
