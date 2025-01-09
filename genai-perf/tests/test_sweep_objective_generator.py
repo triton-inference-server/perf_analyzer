@@ -30,7 +30,9 @@ class TestSweepObjectiveGenerator(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(model_names=["test_modelA", "test_modelB"])
+        self._config = ConfigCommand(user_config={})
+        self._config.model_names = ["test_modelA", "test_modelB"]
+
         self._model_search_parameters = {
             "test_modelA": SearchParameters(
                 config=self._config, subcommand=Subcommand.OPTIMIZE

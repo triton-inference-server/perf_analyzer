@@ -37,7 +37,8 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(model_names=["test_model"])
+        self._config = ConfigCommand(user_config={})
+        self._config.model_names = ["test_model"]
         self._model_search_parameters = {
             "test_model": SearchParameters(
                 config=self._config, subcommand=Subcommand.OPTIMIZE
@@ -189,7 +190,7 @@ class TestOptunaObjectiveGenerator(unittest.TestCase):
                 "num_dataset_entries": ObjectiveParameter(
                     SearchUsage.RUNTIME_GAP,
                     ObjectiveCategory.INTEGER,
-                    RunConfigDefaults.NUM_PROMPTS,
+                    RunConfigDefaults.MIN_NUM_DATASET_ENTRIES,
                 ),
                 "instance_count": ObjectiveParameter(
                     SearchUsage.MODEL, ObjectiveCategory.INTEGER, 2

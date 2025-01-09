@@ -15,8 +15,14 @@
 from copy import copy
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Optional, TypeAlias, Union
+from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 
+from genai_perf.constants import (
+    exponential_range_parameters,
+    linear_range_parameters,
+    runtime_gap_parameters,
+    runtime_pa_parameters,
+)
 from genai_perf.types import ModelName
 
 
@@ -44,6 +50,7 @@ AnalyzeParameter: TypeAlias = Dict[str, ConfigRangeOrList]
 @dataclass(frozen=True)
 class RunConfigDefaults:
     # Top-level Defaults
+    MODEL_NAME = ""
     CHECKPOINT_DIRECTORY = "./"
 
     # Optimize: Top-level Defaults
@@ -86,11 +93,14 @@ class RunConfigDefaults:
     # GAP Input Defaults
     DATASET = "openorca"
     FILE = None
-    NUM_PROMPTS = 100
+    MIN_NUM_DATASET_ENTRIES = 100
+    MAX_NUM_DATASET_ENTRIES = 1000
     SEED = 0
 
     # GAP Input Synthetic Tokens Defaults
-    INPUT_MEAN = -1
+    MIN_INPUT_SEQUENCE_LENGTH = 100
+    MAX_INPUT_SEQUENCE_LENGTH = 1000
+    INPUT_SEQUENCE_LENGTH_MEAN = 550
     INPUT_STDDEV = 0
 
     # GAP Output Token Defaults
@@ -99,8 +109,6 @@ class RunConfigDefaults:
     OUTPUT_STDDEV = 0
 
 
-# TODO: OPTIMIZE
-# These are placeholder dataclasses until the real Command Parser is written
 @dataclass
 class ConfigModelConfig:
     batch_size: ConfigRangeOrList = default_field(
@@ -150,7 +158,7 @@ class ConfigOptimizePerfAnalyzer:
 @dataclass
 class ConfigOptimizeGenAIPerf:
     num_dataset_entries: ConfigRangeOrList = default_field(
-        [RunConfigDefaults.NUM_PROMPTS]
+        [RunConfigDefaults.MIN_NUM_DATASET_ENTRIES]
     )
 
 
@@ -196,7 +204,7 @@ class ConfigPerfAnalyzer:
 
 @dataclass
 class ConfigSyntheticTokens:
-    mean: int = default_field(RunConfigDefaults.INPUT_MEAN)
+    mean: int = default_field(RunConfigDefaults.INPUT_SEQUENCE_LENGTH_MEAN)
     stddev: int = default_field(RunConfigDefaults.INPUT_STDDEV)
 
 
@@ -204,7 +212,7 @@ class ConfigSyntheticTokens:
 class ConfigInput:
     dataset: str = default_field(RunConfigDefaults.DATASET)
     file: str = default_field(RunConfigDefaults.FILE)
-    num_dataset_entries: int = default_field(RunConfigDefaults.NUM_PROMPTS)
+    num_dataset_entries: int = default_field(RunConfigDefaults.MIN_NUM_DATASET_ENTRIES)
     seed: int = default_field(RunConfigDefaults.SEED)
     synthetic_tokens: ConfigSyntheticTokens = default_field(ConfigSyntheticTokens())
 
@@ -218,7 +226,8 @@ class ConfigOutputTokens:
 
 @dataclass
 class ConfigCommand:
-    model_names: List[ModelName]
+    user_config: Dict[str, Any]
+    model_names: List[ModelName] = default_field([RunConfigDefaults.MODEL_NAME])
     checkpoint_directory: str = default_field(RunConfigDefaults.CHECKPOINT_DIRECTORY)
     optimize: ConfigOptimize = default_field(ConfigOptimize())
     analyze: ConfigAnalyze = default_field(ConfigAnalyze())
@@ -226,6 +235,12 @@ class ConfigCommand:
     input: ConfigInput = default_field(ConfigInput())
     output_tokens: ConfigOutputTokens = default_field(ConfigOutputTokens())
 
+    def __post_init__(self):
+        self._parse_yaml(self.user_config)
+
+    ###########################################################################
+    # Utility Methods
+    ###########################################################################
     def get_max(self, config_value: ConfigRangeOrList) -> int:
         if type(config_value) is list:
             return max(config_value)
@@ -241,3 +256,134 @@ class ConfigCommand:
             return config_value.min
         else:
             return 0
+
+    ###########################################################################
+    # Parsing Methods
+    ###########################################################################
+    def _parse_yaml(self, user_config: Dict[str, Any]) -> None:
+        for key, value in user_config.items():
+            if key == "model_name":
+                self._parse_model_name(value)
+            elif key == "checkpoint_directory":
+                self._parse_checkpoint_directory(value)
+            # elif key == "optimize":
+            #     self._parse_optimize(value)
+            elif key == "analyze":
+                self._parse_analyze(value)
+            elif key == "perf_analyzer":
+                self._parse_perf_analyzer(value)
+            elif key == "input":
+                self._parse_input(value)
+            elif key == "output_tokens":
+                self._parse_output_tokens(value)
+
+    def _parse_model_name(self, model_name: str) -> None:
+        if type(model_name) is str:
+            self.model_names = [model_name]
+        else:
+            raise ValueError("User Config: model_name must be a string")
+
+    def _parse_checkpoint_directory(self, checkpoint_directory: str) -> None:
+        if type(checkpoint_directory) is str:
+            self.checkpoint_directory = checkpoint_directory
+        else:
+            raise ValueError("User Config: checkpoint_directory must be a string")
+
+    # def _parse_optimize(self, optimize: Dict[str, Any]) -> None:
+    #     pass
+
+    def _parse_analyze(self, analyze: Dict[str, Any]) -> None:
+        sweep_parameters: Dict[str, Any] = {}
+        for sweep_type, range_dict in analyze.items():
+            if (
+                sweep_type in runtime_pa_parameters
+                or sweep_type in runtime_gap_parameters
+            ):
+                if sweep_type in linear_range_parameters or "step" in range_dict:
+                    linear_range_list = self._create_linear_range_list(
+                        sweep_type, range_dict
+                    )
+                    sweep_parameters[sweep_type] = linear_range_list
+                elif sweep_type in exponential_range_parameters:
+                    start, stop = self._determine_start_and_stop(sweep_type, range_dict)
+                    sweep_parameters[sweep_type] = Range(min=start, max=stop)
+            else:
+                raise ValueError(
+                    f"User Config: {sweep_type} is not a valid analyze parameter"
+                )
+        self.analyze.sweep_parameters = sweep_parameters
+
+    def _parse_perf_analyzer(self, perf_analyzer: Dict[str, Any]) -> None:
+        pass
+
+    def _parse_input(self, input: Dict[str, Any]) -> None:
+        pass
+
+    def _parse_output_tokens(self, output_tokens: Dict[str, Any]) -> None:
+        pass
+
+    def _create_linear_range_list(
+        self, sweep_type: str, range_dict: Dict[str, int]
+    ) -> List[int]:
+        start = self._get_start(sweep_type, range_dict)
+        stop = self._get_stop(sweep_type, range_dict)
+        step = self._get_step(sweep_type, range_dict)
+
+        return [value for value in range(start, stop + 1, step)]
+
+    def _determine_start_and_stop(
+        self, sweep_type: str, range_dict: Dict[str, int]
+    ) -> Tuple[int, int]:
+        start = self._get_start(sweep_type, range_dict)
+        stop = self._get_stop(sweep_type, range_dict)
+
+        return start, stop
+
+    def _get_start(self, sweep_type: str, range_dict: Dict[str, int]) -> int:
+        if "start" in range_dict:
+            return range_dict["start"]
+        else:
+            return self._get_default_start(sweep_type)
+
+    def _get_stop(self, sweep_type: str, range_dict: Dict[str, int]) -> int:
+        if "stop" in range_dict:
+            return range_dict["stop"]
+        else:
+            return self._get_default_stop(sweep_type)
+
+    def _get_step(self, sweep_type: str, range_dict: Dict[str, int]) -> int:
+        if "step" in range_dict:
+            return range_dict["step"]
+        else:
+            return self._get_default_step(sweep_type)
+
+    def _get_default_start(self, sweep_type: str) -> int:
+        if sweep_type == "concurrency":
+            return RunConfigDefaults.MIN_CONCURRENCY
+        elif sweep_type == "runtime_batch_size":
+            return RunConfigDefaults.MIN_MODEL_BATCH_SIZE
+        elif sweep_type == "request_rate":
+            return RunConfigDefaults.MIN_REQUEST_RATE
+        elif sweep_type == "num_dataset_entries":
+            return RunConfigDefaults.MIN_NUM_DATASET_ENTRIES
+        elif sweep_type == "input_sequence_length":
+            return RunConfigDefaults.MIN_INPUT_SEQUENCE_LENGTH
+        else:
+            raise ValueError(f"User Config: {sweep_type} is not a valid sweep type")
+
+    def _get_default_stop(self, sweep_type: str) -> int:
+        if sweep_type == "concurrency":
+            return RunConfigDefaults.MAX_CONCURRENCY
+        elif sweep_type == "runtime_batch_size":
+            return RunConfigDefaults.MAX_MODEL_BATCH_SIZE
+        elif sweep_type == "request_rate":
+            return RunConfigDefaults.MAX_REQUEST_RATE
+        elif sweep_type == "num_dataset_entries":
+            return RunConfigDefaults.MAX_NUM_DATASET_ENTRIES
+        elif sweep_type == "input_sequence_length":
+            return RunConfigDefaults.MAX_INPUT_SEQUENCE_LENGTH
+        else:
+            raise ValueError(f"User Config: {sweep_type} is not a valid sweep type")
+
+    def _get_default_step(self, sweep_type: str) -> int:
+        return 1

@@ -23,6 +23,13 @@ from genai_perf.config.generate.search_parameter import (
     SearchUsage,
 )
 from genai_perf.config.input.config_command import ConfigCommand, Range, Subcommand
+from genai_perf.constants import (
+    exponential_range_parameters,
+    linear_range_parameters,
+    model_parameters,
+    runtime_gap_parameters,
+    runtime_pa_parameters,
+)
 from genai_perf.exceptions import GenAIPerfException
 
 
@@ -30,30 +37,6 @@ class SearchParameters:
     """
     Contains information about all configuration parameters the user wants to search
     """
-
-    # These map to the various fields that can be set for PA and model configs
-    # See github.com/triton-inference-server/model_analyzer/blob/main/docs/config.md
-    exponential_range_parameters = [
-        "model_batch_size",
-        "runtime_batch_size",
-        "concurrency",
-        "request_rate",
-        "input_sequence_length",
-    ]
-
-    linear_range_parameters = ["instance_count", "num_dataset_entries"]
-
-    model_parameters = [
-        "model_batch_size",
-        "instance_count",
-        "max_queue_delay",
-    ]
-
-    runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
-
-    runtime_gap_parameters = ["num_dataset_entries", "input_sequence_length"]
-
-    all_parameters = model_parameters + runtime_pa_parameters + runtime_gap_parameters
 
     def __init__(
         self,
@@ -340,9 +323,9 @@ class SearchParameters:
         )
 
     def _determine_parameter_category(self, name: str) -> SearchCategory:
-        if name in SearchParameters.exponential_range_parameters:
+        if name in exponential_range_parameters:
             category = SearchCategory.EXPONENTIAL
-        elif name in SearchParameters.linear_range_parameters:
+        elif name in linear_range_parameters:
             category = SearchCategory.INTEGER
         else:
             raise (GenAIPerfException(f"SearchCategory not found for {name}"))
@@ -350,11 +333,11 @@ class SearchParameters:
         return category
 
     def _determine_parameter_usage(self, name: str) -> SearchUsage:
-        if name in SearchParameters.model_parameters:
+        if name in model_parameters:
             usage = SearchUsage.MODEL
-        elif name in SearchParameters.runtime_pa_parameters:
+        elif name in runtime_pa_parameters:
             usage = SearchUsage.RUNTIME_PA
-        elif name in SearchParameters.runtime_gap_parameters:
+        elif name in runtime_gap_parameters:
             usage = SearchUsage.RUNTIME_GAP
         else:
             raise (GenAIPerfException(f"SearchUsage not found for {name}"))

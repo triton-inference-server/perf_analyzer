@@ -124,7 +124,7 @@ class GenAIPerfConfig:
         a new instance of a GenAIPerfConfig
         """
         genai_perf_config = GenAIPerfConfig(
-            config=ConfigCommand([""]),
+            config=ConfigCommand(user_config={}),
             model_objective_parameters={},
         )
         genai_perf_config._parameters = genai_perf_config_dict["_parameters"]

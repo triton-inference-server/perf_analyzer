@@ -501,7 +501,7 @@ class PerfAnalyzerConfig:
         """
         perf_analyzer_config = PerfAnalyzerConfig(
             model_name=perf_analyzer_config_dict["_model_name"],
-            config=ConfigCommand([""]),
+            config=ConfigCommand(user_config={}),
             model_objective_parameters={},
         )
         perf_analyzer_config._config = ConfigPerfAnalyzer(

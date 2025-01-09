@@ -20,8 +20,8 @@ import genai_perf.logging as logging
 import optuna
 from genai_perf.config.generate.objective_parameter import ObjectiveParameter
 from genai_perf.config.generate.search_parameter import SearchCategory, SearchParameter
-from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.input.config_command import ConfigCommand, RunConfigDefaults
+from genai_perf.constants import all_parameters
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.types import ModelName, ModelObjectiveParameters, ModelSearchParameters
 
@@ -350,7 +350,7 @@ class OptunaObjectiveGenerator:
         for model_name in self._config.model_names:
             trial_objectives[model_name] = {}
 
-            for parameter_name in SearchParameters.all_parameters:
+            for parameter_name in all_parameters:
                 parameter = self._model_search_parameters[model_name].get_parameter(
                     parameter_name
                 )

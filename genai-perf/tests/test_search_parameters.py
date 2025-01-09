@@ -33,7 +33,8 @@ from genai_perf.exceptions import GenAIPerfException
 
 class TestSearchParameters(unittest.TestCase):
     def setUp(self):
-        self.config = deepcopy(ConfigCommand(model_names=["test_model"]))
+        self.config = deepcopy(ConfigCommand(user_config={}))
+        self.config.model_names = ["test_model"]
 
         self.search_parameters = SearchParameters(
             config=self.config, subcommand=Subcommand.OPTIMIZE
@@ -166,7 +167,8 @@ class TestSearchParameters(unittest.TestCase):
         Test that search parameters are correctly created in default optimize case
         """
 
-        config = deepcopy(ConfigCommand(model_names=["test_model"]))
+        config = deepcopy(ConfigCommand(user_config={}))
+        config.model_names = ["test_model"]
         search_parameters = SearchParameters(
             config=config, subcommand=Subcommand.OPTIMIZE
         )
@@ -229,7 +231,8 @@ class TestSearchParameters(unittest.TestCase):
         """
         Test that search parameters are correctly created when concurrency formula is disabled
         """
-        config = deepcopy(ConfigCommand(model_names=["test_model"]))
+        config = deepcopy(ConfigCommand(user_config={}))
+        config.model_names = ["test_model"]
         config.optimize.perf_analyzer.use_concurrency_formula = False
 
         search_parameters = SearchParameters(
@@ -246,7 +249,8 @@ class TestSearchParameters(unittest.TestCase):
         """
         Test that request rate is used when specified in config
         """
-        config = deepcopy(ConfigCommand(model_names=["test_model"]))
+        config = deepcopy(ConfigCommand(user_config={}))
+        config.model_names = ["test_model"]
         config.optimize.perf_analyzer.stimulus_type = "request_rate"
 
         search_parameters = SearchParameters(

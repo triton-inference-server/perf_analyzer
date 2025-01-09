@@ -140,7 +140,8 @@ class Analyze:
         self._results = self._checkpoint.results
 
     def _setup_config(self, args: Namespace) -> ConfigCommand:
-        config = ConfigCommand(model_names=args.model)
+        config = ConfigCommand(user_config={})
+        config.model_names = [args.model_name]
         sweep_type = self._map_args_to_config_sweep_type(args.sweep_type)
 
         if args.sweep_list:

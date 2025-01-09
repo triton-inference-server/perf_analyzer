@@ -29,7 +29,8 @@ class TestRunConfig(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(model_names=["test_model"])
+        self._config = ConfigCommand(user_config={})
+        self._config.model_names = ["test_model"]
 
         self._baseline_genai_perf_config = GenAIPerfConfig(
             config=self._config, model_objective_parameters={}

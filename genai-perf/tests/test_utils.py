@@ -145,7 +145,8 @@ def create_run_config(
     input_seq_length: int = 0,
     output_seq_length: int = 0,
 ) -> RunConfig:
-    config = ConfigCommand([model_name])
+    config = ConfigCommand(user_config={})
+    config.model_names = [model_name]
     genai_perf_config = GenAIPerfConfig(
         config=config, model_objective_parameters=model_objective_parameters
     )
