@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -134,7 +134,7 @@ struct PerfAnalyzerParameters {
     return (
         using_concurrency_range || using_old_options ||
         !(using_request_rate_range || using_custom_intervals ||
-          is_using_periodic_concurrency_mode));
+          is_using_periodic_concurrency_mode || is_session_concurrency_mode));
   }
 
   // Sets the threshold for PA client overhead.
@@ -159,6 +159,8 @@ struct PerfAnalyzerParameters {
   size_t warmup_request_count{0};
 
   std::vector<float> schedule{};
+  size_t session_concurrency{0};
+  bool is_session_concurrency_mode{false};
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;

@@ -1,4 +1,4 @@
-# Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -105,7 +105,7 @@ FetchContent_MakeAvailable(googletest)
 
 FetchContent_Declare(
   libb64
-  GIT_REPOSITORY https://git.code.sf.net/p/libb64/git
+  GIT_REPOSITORY https://github.com/libb64/libb64
   GIT_TAG master
 )
 FetchContent_MakeAvailable(libb64)
@@ -149,6 +149,11 @@ set(
   periodic_concurrency_manager.cc
   periodic_concurrency_worker.cc
   cuda_runtime_library_manager.cc
+  session_concurrency/payload_dataset_manager.cc
+  session_concurrency/payload_json_utils.cc
+  session_concurrency/request_handler.cc
+  session_concurrency/response_json_utils.cc
+  session_concurrency/session_concurrency_manager.cc
 )
 
 set(
@@ -194,6 +199,12 @@ set(
   periodic_concurrency_worker.h
   thread_config.h
   cuda_runtime_library_manager.h
+  thread_stat.h
+  session_concurrency/payload_dataset_manager.h
+  session_concurrency/payload_json_utils.h
+  session_concurrency/request_handler.h
+  session_concurrency/response_json_utils.h
+  session_concurrency/session_concurrency_manager.h
 )
 
 add_executable(
@@ -214,6 +225,7 @@ target_include_directories(
   perf_analyzer
   PRIVATE
     ${libb64_SOURCE_DIR}/include
+    session_concurrency
 )
 
 target_link_libraries(

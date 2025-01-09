@@ -1,4 +1,4 @@
-// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -39,31 +39,9 @@
 #include "perf_utils.h"
 #include "request_record.h"
 #include "sequence_manager.h"
+#include "thread_stat.h"
 
 namespace triton { namespace perfanalyzer {
-
-// Holds the running status of the thread.
-struct ThreadStat {
-  ThreadStat() {}
-
-  // The status of the worker thread
-  cb::Error status_;
-  // The status of the callback thread for async requests
-  cb::Error cb_status_;
-  // TODO REFACTOR TMA-1046 -- This should be in the InferContext class
-  // The statistics of the InferContext
-  std::vector<cb::InferStat> contexts_stat_;
-
-  // Tracks the amount of time this thread spent sleeping or waiting
-  IdleTimer idle_timer;
-
-  // A vector of request records
-  std::vector<RequestRecord> request_records_;
-  // A lock to protect thread data
-  std::mutex mu_;
-  // The number of sent requests by this thread.
-  std::atomic<size_t> num_sent_requests_{0};
-};
 
 #ifndef DOCTEST_CONFIG_DISABLE
 class NaggyMockInferContext;

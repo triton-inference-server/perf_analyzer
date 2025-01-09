@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -31,6 +31,7 @@
 #include "periodic_concurrency_manager.h"
 #include "report_writer.h"
 #include "request_rate_manager.h"
+#include "session_concurrency/session_concurrency_manager.h"
 
 namespace pa = triton::perfanalyzer;
 
@@ -113,7 +114,8 @@ PerfAnalyzer::CreateAnalyzerObjects()
   } else if (params_->kind == cb::BackendKind::OPENAI) {
     FAIL_IF_ERR(
         parser_->InitOpenAI(
-            params_->model_name, params_->model_version, params_->batch_size),
+            params_->model_name, params_->model_version, params_->batch_size,
+            params_->is_session_concurrency_mode),
         "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
     rapidjson::Document model_metadata;
@@ -257,6 +259,12 @@ PerfAnalyzer::CreateAnalyzerObjects()
           "failed to create request rate manager");
     }
 
+  } else if (params_->is_session_concurrency_mode) {
+    manager = std::make_unique<pa::SessionConcurrencyManager>(
+        params_->async, params_->streaming, params_->batch_size,
+        params_->max_threads, params_->shared_memory_type,
+        params_->output_shm_size, parser_, factory, params_->request_parameters,
+        params_->session_concurrency);
   } else {
     if ((params_->sequence_id_range != 0) &&
         (params_->sequence_id_range < params_->num_of_sequences)) {
@@ -417,6 +425,8 @@ PerfAnalyzer::Profile()
         params_->warmup_request_count, params_->request_count, perf_statuses_);
   } else if (params_->is_using_periodic_concurrency_mode) {
     err = profiler_->ProfilePeriodicConcurrencyMode();
+  } else if (params_->is_session_concurrency_mode) {
+    err = profiler_->BenchmarkSessionConcurrencyMode();
   } else {
     err = profiler_->Profile<double>(
         params_->request_rate_range[pa::SEARCH_RANGE::kSTART],
