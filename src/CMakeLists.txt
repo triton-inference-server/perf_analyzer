@@ -352,6 +352,7 @@ add_executable(
   test_profile_data_exporter.cc
   ${TEST_HTTP_CLIENT}
   test_response_json_utils.cc
+  test_payload_json_utils.cc
 )
 
 target_sources(
