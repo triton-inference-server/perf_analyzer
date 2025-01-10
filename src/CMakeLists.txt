@@ -353,6 +353,7 @@ add_executable(
   ${TEST_HTTP_CLIENT}
   test_response_json_utils.cc
   test_payload_json_utils.cc
+  test_payload_dataset_manager.cc
 )
 
 target_sources(
