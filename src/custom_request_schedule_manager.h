@@ -60,21 +60,10 @@ class CustomRequestScheduleManager : public RequestRateManager {
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager);
 
-  /// Performs warmup for benchmarking by sending a fixed number of requests
-  /// according to the specified request rate
-  /// \param request_rate The rate at which requests must be issued to the
-  /// server \param warmup_request_count The number of warmup requests to send
+  /// Initializes the load manager with the provided schedule
+  /// \param request_count The number of requests to generate when profiling.
   /// \return cb::Error object indicating success or failure
-  cb::Error PerformWarmup(
-      double request_rate, size_t warmup_request_count) override;
-
-  /// Adjusts the rate of issuing requests to be the same as 'request_rate'
-  /// \param request_rate The rate at which requests must be issued to the
-  /// server \param request_count The number of requests to generate when
-  /// profiling \return cb::Error object indicating success or failure
-  cb::Error ChangeRequestRate(
-      const double request_rate, const size_t request_count) override;
-
+  cb::Error InitCustomSchedule(const size_t request_count);
 
  protected:
   /// Constructor for CustomRequestScheduleManager
