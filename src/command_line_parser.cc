@@ -1679,6 +1679,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           params_->schedule = schedule;
           params_->request_count = schedule.size();
+          // TODO: Remove this dependency on request_rate_range
           params_->using_request_rate_range = true;
           break;
         }

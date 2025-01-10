@@ -112,7 +112,7 @@ class RequestRateManager : public LoadManager {
   /// \param request_count The number of requests to generate when profiling. If
   /// 0, then there is no limit, and it will generate until told to stop.
   /// \return cb::Error object indicating success or failure.
-  virtual cb::Error ChangeRequestRate(
+  cb::Error ChangeRequestRate(
       const double target_request_rate, const size_t request_count = 0);
 
 

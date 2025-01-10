@@ -60,13 +60,10 @@ class CustomRequestScheduleManager : public RequestRateManager {
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager);
 
-  /// Adjusts the rate of issuing requests to be the same as 'request_rate'
-  /// \param request_rate The rate at which requests must be issued to the
-  /// server \param request_count The number of requests to generate when
-  /// profiling \return cb::Error object indicating success or failure
-  cb::Error ChangeRequestRate(
-      const double request_rate, const size_t request_count) override;
-
+  /// Initializes the load manager with the provided schedule
+  /// \param request_count The number of requests to generate when profiling.
+  /// \return cb::Error object indicating success or failure
+  cb::Error InitCustomSchedule(const size_t request_count);
 
  protected:
   /// Constructor for CustomRequestScheduleManager

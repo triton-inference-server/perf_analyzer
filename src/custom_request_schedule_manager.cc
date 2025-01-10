@@ -59,8 +59,7 @@ CustomRequestScheduleManager::CustomRequestScheduleManager(
 }
 
 cb::Error
-CustomRequestScheduleManager::ChangeRequestRate(
-    const double request_rate, const size_t request_count)
+CustomRequestScheduleManager::InitCustomSchedule(const size_t request_count)
 {
   PauseWorkers();
   ConfigureThreads(request_count);
