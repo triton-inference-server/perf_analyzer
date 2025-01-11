@@ -282,7 +282,10 @@ class LLMProfileDataParser(ProfileDataParser):
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
-        full_text_token_count = len(self._tokenizer.encode("".join(output_texts)))
+        individual_token_counts = [
+            len(self._tokenizer.encode(txt)) for txt in output_texts
+        ]
+        full_text_token_count = sum(individual_token_counts)
 
         output_tokens = self._get_response_output_tokens(output_texts)
         output_token_counts = list(map(len, output_tokens))
