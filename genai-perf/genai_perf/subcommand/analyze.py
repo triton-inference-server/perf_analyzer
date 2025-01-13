@@ -321,7 +321,9 @@ class Analyze:
                     self._model_name, InputSequenceLengthP99.tag
                 )
             )
-            num_dataset_entries = run_config.genai_perf_config.input.num_dataset_entries
+            num_dataset_entries = run_config.genai_perf_config.get_parameters()[
+                "num_dataset_entries"
+            ]
 
             metrics = []
             for tag in Analyze.PERF_METRICS_TAGS:

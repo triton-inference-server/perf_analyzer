@@ -67,13 +67,7 @@ class TestGenAIPerfConfig(unittest.TestCase):
         expected_input_config = ConfigInput()
         expected_input_config.num_dataset_entries = 50
 
-        self.assertEqual(expected_input_config, self._default_genai_perf_config.input)
-
-        expected_output_tokens_config = ConfigOutputTokens()
-
-        self.assertEqual(
-            expected_output_tokens_config, self._default_genai_perf_config.output_tokens
-        )
+        self.assertEqual(expected_input_config, self._default_genai_perf_config._input)
 
     ###########################################################################
     # Test Representation
@@ -85,7 +79,6 @@ class TestGenAIPerfConfig(unittest.TestCase):
         expected_representation = " ".join(
             [
                 ConfigInput(num_dataset_entries=50).__str__(),
-                ConfigOutputTokens().__str__(),
             ]
         )
         representation = self._default_genai_perf_config.representation()
@@ -109,13 +102,12 @@ class TestGenAIPerfConfig(unittest.TestCase):
             )
         )
 
+        actual_input = genai_perf_config_from_checkpoint._input.__str__()
+        expected_input = self._default_genai_perf_config._input.__str__()
+
         self.assertEqual(
-            genai_perf_config_from_checkpoint.input,
-            self._default_genai_perf_config.input,
-        )
-        self.assertEqual(
-            genai_perf_config_from_checkpoint.output_tokens,
-            self._default_genai_perf_config.output_tokens,
+            genai_perf_config_from_checkpoint._input,
+            self._default_genai_perf_config._input,
         )
 
 

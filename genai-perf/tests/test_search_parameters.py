@@ -22,12 +22,8 @@ from genai_perf.config.generate.search_parameters import (
     SearchParameters,
     SearchUsage,
 )
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    Range,
-    RunConfigDefaults,
-    Subcommand,
-)
+from genai_perf.config.input.config_command import ConfigCommand, Subcommand
+from genai_perf.config.input.config_defaults import AnalyzeDefaults, Range
 from genai_perf.exceptions import GenAIPerfException
 
 
@@ -37,15 +33,23 @@ class TestSearchParameters(unittest.TestCase):
         self.config.model_names = ["test_model"]
 
         self.search_parameters = SearchParameters(
-            config=self.config, subcommand=Subcommand.OPTIMIZE
+            config=self.config, subcommand=Subcommand.ANALYZE
         )
 
         self.search_parameters._add_search_parameter(
             name="concurrency",
             usage=SearchUsage.RUNTIME_PA,
             category=SearchCategory.EXPONENTIAL,
-            min_range=log2(RunConfigDefaults.MIN_CONCURRENCY),
-            max_range=log2(RunConfigDefaults.MAX_CONCURRENCY),
+            min_range=log2(AnalyzeDefaults.MIN_CONCURRENCY),
+            max_range=log2(AnalyzeDefaults.MAX_CONCURRENCY),
+        )
+
+        self.search_parameters._add_search_parameter(
+            name="num_dataset_entries",
+            usage=SearchUsage.RUNTIME_GAP,
+            category=SearchCategory.INTEGER,
+            min_range=AnalyzeDefaults.MIN_NUM_DATASET_ENTRIES,
+            max_range=AnalyzeDefaults.MAX_NUM_DATASET_ENTRIES,
         )
 
         self.search_parameters._add_search_parameter(
@@ -67,8 +71,8 @@ class TestSearchParameters(unittest.TestCase):
 
         self.assertEqual(SearchUsage.RUNTIME_PA, parameter.usage)
         self.assertEqual(SearchCategory.EXPONENTIAL, parameter.category)
-        self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), parameter.min_range)
-        self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), parameter.max_range)
+        self.assertEqual(log2(AnalyzeDefaults.MIN_CONCURRENCY), parameter.min_range)
+        self.assertEqual(log2(AnalyzeDefaults.MAX_CONCURRENCY), parameter.max_range)
 
     def test_integer_parameter(self):
         """
@@ -76,19 +80,19 @@ class TestSearchParameters(unittest.TestCase):
         """
 
         self.assertEqual(
-            SearchUsage.MODEL,
-            self.search_parameters.get_type("instance_count"),
+            SearchUsage.RUNTIME_GAP,
+            self.search_parameters.get_type("num_dataset_entries"),
         )
         self.assertEqual(
             SearchCategory.INTEGER,
-            self.search_parameters.get_category("instance_count"),
+            self.search_parameters.get_category("num_dataset_entries"),
         )
         self.assertEqual(
             Range(
-                min=RunConfigDefaults.MIN_INSTANCE_COUNT,
-                max=RunConfigDefaults.MAX_INSTANCE_COUNT,
+                min=AnalyzeDefaults.MIN_NUM_DATASET_ENTRIES,
+                max=AnalyzeDefaults.MAX_NUM_DATASET_ENTRIES,
             ),
-            self.search_parameters.get_range("instance_count"),
+            self.search_parameters.get_range("num_dataset_entries"),
         )
 
     def test_list_parameter(self):
@@ -162,111 +166,6 @@ class TestSearchParameters(unittest.TestCase):
                 max_range=10,
             )
 
-    def test_search_parameter_creation_optimize_default(self):
-        """
-        Test that search parameters are correctly created in default optimize case
-        """
-
-        config = deepcopy(ConfigCommand(user_config={}))
-        config.model_names = ["test_model"]
-        search_parameters = SearchParameters(
-            config=config, subcommand=Subcommand.OPTIMIZE
-        )
-
-        #######################################################################
-        # Model Config
-        #######################################################################
-
-        # Batch Size
-        # =====================================================================
-        model_batch_size = search_parameters.get_parameter("model_batch_size")
-        self.assertEqual(SearchUsage.MODEL, model_batch_size.usage)
-        self.assertEqual(SearchCategory.EXPONENTIAL, model_batch_size.category)
-        self.assertEqual(
-            log2(RunConfigDefaults.MIN_MODEL_BATCH_SIZE),
-            model_batch_size.min_range,
-        )
-        self.assertEqual(
-            log2(RunConfigDefaults.MAX_MODEL_BATCH_SIZE),
-            model_batch_size.max_range,
-        )
-
-        # Instance Count
-        # =====================================================================
-        instance_count = search_parameters.get_parameter("instance_count")
-        self.assertEqual(SearchUsage.MODEL, instance_count.usage)
-        self.assertEqual(SearchCategory.INTEGER, instance_count.category)
-        self.assertEqual(RunConfigDefaults.MIN_INSTANCE_COUNT, instance_count.min_range)
-        self.assertEqual(RunConfigDefaults.MAX_INSTANCE_COUNT, instance_count.max_range)
-
-        # Max Queue Delay
-        max_queue_delay = search_parameters.get_parameter("max_queue_delay")
-        self.assertIsNone(max_queue_delay)
-
-        #######################################################################
-        # PA Config
-        #######################################################################
-
-        # Batch size
-        # =====================================================================
-        runtime_batch_size = search_parameters.get_parameter("runtime_batch_size")
-        self.assertEqual(SearchUsage.RUNTIME_PA, runtime_batch_size.usage)
-        self.assertEqual(SearchCategory.INT_LIST, runtime_batch_size.category)
-        self.assertEqual(
-            [RunConfigDefaults.PA_BATCH_SIZE], runtime_batch_size.enumerated_list
-        )
-
-        # Concurrency - this is not set because use_concurrency_formula is True
-        # =====================================================================
-        concurrency = search_parameters.get_parameter("concurrency")
-
-        self.assertIsNone(concurrency)
-
-        # Request Rate
-        # =====================================================================
-        request_rate = search_parameters.get_parameter("request_rate")
-        self.assertIsNone(request_rate)
-
-    def test_search_parameter_no_concurrency_formula(self):
-        """
-        Test that search parameters are correctly created when concurrency formula is disabled
-        """
-        config = deepcopy(ConfigCommand(user_config={}))
-        config.model_names = ["test_model"]
-        config.optimize.perf_analyzer.use_concurrency_formula = False
-
-        search_parameters = SearchParameters(
-            config=config, subcommand=Subcommand.OPTIMIZE
-        )
-
-        concurrency = search_parameters.get_parameter("concurrency")
-        self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
-        self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
-        self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
-        self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
-
-    def test_search_parameter_request_rate(self):
-        """
-        Test that request rate is used when specified in config
-        """
-        config = deepcopy(ConfigCommand(user_config={}))
-        config.model_names = ["test_model"]
-        config.optimize.perf_analyzer.stimulus_type = "request_rate"
-
-        search_parameters = SearchParameters(
-            config=config, subcommand=Subcommand.OPTIMIZE
-        )
-
-        request_rate = search_parameters.get_parameter("request_rate")
-        self.assertEqual(SearchUsage.RUNTIME_PA, request_rate.usage)
-        self.assertEqual(SearchCategory.EXPONENTIAL, request_rate.category)
-        self.assertEqual(
-            log2(RunConfigDefaults.MIN_REQUEST_RATE), request_rate.min_range
-        )
-        self.assertEqual(
-            log2(RunConfigDefaults.MAX_REQUEST_RATE), request_rate.max_range
-        )
-
     def test_number_of_configs_range(self):
         """
         Test number of configs for a range (INTEGER/EXPONENTIAL)
@@ -275,16 +174,28 @@ class TestSearchParameters(unittest.TestCase):
         # INTEGER
         # =====================================================================
         num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
-            self.search_parameters.get_parameter("instance_count")
+            self.search_parameters.get_parameter("num_dataset_entries")
         )
-        self.assertEqual(5, num_of_configs)
+        expected_num_of_configs = (
+            AnalyzeDefaults.MAX_NUM_DATASET_ENTRIES
+            - AnalyzeDefaults.MIN_NUM_DATASET_ENTRIES
+            + 1
+        )
+
+        self.assertEqual(expected_num_of_configs, num_of_configs)
 
         # EXPONENTIAL
         # =====================================================================
         num_of_configs = self.search_parameters._number_of_configurations_for_parameter(
             self.search_parameters.get_parameter("concurrency")
         )
-        self.assertEqual(11, num_of_configs)
+        expected_num_of_configs = (
+            log2(AnalyzeDefaults.MAX_CONCURRENCY)
+            - log2(AnalyzeDefaults.MIN_CONCURRENCY)
+            + 1
+        )
+
+        self.assertEqual(expected_num_of_configs, num_of_configs)
 
     def test_number_of_configs_list(self):
         """
@@ -304,8 +215,8 @@ class TestSearchParameters(unittest.TestCase):
             self.search_parameters.number_of_total_possible_configurations()
         )
 
-        # model_batch_size (8) * instance count (5) * concurrency (11) * size (3)
-        self.assertEqual(8 * 5 * 11 * 3, total_num_of_possible_configurations)
+        # concurrency (11) * size (3) * num_dataset_entries (901)
+        self.assertEqual(11 * 3 * 901, total_num_of_possible_configurations)
 
     #######################################################################
     # Test Analyze Configs
@@ -322,8 +233,8 @@ class TestSearchParameters(unittest.TestCase):
         concurrency = search_parameters.get_parameter("concurrency")
         self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
         self.assertEqual(SearchCategory.EXPONENTIAL, concurrency.category)
-        self.assertEqual(log2(RunConfigDefaults.MIN_CONCURRENCY), concurrency.min_range)
-        self.assertEqual(log2(RunConfigDefaults.MAX_CONCURRENCY), concurrency.max_range)
+        self.assertEqual(log2(AnalyzeDefaults.MIN_CONCURRENCY), concurrency.min_range)
+        self.assertEqual(log2(AnalyzeDefaults.MAX_CONCURRENCY), concurrency.max_range)
 
     def test_custom_analyze_config(self):
         """
@@ -334,8 +245,8 @@ class TestSearchParameters(unittest.TestCase):
         config.analyze.sweep_parameters = {
             "num_dataset_entries": [10, 50, 100],
             "request_rate": Range(
-                min=RunConfigDefaults.MIN_REQUEST_RATE,
-                max=RunConfigDefaults.MAX_REQUEST_RATE,
+                min=AnalyzeDefaults.MIN_REQUEST_RATE,
+                max=AnalyzeDefaults.MAX_REQUEST_RATE,
             ),
         }
         search_parameters = SearchParameters(
@@ -350,12 +261,8 @@ class TestSearchParameters(unittest.TestCase):
         request_rate = search_parameters.get_parameter("request_rate")
         self.assertEqual(SearchUsage.RUNTIME_PA, request_rate.usage)
         self.assertEqual(SearchCategory.EXPONENTIAL, request_rate.category)
-        self.assertEqual(
-            log2(RunConfigDefaults.MIN_REQUEST_RATE), request_rate.min_range
-        )
-        self.assertEqual(
-            log2(RunConfigDefaults.MAX_REQUEST_RATE), request_rate.max_range
-        )
+        self.assertEqual(log2(AnalyzeDefaults.MIN_REQUEST_RATE), request_rate.min_range)
+        self.assertEqual(log2(AnalyzeDefaults.MAX_REQUEST_RATE), request_rate.max_range)
 
 
 if __name__ == "__main__":
