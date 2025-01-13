@@ -59,6 +59,18 @@ AnalyzeParameter: TypeAlias = Dict[str, ConfigRangeOrList]
 class ConfigAnalyze:
     sweep_parameters: AnalyzeParameter = default_field(AnalyzeDefaults.SWEEP_PARAMETER)
 
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_analyze_dict: CheckpointObject
+    ) -> "ConfigAnalyze":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of a ConfigAnalyze
+        """
+        config_analyze = ConfigAnalyze(**config_analyze_dict)
+
+        return config_analyze
+
 
 ###########################################################################
 # EndPoint Config
@@ -76,6 +88,18 @@ class ConfigEndPoint:
     server_metrics_url: str = default_field(EndPointDefaults.SERVER_METRICS_URL)
     url: str = default_field(EndPointDefaults.URL)
 
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_endpoint_dict: CheckpointObject
+    ) -> "ConfigEndPoint":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of ConfigEndPoint
+        """
+        config_endpoint = ConfigEndPoint(**config_endpoint_dict)
+
+        return config_endpoint
+
 
 ###########################################################################
 # PerfAnalzyer (PA) Config
@@ -88,6 +112,18 @@ class ConfigPerfAnalyzer:
         PerfAnalyzerDefaults.STABILITY_PERCENTAGE
     )
     measurement_interval: int = default_field(PerfAnalyzerDefaults.MEASUREMENT_INTERVAL)
+
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_perf_analyzer_dict: CheckpointObject
+    ) -> "ConfigPerfAnalyzer":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of ConfigPerfAnalyzer
+        """
+        config_perf_analyzer = ConfigPerfAnalyzer(**config_perf_analyzer_dict)
+
+        return config_perf_analyzer
 
 
 ###########################################################################
@@ -102,6 +138,18 @@ class ConfigImage:
     height_stddev: int = default_field(ImageDefaults.HEIGHT_STDDEV)
     format: Optional[str] = default_field(ImageDefaults.FORMAT)
 
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_image_dict: CheckpointObject
+    ) -> "ConfigImage":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of ConfigImage
+        """
+        config_image = ConfigImage(**config_image_dict)
+
+        return config_image
+
 
 @dataclass
 class ConfigOutputTokens:
@@ -109,11 +157,35 @@ class ConfigOutputTokens:
     deterministic: bool = default_field(OutputTokenDefaults.DETERMINISTIC)
     stddev: int = default_field(OutputTokenDefaults.STDDEV)
 
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_output_tokens_dict: CheckpointObject
+    ) -> "ConfigOutputTokens":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of ConfigOutputTokens
+        """
+        config_output_tokens = ConfigOutputTokens(**config_output_tokens_dict)
+
+        return config_output_tokens
+
 
 @dataclass
 class ConfigSyntheticTokens:
     mean: int = default_field(SyntheticTokenDefaults.MEAN)
     stddev: int = default_field(SyntheticTokenDefaults.STDDEV)
+
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_synthetic_tokens_dict: CheckpointObject
+    ) -> "ConfigSyntheticTokens":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of ConfigSyntheticTokens
+        """
+        config_synthetic_tokens = ConfigSyntheticTokens(**config_synthetic_tokens_dict)
+
+        return config_synthetic_tokens
 
 
 @dataclass
@@ -121,11 +193,35 @@ class ConfigPrefixPrompt:
     num: int = default_field(PrefixPromptDefaults.NUM)
     length: int = default_field(PrefixPromptDefaults.LENGTH)
 
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_prefix_prompt_dict: CheckpointObject
+    ) -> "ConfigPrefixPrompt":
+        """
+        Takes the checkpoint's representation of the class and creates (and populates)
+        a new instance of ConfigPrefixPrompt
+        """
+        config_prefix_prompt = ConfigPrefixPrompt(**config_prefix_prompt_dict)
+
+        return config_prefix_prompt
+
 
 @dataclass
 class ConfigRequestCount:
     num: int = default_field(RequestCountDefaults.NUM)
     warmup: int = default_field(RequestCountDefaults.WARMUP)
+
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_request_count_dict: CheckpointObject
+    ) -> "ConfigRequestCount":
+        """
+        Takes the checkpoint's representation of the class and creates
+        (and populates) a new instance of ConfigRequestCount
+        """
+        config_request_count = ConfigRequestCount(**config_request_count_dict)
+
+        return config_request_count
 
 
 @dataclass
@@ -150,21 +246,25 @@ class ConfigInput:
     ) -> "ConfigInput":
         """
         Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of a ConfigInput
+        a new instance of ConfigInput
         """
         config_input = ConfigInput(**config_input_dict)
-        config_input.image = ConfigImage(**config_input_dict["image"])
-        config_input.output_tokens = ConfigOutputTokens(
-            **config_input_dict["output_tokens"]
+        config_input.image = ConfigImage._create_class_from_checkpoint(
+            config_input_dict["image"]
         )
-        config_input.synthetic_tokens = ConfigSyntheticTokens(
-            **config_input_dict["synthetic_tokens"]
+        config_input.output_tokens = ConfigOutputTokens._create_class_from_checkpoint(
+            config_input_dict["output_tokens"]
         )
-        config_input.prefix_prompt = ConfigPrefixPrompt(
-            **config_input_dict["prefix_prompt"]
+        config_input.synthetic_tokens = (
+            ConfigSyntheticTokens._create_class_from_checkpoint(
+                config_input_dict["synthetic_tokens"]
+            )
         )
-        config_input.request_count = ConfigRequestCount(
-            **config_input_dict["request_count"]
+        config_input.prefix_prompt = ConfigPrefixPrompt._create_class_from_checkpoint(
+            config_input_dict["prefix_prompt"]
+        )
+        config_input.request_count = ConfigRequestCount._create_class_from_checkpoint(
+            config_input_dict["request_count"]
         )
 
         return config_input
@@ -180,6 +280,18 @@ class ConfigOutput:
     profile_export_file: str = default_field(OutputDefaults.PROFILE_EXPORT_FILE)
     generate_plots: bool = default_field(OutputDefaults.GENERATE_PLOTS)
 
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_output_dict: CheckpointObject
+    ) -> "ConfigOutput":
+        """
+        Takes the checkpoint's representation of the class and creates
+        (and populates) a new instance of ConfigOutput
+        """
+        config_output = ConfigOutput(**config_output_dict)
+
+        return config_output
+
 
 ###########################################################################
 # Tokenizer Config
@@ -189,6 +301,18 @@ class ConfigTokenizer:
     name: str = default_field(TokenizerDefaults.NAME)
     revision: str = default_field(TokenizerDefaults.REVISION)
     trust_remote_code: bool = default_field(TokenizerDefaults.TRUST_REMOTE_CODE)
+
+    @classmethod
+    def _create_class_from_checkpoint(
+        cls, config_tokenizer_dict: CheckpointObject
+    ) -> "ConfigTokenizer":
+        """
+        Takes the checkpoint's representation of the class and creates
+        (and populates) a new instance of ConfigTokenizer
+        """
+        config_tokenizer = ConfigTokenizer(**config_tokenizer_dict)
+
+        return config_tokenizer
 
 
 ###########################################################################
@@ -208,6 +332,36 @@ class ConfigCommand:
 
     def __post_init__(self):
         self._parse_yaml(self.user_config)
+
+    @classmethod
+    def create_class_from_checkpoint(
+        cls, config_command_dict: CheckpointObject
+    ) -> "ConfigCommand":
+        """
+        Takes the checkpoint's representation of the class and creates
+        (and populates) a new instance of ConfigCommand
+        """
+        config_command = ConfigCommand(**config_command_dict)
+        config_command.analyze = ConfigAnalyze._create_class_from_checkpoint(
+            config_command_dict["analyze"]
+        )
+        config_command.endpoint = ConfigEndPoint._create_class_from_checkpoint(
+            config_command_dict["endpoint"]
+        )
+        config_command.perf_analyzer = ConfigPerfAnalyzer._create_class_from_checkpoint(
+            config_command_dict["perf_analyzer"]
+        )
+        config_command.input = ConfigInput.create_class_from_checkpoint(
+            config_command_dict["input"]
+        )
+        config_command.output = ConfigOutput._create_class_from_checkpoint(
+            config_command_dict["output"]
+        )
+        config_command.tokenizer = ConfigTokenizer._create_class_from_checkpoint(
+            config_command_dict["tokenizer"]
+        )
+
+        return config_command
 
     ###########################################################################
     # Utility Methods
