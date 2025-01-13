@@ -30,6 +30,7 @@ from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
+from genai_perf.export_data.prometheus_exporter import PrometheusExporter
 
 ProfileDataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
 AnalyzeDataExporterList = [CsvExporter]
@@ -41,6 +42,8 @@ class DataExporterFactory:
             DataExporterList: List[Any] = AnalyzeDataExporterList
         else:
             DataExporterList = ProfileDataExporterList
+            if config.args.enable_prometheus:
+                DataExporterList.append(PrometheusExporter)
 
         data_exporters = []
         for exporter in DataExporterList:

@@ -26,11 +26,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import signal
 import sys
+import threading
+import time
 import traceback
 
 import genai_perf.logging as logging
 from genai_perf import parser
+
+logger = logging.getLogger(__name__)
 
 
 # Separate function that can raise exceptions used for testing
@@ -46,6 +51,30 @@ def run():
     else:  # profile
         args.func(args, extra_args)
 
+    if getattr(args, "enable_prometheus", False):
+        logger.info("Prometheus metrics server is running. Press Ctrl+C to terminate.")
+        _keep_alive()
+
+
+def _keep_alive():
+    """
+    Blocks the main thread to keep the Prometheus server running
+    until interrupted by the user.
+    """
+    stop_event = threading.Event()
+
+    # Handle SIGINT and SIGTERM for clean shutdown
+    def signal_handler(sig, frame):
+        logger.info("Shutting down Prometheus server...")
+        stop_event.set()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    # Wait indefinitely until the user interrupts
+    while not stop_event.is_set():
+        time.sleep(1)
+
 
 def main():
     # Interactive use will catch exceptions and log formatted errors rather than
@@ -54,7 +83,6 @@ def main():
         run()
     except Exception as e:
         traceback.print_exc()
-        logger = logging.getLogger(__name__)
         logger.error(e)
         return 1
 

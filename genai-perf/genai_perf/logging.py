@@ -60,6 +60,11 @@ def init_logging() -> None:
                 "level": "DEBUG",
                 "propagate": False,
             },
+            "genai_perf.main": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
             "genai_perf.parser": {  # must use module name for loggers
                 "handlers": ["console"],
                 "level": "DEBUG",
