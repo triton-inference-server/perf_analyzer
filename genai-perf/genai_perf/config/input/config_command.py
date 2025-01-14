@@ -32,12 +32,7 @@ from genai_perf.config.input.config_defaults import (
     TopLevelDefaults,
     default_field,
 )
-from genai_perf.constants import (
-    exponential_range_parameters,
-    linear_range_parameters,
-    runtime_gap_parameters,
-    runtime_pa_parameters,
-)
+from genai_perf.constants import runtime_gap_parameters, runtime_pa_parameters
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.types import CheckpointObject, ModelName
 

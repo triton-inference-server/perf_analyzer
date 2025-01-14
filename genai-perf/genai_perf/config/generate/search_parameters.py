@@ -51,7 +51,7 @@ class SearchParameters:
         if subcommand == Subcommand.ANALYZE:
             self._config = config.analyze
         else:
-            GenAIPerfException(f"Subcommand {subcommand} not supported")
+            raise GenAIPerfException(f"Subcommand {subcommand} not supported")
 
         self._supports_model_batch_size = True
 

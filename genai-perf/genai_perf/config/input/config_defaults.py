@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import copy
+from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Dict
 
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 
 
 def default_field(obj):
-    return field(default_factory=lambda: copy(obj))
+    return field(default_factory=lambda: deepcopy(obj))
 
 
 @dataclass

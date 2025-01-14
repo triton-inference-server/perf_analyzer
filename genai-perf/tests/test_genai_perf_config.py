@@ -102,9 +102,6 @@ class TestGenAIPerfConfig(unittest.TestCase):
             )
         )
 
-        actual_input = genai_perf_config_from_checkpoint._input.__str__()
-        expected_input = self._default_genai_perf_config._input.__str__()
-
         self.assertEqual(
             genai_perf_config_from_checkpoint._input,
             self._default_genai_perf_config._input,
