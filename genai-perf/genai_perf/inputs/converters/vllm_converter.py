@@ -61,14 +61,10 @@ class VLLMConverter(BaseConverter):
                     "text_input": text,
                     "exclude_input_in_output": [True],  # default
                 }
-                optional_data = row.optional_data
-                self._add_request_params(payload, config)
-                self._add_payload_params(payload, optional_data)
-                record: Dict[str, Any] = payload
-                if row.timestamp:
-                    record["timestamp"] = [row.timestamp]
-
-                request_body["data"].append(record)
+                self._add_extra_params(payload, config, row)
+                request_body["data"].append(
+                    self._finalize_payload(payload, row, triton_format=True)
+                )
 
         return request_body
 
