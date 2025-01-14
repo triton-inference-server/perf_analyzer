@@ -28,9 +28,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, TypeAlias, Union
 
 Filename: TypeAlias = str
-TypeOfData: TypeAlias = str
-ListOfData: TypeAlias = List[str]
-DataRowDict: TypeAlias = Dict[str, Union[List[str], Dict[str, Any], str]]
+TextData: TypeAlias = List[str]
+ImageData: TypeAlias = List[str]
+InputData: TypeAlias = Union[TextData, ImageData]
+OptionalData: TypeAlias = Dict[str, Any]
+Timestamp: TypeAlias = str
+DataRowDict: TypeAlias = Dict[str, Union[InputData, Timestamp, OptionalData]]
 GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 
 

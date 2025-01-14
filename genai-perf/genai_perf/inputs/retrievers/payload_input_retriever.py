@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Tuple
 
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
     BaseFileInputRetriever,
@@ -58,7 +58,9 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
 
         files_data: Dict[str, FileData] = {}
-        input_file = cast(Path, self.config.payload_input_filename)
+        input_file = self.config.payload_input_filename
+        if input_file is None:
+            raise ValueError("Input file cannot be None")
         file_data = self._get_input_dataset_from_file(input_file)
         files_data = {str(input_file): file_data}
 

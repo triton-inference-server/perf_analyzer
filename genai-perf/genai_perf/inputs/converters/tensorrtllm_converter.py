@@ -62,13 +62,9 @@ class TensorRTLLMConverter(BaseConverter):
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],  # default
                 }
 
-                self._add_request_params(payload, config)
-                self._add_payload_params(payload, row.optional_data)
-                record: Dict[str, Any] = payload
-                if row.timestamp:
-                    record["timestamp"] = [row.timestamp]
-
-                request_body["data"].append(record)
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row, triton_format=True)
+                )
 
         return request_body
 

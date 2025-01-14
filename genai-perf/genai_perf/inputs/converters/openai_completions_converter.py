@@ -49,13 +49,9 @@ class OpenAICompletionsConverter(BaseConverter):
                     "model": model_name,
                     "prompt": prompt,
                 }
-                self._add_request_params(payload, config)
-                self._add_payload_params(payload, row.optional_data)
-                record: Dict[str, Any] = {"payload": [payload]}
-                if row.timestamp:
-                    record["timestamp"] = [row.timestamp]
-
-                request_body["data"].append(record)
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row)
+                )
 
         return request_body
 

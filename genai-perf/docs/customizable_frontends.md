@@ -75,8 +75,9 @@ class NewConverter(BaseConverter):
                     "input": row.texts,
                 }
 
-                self._add_request_params(payload, config)
-                request_body["data"].append({"payload": [payload]})
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row)
+                )
 
         return request_body
 ```
