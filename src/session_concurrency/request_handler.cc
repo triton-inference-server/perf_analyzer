@@ -43,6 +43,7 @@
 
 #include "../client_backend/client_backend.h"
 #include "../model_parser.h"
+#include "../request_record.h"
 #include "payload_dataset_manager.h"
 #include "payload_json_utils.h"
 #include "response_json_utils.h"
@@ -65,7 +66,8 @@ RequestHandler::RequestHandler(
 
 void
 RequestHandler::SendRequestAndWaitForResponse(
-    size_t dataset_index, rapidjson::Document& chat_history)
+    size_t dataset_index, rapidjson::Document& chat_history,
+    RequestRecord& request_record)
 {
   auto payload{payload_dataset_manager_->GetPayload(dataset_index)};
 
@@ -74,7 +76,8 @@ RequestHandler::SendRequestAndWaitForResponse(
   auto response_promise{std::make_shared<std::promise<void>>()};
   std::future<void> response_future{response_promise->get_future()};
 
-  SendRequest(payload, std::move(response_promise), chat_history);
+  SendRequest(
+      payload, std::move(response_promise), chat_history, request_record);
 
   WaitForResponse(std::move(response_future));
 }
@@ -83,37 +86,61 @@ void
 RequestHandler::SendRequest(
     const std::string& payload,
     std::shared_ptr<std::promise<void>>&& response_promise,
-    rapidjson::Document& chat_history)
+    rapidjson::Document& chat_history, RequestRecord& request_record)
 {
-  const auto callback{
-      PrepareCallback(std::move(response_promise), chat_history)};
+  const auto requested_outputs{PrepareRequestedOutputs()};
+
+  const auto callback{PrepareCallback(
+      std::move(response_promise), requested_outputs, request_record,
+      chat_history)};
 
   const cb::InferOptions options(parser_->ModelName());
 
   const auto inputs{PrepareInputs(payload)};
 
-  const auto outputs{PrepareOutputs()};
+  RecordRequest(inputs, request_record);
 
-  const auto error{
-      client_backend_->AsyncInfer(callback, options, inputs, outputs)};
+  const auto error{client_backend_->AsyncInfer(
+      callback, options, inputs, requested_outputs)};
 
   if (!error.IsOk()) {
     throw std::runtime_error(error.Message());
   }
 }
 
+const std::vector<const cb::InferRequestedOutput*>
+RequestHandler::PrepareRequestedOutputs() const
+{
+  cb::InferRequestedOutput* infer_output{};
+
+  const cb::BackendKind kind{factory_->Kind()};
+  const std::string& name{"response"};
+  const std::string& datatype{"JSON"};
+  const auto error{
+      cb::InferRequestedOutput::Create(&infer_output, kind, name, datatype)};
+
+  if (!error.IsOk()) {
+    throw std::runtime_error(error.Message());
+  }
+
+  return {infer_output};
+}
+
 const std::function<void(cb::InferResult*)>
 RequestHandler::PrepareCallback(
     std::shared_ptr<std::promise<void>>&& response_promise,
-    rapidjson::Document& chat_history) const
+    const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
+    RequestRecord& request_record, rapidjson::Document& chat_history) const
 {
-  return [response_promise, &chat_history,
+  return [response_promise, requested_outputs, &request_record, &chat_history,
           this](cb::InferResult* infer_result) mutable {
     if (!infer_result) {
       throw std::runtime_error("infer_result was null");
     } else if (!infer_result->RequestStatus().IsOk()) {
       throw std::runtime_error(infer_result->RequestStatus().Message());
     }
+
+    RecordResponse(infer_result, requested_outputs, request_record);
 
     const auto response_buffer{GetResponseBuffer(infer_result)};
 
@@ -128,6 +155,41 @@ RequestHandler::PrepareCallback(
 
     response_promise->set_value();
   };
+}
+
+void
+RequestHandler::RecordResponse(
+    cb::InferResult* infer_result,
+    const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
+    RequestRecord& request_record) const
+{
+  const auto& end_time{std::chrono::system_clock::now()};
+
+  request_record.response_timestamps_.push_back(end_time);
+
+  request_record.response_outputs_.emplace_back();
+
+  auto& response_outputs{request_record.response_outputs_.back()};
+
+  RecordResponseOutputs(infer_result, requested_outputs, response_outputs);
+}
+
+void
+RequestHandler::RecordResponseOutputs(
+    cb::InferResult* infer_result,
+    const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
+    RequestRecord::ResponseOutput& response_outputs) const
+{
+  for (const auto& requested_output : requested_outputs) {
+    const auto& name{requested_output->Name()};
+
+    const auto& data_type{requested_output->Datatype()};
+
+    std::vector<uint8_t> buf{};
+    infer_result->RawData(name, buf);
+
+    response_outputs.emplace(name, RecordData(std::move(buf), data_type));
+  }
 }
 
 const std::vector<uint8_t>
@@ -174,22 +236,36 @@ RequestHandler::PrepareInputs(const std::string& payload) const
   return {infer_input};
 }
 
-const std::vector<const cb::InferRequestedOutput*>
-RequestHandler::PrepareOutputs() const
+void
+RequestHandler::RecordRequest(
+    const std::vector<cb::InferInput*> inputs,
+    RequestRecord& request_record) const
 {
-  cb::InferRequestedOutput* infer_output{};
+  request_record.request_inputs_.emplace_back();
 
-  const cb::BackendKind kind{factory_->Kind()};
-  const std::string& name{"response"};
-  const std::string& datatype{"JSON"};
-  const auto error{
-      cb::InferRequestedOutput::Create(&infer_output, kind, name, datatype)};
+  auto& request_inputs{request_record.request_inputs_.back()};
 
-  if (!error.IsOk()) {
-    throw std::runtime_error(error.Message());
+  RecordRequestInputs(inputs, request_inputs);
+
+  request_record.start_time_ = std::chrono::system_clock::now();
+}
+
+void
+RequestHandler::RecordRequestInputs(
+    const std::vector<cb::InferInput*> inputs,
+    RequestRecord::RequestInput& request_inputs) const
+{
+  for (const auto& input : inputs) {
+    std::string data_type{input->Datatype()};
+    const uint8_t* buf{nullptr};
+    size_t byte_size{0};
+    input->RawData(&buf, &byte_size);
+
+    std::vector<uint8_t> buf_vec(buf, buf + byte_size);
+
+    request_inputs.emplace(
+        input->Name(), RecordData(std::move(buf_vec), data_type));
   }
-
-  return {infer_output};
 }
 
 void

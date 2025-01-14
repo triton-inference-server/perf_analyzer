@@ -59,13 +59,15 @@ class SessionConcurrencyManager : public LoadManager {
 
  private:
   void MakeAndWaitForThreads(
-      const std::vector<std::vector<size_t>>& session_datasets);
+      const std::vector<std::vector<size_t>>& all_session_payloads);
 
   void ProcessSessionsUntilComplete(
-      const std::vector<std::vector<size_t>>& session_datasets);
+      const std::vector<std::vector<size_t>>& all_session_payloads,
+      std::vector<RequestRecord>& request_records);
 
   void SendSequentialRequestsForOneSession(
-      const std::vector<size_t>& session_payloads);
+      const std::vector<size_t>& session_payloads,
+      std::vector<RequestRecord>& request_records);
 
   void GetAndWaitForDelayMs(size_t dataset_index) const;
 
@@ -75,6 +77,7 @@ class SessionConcurrencyManager : public LoadManager {
   std::atomic<size_t> next_session_index_{};
   std::shared_ptr<PayloadDatasetManager> payload_dataset_manager_{};
   std::shared_ptr<RequestHandler> request_handler_{};
+  std::vector<std::vector<RequestRecord>> all_threads_request_records_{};
 };
 
 }  // namespace triton::perfanalyzer

@@ -86,6 +86,9 @@ SessionConcurrencyManager::MakeAndWaitForThreads(
 {
   if (!threads_.empty()) {
     throw std::runtime_error("Expected threads_ to be empty.");
+  } else if (!all_threads_request_records_.empty()) {
+    throw std::runtime_error(
+        "Expected all_threads_request_records_ to be empty.");
   } else if (all_session_payloads.size() < session_concurrency_) {
     throw std::runtime_error(
         "The input data file contains " +
@@ -97,10 +100,14 @@ SessionConcurrencyManager::MakeAndWaitForThreads(
         "session concurrency level.");
   }
 
+  all_threads_request_records_.resize(session_concurrency_);
+
   for (size_t i{0}; i < session_concurrency_; ++i) {
+    auto& request_records{all_threads_request_records_[i]};
+
     threads_.emplace_back(
         &SessionConcurrencyManager::ProcessSessionsUntilComplete, this,
-        all_session_payloads);
+        std::ref(all_session_payloads), std::ref(request_records));
   }
 
   for (auto& thread : threads_) {
@@ -110,7 +117,8 @@ SessionConcurrencyManager::MakeAndWaitForThreads(
 
 void
 SessionConcurrencyManager::ProcessSessionsUntilComplete(
-    const std::vector<std::vector<size_t>>& all_session_payloads)
+    const std::vector<std::vector<size_t>>& all_session_payloads,
+    std::vector<RequestRecord>& request_records)
 {
   while (true) {
     const size_t session_index{next_session_index_++};
@@ -121,21 +129,26 @@ SessionConcurrencyManager::ProcessSessionsUntilComplete(
 
     const auto one_session_payloads{all_session_payloads[session_index]};
 
-    SendSequentialRequestsForOneSession(one_session_payloads);
+    SendSequentialRequestsForOneSession(one_session_payloads, request_records);
   }
 }
 
 void
 SessionConcurrencyManager::SendSequentialRequestsForOneSession(
-    const std::vector<size_t>& one_session_payloads)
+    const std::vector<size_t>& one_session_payloads,
+    std::vector<RequestRecord>& request_records)
 {
   rapidjson::Document chat_history(rapidjson::kArrayType);
 
   for (size_t i{0}; i < one_session_payloads.size(); ++i) {
     const size_t payload_index{one_session_payloads[i]};
 
+    request_records.emplace_back();
+
+    auto& request_record{request_records.back()};
+
     request_handler_->SendRequestAndWaitForResponse(
-        payload_index, chat_history);
+        payload_index, chat_history, request_record);
 
     const bool is_last_request{i == one_session_payloads.size() - 1};
 
@@ -160,11 +173,11 @@ std::vector<RequestRecord>
 SessionConcurrencyManager::GetRequestRecords() const
 {
   std::vector<RequestRecord> request_records{};
-  for (const auto& thread_stat : threads_stat_) {
+  for (const auto& one_thread_request_records : all_threads_request_records_) {
     request_records.insert(
         request_records.end(),
-        std::make_move_iterator(thread_stat->request_records_.begin()),
-        std::make_move_iterator(thread_stat->request_records_.end()));
+        std::make_move_iterator(one_thread_request_records.begin()),
+        std::make_move_iterator(one_thread_request_records.end()));
   }
   return request_records;
 }

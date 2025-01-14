@@ -37,6 +37,7 @@
 
 #include "../client_backend/client_backend.h"
 #include "../model_parser.h"
+#include "../request_record.h"
 #include "payload_dataset_manager.h"
 
 namespace triton::perfanalyzer {
@@ -49,17 +50,32 @@ class RequestHandler {
       std::shared_ptr<PayloadDatasetManager> payload_dataset_manager);
 
   void SendRequestAndWaitForResponse(
-      size_t dataset_index, rapidjson::Document& chat_history);
+      size_t dataset_index, rapidjson::Document& chat_history,
+      RequestRecord& request_record);
 
  private:
   void SendRequest(
       const std::string& payload,
       std::shared_ptr<std::promise<void>>&& response_promise,
-      rapidjson::Document& chat_history);
+      rapidjson::Document& chat_history, RequestRecord& request_record);
+
+  const std::vector<const cb::InferRequestedOutput*> PrepareRequestedOutputs()
+      const;
 
   const std::function<void(cb::InferResult*)> PrepareCallback(
       std::shared_ptr<std::promise<void>>&& response_promise,
-      rapidjson::Document& chat_history) const;
+      const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
+      RequestRecord& request_record, rapidjson::Document& chat_history) const;
+
+  void RecordResponse(
+      cb::InferResult* infer_result,
+      const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
+      RequestRecord& request_record) const;
+
+  void RecordResponseOutputs(
+      cb::InferResult* infer_result,
+      const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
+      RequestRecord::ResponseOutput& response_outputs) const;
 
   const std::vector<uint8_t> GetResponseBuffer(
       cb::InferResult* infer_result) const;
@@ -67,7 +83,13 @@ class RequestHandler {
   const std::vector<cb::InferInput*> PrepareInputs(
       const std::string& payload) const;
 
-  const std::vector<const cb::InferRequestedOutput*> PrepareOutputs() const;
+  void RecordRequest(
+      const std::vector<cb::InferInput*> inputs,
+      RequestRecord& request_record) const;
+
+  void RecordRequestInputs(
+      const std::vector<cb::InferInput*> inputs,
+      RequestRecord::RequestInput& request_inputs) const;
 
   void WaitForResponse(std::future<void>&& response_future) const;
 
