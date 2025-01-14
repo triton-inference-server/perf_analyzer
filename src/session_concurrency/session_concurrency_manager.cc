@@ -163,10 +163,9 @@ SessionConcurrencyManager::SendSequentialRequestsForOneSession(
 void
 SessionConcurrencyManager::GetAndWaitForDelayMs(size_t payload_index) const
 {
-  const uint64_t delay_ms{
-      payload_dataset_manager_->GetDelayMsForPayload(payload_index)};
+  const auto delay{payload_dataset_manager_->GetDelayForPayload(payload_index)};
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+  std::this_thread::sleep_for(delay);
 }
 
 std::vector<RequestRecord>

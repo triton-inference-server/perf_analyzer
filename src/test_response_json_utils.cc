@@ -37,7 +37,7 @@
 
 namespace triton::perfanalyzer {
 
-TEST_CASE("ResponseJsonUtils::GetResponseMessage")
+TEST_CASE("ResponseJsonUtils::GetResponseDocument")
 {
   SUBCASE("valid json")
   {
@@ -56,38 +56,73 @@ TEST_CASE("ResponseJsonUtils::GetResponseMessage")
     const std::vector<uint8_t> response_buffer(
         response.begin(), response.end());
 
-    const auto& message_value{
-        ResponseJsonUtils::GetResponseMessage(response_buffer)};
+    const auto& response_document{
+        ResponseJsonUtils::GetResponseDocument(response_buffer)};
 
-    REQUIRE(message_value.IsObject());
-    REQUIRE(message_value.MemberCount() == 2);
-    REQUIRE(message_value.HasMember("role"));
-    REQUIRE(message_value["role"].IsString());
+    rapidjson::Document expected_response_document{};
+    expected_response_document.Parse(response.c_str());
 
-    const auto& role_value{message_value["role"]};
+    CHECK(response_document == expected_response_document);
+  }
+
+  SUBCASE("invalid json")
+  {
+    const std::string response{R"(
+        {
+          "choi
+        )"};
+    const std::vector<uint8_t> response_buffer(
+        response.begin(), response.end());
+
+    CHECK_THROWS_WITH_AS(
+        ResponseJsonUtils::GetResponseDocument(response_buffer),
+        "RapidJSON parse error 10. Review JSON for formatting "
+        "errors:\n\n\n        {\n          \"choi\n        \n\n\n",
+        std::runtime_error);
+  }
+}
+
+TEST_CASE("ResponseJsonUtils::GetMessage")
+{
+  SUBCASE("valid message")
+  {
+    const std::string response{R"(
+        {
+          "choices": [
+            {
+              "message": {
+                "role": "my_role",
+                "content": "my_content"
+              }
+            }
+          ]
+        }
+        )"};
+
+    rapidjson::Document response_document{};
+    response_document.Parse(response.c_str());
+
+    const auto& message{ResponseJsonUtils::GetMessage(response_document)};
+
+    REQUIRE(message.IsObject());
+    REQUIRE(message.MemberCount() == 2);
+    REQUIRE(message.HasMember("role"));
+    REQUIRE(message["role"].IsString());
+
+    const auto& role_value{message["role"]};
     const std::string role(
         role_value.GetString(), role_value.GetStringLength());
 
     CHECK(role == "my_role");
 
-    REQUIRE(message_value.HasMember("content"));
-    REQUIRE(message_value["content"].IsString());
+    REQUIRE(message.HasMember("content"));
+    REQUIRE(message["content"].IsString());
 
-    const auto& content_value{message_value["content"]};
+    const auto& content_value{message["content"]};
     const std::string content(
         content_value.GetString(), content_value.GetStringLength());
 
     CHECK(content == "my_content");
-  }
-
-  SUBCASE("invalid json")
-  {
-    const std::string raw{""};
-    const std::vector<uint8_t> response_buffer(raw.begin(), raw.end());
-
-    CHECK_THROWS_WITH_AS(
-        ResponseJsonUtils::GetResponseMessage(response_buffer),
-        "rapidjson parse error 1", std::runtime_error);
   }
 
   SUBCASE("invalid choices")
@@ -97,13 +132,15 @@ TEST_CASE("ResponseJsonUtils::GetResponseMessage")
           "choices": []
         }
         )"};
-    const std::vector<uint8_t> response_buffer(
-        response.begin(), response.end());
+
+    rapidjson::Document response_document{};
+    response_document.Parse(response.c_str());
 
     CHECK_THROWS_WITH_AS(
-        ResponseJsonUtils::GetResponseMessage(response_buffer),
+        ResponseJsonUtils::GetMessage(response_document),
         "Response body must be an object and have a 'choices' field that is an "
-        "array with at least one element.",
+        "array with at least one element. Response "
+        "body:\n\n{\"choices\":[]}\n\n\n",
         std::runtime_error);
   }
 
@@ -118,13 +155,15 @@ TEST_CASE("ResponseJsonUtils::GetResponseMessage")
           ]
         }
         )"};
-    const std::vector<uint8_t> response_buffer(
-        response.begin(), response.end());
+
+    rapidjson::Document response_document{};
+    response_document.Parse(response.c_str());
 
     CHECK_THROWS_WITH_AS(
-        ResponseJsonUtils::GetResponseMessage(response_buffer),
+        ResponseJsonUtils::GetMessage(response_document),
         "Response body 'choices' field's first element must be an object and "
-        "have a 'message' field that is an object.",
+        "have a 'message' field that is an object. Response "
+        "body:\n\n{\"choices\":[{\"message\":false}]}\n\n\n",
         std::runtime_error);
   }
 }

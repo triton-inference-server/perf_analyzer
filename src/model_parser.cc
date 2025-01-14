@@ -27,6 +27,7 @@
 #include "model_parser.h"
 
 #include "rapidjson/writer.h"
+#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -272,7 +273,7 @@ ModelParser::InitTFServe(
 cb::Error
 ModelParser::InitOpenAI(
     const std::string& model_name, const std::string& model_version,
-    const int32_t batch_size, bool is_session_concurrency_mode)
+    const int32_t batch_size, SessionConcurrencyMode session_concurrency_mode)
 {
   // OpenAI does not return model metadata hence we can not obtain any
   // parameters.
@@ -293,7 +294,7 @@ ModelParser::InitOpenAI(
   response_output->second.shape_.push_back(1);
 
   // OpenAI in session concurrency mode takes an optional delay input
-  if (is_session_concurrency_mode) {
+  if (session_concurrency_mode == SessionConcurrencyMode::Enabled) {
     auto delay_input = inputs_->emplace("delay", ModelTensor()).first;
     delay_input->second.name_ = "delay";
     delay_input->second.datatype_ = "UINT64";

@@ -144,8 +144,11 @@ RequestHandler::PrepareCallback(
 
     const auto response_buffer{GetResponseBuffer(infer_result)};
 
+    const auto& response_document{
+        ResponseJsonUtils::GetResponseDocument(response_buffer)};
+
     const auto& response_message{
-        ResponseJsonUtils::GetResponseMessage(response_buffer)};
+        ResponseJsonUtils::GetMessage(response_document)};
 
     rapidjson::Value response_message_copy{};
     response_message_copy.CopyFrom(

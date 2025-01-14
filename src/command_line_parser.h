@@ -34,6 +34,7 @@
 #include "constants.h"
 #include "mpi_utils.h"
 #include "perf_utils.h"
+#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -134,7 +135,8 @@ struct PerfAnalyzerParameters {
     return (
         using_concurrency_range || using_old_options ||
         !(using_request_rate_range || using_custom_intervals ||
-          is_using_periodic_concurrency_mode || is_session_concurrency_mode));
+          is_using_periodic_concurrency_mode ||
+          session_concurrency_mode == SessionConcurrencyMode::Enabled));
   }
 
   // Sets the threshold for PA client overhead.
@@ -160,7 +162,8 @@ struct PerfAnalyzerParameters {
 
   std::vector<float> schedule{};
   size_t session_concurrency{0};
-  bool is_session_concurrency_mode{false};
+  SessionConcurrencyMode session_concurrency_mode{
+      SessionConcurrencyMode::Disabled};
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;

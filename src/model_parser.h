@@ -29,6 +29,7 @@
 
 #include "client_backend/client_backend.h"
 #include "perf_utils.h"
+#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -114,7 +115,8 @@ class ModelParser {
 
   cb::Error InitOpenAI(
       const std::string& model_name, const std::string& model_version,
-      const int32_t batch_size, bool is_session_concurrency_mode);
+      const int32_t batch_size,
+      SessionConcurrencyMode session_concurrency_mode);
 
   cb::Error InitTorchServe(
       const std::string& model_name, const std::string& model_version,

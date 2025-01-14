@@ -32,6 +32,7 @@
 #include "report_writer.h"
 #include "request_rate_manager.h"
 #include "session_concurrency/session_concurrency_manager.h"
+#include "session_concurrency_mode.h"
 
 namespace pa = triton::perfanalyzer;
 
@@ -115,7 +116,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
     FAIL_IF_ERR(
         parser_->InitOpenAI(
             params_->model_name, params_->model_version, params_->batch_size,
-            params_->is_session_concurrency_mode),
+            params_->session_concurrency_mode),
         "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
     rapidjson::Document model_metadata;
@@ -259,7 +260,9 @@ PerfAnalyzer::CreateAnalyzerObjects()
           "failed to create request rate manager");
     }
 
-  } else if (params_->is_session_concurrency_mode) {
+  } else if (
+      params_->session_concurrency_mode ==
+      pa::SessionConcurrencyMode::Enabled) {
     manager = std::make_unique<pa::SessionConcurrencyManager>(
         params_->async, params_->streaming, params_->batch_size,
         params_->max_threads, params_->shared_memory_type,
@@ -425,7 +428,9 @@ PerfAnalyzer::Profile()
         params_->warmup_request_count, params_->request_count, perf_statuses_);
   } else if (params_->is_using_periodic_concurrency_mode) {
     err = profiler_->ProfilePeriodicConcurrencyMode();
-  } else if (params_->is_session_concurrency_mode) {
+  } else if (
+      params_->session_concurrency_mode ==
+      pa::SessionConcurrencyMode::Enabled) {
     err = profiler_->BenchmarkSessionConcurrencyMode();
   } else {
     err = profiler_->Profile<double>(

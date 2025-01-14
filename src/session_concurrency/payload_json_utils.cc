@@ -35,6 +35,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "../rapidjson_utils.h"
+
 namespace triton::perfanalyzer {
 
 std::string
@@ -47,7 +49,8 @@ PayloadJsonUtils::GetSessionID(const std::string& payload)
       !payload_document["session_id"].IsString()) {
     throw std::runtime_error(
         "Request body must be an object and it must have a 'session_id' "
-        "field that is a string.");
+        "field that is a string. Request body:\n\n" +
+        RapidJsonUtils::Serialize(payload_document) + "\n\n\n");
   }
 
   return payload_document["session_id"].GetString();
@@ -63,7 +66,7 @@ PayloadJsonUtils::UpdateHistoryAndAddToPayload(
 
   SetPayloadToChatHistory(payload_document, chat_history);
 
-  payload = GetSerialziedPayload(payload_document);
+  payload = GetSerializedPayload(payload_document);
 }
 
 void
@@ -104,7 +107,8 @@ PayloadJsonUtils::ValidatePayloadMessages(
       !payload_document["messages"].IsArray()) {
     throw std::runtime_error(
         "Request body must be an object and it must have a 'messages' field "
-        "that is an array.");
+        "that is an array. Request body:\n\n" +
+        RapidJsonUtils::Serialize(payload_document) + "\n\n\n");
   }
 }
 
@@ -119,7 +123,7 @@ PayloadJsonUtils::SetPayloadToChatHistory(
 }
 
 std::string
-PayloadJsonUtils::GetSerialziedPayload(
+PayloadJsonUtils::GetSerializedPayload(
     const rapidjson::Document& payload_document)
 {
   rapidjson::StringBuffer buffer{};
@@ -137,8 +141,9 @@ PayloadJsonUtils::GetPayloadDocument(const std::string& payload)
 
   if (payload_document.HasParseError()) {
     throw std::runtime_error(
-        "rapidjson parse error " +
-        std::to_string(payload_document.GetParseError()));
+        "RapidJSON parse error " +
+        std::to_string(payload_document.GetParseError()) +
+        ". Review JSON for formatting errors:\n\n" + payload + "\n\n\n");
   }
 
   return payload_document;

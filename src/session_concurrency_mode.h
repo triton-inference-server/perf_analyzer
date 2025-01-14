@@ -25,41 +25,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <stddef.h>
-
-#include <chrono>
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
-#include "../data_loader.h"
-#include "../model_parser.h"
-
 namespace triton::perfanalyzer {
 
-class PayloadDatasetManager {
- public:
-  PayloadDatasetManager(
-      std::shared_ptr<const DataLoader> data_loader,
-      const std::shared_ptr<ModelParser> parser);
-
-  std::vector<std::vector<size_t>> GroupPayloadsBySession() const;
-
-  std::chrono::milliseconds GetDelayForPayload(size_t dataset_index) const;
-
-  std::string GetPayload(size_t dataset_index) const;
-
- private:
-  using PayloadsMapType = std::unordered_map<std::string, std::vector<size_t>>;
-
-  PayloadsMapType CreateSessionIdToPayloadsMap() const;
-
-  std::string GetSessionID(size_t dataset_index) const;
-
-  std::shared_ptr<const DataLoader> data_loader_{};
-  const std::shared_ptr<ModelParser> parser_{};
-};
+enum class SessionConcurrencyMode : bool { Disabled = false, Enabled = true };
 
 }  // namespace triton::perfanalyzer

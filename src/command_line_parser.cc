@@ -35,6 +35,7 @@
 #include <string>
 
 #include "perf_analyzer_exception.h"
+#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -1701,7 +1702,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
                 "Failed to parse --session-concurrency. Session concurrency "
                 "must be > 0.");
           }
-          params_->is_session_concurrency_mode = true;
+          params_->session_concurrency_mode = SessionConcurrencyMode::Enabled;
           break;
         }
         case 'v':
@@ -2121,7 +2122,7 @@ CLParser::VerifyOptions()
     }
   }
 
-  if (params_->is_session_concurrency_mode &&
+  if (params_->session_concurrency_mode == SessionConcurrencyMode::Enabled &&
       params_->kind != cb::BackendKind::OPENAI) {
     Usage(
         "Session concurrency mode is only supported with OpenAI service kind.");

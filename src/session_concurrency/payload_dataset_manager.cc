@@ -28,6 +28,7 @@
 
 #include <stddef.h>
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <stdexcept>
@@ -72,8 +73,8 @@ PayloadDatasetManager::GroupPayloadsBySession() const
   return session_datasets;
 }
 
-uint64_t
-PayloadDatasetManager::GetDelayMsForPayload(size_t dataset_index) const
+std::chrono::milliseconds
+PayloadDatasetManager::GetDelayForPayload(size_t dataset_index) const
 {
   TensorData delay_ms_tensor_data{};
 
@@ -87,7 +88,7 @@ PayloadDatasetManager::GetDelayMsForPayload(size_t dataset_index) const
   const uint64_t delay_ms{
       *reinterpret_cast<const uint64_t*>(delay_ms_tensor_data.data_ptr)};
 
-  return delay_ms;
+  return std::chrono::milliseconds(delay_ms);
 }
 
 std::string
@@ -111,11 +112,10 @@ PayloadDatasetManager::GetPayload(size_t dataset_index) const
   return payload;
 }
 
-std::unordered_map<std::string, std::vector<size_t>>
+PayloadDatasetManager::PayloadsMapType
 PayloadDatasetManager::CreateSessionIdToPayloadsMap() const
 {
-  std::unordered_map<std::string, std::vector<size_t>>
-      session_id_to_dataset_map{};
+  PayloadsMapType session_id_to_dataset_map{};
 
   const size_t dataset_size{data_loader_->GetTotalSteps(0)};
 

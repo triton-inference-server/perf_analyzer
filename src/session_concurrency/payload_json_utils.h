@@ -56,7 +56,7 @@ class PayloadJsonUtils {
       rapidjson::Document& payload_document,
       const rapidjson::Document& chat_history);
 
-  static std::string GetSerialziedPayload(
+  static std::string GetSerializedPayload(
       const rapidjson::Document& payload_document);
 
   static rapidjson::Document GetPayloadDocument(const std::string& payload);

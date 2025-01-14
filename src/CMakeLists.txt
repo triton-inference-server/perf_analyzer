@@ -205,6 +205,8 @@ set(
   session_concurrency/request_handler.h
   session_concurrency/response_json_utils.h
   session_concurrency/session_concurrency_manager.h
+  rapidjson_utils.h
+  session_concurrency_mode.h
 )
 
 add_executable(

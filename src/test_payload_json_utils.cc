@@ -55,7 +55,8 @@ TEST_CASE("PayloadJsonUtils::GetSession")
     const std::string payload{""};
 
     CHECK_THROWS_WITH_AS(
-        PayloadJsonUtils::GetSessionID(payload), "rapidjson parse error 1",
+        PayloadJsonUtils::GetSessionID(payload),
+        "RapidJSON parse error 1. Review JSON for formatting errors:\n\n\n\n\n",
         std::runtime_error);
   }
 
@@ -70,7 +71,7 @@ TEST_CASE("PayloadJsonUtils::GetSession")
     CHECK_THROWS_WITH_AS(
         PayloadJsonUtils::GetSessionID(payload),
         "Request body must be an object and it must have a 'session_id' field "
-        "that is a string.",
+        "that is a string. Request body:\n\n{\"session_id\":false}\n\n\n",
         std::runtime_error);
   }
 }
@@ -150,7 +151,8 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload")
 
     CHECK_THROWS_WITH_AS(
         PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history),
-        "rapidjson parse error 1", std::runtime_error);
+        "RapidJSON parse error 1. Review JSON for formatting errors:\n\n\n\n\n",
+        std::runtime_error);
   }
 
   SUBCASE("invalid payload - messages not an array")
@@ -165,7 +167,7 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload")
     CHECK_THROWS_WITH_AS(
         PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history),
         "Request body must be an object and it must have a 'messages' field "
-        "that is an array.",
+        "that is an array. Request body:\n\n{\"messages\":false}\n\n\n",
         std::runtime_error);
   }
 }

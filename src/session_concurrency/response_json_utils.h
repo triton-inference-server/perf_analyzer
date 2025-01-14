@@ -34,10 +34,6 @@ namespace triton::perfanalyzer {
 
 class ResponseJsonUtils {
  public:
-  static const rapidjson::Value& GetResponseMessage(
-      const std::vector<uint8_t>& response_buffer);
-
- private:
   static const rapidjson::Document GetResponseDocument(
       const std::vector<uint8_t>& response_buffer);
 

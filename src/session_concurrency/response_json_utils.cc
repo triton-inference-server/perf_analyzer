@@ -33,15 +33,9 @@
 #include <stdexcept>
 #include <vector>
 
-namespace triton::perfanalyzer {
+#include "../rapidjson_utils.h"
 
-const rapidjson::Value&
-ResponseJsonUtils::GetResponseMessage(
-    const std::vector<uint8_t>& response_buffer)
-{
-  const auto response_document{GetResponseDocument(response_buffer)};
-  return GetMessage(response_document);
-}
+namespace triton::perfanalyzer {
 
 const rapidjson::Document
 ResponseJsonUtils::GetResponseDocument(
@@ -49,15 +43,17 @@ ResponseJsonUtils::GetResponseDocument(
 {
   rapidjson::Document response_document{};
 
-  const char* response_buffer_c_str{
-      reinterpret_cast<const char*>(response_buffer.data())};
+  const std::string response_buffer_str(
+      response_buffer.begin(), response_buffer.end());
 
-  response_document.Parse(response_buffer_c_str, response_buffer.size());
+  response_document.Parse(response_buffer_str.c_str(), response_buffer.size());
 
   if (response_document.HasParseError()) {
     throw std::runtime_error(
-        "rapidjson parse error " +
-        std::to_string(response_document.GetParseError()));
+        "RapidJSON parse error " +
+        std::to_string(response_document.GetParseError()) +
+        ". Review JSON for formatting errors:\n\n" + response_buffer_str +
+        "\n\n\n");
   }
 
   return response_document;
@@ -72,7 +68,8 @@ ResponseJsonUtils::GetMessage(const rapidjson::Document& response_document)
       response_document["choices"].Empty()) {
     throw std::runtime_error(
         "Response body must be an object and have a 'choices' field that is "
-        "an array with at least one element.");
+        "an array with at least one element. Response body:\n\n" +
+        RapidJsonUtils::Serialize(response_document) + "\n\n\n");
   }
 
   const auto& response_first_choice{response_document["choices"][0]};
@@ -82,7 +79,8 @@ ResponseJsonUtils::GetMessage(const rapidjson::Document& response_document)
       !response_first_choice["message"].IsObject()) {
     throw std::runtime_error(
         "Response body 'choices' field's first element must be an object and "
-        "have a 'message' field that is an object.");
+        "have a 'message' field that is an object. Response body:\n\n" +
+        RapidJsonUtils::Serialize(response_document) + "\n\n\n");
   }
 
   return response_first_choice["message"];
