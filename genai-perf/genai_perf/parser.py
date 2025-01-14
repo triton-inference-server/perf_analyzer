@@ -1119,8 +1119,8 @@ def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     if args.subcommand == Subcommand.PROFILE.to_lowercase():
-        args = _check_payload_input_args(parser, args)
         args = _infer_prompt_source(args)
+        args = _check_payload_input_args(parser, args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
