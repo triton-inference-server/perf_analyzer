@@ -24,6 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import copy
+
+import pytest
 from genai_perf.inputs.converters import TensorRTLLMConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
@@ -55,10 +58,36 @@ class TestTensorRTLLMConverter:
             }
         )
 
-    def test_convert_default(self):
-        generic_dataset = self.create_generic_dataset()
+    @staticmethod
+    def create_generic_dataset_with_payload_parameters():
+        optional_data_1 = {"session_id": "abcd"}
+        optional_data_2 = {
+            "session_id": "dfwe",
+            "input_length": "6755",
+            "output_length": "500",
+        }
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    rows=[
+                        DataRow(
+                            texts=["text input one"],
+                            timestamp="0",
+                            optional_data=optional_data_1,
+                        ),
+                        DataRow(
+                            texts=["text input two"],
+                            timestamp="2345",
+                            optional_data=optional_data_2,
+                        ),
+                    ],
+                )
+            }
+        )
 
-        config = InputsConfig(
+    @pytest.fixture
+    def default_config(self):
+        yield InputsConfig(
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
@@ -66,8 +95,11 @@ class TestTensorRTLLMConverter:
             tokenizer=get_empty_tokenizer(),
         )
 
+    def test_convert_default(self, default_config):
+        generic_dataset = self.create_generic_dataset()
+
         trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, config)
+        result = trtllm_converter.convert(generic_dataset, default_config)
 
         expected_result = {
             "data": [
@@ -86,7 +118,7 @@ class TestTensorRTLLMConverter:
 
         assert result == expected_result
 
-    def test_convert_with_request_parameters(self):
+    def test_convert_with_request_parameters(self, default_config):
         generic_dataset = self.create_generic_dataset()
 
         extra_inputs = {
@@ -95,14 +127,9 @@ class TestTensorRTLLMConverter:
             "additional_key": "additional_value",
         }
 
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM,
-            add_stream=True,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = copy.deepcopy(default_config)
+        config.add_stream = True
+        config.extra_inputs.update(extra_inputs)
 
         trtllm_converter = TensorRTLLMConverter()
         result = trtllm_converter.convert(generic_dataset, config)
@@ -130,19 +157,40 @@ class TestTensorRTLLMConverter:
 
         assert result == expected_result
 
-    def test_convert_empty_dataset(self):
+    def test_convert_empty_dataset(self, default_config):
         generic_dataset = GenericDataset(files_data={})
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM,
-            tokenizer=get_empty_tokenizer(),
-        )
-
         trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, config)
+        result = trtllm_converter.convert(generic_dataset, default_config)
 
         expected_result = {"data": []}
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self, default_config):
+        generic_dataset = self.create_generic_dataset_with_payload_parameters()
+
+        trtllm_converter = TensorRTLLMConverter()
+        result = trtllm_converter.convert(generic_dataset, default_config)
+
+        expected_result = {
+            "data": [
+                {
+                    "model": "test_model",
+                    "text_input": ["text input one"],
+                    "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                    "session_id": "abcd",
+                    "timestamp": ["0"],
+                },
+                {
+                    "model": "test_model",
+                    "text_input": ["text input two"],
+                    "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                    "session_id": "dfwe",
+                    "input_length": "6755",
+                    "output_length": "500",
+                    "timestamp": ["2345"],
+                },
+            ]
+        }
+
         assert result == expected_result

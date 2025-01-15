@@ -53,7 +53,8 @@ class OpenAIEmbeddingsConverter(BaseConverter):
                     "model": model_name,
                     "input": row.texts,
                 }
-                self._add_request_params(payload, config)
-                request_body["data"].append({"payload": [payload]})
+
+                self._add_extra_params(payload, config, row)
+                request_body["data"].append(self._finalize_payload(payload, row))
 
         return request_body

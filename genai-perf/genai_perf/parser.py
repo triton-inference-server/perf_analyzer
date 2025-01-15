@@ -106,6 +106,21 @@ _endpoint_type_map = {
 }
 
 
+def _check_payload_input_args(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> argparse.Namespace:
+    """
+    Raise an error if concurrency or request-range is set
+    """
+
+    if args.prompt_source == ic.PromptSource.PAYLOAD:
+        if args.concurrency or args.request_rate:
+            raise ValueError(
+                "Concurrency and request_rate cannot be used with payload input."
+            )
+    return args
+
+
 def _check_model_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
@@ -478,12 +493,12 @@ def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
             )
         elif input_file_str.startswith("payload:"):
             args.prompt_source = ic.PromptSource.PAYLOAD
-            payload_input_file_str = input_file_str.split(":", 1)[1]
-            if not payload_input_file_str:
+            input_file_str = input_file_str.split(":", 1)[1]
+            if not input_file_str:
                 raise ValueError(
                     f"Invalid payload input: '{input_file_str}' is missing the file path"
                 )
-            args.payload_input_file = payload_input_file_str.split(",")
+            args.payload_input_file = Path(f"{input_file_str}.jsonl")
             logger.debug(
                 f"Input source is a payload file with timing information in the following path: {args.payload_input_file}"
             )
@@ -1105,6 +1120,7 @@ def refine_args(
 ) -> argparse.Namespace:
     if args.subcommand == Subcommand.PROFILE.to_lowercase():
         args = _infer_prompt_source(args)
+        args = _check_payload_input_args(parser, args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)

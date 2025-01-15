@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from enum import Enum, auto
-from typing import Dict
 
 
 class ModelSelectionStrategy(Enum):

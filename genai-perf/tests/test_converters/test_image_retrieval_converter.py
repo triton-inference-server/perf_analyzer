@@ -37,7 +37,6 @@ from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestImageRetrievalConverter:
-
     @staticmethod
     def create_generic_dataset() -> GenericDataset:
         return GenericDataset(
@@ -50,7 +49,24 @@ class TestImageRetrievalConverter:
             }
         )
 
-    def test_convert_default(self) -> None:
+    @staticmethod
+    def create_generic_dataset_with_payload_parameters() -> GenericDataset:
+        optional_data = {"session_id": "abcd"}
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    rows=[
+                        DataRow(
+                            images=["test_image_1", "test_image_2"],
+                            timestamp="0",
+                            optional_data=optional_data,
+                        )
+                    ]
+                )
+            }
+        )
+
+    def test_convert_default(self):
         """
         Test Image Retrieval request payload
         """
@@ -76,6 +92,37 @@ class TestImageRetrievalConverter:
                             ]
                         }
                     ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self):
+        generic_dataset = self.create_generic_dataset_with_payload_parameters()
+
+        config = InputsConfig(
+            extra_inputs={},
+            output_format=OutputFormat.IMAGE_RETRIEVAL,
+            tokenizer=get_empty_tokenizer(),
+        )
+
+        image_retrieval_converter = ImageRetrievalConverter()
+        result = image_retrieval_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "input": [
+                                {"type": "image_url", "url": "test_image_1"},
+                                {"type": "image_url", "url": "test_image_2"},
+                            ],
+                            "session_id": "abcd",
+                        }
+                    ],
+                    "timestamp": ["0"],
                 },
             ]
         }
