@@ -28,8 +28,8 @@ cmake_minimum_required(VERSION 3.18)
 
 project(perf_analyzer LANGUAGES C CXX)
 
-# Use C++17 standard as Triton's minimum required.
-set(TRITON_MIN_CXX_STANDARD 17 CACHE STRING "The minimum C++ standard which features are requested to build this target.")
+# Use C++20 standard as Triton's minimum required.
+set(TRITON_MIN_CXX_STANDARD 20 CACHE STRING "The minimum C++ standard which features are requested to build this target.")
 
 set(TRITON_VERSION "0.0.0" CACHE STRING "Version for the clients")
 set(PERF_ANALYZER_VERSION ${TRITON_VERSION} CACHE STRING "Build Version for Perf Analyzer")
