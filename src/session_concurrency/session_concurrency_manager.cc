@@ -107,7 +107,7 @@ SessionConcurrencyManager::MakeAndWaitForThreads(
 
     threads_.emplace_back(
         &SessionConcurrencyManager::ProcessSessionsUntilComplete, this,
-        std::ref(all_session_payloads), std::ref(request_records));
+        std::cref(all_session_payloads), std::ref(request_records));
   }
 
   for (auto& thread : threads_) {
@@ -127,7 +127,7 @@ SessionConcurrencyManager::ProcessSessionsUntilComplete(
       break;
     }
 
-    const auto one_session_payloads{all_session_payloads[session_index]};
+    const auto& one_session_payloads{all_session_payloads[session_index]};
 
     SendSequentialRequestsForOneSession(one_session_payloads, request_records);
   }
