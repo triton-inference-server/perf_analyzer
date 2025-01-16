@@ -53,4 +53,49 @@ TEST_CASE("testing the Coroutine class")
   CHECK(coroutine.done());
 }
 
+Coroutine<>
+CoroutineVoidTest()
+{
+  co_await std::suspend_always{};
+}
+
+TEST_CASE("testing the Coroutine class with void")
+{
+  auto coroutine = CoroutineVoidTest();
+
+  unsigned rounds = 0;
+  while (!coroutine.done()) {
+    coroutine.resume();
+    rounds++;
+  }
+
+  CHECK(rounds == 2);
+  CHECK(coroutine.done());
+}
+
+Coroutine<int>
+CascadeCoroutines()
+{
+  co_await CoroutineVoidTest();
+  auto result = co_await CoroutineTest();
+  co_return result;
+}
+
+TEST_CASE("testing the Coroutine class with cascading coroutines")
+{
+  auto coroutine = CascadeCoroutines();
+
+  unsigned rounds = 0;
+  while (!coroutine.done()) {
+    coroutine.resume();
+    rounds++;
+  }
+
+  auto result = coroutine.value();
+
+  CHECK(rounds == 4);
+  CHECK(result == 42);
+  CHECK(coroutine.done());
+}
+
 }  // namespace triton::perfanalyzer
