@@ -135,13 +135,13 @@ class TestLLMProfileDataParser:
                     "request_throughputs": [1 / ns_to_sec(5)],
                     "time_to_first_tokens": [2, 2],
                     "time_to_second_tokens": [2, 3],
-                    "inter_token_latencies": [2, 1],
+                    "inter_token_latencies": [1, 1],
                     "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(7),
-                        2 / ns_to_sec(3),
+                        5 / ns_to_sec(7),
+                        8 / ns_to_sec(9),
                     ],
-                    "output_token_throughputs": [9 / ns_to_sec(10)],
-                    "output_sequence_lengths": [3, 6],
+                    "output_token_throughputs": [13 / ns_to_sec(10)],
+                    "output_sequence_lengths": [5, 8],
                     "input_sequence_lengths": [3, 4],
                 },
             ),
@@ -153,13 +153,13 @@ class TestLLMProfileDataParser:
                     "request_throughputs": [2 / ns_to_sec(15)],
                     "time_to_first_tokens": [2, 3],
                     "time_to_second_tokens": [1, 2],
-                    "inter_token_latencies": [4, 1],
+                    "inter_token_latencies": [2, 1],
                     "output_token_throughputs_per_request": [
-                        4 / ns_to_sec(13),
-                        6 / ns_to_sec(8),
+                        7 / ns_to_sec(13),
+                        8 / ns_to_sec(8),
                     ],
-                    "output_token_throughputs": [2 / ns_to_sec(3)],
-                    "output_sequence_lengths": [4, 6],
+                    "output_token_throughputs": [15 / ns_to_sec(15)],
+                    "output_sequence_lengths": [7, 8],
                     "input_sequence_lengths": [3, 4],
                 },
             ),
@@ -188,21 +188,21 @@ class TestLLMProfileDataParser:
             - experiment 1: [5-3, 7-4] = [2, 3]
             - experiment 2: [8-7, 6-2] = [1, 2]
         * inter token latencies
-            - experiment 1: [((8 - 1) - 2)/(3 - 1), ((11 - 2) - 2)/(6 - 1)]
-                          : [2.5, 1.4]
+            - experiment 1: [((8 - 1) - 2)/(5 - 1), ((11 - 2) - 2)/(8 - 1)]
+                          : [1.25, 1]
+                          : [1, 1]  # rounded
+            - experiment 2: [((18 - 5) - 2)/(7 - 1), ((11 - 3) - 3)/(8 - 1)]
+                          : [2, 5/7]
                           : [2, 1]  # rounded
-            - experiment 2: [((18 - 5) - 2)/(4 - 1), ((11 - 3) - 3)/(6 - 1)]
-                          : [11/3, 1]
-                          : [4, 1]  # rounded
         * output token throughputs per request
-            - experiment 1: [3/(8 - 1), 6/(11 - 2)] = [3/7, 6/9]
-            - experiment 2: [4/(18 - 5), 6/(11 - 3)] = [4/13, 6/8]
+            - experiment 1: [5/(8 - 1), 8/(11 - 2)] = [5/7, 8/9]
+            - experiment 2: [7/(18 - 5), 8/(11 - 3)] = [7/13, 8/8]
         * output token throughputs
-            - experiment 1: [(3 + 6)/(11 - 1)] = [9/10]
-            - experiment 2: [(4 + 6)/(18 - 3)] = [2/3]
+            - experiment 1: [(5 + 8)/(11 - 1)] = [13/10]
+            - experiment 2: [(7 + 8)/(18 - 3)] = [15/15]
         * output sequence lengths
-            - experiment 1: [3, 6]
-            - experiment 2: [4, 6]
+            - experiment 1: [5, 8]
+            - experiment 2: [7, 8]
         * input sequence lengths
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
@@ -316,13 +316,13 @@ class TestLLMProfileDataParser:
                     "request_throughputs": [1 / ns_to_sec(7)],
                     "time_to_first_tokens": [4, 5],
                     "time_to_second_tokens": [3, 4],
-                    "inter_token_latencies": [4, 2],
+                    "inter_token_latencies": [2, 2],
                     "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(11),
+                        5 / ns_to_sec(11),
                         6 / ns_to_sec(13),
                     ],
-                    "output_token_throughputs": [9 / ns_to_sec(14)],
-                    "output_sequence_lengths": [3, 6],
+                    "output_token_throughputs": [11 / ns_to_sec(14)],
+                    "output_sequence_lengths": [5, 6],
                     "input_sequence_lengths": [3, 4],
                 },
             ),
@@ -347,15 +347,15 @@ class TestLLMProfileDataParser:
         * time to second tokens
             - experiment 1: [8 - 5, 11 - 7] = [3, 4]
         * inter token latencies
-            - experiment 1: [((12 - 1) - 4)/(3 - 1), ((15 - 2) - 5)/(6 - 1)]
-                          : [3.5, 1.6]
-                          : [4, 2]  # rounded
+            - experiment 1: [((12 - 1) - 4)/(5 - 1), ((15 - 2) - 5)/(6 - 1)]
+                          : [1.75, 1.6]
+                          : [2, 2]  # rounded
         * output token throughputs per request
-            - experiment 1: [3/(12 - 1), 6/(15 - 2)] = [3/11, 6/13]
+            - experiment 1: [5/(12 - 1), 6/(15 - 2)] = [5/11, 6/13]
         * output token throughputs
-            - experiment 1: [(3 + 6)/(15 - 1)] = [9/14]
+            - experiment 1: [(5 + 6)/(15 - 1)] = [11/14]
         * output sequence lengths
-            - experiment 1: [3, 6]
+            - experiment 1: [5, 6]
         * input sequence lengths
             - experiment 1: [3, 4]
         """
@@ -463,13 +463,13 @@ class TestLLMProfileDataParser:
                     "request_throughputs": [1 / ns_to_sec(7)],
                     "time_to_first_tokens": [4, 5],
                     "time_to_second_tokens": [3, 4],
-                    "inter_token_latencies": [4, 2],
+                    "inter_token_latencies": [2, 2],
                     "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(11),
+                        5 / ns_to_sec(11),
                         6 / ns_to_sec(13),
                     ],
-                    "output_token_throughputs": [9 / ns_to_sec(14)],
-                    "output_sequence_lengths": [3, 6],
+                    "output_token_throughputs": [11 / ns_to_sec(14)],
+                    "output_sequence_lengths": [5, 6],
                     "input_sequence_lengths": [3, 4],
                 },
             ),
@@ -494,15 +494,15 @@ class TestLLMProfileDataParser:
         * time to second tokens
             - experiment 1: [8 - 5, 11 - 7] = [3, 4]
         * inter token latencies
-            - experiment 1: [((12 - 1) - 4)/(3 - 1), ((15 - 2) - 5)/(6 - 1)]
-                          : [3.5, 1.6]
-                          : [4, 2]  # rounded
+            - experiment 1: [((12 - 1) - 4)/(5 - 1), ((15 - 2) - 5)/(6 - 1)]
+                          : [1.75, 1.6]
+                          : [2, 2]  # rounded
         * output token throughputs per request
-            - experiment 1: [3/(12 - 1), 6/(15 - 2)] = [3/11, 6/13]
+            - experiment 1: [5/(12 - 1), 6/(15 - 2)] = [5/11, 6/13]
         * output token throughputs
-            - experiment 1: [(3 + 6)/(15 - 1)] = [9/14]
+            - experiment 1: [(5 + 6)/(15 - 1)] = [11/14]
         * output sequence lengths
-            - experiment 1: [3, 6]
+            - experiment 1: [5, 6]
         * input sequence lengths
             - experiment 1: [3, 4]
         """
@@ -841,7 +841,7 @@ class TestLLMProfileDataParser:
             res_outputs
         )
         assert output_token_counts == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  # total 10
-        assert total_output_token == 9
+        assert total_output_token == 19
         assert total_output_token != sum(output_token_counts)
 
     @patch(
@@ -875,7 +875,7 @@ class TestLLMProfileDataParser:
             res_outputs
         )
         assert output_token_counts == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  # total 10
-        assert total_output_token == 9
+        assert total_output_token == 19
         assert total_output_token != sum(output_token_counts)
 
     empty_profile_data = {
