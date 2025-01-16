@@ -24,7 +24,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "coroutines.h"
+#include <coroutine>
+
+#include "coroutine.h"
 #include "doctest.h"
 
 namespace triton::perfanalyzer {
@@ -41,16 +43,16 @@ TEST_CASE("testing the Coroutine class")
   auto coroutine = CoroutineTest();
 
   unsigned rounds = 0;
-  while (!coroutine.done()) {
-    coroutine.resume();
+  while (!coroutine.Done()) {
+    coroutine.Resume();
     rounds++;
   }
 
-  auto result = coroutine.value();
+  auto result = coroutine.Value();
 
   CHECK(rounds == 2);
   CHECK(result == 42);
-  CHECK(coroutine.done());
+  CHECK(coroutine.Done());
 }
 
 Coroutine<>
@@ -64,13 +66,13 @@ TEST_CASE("testing the Coroutine class with void")
   auto coroutine = CoroutineVoidTest();
 
   unsigned rounds = 0;
-  while (!coroutine.done()) {
-    coroutine.resume();
+  while (!coroutine.Done()) {
+    coroutine.Resume();
     rounds++;
   }
 
   CHECK(rounds == 2);
-  CHECK(coroutine.done());
+  CHECK(coroutine.Done());
 }
 
 Coroutine<int>
@@ -86,16 +88,16 @@ TEST_CASE("testing the Coroutine class with cascading coroutines")
   auto coroutine = CascadeCoroutines();
 
   unsigned rounds = 0;
-  while (!coroutine.done()) {
-    coroutine.resume();
+  while (!coroutine.Done()) {
+    coroutine.Resume();
     rounds++;
   }
 
-  auto result = coroutine.value();
+  auto result = coroutine.Value();
 
   CHECK(rounds == 4);
   CHECK(result == 42);
-  CHECK(coroutine.done());
+  CHECK(coroutine.Done());
 }
 
 }  // namespace triton::perfanalyzer

@@ -68,12 +68,13 @@ class Coroutine {
     friend struct Coroutine;
   };
 
-  Awaiter awaiter() { return Awaiter(this); }
+  Awaiter CreateAwaiter() { return Awaiter(this); }
 
-  void resume()
+  void Resume()
   {
-    if (!handle_)
+    if (!handle_) {
       return;
+    }
     if (!suspended_) {
       earlyResume_ = true;
       return;
@@ -82,10 +83,11 @@ class Coroutine {
     handle_.resume();
   }
 
-  bool done()
+  bool Done()
   {
-    if (!handle_)
+    if (!handle_) {
       return true;
+    }
     bool isDone = handle_.done();
     if (isDone) {
       if constexpr (!std::is_void<T>::value) {
@@ -97,7 +99,7 @@ class Coroutine {
     return isDone;
   }
 
-  const SafeT& value() const { return value_; }
+  const SafeT& Value() const { return value_; }
 
  private:
   struct PromiseVoid {
@@ -160,7 +162,7 @@ class Coroutine {
   {
     auto& promise = handle_.promise();
     promise.awaitingCoroutine_ = h.address();
-    resume();
+    Resume();
   }
   constexpr SafeT await_resume()
   {

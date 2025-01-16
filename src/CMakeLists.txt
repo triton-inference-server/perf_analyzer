@@ -194,7 +194,7 @@ set(
   periodic_concurrency_worker.h
   thread_config.h
   cuda_runtime_library_manager.h
-  coroutines.h
+  coroutine.h
 )
 
 add_executable(
