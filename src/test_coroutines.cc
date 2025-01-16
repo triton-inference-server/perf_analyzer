@@ -24,7 +24,10 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <stdio.h>
+
 #include <coroutine>
+#include <queue>
 
 #include "coroutine.h"
 #include "doctest.h"
@@ -34,11 +37,11 @@ namespace triton::perfanalyzer {
 Coroutine<int>
 CoroutineTest()
 {
-  co_await std::suspend_always{};
+  co_await Coroutine<int>::Awaiter{};
   co_return 42;
 }
 
-TEST_CASE("testing the Coroutine class")
+TEST_CASE("coroutine:testing the Coroutine class")
 {
   auto coroutine = CoroutineTest();
 
@@ -58,10 +61,10 @@ TEST_CASE("testing the Coroutine class")
 Coroutine<>
 CoroutineVoidTest()
 {
-  co_await std::suspend_always{};
+  co_await Coroutine<>::Awaiter{};
 }
 
-TEST_CASE("testing the Coroutine class with void")
+TEST_CASE("coroutine:testing the Coroutine class with void")
 {
   auto coroutine = CoroutineVoidTest();
 
@@ -75,29 +78,50 @@ TEST_CASE("testing the Coroutine class with void")
   CHECK(coroutine.Done());
 }
 
+std::queue<std::coroutine_handle<>> pendingCoroutines;
+
+struct QueuedAwaiter {
+  bool await_ready() { return false; }
+  void await_suspend(std::coroutine_handle<> h)
+  {
+    pendingCoroutines.push(h);
+  }
+  void await_resume() {}
+};
+
 Coroutine<int>
-CascadeCoroutines()
-{
-  co_await CoroutineVoidTest();
-  auto result = co_await CoroutineTest();
-  co_return result;
+CascadeCoroutine() {
+  co_await QueuedAwaiter{};
+  co_return 42;
 }
 
-TEST_CASE("testing the Coroutine class with cascading coroutines")
+Coroutine<int>
+CascadeCoroutinesTest()
 {
-  auto coroutine = CascadeCoroutines();
+  co_return co_await CascadeCoroutine() * 2;
+}
+
+TEST_CASE("coroutine:testing the Coroutine class with cascading coroutines")
+{
+  auto coroutine = CascadeCoroutinesTest();
+  coroutine.Resume();
 
   unsigned rounds = 0;
   while (!coroutine.Done()) {
-    coroutine.Resume();
+    CHECK(!pendingCoroutines.empty());
+    auto pending = pendingCoroutines.front();
+    pendingCoroutines.pop();
+    pending.resume();
+    printf("%i\n", rounds);
     rounds++;
   }
 
   auto result = coroutine.Value();
 
-  CHECK(rounds == 4);
-  CHECK(result == 42);
+  CHECK(rounds == 1);
+  CHECK(result == 84);
   CHECK(coroutine.Done());
+  CHECK(pendingCoroutines.empty());
 }
 
 }  // namespace triton::perfanalyzer

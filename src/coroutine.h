@@ -35,6 +35,65 @@ template <typename T = void>
 class Coroutine {
  public:
   struct Empty {};
+
+ private:
+  struct PromiseVoid {
+    Coroutine<> get_return_object()
+    {
+      return Coroutine<>{
+          std::move(std::coroutine_handle<Promise>::from_promise(*this))};
+    }
+    std::suspend_always initial_suspend()
+    {
+      suspended_ = true;
+      return {};
+    }
+    std::suspend_always final_suspend() noexcept { return {}; }
+    void unhandled_exception() {}
+    void return_void()
+    {
+      auto awaitingCoroutine = awaitingCoroutine_;
+      if (awaitingCoroutine) {
+        awaitingCoroutine_ = nullptr;
+        std::coroutine_handle<>::from_address(awaitingCoroutine).resume();
+      }
+    }
+    [[no_unique_address]] Empty value_{};
+    void* awaitingCoroutine_ = nullptr;
+    bool earlyResume_ = false;
+    bool suspended_ = false;
+  };
+  struct PromiseValue {
+    Coroutine<T> get_return_object()
+    {
+      return Coroutine{
+          std::move(std::coroutine_handle<Promise>::from_promise(*this))};
+    }
+    std::suspend_always initial_suspend()
+    {
+      suspended_ = true;
+      return {};
+    }
+    std::suspend_always final_suspend() noexcept { return {}; }
+    void unhandled_exception() {}
+    void return_value(T&& value)
+    {
+      value_ = std::move(value);
+      auto awaitingCoroutine = awaitingCoroutine_;
+      if (awaitingCoroutine) {
+        awaitingCoroutine_ = nullptr;
+        std::coroutine_handle<>::from_address(awaitingCoroutine).resume();
+      }
+    }
+    T value_{};
+    void* awaitingCoroutine_ = nullptr;
+    bool earlyResume_ = false;
+    bool suspended_ = false;
+  };
+  typedef typename std::conditional<
+      std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
+
+ public:
   typedef
       typename std::conditional<std::is_void<T>::value, Empty, T>::type SafeT;
 
@@ -50,36 +109,32 @@ class Coroutine {
     Awaiter& operator=(Awaiter&& other) = default;
     Awaiter(Awaiter const&) = default;
     Awaiter& operator=(Awaiter const&) = default;
-    constexpr bool await_ready() const noexcept
+    constexpr bool await_ready() const noexcept { return false; }
+    template<typename U>
+    constexpr bool await_suspend(std::coroutine_handle<U> h)
     {
-      bool ret = coroutine_->earlyResume_;
-      coroutine_->earlyResume_ = false;
-      return ret;
-    }
-    constexpr void await_suspend(std::coroutine_handle<> h)
-    {
-      coroutine_->suspended_ = true;
+      auto& promise = h.promise();
+      bool ret = promise.earlyResume_;
+      promise.earlyResume_ = false;
+      if (!ret) {
+        promise.suspended_ = true;
+      }
+      return !ret;
     }
     constexpr void await_resume() const noexcept {}
-
-   private:
-    Awaiter(Coroutine* coroutine) : coroutine_(coroutine) {}
-    Coroutine* coroutine_;
-    friend struct Coroutine;
   };
-
-  Awaiter CreateAwaiter() { return Awaiter(this); }
 
   void Resume()
   {
     if (!handle_) {
       return;
     }
-    if (!suspended_) {
-      earlyResume_ = true;
+    auto& promise = handle_.promise();
+    if (!promise.suspended_) {
+      promise.earlyResume_ = true;
       return;
     }
-    suspended_ = false;
+    promise.suspended_ = false;
     handle_.resume();
   }
 
@@ -102,47 +157,6 @@ class Coroutine {
   const SafeT& Value() const { return value_; }
 
  private:
-  struct PromiseVoid {
-    Coroutine<> get_return_object()
-    {
-      return Coroutine<>{
-          std::move(std::coroutine_handle<Promise>::from_promise(*this))};
-    }
-    std::suspend_always initial_suspend() { return {}; }
-    std::suspend_always final_suspend() noexcept { return {}; }
-    void unhandled_exception() {}
-    void return_void()
-    {
-      auto awaitingCoroutine = awaitingCoroutine_;
-      if (awaitingCoroutine) {
-        __builtin_coro_resume(awaitingCoroutine);
-      }
-    }
-    [[no_unique_address]] Empty value_;
-    void* awaitingCoroutine_ = nullptr;
-  };
-  struct PromiseValue {
-    Coroutine<T> get_return_object()
-    {
-      return Coroutine{
-          std::move(std::coroutine_handle<Promise>::from_promise(*this))};
-    }
-    std::suspend_always initial_suspend() { return {}; }
-    std::suspend_always final_suspend() noexcept { return {}; }
-    void unhandled_exception() {}
-    void return_value(T&& value)
-    {
-      value_ = std::move(value);
-      auto awaitingCoroutine = awaitingCoroutine_;
-      if (awaitingCoroutine) {
-        __builtin_coro_resume(awaitingCoroutine);
-      }
-    }
-    T value_;
-    void* awaitingCoroutine_ = nullptr;
-  };
-  typedef typename std::conditional<
-      std::is_void<T>::value, PromiseVoid, PromiseValue>::type Promise;
   Coroutine(std::coroutine_handle<Promise>&& handle)
       : handle_(std::move(handle))
   {
@@ -150,8 +164,6 @@ class Coroutine {
   std::coroutine_handle<Promise> handle_;
   [[no_unique_address]] SafeT value_;
   void* awaitingCoroutine_ = nullptr;
-  bool suspended_ = true;
-  bool earlyResume_ = false;
 
  public:
   using promise_type = Promise;
@@ -168,6 +180,7 @@ class Coroutine {
   {
     SafeT value = std::move(handle_.promise().value_);
     handle_.destroy();
+    handle_ = nullptr;
     return value;
   }
 };
