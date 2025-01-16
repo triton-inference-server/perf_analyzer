@@ -45,6 +45,7 @@ class AnalyzeDefaults:
     MAX_NUM_DATASET_ENTRIES = 1000
     MIN_INPUT_SEQUENCE_LENGTH = 100
     MAX_INPUT_SEQUENCE_LENGTH = 1000
+    STEP = 1
 
     STIMULUS_TYPE = "concurrency"
     SWEEP_PARAMETER = {"concurrency": Range(min=MIN_CONCURRENCY, max=MAX_CONCURRENCY)}
@@ -65,7 +66,7 @@ class EndPointDefaults:
 @dataclass(frozen=True)
 class PerfAnalyzerDefaults:
     PATH = "./perf_analyzer"
-    STIMULUS = None
+    STIMULUS = {"concurrency": 1}
     STABILITY_PERCENTAGE = 999
     MEASUREMENT_INTERVAL = 10000
     SKIP_ARGS = False

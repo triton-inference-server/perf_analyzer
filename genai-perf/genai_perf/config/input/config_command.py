@@ -677,4 +677,4 @@ class ConfigCommand:
             raise ValueError(f"User Config: {sweep_type} is not a valid sweep type")
 
     def _get_default_step(self, sweep_type: str) -> int:
-        return 1
+        return AnalyzeDefaults.STEP
