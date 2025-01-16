@@ -194,6 +194,7 @@ set(
   periodic_concurrency_worker.h
   thread_config.h
   cuda_runtime_library_manager.h
+  coroutines.h
 )
 
 add_executable(
@@ -338,6 +339,7 @@ add_executable(
   test_ctx_id_tracker.cc
   test_profile_data_collector.cc
   test_profile_data_exporter.cc
+  test_coroutines.cc
   ${TEST_HTTP_CLIENT}
 )
 
@@ -361,6 +363,7 @@ target_compile_options(
   perf_analyzer_unit_tests
   PRIVATE
     -Wno-write-strings
+    -fcoroutines
 )
 
 target_link_libraries(
