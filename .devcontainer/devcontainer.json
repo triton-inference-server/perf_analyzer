@@ -1,0 +1,11 @@
+{
+  "name": "perf_analyzer Dev Container",
+  "image": "gitlab-master.nvidia.com:5005/dl/dgx/tritonserver:master-py3-devel",
+  "postCreateCommand": "apt update && apt install -y --no-install-recommends clang-format-15 cmake gdb libb64-dev rapidjson-dev",
+  "runArgs": ["--gpus=all", "--net=host"],
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-vscode.cpptools", "ms-vscode.cmake-tools"]
+    }
+  }
+}
