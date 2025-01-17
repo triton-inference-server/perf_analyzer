@@ -24,8 +24,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include <stdio.h>
-
 #include <coroutine>
 #include <queue>
 
@@ -34,6 +32,10 @@
 
 namespace triton::perfanalyzer {
 
+// A simple coroutine that returns an integer.
+// It awaits for an Awaiter object and then returns 42,
+// meaning that it will resume twice before completing
+// as the coroutine is created in a suspended state.
 Coroutine<int>
 CoroutineTest()
 {
@@ -58,6 +60,9 @@ TEST_CASE("coroutine:testing the Coroutine class")
   CHECK(coroutine.Done());
 }
 
+// A simple coroutine that returns void.
+// This is the same as the previous test, but with a void return type,
+// in order to test the void specialization of the Coroutine class.
 Coroutine<>
 CoroutineVoidTest()
 {
@@ -78,8 +83,13 @@ TEST_CASE("coroutine:testing the Coroutine class with void")
   CHECK(coroutine.Done());
 }
 
+// This tests cascading coroutines, where one coroutine awaits another.
+// To do this without a global scheduler, we use a queue to store the
+// pending coroutines.
 std::queue<std::coroutine_handle<>> pendingCoroutines;
 
+// The specialized awaiter will simply queue the coroutine handle to
+// be resumed immediately in the pseudo-scheduler loop of the test.
 struct QueuedAwaiter {
   bool await_ready() { return false; }
   void await_suspend(std::coroutine_handle<> h)
@@ -89,12 +99,14 @@ struct QueuedAwaiter {
   void await_resume() {}
 };
 
+// A coroutine that schedules itself to be resumed later, and returns 42.
 Coroutine<int>
 CascadeCoroutine() {
   co_await QueuedAwaiter{};
   co_return 42;
 }
 
+// The main coroutine that awaits the previous one and returns its value.
 Coroutine<int>
 CascadeCoroutinesTest()
 {
@@ -112,7 +124,6 @@ TEST_CASE("coroutine:testing the Coroutine class with cascading coroutines")
     auto pending = pendingCoroutines.front();
     pendingCoroutines.pop();
     pending.resume();
-    printf("%i\n", rounds);
     rounds++;
   }
 
