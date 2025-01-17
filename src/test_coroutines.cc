@@ -92,16 +92,14 @@ std::queue<std::coroutine_handle<>> pendingCoroutines;
 // be resumed immediately in the pseudo-scheduler loop of the test.
 struct QueuedAwaiter {
   bool await_ready() { return false; }
-  void await_suspend(std::coroutine_handle<> h)
-  {
-    pendingCoroutines.push(h);
-  }
+  void await_suspend(std::coroutine_handle<> h) { pendingCoroutines.push(h); }
   void await_resume() {}
 };
 
 // A coroutine that schedules itself to be resumed later, and returns 42.
 Coroutine<int>
-CascadeCoroutine() {
+CascadeCoroutine()
+{
   co_await QueuedAwaiter{};
   co_return 42;
 }
