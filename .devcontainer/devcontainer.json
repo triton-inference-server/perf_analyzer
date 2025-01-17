@@ -1,6 +1,6 @@
 {
   "name": "perf_analyzer Dev Container",
-  "image": "gitlab-master.nvidia.com:5005/dl/dgx/tritonserver:master-py3-devel",
+  "image": "gitlab-master.nvidia.com:5005/dl/dgx/tritonserver:master-py3-base",
   "postCreateCommand": "apt update && apt install -y --no-install-recommends clang-format-16 cmake gdb rapidjson-dev",
   "runArgs": ["--gpus=all", "--net=host", "--pull=always"],
   "customizations": {
