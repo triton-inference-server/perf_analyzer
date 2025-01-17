@@ -151,7 +151,7 @@ class Coroutine {
    * suspensions.
    *
    * Its main purpose is to be a generic awaiter mechanism, in case creating a
-   * specific awaiter for an asychronous operation would be too cumbersome, but
+   * specific awaiter for an asynchronous operation would be too cumbersome, but
    * in general, it is recommended to create a specific awaiter for each
    * asynchronous operation instead.
    */
