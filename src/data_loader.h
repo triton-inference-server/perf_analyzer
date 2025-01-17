@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -45,12 +45,12 @@ class DataLoader {
   DataLoader(size_t batch_size);
 
   /// Returns the total number of data streams available.
-  size_t GetDataStreamsCount() { return data_stream_cnt_; }
+  size_t GetDataStreamsCount() const { return data_stream_cnt_; }
 
   /// Returns the total data steps supported for a requested data stream
   /// id.
   /// \param stream_id The target stream id
-  virtual size_t GetTotalSteps(size_t stream_id)
+  virtual size_t GetTotalSteps(size_t stream_id) const
   {
     if (stream_id < data_stream_cnt_) {
       return step_num_[stream_id];
@@ -113,7 +113,7 @@ class DataLoader {
   /// Returns error object indicating status
   cb::Error GetInputData(
       const ModelTensor& input, const int stream_id, const int step_id,
-      TensorData& data);
+      TensorData& data) const;
 
   /// Helper function to get the shape values to the input
   /// \param input The target model input tensor
@@ -138,7 +138,7 @@ class DataLoader {
       TensorData& data);
 
   /// Return an error if the stream index or step index are invalid
-  cb::Error ValidateIndexes(int stream_index, int step_index);
+  cb::Error ValidateIndexes(int stream_index, int step_index) const;
 
  protected:
   /// Parses the input and output data from the json document

@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -354,7 +354,7 @@ DataLoader::GenerateData(
 cb::Error
 DataLoader::GetInputData(
     const ModelTensor& input, const int stream_id, const int step_id,
-    TensorData& data)
+    TensorData& data) const
 {
   data.data_ptr = nullptr;
   data.batch1_size = 0;
@@ -371,7 +371,7 @@ DataLoader::GetInputData(
     // Get the data and the corresponding byte-size
     auto it = input_data_.find(key_name);
     if (it != input_data_.end()) {
-      std::vector<char>* data_vec = &it->second;
+      const std::vector<char>* data_vec = &it->second;
       data.is_valid = true;
       data.batch1_size = data_vec->size();
       data.data_ptr = (const uint8_t*)data_vec->data();
@@ -432,7 +432,7 @@ DataLoader::GetOutputData(
 }
 
 cb::Error
-DataLoader::ValidateIndexes(int stream_id, int step_id)
+DataLoader::ValidateIndexes(int stream_id, int step_id) const
 {
   if (stream_id < 0 || stream_id >= (int)data_stream_cnt_) {
     return cb::Error(
