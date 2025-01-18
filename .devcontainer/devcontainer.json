@@ -1,7 +1,7 @@
 {
   "name": "perf_analyzer Dev Container",
   "image": "gitlab-master.nvidia.com:5005/dl/dgx/tritonserver:master-py3-base",
-  "postCreateCommand": "apt update && apt install -y --no-install-recommends clang-format-16 cmake gdb rapidjson-dev libssl-dev",
+  "postCreateCommand": "apt update && apt install -y --no-install-recommends clang-format-16 cmake gdb rapidjson-dev libssl-dev && update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-16 100",
   "runArgs": ["--gpus=all", "--net=host", "--pull=always"],
   "customizations": {
     "vscode": {
