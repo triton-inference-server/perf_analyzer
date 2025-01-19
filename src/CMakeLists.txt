@@ -154,6 +154,7 @@ set(
   session_concurrency/request_handler.cc
   session_concurrency/response_json_utils.cc
   session_concurrency/session_concurrency_manager.cc
+  dlwrapper.cc
 )
 
 set(
@@ -207,6 +208,7 @@ set(
   session_concurrency/session_concurrency_manager.h
   rapidjson_utils.h
   session_concurrency_mode.h
+  dlwrapper.h
 )
 
 add_executable(
@@ -356,6 +358,7 @@ add_executable(
   test_response_json_utils.cc
   test_payload_json_utils.cc
   test_payload_dataset_manager.cc
+  test_dlwrapper.cc
 )
 
 target_sources(
