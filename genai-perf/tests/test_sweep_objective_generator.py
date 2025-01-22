@@ -18,11 +18,8 @@ from unittest.mock import patch
 
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    RunConfigDefaults,
-    Subcommand,
-)
+from genai_perf.config.input.config_command import ConfigCommand, Subcommand
+from genai_perf.config.input.config_defaults import AnalyzeDefaults
 
 
 class TestSweepObjectiveGenerator(unittest.TestCase):
@@ -30,13 +27,15 @@ class TestSweepObjectiveGenerator(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(model_names=["test_modelA", "test_modelB"])
+        self._config = ConfigCommand(user_config={})
+        self._config.model_names = ["test_modelA", "test_modelB"]
+
         self._model_search_parameters = {
             "test_modelA": SearchParameters(
-                config=self._config, subcommand=Subcommand.OPTIMIZE
+                config=self._config, subcommand=Subcommand.ANALYZE
             ),
             "test_modelB": SearchParameters(
-                config=self._config, subcommand=Subcommand.OPTIMIZE
+                config=self._config, subcommand=Subcommand.ANALYZE
             ),
         }
 
@@ -47,13 +46,8 @@ class TestSweepObjectiveGenerator(unittest.TestCase):
 
         self._expected_model_search_parameter_combination_count = len(
             range(
-                int(log2(RunConfigDefaults.MIN_MODEL_BATCH_SIZE)),
-                int(log2(RunConfigDefaults.MAX_MODEL_BATCH_SIZE)) + 1,
-            )
-        ) * len(
-            range(
-                RunConfigDefaults.MIN_INSTANCE_COUNT,
-                RunConfigDefaults.MAX_INSTANCE_COUNT + 1,
+                int(log2(AnalyzeDefaults.MIN_CONCURRENCY)),
+                int(log2(AnalyzeDefaults.MAX_CONCURRENCY)) + 1,
             )
         )
 
