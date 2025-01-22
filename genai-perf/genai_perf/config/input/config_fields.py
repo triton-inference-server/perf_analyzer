@@ -40,22 +40,10 @@ class ConfigField:
         self.template_comment = template_comment
         self.bounds = bounds
         self.choices = choices
+        self.is_set_by_user = False
 
-        # It is important that this is set last to ensure that anything used to
-        # check value (like bounds/choices) is set before value is set
-        self.value = value
-
-        self._set_is_set_by_user()
-        self._set_default_value()
-        self._check_bounds()
-        self._check_choices()
-
-    def _set_is_set_by_user(self):
-        self.is_set_by_user = not self.value is None
-
-    def _set_default_value(self):
-        if self.value is None:
-            self.value = self.default
+        if value is not None:
+            self.value = value
 
     def _check_bounds(self):
         if isinstance(self.value, (int, float)):
@@ -140,7 +128,10 @@ class ConfigFields:
                 self._values[name] = value
                 return
 
-            self._values[name] = self._fields[name].value
+            if self._fields[name].is_set_by_user:
+                self._values[name] = self._fields[name].value
+            else:
+                self._values[name] = self._fields[name].default
 
     def __getattr__(self, name):
         if name == "_fields" or name == "_values":
@@ -148,7 +139,10 @@ class ConfigFields:
         elif name in self._children:
             return self._children[name]
         else:
-            return self._fields[name].value
+            if self._fields[name].is_set_by_user:
+                return self._fields[name].value
+            else:
+                return self._fields[name].default
 
     def __deepcopy__(self, memo):
         new_copy = ConfigFields()

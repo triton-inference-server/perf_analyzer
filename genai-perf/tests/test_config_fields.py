@@ -51,6 +51,33 @@ class TestConfigFields(unittest.TestCase):
         self.assertEqual(test_field.bounds, None)
         self.assertEqual(test_field.choices, None)
 
+    def test_is_set_by_user(self):
+        """
+        Test that is_set_by_user is set correctly
+        """
+        test_field = ConfigField(
+            default=1,
+            required=True,
+            add_to_template=False,
+            template_comment="test comment",
+            value=2,
+        )
+
+        self.assertEqual(test_field.is_set_by_user, True)
+
+    def test_is_not_set_by_user(self):
+        """
+        Test that is_set_by_user is not set when no value is specified
+        """
+        test_field = ConfigField(
+            default=1,
+            required=True,
+            add_to_template=False,
+            template_comment="test comment",
+        )
+
+        self.assertEqual(test_field.is_set_by_user, False)
+
     def test_config_field_bounds(self):
         """
         Test that a ConfigField with bounds can be written and read from
