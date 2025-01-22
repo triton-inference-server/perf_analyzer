@@ -47,17 +47,13 @@ TEST_CASE("coroutine:testing the Coroutine class")
 {
   auto coroutine = CoroutineTest();
 
-  unsigned rounds = 0;
-  while (!coroutine.Done()) {
-    coroutine.Resume();
-    rounds++;
-  }
+  REQUIRE(!coroutine.Done());  
 
-  auto result = coroutine.Value();
+  coroutine.Resume(); // resume from initial suspension  
+  coroutine.Resume(); // resume from suspension at end, coroutine completes  
 
-  CHECK(rounds == 2);
-  CHECK(result == 42);
-  CHECK(coroutine.Done());
+  CHECK(coroutine.Done());  
+  CHECK(coroutine.Value() == 42);
 }
 
 // A simple coroutine that returns void.
