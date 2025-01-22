@@ -98,7 +98,7 @@ class TestConfigFields(unittest.TestCase):
         Test that a ConfigField with out of bounds value raises an error
         """
         with self.assertRaises(ValueError):
-            test_field = ConfigField(
+            _ = ConfigField(
                 default=1,
                 required=True,
                 add_to_template=False,
@@ -112,7 +112,7 @@ class TestConfigFields(unittest.TestCase):
         Test that a ConfigField with invalid choice raises an error
         """
         with self.assertRaises(ValueError):
-            test_field = ConfigField(
+            _ = ConfigField(
                 default=1,
                 required=True,
                 add_to_template=False,
@@ -126,7 +126,7 @@ class TestConfigFields(unittest.TestCase):
         Test that a ConfigField with invalid choice raises an error when using an enum
         """
         with self.assertRaises(ValueError):
-            test_field = ConfigField(
+            _ = ConfigField(
                 default=ModelSelectionStrategy.RANDOM,
                 required=True,
                 add_to_template=False,

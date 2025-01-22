@@ -19,13 +19,7 @@ from unittest.mock import patch
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    ConfigInput,
-    ConfigPerfAnalyzer,
-    Range,
-)
-from genai_perf.config.input.config_fields import ConfigField, ConfigFields
+from genai_perf.config.input.config_command import ConfigCommand, ConfigInput, Range
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 

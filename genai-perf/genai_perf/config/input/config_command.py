@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 
-from genai_perf.config.endpoint_config import _endpoint_type_map
+from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.config_defaults import (
     AnalyzeDefaults,
     EndPointDefaults,
@@ -85,7 +85,6 @@ class BaseConfig:
         return new_copy
 
     def __eq__(self, other):
-        foo = self._fields == other._fields
         return self._fields == other._fields
 
 
@@ -116,7 +115,7 @@ class ConfigEndPoint(BaseConfig):
         self._fields.custom = ConfigField(default=EndPointDefaults.CUSTOM)
         self._fields.type = ConfigField(
             default=EndPointDefaults.TYPE,
-            choices=list(_endpoint_type_map.keys()),
+            choices=list(endpoint_type_map.keys()),
         )
         self._fields.service_kind = ConfigField(
             default=EndPointDefaults.SERVICE_KIND,
@@ -239,6 +238,9 @@ class ConfigInput(BaseConfig):
         self.prefix_prompt = ConfigPrefixPrompt()
         self.request_count = ConfigRequestCount()
 
+    def __eq__(self, other):
+        return self._fields == other._fields
+
 
 ###########################################################################
 # Output Config
@@ -291,12 +293,8 @@ class ConfigCommand(BaseConfig):
 
         self._parse_yaml(user_config)
 
-    # def __deepcopy__(self, memo):
-    #     new_copy = ConfigCommand(user_config={})
-    #     new_copy._fields = deepcopy(self._fields, memo)
-    #     new_copy._values = new_copy._fields._values
-
-    #     return new_copy
+    def __eq__(self, other):
+        return self._fields == other._fields
 
     ###########################################################################
     # Utility Methods

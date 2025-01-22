@@ -37,7 +37,7 @@ class EndpointConfig:
     output_format: OutputFormat
 
 
-_endpoint_type_map = {
+endpoint_type_map = {
     "chat": EndpointConfig(
         "v1/chat/completions", "openai", OutputFormat.OPENAI_CHAT_COMPLETIONS
     ),
