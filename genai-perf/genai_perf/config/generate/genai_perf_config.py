@@ -19,8 +19,11 @@ from dataclasses import dataclass
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import (
     ConfigCommand,
+    ConfigImage,
     ConfigInput,
     ConfigOutputTokens,
+    ConfigPrefixPrompt,
+    ConfigRequestCount,
     ConfigSyntheticTokens,
 )
 from genai_perf.types import CheckpointObject, ModelObjectiveParameters, Parameters
@@ -48,8 +51,7 @@ class GenAIPerfConfig:
     # Set Options Methods
     ###########################################################################
     def _set_options_based_on_config(self, config: ConfigCommand) -> None:
-        self.input: ConfigInput = config.input
-        self.output_tokens: ConfigOutputTokens = config.output_tokens
+        self._input: ConfigInput = config.input
 
     def _set_options_based_on_objective(
         self, model_objective_parameters: ModelObjectiveParameters
@@ -59,9 +61,13 @@ class GenAIPerfConfig:
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME_GAP:
                     self._parameters[name] = parameter.get_value_based_on_category()
-                    if hasattr(self.input, name):
-                        self.input.__setattr__(
+                    if hasattr(self._input, name):
+                        self._input.__setattr__(
                             name, parameter.get_value_based_on_category()
+                        )
+                    elif name == "input_sequence_length":
+                        self._input.synthetic_tokens.mean = (
+                            parameter.get_value_based_on_category()
                         )
 
     ###########################################################################
@@ -96,7 +102,7 @@ class GenAIPerfConfig:
         A string representation of the GAP options which will be
         used when determining if a previous (checkpointed) run can be used
         """
-        representation = " ".join([self.input.__str__(), self.output_tokens.__str__()])
+        representation = " ".join([self._input.__str__()])
 
         return representation
 
@@ -110,8 +116,9 @@ class GenAIPerfConfig:
         """
         genai_perf_config_dict = deepcopy(self.__dict__)
 
-        # Values set on the CLI are not kept (they can vary from run to run)
+        # Values set on the CLI and parameters are not kept (they can vary from run to run)
         del genai_perf_config_dict["_args"]
+        del genai_perf_config_dict["_parameters"]
 
         return genai_perf_config_dict
 
@@ -124,17 +131,11 @@ class GenAIPerfConfig:
         a new instance of a GenAIPerfConfig
         """
         genai_perf_config = GenAIPerfConfig(
-            config=ConfigCommand([""]),
+            config=ConfigCommand(user_config={}),
             model_objective_parameters={},
         )
-        genai_perf_config._parameters = genai_perf_config_dict["_parameters"]
-
-        genai_perf_config.input = ConfigInput(**genai_perf_config_dict["input"])
-        genai_perf_config.input.synthetic_tokens = ConfigSyntheticTokens(
-            **genai_perf_config_dict["input"]["synthetic_tokens"]
-        )
-        genai_perf_config.output_tokens = ConfigOutputTokens(
-            **genai_perf_config_dict["output_tokens"]
+        genai_perf_config._input = ConfigInput.create_class_from_checkpoint(
+            genai_perf_config_dict["_input"]
         )
 
         return genai_perf_config
