@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@ class NaggyMockDataLoader : public DataLoader {
             });
   }
 
-  MOCK_METHOD(size_t, GetTotalSteps, (size_t), (override));
+  MOCK_METHOD(size_t, GetTotalSteps, (size_t), (const, override));
   MOCK_METHOD(cb::Error, ReadFile, (const std::string&, std::vector<char>*));
   MOCK_METHOD(
       cb::Error, ReadTextFile, (const std::string&, std::vector<std::string>*));

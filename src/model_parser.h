@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@
 
 #include "client_backend/client_backend.h"
 #include "perf_utils.h"
+#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -39,13 +40,12 @@ class InferenceProfiler;
 #endif
 
 struct ModelTensor {
-  ModelTensor() : is_shape_tensor_(false) {}
-  std::string name_;
-  std::string datatype_;
-  std::vector<int64_t> shape_;
+  std::string name_{};
+  std::string datatype_{};
+  std::vector<int64_t> shape_{};
   // Indicates if this tensor holds shape information for other tensors
-  bool is_shape_tensor_;
-  bool is_optional_;
+  bool is_shape_tensor_{};
+  bool is_optional_{};
 };
 
 using ModelTensorMap = std::map<std::string, ModelTensor>;
@@ -115,7 +115,8 @@ class ModelParser {
 
   cb::Error InitOpenAI(
       const std::string& model_name, const std::string& model_version,
-      const int32_t batch_size);
+      const int32_t batch_size,
+      SessionConcurrencyMode session_concurrency_mode);
 
   cb::Error InitTorchServe(
       const std::string& model_name, const std::string& model_version,

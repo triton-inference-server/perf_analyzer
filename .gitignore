@@ -1,17 +1,8 @@
-#VSCode
-/.vscode
-
-#C++
+# C++
 /build
-/builddir
-*.so
 
-#Python
-__pycache__/
-*.pyc
-
-#Other
-node_modules
-
-#GenAI-Perf Artifacts
+# GenAI-Perf Artifacts
 artifacts/
+
+# Avoid squashing local people's file for now
+/.vscode
