@@ -48,12 +48,12 @@ TEST_CASE("coroutine:testing the Coroutine class")
 {
   auto coroutine = CoroutineTest();
 
-  REQUIRE(!coroutine.Done());  
+  REQUIRE(!coroutine.Done());
 
-  coroutine.Resume(); // resume from initial suspension  
-  coroutine.Resume(); // resume from suspension at end, coroutine completes  
+  coroutine.Resume();  // resume from initial suspension
+  coroutine.Resume();  // resume from suspension at end, coroutine completes
 
-  CHECK(coroutine.Done());  
+  CHECK(coroutine.Done());
   CHECK(coroutine.Value() == 42);
 }
 
@@ -78,7 +78,8 @@ TEST_CASE("coroutine:testing the Coroutine class with void")
 
   CHECK(rounds == 2);
   CHECK(coroutine.Done());
-  static_assert(std::is_same_v<std::decay_t<decltype(coroutine.Value())>, std::monostate>);
+  static_assert(std::is_same_v<
+                std::decay_t<decltype(coroutine.Value())>, std::monostate>);
 }
 
 // This tests cascading coroutines, where one coroutine awaits another.
