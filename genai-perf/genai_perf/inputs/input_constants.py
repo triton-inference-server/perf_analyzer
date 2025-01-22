@@ -28,34 +28,34 @@ from enum import Enum, auto
 
 
 class ModelSelectionStrategy(Enum):
-    ROUND_ROBIN = auto()
-    RANDOM = auto()
+    ROUND_ROBIN = "ROUND_ROBIN"
+    RANDOM = "RANDOM"
 
 
 class PromptSource(Enum):
-    SYNTHETIC = auto()
-    FILE = auto()
+    SYNTHETIC = "SYNTHETIC"
+    FILE = "FILE"
 
 
 class OutputFormat(Enum):
     ################################################################
     # Triton backends
     ################################################################
-    TENSORRTLLM = auto()
-    VLLM = auto()
+    TENSORRTLLM = "TENSORRTLLM"
+    VLLM = "VLLM"
     ################################################################
     # Other output formats
     ################################################################
-    IMAGE_RETRIEVAL = auto()
-    NVCLIP = auto()
-    OPENAI_CHAT_COMPLETIONS = auto()
-    OPENAI_COMPLETIONS = auto()
-    OPENAI_EMBEDDINGS = auto()
-    OPENAI_VISION = auto()
-    RANKINGS = auto()
-    TEMPLATE = auto()
-    TENSORRTLLM_ENGINE = auto()
-    TRITON_GENERATE = auto()
+    IMAGE_RETRIEVAL = "IMAGE_RETRIEVAL"
+    NVCLIP = "NVCLIP"
+    OPENAI_CHAT_COMPLETIONS = "OPENAI_CHAT_COMPLETIONS"
+    OPENAI_COMPLETIONS = "OPENAI_COMPLETIONS"
+    OPENAI_EMBEDDINGS = "OPENAI_EMBEDDINGS"
+    OPENAI_VISION = "OPENAI_VISION"
+    RANKINGS = "RANKINGS"
+    TEMPLATE = "TEMPLATE"
+    TENSORRTLLM_ENGINE = "TENSORRTLLM_ENGINE"
+    TRITON_GENERATE = "TRITON_GENERATE"
 
     def to_lowercase(self):
         return self.name.lower()
