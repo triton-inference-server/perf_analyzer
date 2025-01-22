@@ -36,6 +36,7 @@ from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
+from genai_perf.config.endpoint_config import EndpointConfig, _endpoint_type_map
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
@@ -69,41 +70,6 @@ class Subcommand(Enum):
 
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class EndpointConfig:
-    endpoint: Optional[str]
-    service_kind: str
-    output_format: ic.OutputFormat
-
-
-_endpoint_type_map = {
-    "chat": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_CHAT_COMPLETIONS
-    ),
-    "completions": EndpointConfig(
-        "v1/completions", "openai", ic.OutputFormat.OPENAI_COMPLETIONS
-    ),
-    "embeddings": EndpointConfig(
-        "v1/embeddings", "openai", ic.OutputFormat.OPENAI_EMBEDDINGS
-    ),
-    "image_retrieval": EndpointConfig(
-        "v1/infer", "openai", ic.OutputFormat.IMAGE_RETRIEVAL
-    ),
-    "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
-    "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    "vision": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
-    ),
-    "generate": EndpointConfig(
-        "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
-    ),
-    "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
-    "tensorrtllm_engine": EndpointConfig(
-        None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
-    ),
-}
 
 
 def _check_model_args(

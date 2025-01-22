@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 
+from genai_perf.config.endpoint_config import _endpoint_type_map
 from genai_perf.config.input.config_defaults import (
     AnalyzeDefaults,
     EndPointDefaults,
@@ -32,8 +34,14 @@ from genai_perf.config.input.config_defaults import (
     TopLevelDefaults,
     default_field,
 )
-from genai_perf.constants import runtime_gap_parameters, runtime_pa_parameters
+from genai_perf.config.input.config_fields import ConfigField, ConfigFields
+from genai_perf.constants import (
+    all_parameters,
+    runtime_gap_parameters,
+    runtime_pa_parameters,
+)
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.types import CheckpointObject, ModelName
 
 
@@ -48,315 +56,247 @@ AnalyzeParameter: TypeAlias = Dict[str, ConfigRangeOrList]
 
 
 ###########################################################################
+# Base Config
+###########################################################################
+class BaseConfig:
+    def __init__(self, name=None, parent=None):
+        self._fields = ConfigFields()
+
+        # This exists just to make looking up values when debugging easier
+        self._values = self._fields._values
+
+    def get_field(self, name: str) -> ConfigField:
+        return self._fields.get_field(name)
+
+    def __getattr__(self, name: str) -> Any:
+        return self._fields.__getattr__(name)
+
+    def __setattr__(self, name: str, value: Any):
+        # This prevents recursion failure in __init__
+        if name == "_fields" or name == "_values":
+            self.__dict__[name] = value
+        else:
+            self._fields.__setattr__(name, value)
+
+    def __deepcopy__(self, memo):
+        new_copy = self.__class__()
+        new_copy._fields = deepcopy(self._fields, memo)
+        new_copy._values = new_copy._fields._values
+        return new_copy
+
+    def __eq__(self, other):
+        foo = self._fields == other._fields
+        return self._fields == other._fields
+
+
+###########################################################################
 # Analyze Subcommand Config
 ###########################################################################
-@dataclass
-class ConfigAnalyze:
-    sweep_parameters: AnalyzeParameter = default_field(AnalyzeDefaults.SWEEP_PARAMETER)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_analyze_dict: CheckpointObject
-    ) -> "ConfigAnalyze":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of a ConfigAnalyze
-        """
-        config_analyze = ConfigAnalyze(**config_analyze_dict)
-
-        return config_analyze
+class ConfigAnalyze(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.sweep_parameters = ConfigField(
+            default=AnalyzeDefaults.SWEEP_PARAMETER, choices=all_parameters
+        )
 
 
 ###########################################################################
 # EndPoint Config
 ###########################################################################
-@dataclass
-class ConfigEndPoint:
-    model_selection_strategy: ModelSelectionStrategy = default_field(
-        EndPointDefaults.MODEL_SELECTION_STRATEGY
-    )
-    backend: OutputFormat = default_field(EndPointDefaults.BACKEND)
-    custom: str = default_field(EndPointDefaults.CUSTOM)
-    type: str = default_field(EndPointDefaults.TYPE)
-    service_kind: str = default_field(EndPointDefaults.SERVICE_KIND)
-    streaming: bool = default_field(EndPointDefaults.STREAMING)
-    server_metrics_url: str = default_field(EndPointDefaults.SERVER_METRICS_URL)
-    url: str = default_field(EndPointDefaults.URL)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_endpoint_dict: CheckpointObject
-    ) -> "ConfigEndPoint":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of ConfigEndPoint
-        """
-        config_endpoint = ConfigEndPoint(**config_endpoint_dict)
-
-        return config_endpoint
+class ConfigEndPoint(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.model_selection_strategy = ConfigField(
+            default=EndPointDefaults.MODEL_SELECTION_STRATEGY,
+            choices=ModelSelectionStrategy,
+        )
+        self._fields.backend = ConfigField(
+            default=EndPointDefaults.BACKEND, choices=OutputFormat
+        )
+        self._fields.custom = ConfigField(default=EndPointDefaults.CUSTOM)
+        self._fields.type = ConfigField(
+            default=EndPointDefaults.TYPE,
+            choices=list(_endpoint_type_map.keys()),
+        )
+        self._fields.service_kind = ConfigField(
+            default=EndPointDefaults.SERVICE_KIND,
+            choices=["triton", "openai", "tensorrtllm_engine"],
+        )
+        self._fields.streaming = ConfigField(default=EndPointDefaults.STREAMING)
+        self._fields.server_metrics_url = ConfigField(
+            default=EndPointDefaults.SERVER_METRICS_URL
+        )
+        self._fields.url = ConfigField(default=EndPointDefaults.URL)
 
 
 ###########################################################################
 # PerfAnalzyer (PA) Config
 ###########################################################################
-@dataclass
-class ConfigPerfAnalyzer:
-    path: str = default_field(PerfAnalyzerDefaults.PATH)
-    stimulus: Dict[str, Any] = default_field(PerfAnalyzerDefaults.STIMULUS)
-    stability_percentage: float = default_field(
-        PerfAnalyzerDefaults.STABILITY_PERCENTAGE
-    )
-    measurement_interval: int = default_field(PerfAnalyzerDefaults.MEASUREMENT_INTERVAL)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_perf_analyzer_dict: CheckpointObject
-    ) -> "ConfigPerfAnalyzer":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of ConfigPerfAnalyzer
-        """
-        config_perf_analyzer = ConfigPerfAnalyzer(**config_perf_analyzer_dict)
-
-        return config_perf_analyzer
+class ConfigPerfAnalyzer(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.path = ConfigField(default=PerfAnalyzerDefaults.PATH)
+        self._fields.stimulus = ConfigField(
+            default=PerfAnalyzerDefaults.STIMULUS,
+            choices=["concurrency", "request_rate"],
+        )
+        self._fields.stability_percentage = ConfigField(
+            default=PerfAnalyzerDefaults.STABILITY_PERCENTAGE,
+            bounds={"min": 1, "max": 999},
+        )
+        self._fields.measurement_interval = ConfigField(
+            default=PerfAnalyzerDefaults.MEASUREMENT_INTERVAL, bounds={"min": 1}
+        )
+        self._fields.skip_args = ConfigField(default=PerfAnalyzerDefaults.SKIP_ARGS)
 
 
 ###########################################################################
 # Input Config
 ###########################################################################
-@dataclass
-class ConfigImage:
-    batch_size: int = default_field(ImageDefaults.BATCH_SIZE)
-    width_mean: int = default_field(ImageDefaults.WIDTH_MEAN)
-    width_stddev: int = default_field(ImageDefaults.WIDTH_STDDEV)
-    height_mean: int = default_field(ImageDefaults.HEIGHT_MEAN)
-    height_stddev: int = default_field(ImageDefaults.HEIGHT_STDDEV)
-    format: Optional[str] = default_field(ImageDefaults.FORMAT)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_image_dict: CheckpointObject
-    ) -> "ConfigImage":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of ConfigImage
-        """
-        config_image = ConfigImage(**config_image_dict)
-
-        return config_image
-
-
-@dataclass
-class ConfigOutputTokens:
-    mean: int = default_field(OutputTokenDefaults.MEAN)
-    deterministic: bool = default_field(OutputTokenDefaults.DETERMINISTIC)
-    stddev: int = default_field(OutputTokenDefaults.STDDEV)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_output_tokens_dict: CheckpointObject
-    ) -> "ConfigOutputTokens":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of ConfigOutputTokens
-        """
-        config_output_tokens = ConfigOutputTokens(**config_output_tokens_dict)
-
-        return config_output_tokens
-
-
-@dataclass
-class ConfigSyntheticTokens:
-    mean: int = default_field(SyntheticTokenDefaults.MEAN)
-    stddev: int = default_field(SyntheticTokenDefaults.STDDEV)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_synthetic_tokens_dict: CheckpointObject
-    ) -> "ConfigSyntheticTokens":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of ConfigSyntheticTokens
-        """
-        config_synthetic_tokens = ConfigSyntheticTokens(**config_synthetic_tokens_dict)
-
-        return config_synthetic_tokens
-
-
-@dataclass
-class ConfigPrefixPrompt:
-    num: int = default_field(PrefixPromptDefaults.NUM)
-    length: int = default_field(PrefixPromptDefaults.LENGTH)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_prefix_prompt_dict: CheckpointObject
-    ) -> "ConfigPrefixPrompt":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of ConfigPrefixPrompt
-        """
-        config_prefix_prompt = ConfigPrefixPrompt(**config_prefix_prompt_dict)
-
-        return config_prefix_prompt
-
-
-@dataclass
-class ConfigRequestCount:
-    num: int = default_field(RequestCountDefaults.NUM)
-    warmup: int = default_field(RequestCountDefaults.WARMUP)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_request_count_dict: CheckpointObject
-    ) -> "ConfigRequestCount":
-        """
-        Takes the checkpoint's representation of the class and creates
-        (and populates) a new instance of ConfigRequestCount
-        """
-        config_request_count = ConfigRequestCount(**config_request_count_dict)
-
-        return config_request_count
-
-
-@dataclass
-class ConfigInput:
-    batch_size: int = default_field(InputDefaults.BATCH_SIZE)
-    extra: str = default_field(InputDefaults.EXTRA)
-    goodput: Dict[str, Any] = default_field(InputDefaults.GOODPUT)
-    header: Dict[str, Any] = default_field(InputDefaults.HEADER)
-    file: Dict[str, Any] = default_field(InputDefaults.FILE)
-    num_dataset_entries: int = default_field(InputDefaults.NUM_DATASET_ENTRIES)
-    random_seed: int = default_field(InputDefaults.RANDOM_SEED)
-
-    image: ConfigImage = default_field(ConfigImage())
-    output_tokens: ConfigOutputTokens = default_field(ConfigOutputTokens())
-    synthetic_tokens: ConfigSyntheticTokens = default_field(ConfigSyntheticTokens())
-    prefix_prompt: ConfigPrefixPrompt = default_field(ConfigPrefixPrompt())
-    request_count: ConfigRequestCount = default_field(ConfigRequestCount())
-
-    @classmethod
-    def create_class_from_checkpoint(
-        cls, config_input_dict: CheckpointObject
-    ) -> "ConfigInput":
-        """
-        Takes the checkpoint's representation of the class and creates (and populates)
-        a new instance of ConfigInput
-        """
-        config_input = ConfigInput(**config_input_dict)
-        config_input.image = ConfigImage._create_class_from_checkpoint(
-            config_input_dict["image"]
+class ConfigImage(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.batch_size = ConfigField(
+            default=ImageDefaults.BATCH_SIZE, bounds={"min": 0}
         )
-        config_input.output_tokens = ConfigOutputTokens._create_class_from_checkpoint(
-            config_input_dict["output_tokens"]
+        self._fields.width_mean = ConfigField(
+            default=ImageDefaults.WIDTH_MEAN, bounds={"min": 0}
         )
-        config_input.synthetic_tokens = (
-            ConfigSyntheticTokens._create_class_from_checkpoint(
-                config_input_dict["synthetic_tokens"]
-            )
+        self._fields.width_stddev = ConfigField(
+            default=ImageDefaults.WIDTH_STDDEV, bounds={"min": 0}
         )
-        config_input.prefix_prompt = ConfigPrefixPrompt._create_class_from_checkpoint(
-            config_input_dict["prefix_prompt"]
+        self._fields.height_mean = ConfigField(
+            default=ImageDefaults.HEIGHT_MEAN, bounds={"min": 0}
         )
-        config_input.request_count = ConfigRequestCount._create_class_from_checkpoint(
-            config_input_dict["request_count"]
+        self._fields.height_stddev = ConfigField(
+            default=ImageDefaults.HEIGHT_STDDEV, bounds={"min": 0}
+        )
+        self._fields.format = ConfigField(
+            default=ImageDefaults.FORMAT, choices=ImageFormat
         )
 
-        return config_input
+
+class ConfigOutputTokens(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.mean = ConfigField(
+            default=OutputTokenDefaults.MEAN, bounds={"min": 0}
+        )
+        self._fields.deterministic = ConfigField(
+            default=OutputTokenDefaults.DETERMINISTIC
+        )
+        self._fields.stddev = ConfigField(
+            default=OutputTokenDefaults.STDDEV, bounds={"min": 0}
+        )
+
+
+class ConfigSyntheticTokens(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.mean = ConfigField(
+            default=SyntheticTokenDefaults.MEAN, bounds={"min": 0}
+        )
+        self._fields.stddev = ConfigField(
+            default=SyntheticTokenDefaults.STDDEV, bounds={"min": 0}
+        )
+
+
+class ConfigPrefixPrompt(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.num = ConfigField(
+            default=PrefixPromptDefaults.NUM, bounds={"min": 0}
+        )
+        self._fields.length = ConfigField(
+            default=PrefixPromptDefaults.LENGTH, bounds={"min": 0}
+        )
+
+
+class ConfigRequestCount(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.warmup = ConfigField(
+            default=RequestCountDefaults.WARMUP, bounds={"min": 0}
+        )
+
+
+class ConfigInput(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.batch_size = ConfigField(default=InputDefaults.BATCH_SIZE)
+        self._fields.extra = ConfigField(default=InputDefaults.EXTRA)
+        self._fields.goodput = ConfigField(default=InputDefaults.GOODPUT)
+        self._fields.header = ConfigField(default=InputDefaults.HEADER)
+        self._fields.file = ConfigField(default=InputDefaults.FILE)
+        self._fields.num_dataset_entries = ConfigField(
+            default=InputDefaults.NUM_DATASET_ENTRIES
+        )
+        self._fields.random_seed = ConfigField(default=InputDefaults.RANDOM_SEED)
+
+        self.image = ConfigImage()
+        self.output_tokens = ConfigOutputTokens()
+        self.synthetic_tokens = ConfigSyntheticTokens()
+        self.prefix_prompt = ConfigPrefixPrompt()
+        self.request_count = ConfigRequestCount()
 
 
 ###########################################################################
 # Output Config
 ###########################################################################
-@dataclass
-class ConfigOutput:
-    artifact_directory: str = default_field(OutputDefaults.ARTIFACT_DIRECTORY)
-    checkpoint_directory: str = default_field(OutputDefaults.CHECKPOINT_DIRECTORY)
-    profile_export_file: str = default_field(OutputDefaults.PROFILE_EXPORT_FILE)
-    generate_plots: bool = default_field(OutputDefaults.GENERATE_PLOTS)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_output_dict: CheckpointObject
-    ) -> "ConfigOutput":
-        """
-        Takes the checkpoint's representation of the class and creates
-        (and populates) a new instance of ConfigOutput
-        """
-        config_output = ConfigOutput(**config_output_dict)
-
-        return config_output
+class ConfigOutput(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.artifact_directory = ConfigField(
+            default=OutputDefaults.ARTIFACT_DIRECTORY
+        )
+        self._fields.checkpoint_directory = ConfigField(
+            default=OutputDefaults.CHECKPOINT_DIRECTORY
+        )
+        self._fields.profile_export_file = ConfigField(
+            default=OutputDefaults.PROFILE_EXPORT_FILE
+        )
+        self._fields.generate_plots = ConfigField(default=OutputDefaults.GENERATE_PLOTS)
 
 
 ###########################################################################
 # Tokenizer Config
 ###########################################################################
-@dataclass
-class ConfigTokenizer:
-    name: str = default_field(TokenizerDefaults.NAME)
-    revision: str = default_field(TokenizerDefaults.REVISION)
-    trust_remote_code: bool = default_field(TokenizerDefaults.TRUST_REMOTE_CODE)
-
-    @classmethod
-    def _create_class_from_checkpoint(
-        cls, config_tokenizer_dict: CheckpointObject
-    ) -> "ConfigTokenizer":
-        """
-        Takes the checkpoint's representation of the class and creates
-        (and populates) a new instance of ConfigTokenizer
-        """
-        config_tokenizer = ConfigTokenizer(**config_tokenizer_dict)
-
-        return config_tokenizer
+class ConfigTokenizer(BaseConfig):
+    def __init__(self):
+        super().__init__()
+        self._fields.name = ConfigField(default=TokenizerDefaults.NAME)
+        self._fields.revision = ConfigField(default=TokenizerDefaults.REVISION)
+        self._fields.trust_remote_code = ConfigField(
+            default=TokenizerDefaults.TRUST_REMOTE_CODE
+        )
 
 
 ###########################################################################
 # Top-Level Config
 ###########################################################################
-@dataclass
-class ConfigCommand:
-    user_config: Dict[str, Any]
-    model_names: List[ModelName] = default_field([TopLevelDefaults.MODEL_NAME])
+class ConfigCommand(BaseConfig):
+    def __init__(self, user_config: Optional[Dict[str, Any]] = None):
+        super().__init__()
 
-    analyze: ConfigAnalyze = default_field(ConfigAnalyze())
-    endpoint: ConfigEndPoint = default_field(ConfigEndPoint())
-    perf_analyzer: ConfigPerfAnalyzer = default_field(ConfigPerfAnalyzer())
-    input: ConfigInput = default_field(ConfigInput())
-    output: ConfigOutput = default_field(ConfigOutput())
-    tokenizer: ConfigTokenizer = default_field(ConfigTokenizer())
-
-    def __post_init__(self):
-        self._parse_yaml(self.user_config)
-
-    @classmethod
-    def create_class_from_checkpoint(
-        cls, config_command_dict: CheckpointObject
-    ) -> "ConfigCommand":
-        """
-        Takes the checkpoint's representation of the class and creates
-        (and populates) a new instance of ConfigCommand
-        """
-        config_command = ConfigCommand(**config_command_dict)
-        config_command.analyze = ConfigAnalyze._create_class_from_checkpoint(
-            config_command_dict["analyze"]
-        )
-        config_command.endpoint = ConfigEndPoint._create_class_from_checkpoint(
-            config_command_dict["endpoint"]
-        )
-        config_command.perf_analyzer = ConfigPerfAnalyzer._create_class_from_checkpoint(
-            config_command_dict["perf_analyzer"]
-        )
-        config_command.input = ConfigInput.create_class_from_checkpoint(
-            config_command_dict["input"]
-        )
-        config_command.output = ConfigOutput._create_class_from_checkpoint(
-            config_command_dict["output"]
-        )
-        config_command.tokenizer = ConfigTokenizer._create_class_from_checkpoint(
-            config_command_dict["tokenizer"]
+        self._fields.model_names = ConfigField(
+            default=TopLevelDefaults.MODEL_NAME, required=True
         )
 
-        return config_command
+        self._fields.analyze = ConfigAnalyze()
+        self._fields.endpoint = ConfigEndPoint()
+        self._fields.perf_analyzer = ConfigPerfAnalyzer()
+        self._fields.input = ConfigInput()
+        self._fields.output = ConfigOutput()
+        self._fields.tokenizer = ConfigTokenizer()
+
+        self._parse_yaml(user_config)
+
+    # def __deepcopy__(self, memo):
+    #     new_copy = ConfigCommand(user_config={})
+    #     new_copy._fields = deepcopy(self._fields, memo)
+    #     new_copy._values = new_copy._fields._values
+
+    #     return new_copy
 
     ###########################################################################
     # Utility Methods
@@ -380,10 +320,13 @@ class ConfigCommand:
     ###########################################################################
     # Top-Level Parsing Methods
     ###########################################################################
-    def _parse_yaml(self, user_config: Dict[str, Any]) -> None:
+    def _parse_yaml(self, user_config: Optional[Dict[str, Any]] = None) -> None:
+        if user_config is None:
+            return
+
         for key, value in user_config.items():
-            if key == "model_name":
-                self._parse_model_name(value)
+            if key == "model_name" or key == "model_names":
+                self._parse_model_names(value)
             elif key == "analyze":
                 self._parse_analyze(value)
             elif key == "endpoint":
@@ -402,13 +345,15 @@ class ConfigCommand:
                 )
 
     ###########################################################################
-    # Model Name Parsing Methods
+    # Model Names Parsing Methods
     ###########################################################################
-    def _parse_model_name(self, model_name: str) -> None:
-        if type(model_name) is str:
-            self.model_names = [model_name]
+    def _parse_model_names(self, model_names: str) -> None:
+        if type(model_names) is str:
+            self.model_names = [model_names]
+        elif type(model_names) is list:
+            self.model_names = [model_names[0] + "_multi"]
         else:
-            raise ValueError("User Config: model_name must be a string")
+            raise ValueError("User Config: model_names must be a string or list")
 
     ###########################################################################
     # Analyze Parsing Methods
@@ -523,7 +468,7 @@ class ConfigCommand:
             elif key == "height_stddev":
                 self.input.image.height_stddev = value
             elif key == "format":
-                self.input.image.format = value
+                self.input.image.format = ImageFormat(value.upper())
             else:
                 raise ValueError(f"User Config: {key} is not a valid image parameter")
 
@@ -569,9 +514,7 @@ class ConfigCommand:
 
     def _parse_request_count(self, request_count: Dict[str, Any]) -> None:
         for key, value in request_count.items():
-            if key == "num":
-                self.input.request_count.num = value
-            elif key == "warmup":
+            if key == "warmup":
                 self.input.request_count.warmup = value
             else:
                 raise ValueError(

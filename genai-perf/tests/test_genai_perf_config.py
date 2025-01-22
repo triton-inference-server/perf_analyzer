@@ -57,17 +57,18 @@ class TestGenAIPerfConfig(unittest.TestCase):
         patch.stopall()
 
     ###########################################################################
-    # Test Config and Objective Capture
+    # Test Parameters
     ###########################################################################
-    def test_default_config_and_objective_capture(self):
+    def test_parameters(self):
         """
         Test that we capture the config and objective parameters correctly
         at __init__
         """
-        expected_input_config = ConfigInput()
-        expected_input_config.num_dataset_entries = 50
+        expected_parameters = {"num_dataset_entries": 50}
 
-        self.assertEqual(expected_input_config, self._default_genai_perf_config._input)
+        self.assertEqual(
+            expected_parameters, self._default_genai_perf_config.get_parameters()
+        )
 
     ###########################################################################
     # Test Representation
@@ -76,11 +77,9 @@ class TestGenAIPerfConfig(unittest.TestCase):
         """
         Test that the representation is created correctly
         """
-        expected_representation = " ".join(
-            [
-                ConfigInput(num_dataset_entries=50).__str__(),
-            ]
-        )
+        expected_parameters = {"num_dataset_entries": 50}
+
+        expected_representation = " ".join([expected_parameters.__str__()])
         representation = self._default_genai_perf_config.representation()
 
         self.assertEqual(expected_representation, representation)
@@ -103,8 +102,8 @@ class TestGenAIPerfConfig(unittest.TestCase):
         )
 
         self.assertEqual(
-            genai_perf_config_from_checkpoint._input,
-            self._default_genai_perf_config._input,
+            genai_perf_config_from_checkpoint,
+            self._default_genai_perf_config,
         )
 
 

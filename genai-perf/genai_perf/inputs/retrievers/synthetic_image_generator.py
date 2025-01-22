@@ -35,8 +35,8 @@ from PIL import Image
 
 
 class ImageFormat(Enum):
-    PNG = auto()
-    JPEG = auto()
+    PNG = "PNG"
+    JPEG = "JPEG"
 
 
 class SyntheticImageGenerator:

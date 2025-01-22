@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import unittest
-from copy import deepcopy
 from math import log2
 from unittest.mock import patch
 
@@ -29,7 +28,7 @@ from genai_perf.exceptions import GenAIPerfException
 
 class TestSearchParameters(unittest.TestCase):
     def setUp(self):
-        self.config = deepcopy(ConfigCommand(user_config={}))
+        self.config = ConfigCommand(user_config={})
         self.config.model_names = ["test_model"]
 
         self.search_parameters = SearchParameters(
@@ -241,7 +240,7 @@ class TestSearchParameters(unittest.TestCase):
         Test that search parameters are created correctly when calling
         default analyze subcommand
         """
-        config = deepcopy(self.config)
+        config = self.config
         config.analyze.sweep_parameters = {
             "num_dataset_entries": [10, 50, 100],
             "request_rate": Range(
