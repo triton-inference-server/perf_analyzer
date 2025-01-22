@@ -1,5 +1,8 @@
-#C++
+# C++
 /build
 
-#GenAI-Perf Artifacts
+# GenAI-Perf Artifacts
 artifacts/
+
+# Avoid squashing local people's file for now
+/.vscode
