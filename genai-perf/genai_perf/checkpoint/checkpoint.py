@@ -76,7 +76,7 @@ class Checkpoint:
 
     def _create_checkpoint_file_path(self) -> str:
         checkpoint_file_path = os.path.join(
-            self.config.checkpoint_directory, CheckpointDefaults.FILENAME
+            self.config.output.checkpoint_directory, CheckpointDefaults.FILENAME
         )
 
         return checkpoint_file_path
