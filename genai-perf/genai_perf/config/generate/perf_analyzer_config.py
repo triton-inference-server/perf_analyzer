@@ -20,11 +20,8 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    ConfigPerfAnalyzer,
-    RunConfigDefaults,
-)
+from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
+from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
@@ -352,7 +349,7 @@ class PerfAnalyzerConfig:
         infer_type = self.get_inference_type()
 
         if infer_type == InferenceType.NONE:
-            infer_value = RunConfigDefaults.MIN_CONCURRENCY
+            infer_value = AnalyzeDefaults.MIN_CONCURRENCY
         else:
             infer_cmd_option = (
                 "--concurrency-range"
@@ -398,7 +395,7 @@ class PerfAnalyzerConfig:
             "-m",
             self._model_name,
             "--stability-percentage",
-            str(self._config.stability_threshold),
+            str(self._config.stability_percentage),
         ]
 
         return required_args
@@ -503,7 +500,7 @@ class PerfAnalyzerConfig:
         """
         perf_analyzer_config = PerfAnalyzerConfig(
             model_name=perf_analyzer_config_dict["_model_name"],
-            config=ConfigCommand([""]),
+            config=ConfigCommand(user_config={}),
             model_objective_parameters={},
         )
         perf_analyzer_config._config = ConfigPerfAnalyzer(

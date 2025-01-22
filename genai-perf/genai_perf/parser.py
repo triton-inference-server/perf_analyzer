@@ -34,7 +34,7 @@ from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.config.input.config_command import RunConfigDefaults
+from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers import AudioFormat, ImageFormat
@@ -631,7 +631,7 @@ def _add_analyze_args(parser):
     analyze_group.add_argument(
         "--sweep-type",
         type=str,
-        default=RunConfigDefaults.STIMULUS_TYPE,
+        default=AnalyzeDefaults.STIMULUS_TYPE,
         choices=[
             "batch_size",
             "concurrency",
@@ -645,7 +645,7 @@ def _add_analyze_args(parser):
     analyze_group.add_argument(
         "--sweep-range",
         type=str,
-        default=f"{RunConfigDefaults.MIN_CONCURRENCY}:{RunConfigDefaults.MAX_CONCURRENCY}",
+        default=f"{AnalyzeDefaults.MIN_CONCURRENCY}:{AnalyzeDefaults.MAX_CONCURRENCY}",
         required=False,
         help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
     )
