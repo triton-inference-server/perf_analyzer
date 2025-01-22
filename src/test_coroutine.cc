@@ -26,6 +26,7 @@
 
 #include <coroutine>
 #include <queue>
+#include <type_traits>
 
 #include "coroutine.h"
 #include "doctest.h"
