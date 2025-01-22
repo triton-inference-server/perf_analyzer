@@ -81,6 +81,7 @@ TEST_CASE("coroutine:testing the Coroutine class with void")
 
   CHECK(rounds == 2);
   CHECK(coroutine.Done());
+  static_assert(std::is_same_v<std::decay_t<decltype(coroutine.Value())>, std::monostate>);
 }
 
 // This tests cascading coroutines, where one coroutine awaits another.
