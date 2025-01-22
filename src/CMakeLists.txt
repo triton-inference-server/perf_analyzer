@@ -339,7 +339,7 @@ add_executable(
   test_ctx_id_tracker.cc
   test_profile_data_collector.cc
   test_profile_data_exporter.cc
-  test_coroutines.cc
+  test_coroutine.cc
   ${TEST_HTTP_CLIENT}
 )
 
