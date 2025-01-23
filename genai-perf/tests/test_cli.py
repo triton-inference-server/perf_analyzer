@@ -37,6 +37,7 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.parser import PathType
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
 class TestCLIArguments:
@@ -185,6 +186,12 @@ class TestCLIArguments:
                     ]
                 },
             ),
+            (["-H", "header_name:value"], {"header": ["header_name:value"]}),
+            (["--header", "header_name:value"], {"header": ["header_name:value"]}),
+            (
+                ["--header", "header_name:value", "--header", "header_name_2:value_2"],
+                {"header": ["header_name:value", "header_name_2:value_2"]},
+            ),
             (["--measurement-interval", "100"], {"measurement_interval": 100}),
             (
                 ["--model-selection-strategy", "random"],
@@ -192,6 +199,7 @@ class TestCLIArguments:
             ),
             (["--num-dataset-entries", "101"], {"num_dataset_entries": 101}),
             (["--num-prompts", "101"], {"num_dataset_entries": 101}),
+            (["--num-prefix-prompts", "101"], {"num_prefix_prompts": 101}),
             (
                 ["--output-tokens-mean", "6"],
                 {"output_tokens_mean": 6},
@@ -219,7 +227,9 @@ class TestCLIArguments:
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
             (["--request-count", "100"], {"request_count": 100}),
+            (["--num-requests", "100"], {"request_count": 100}),
             (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
+            (["--num-warmup-requests", "100"], {"warmup_request_count": 100}),
             (["--request-rate", "9.0"], {"request_rate": 9.0}),
             (["-s", "99.5"], {"stability_percentage": 99.5}),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
@@ -244,6 +254,10 @@ class TestCLIArguments:
             (
                 ["--synthetic-input-tokens-stddev", "7"],
                 {"synthetic_input_tokens_stddev": 7},
+            ),
+            (
+                ["--prefix-prompt-length", "6"],
+                {"prefix_prompt_length": 6},
             ),
             (
                 ["--image-width-mean", "123"],
@@ -807,7 +821,7 @@ class TestCLIArguments:
         parsed_args, _ = parser.parse_args()
 
         with pytest.raises(ValueError) as exc_info:
-            parser.get_extra_inputs_as_dict(parsed_args)
+            get_extra_inputs_as_dict(parsed_args)
 
         assert str(exc_info.value) == expected_error
 
@@ -950,7 +964,7 @@ class TestCLIArguments:
     def test_get_extra_inputs_as_dict(self, extra_inputs_list, expected_dict):
         namespace = argparse.Namespace()
         namespace.extra_inputs = extra_inputs_list
-        actual_dict = parser.get_extra_inputs_as_dict(namespace)
+        actual_dict = get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
 
     test_triton_metrics_url = "http://tritonmetrics.com:8002/metrics"
@@ -990,3 +1004,22 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", args_list)
         args, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
+
+    def test_tokenizer_args(self, monkeypatch):
+        args = [
+            "genai-perf",
+            "profile",
+            "--model",
+            "test_model",
+            "--tokenizer",
+            "test_tokenizer",
+            "--tokenizer-trust-remote-code",
+            "--tokenizer-revision",
+            "test_revision",
+        ]
+        monkeypatch.setattr("sys.argv", args)
+        parsed_args, _ = parser.parse_args()
+
+        assert parsed_args.tokenizer == "test_tokenizer"
+        assert parsed_args.tokenizer_trust_remote_code
+        assert parsed_args.tokenizer_revision == "test_revision"

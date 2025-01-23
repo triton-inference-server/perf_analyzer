@@ -30,6 +30,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from genai_perf import parser
 from genai_perf.constants import DEFAULT_GRPC_URL
+from genai_perf.subcommand.common import run_perf_analyzer
 from genai_perf.wrapper import Profiler
 
 
@@ -146,14 +147,14 @@ class TestWrapper:
         # Ensure the correct arguments are appended.
         assert cmd_string.count(" -i http") == 1
 
-    @patch("genai_perf.wrapper.subprocess.run")
+    @patch("genai_perf.subcommand.common.subprocess.run")
     @patch("genai_perf.wrapper.TelemetryDataCollector")
     def test_stdout_verbose(self, mock_telemetry_collector, mock_subprocess_run):
         args = MagicMock()
         args.model = "test_model"
         args.verbose = True
         telemetry_data_collector = mock_telemetry_collector.return_value
-        Profiler.run(
+        run_perf_analyzer(
             args=args,
             extra_args=None,
             telemetry_data_collector=telemetry_data_collector,
@@ -166,14 +167,14 @@ class TestWrapper:
                 "stdout" not in kwargs or kwargs["stdout"] is None
             ), "With the verbose flag, stdout should not be redirected."
 
-    @patch("genai_perf.wrapper.subprocess.run")
+    @patch("genai_perf.subcommand.common.subprocess.run")
     @patch("genai_perf.wrapper.TelemetryDataCollector")
     def test_stdout_not_verbose(self, mock_telemetry_collector, mock_subprocess_run):
         args = MagicMock()
         args.model = "test_model"
         args.verbose = False
         telemetry_data_collector = mock_telemetry_collector.return_value
-        Profiler.run(
+        run_perf_analyzer(
             args=args,
             extra_args=None,
             telemetry_data_collector=telemetry_data_collector,
@@ -185,3 +186,46 @@ class TestWrapper:
             assert (
                 kwargs["stdout"] is subprocess.DEVNULL
             ), "When the verbose flag is not passed, stdout should be redirected to /dev/null."
+
+    @pytest.mark.parametrize(
+        "header_values, expected_headers",
+        [
+            (["Header1:Value1"], [("-H", "Header1:Value1")]),
+            (
+                ["Authorization:Bearer mytoken", "Content-Type:application/json"],
+                [
+                    ("-H", "Authorization:Bearer mytoken"),
+                    ("-H", "Content-Type:application/json"),
+                ],
+            ),
+        ],
+    )
+    def test_headers_passed_correctly(
+        self, monkeypatch, header_values, expected_headers
+    ):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+        ]
+        for header in header_values:
+            args += ["-H", header]
+        monkeypatch.setattr("sys.argv", args)
+
+        args, extra_args = parser.parse_args()
+        cmd = Profiler.build_cmd(args, extra_args)
+
+        for expected_flag, expected_value in expected_headers:
+            try:
+                flag_index = cmd.index(expected_flag)
+                assert cmd[flag_index + 1] == expected_value, (
+                    f"Header value mismatch for {expected_flag}: "
+                    f"Expected {expected_value}, Found {cmd[flag_index + 1]}"
+                )
+                cmd[flag_index] = None  # type: ignore
+                cmd[flag_index + 1] = None  # type: ignore
+            except ValueError:
+                assert (
+                    False
+                ), f"Missing expected header flag: {expected_flag} or value: {expected_value}"

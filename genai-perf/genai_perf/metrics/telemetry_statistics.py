@@ -29,8 +29,11 @@
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, List
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+from genai_perf.record.record import RecordType
+from genai_perf.types import GpuRecords
 
 
 class TelemetryStatistics:
@@ -45,11 +48,18 @@ class TelemetryStatistics:
         for attr, data in self._metrics.data.items():
             if self._should_skip(data):
                 continue
+
+            gpu_index = None
+            gpu_data = None
+
             for gpu_index, gpu_data in data.items():
                 self._stats_dict[attr][gpu_index]["avg"] = (
                     self._statistics._calculate_mean(gpu_data)
                 )
             if not self._is_constant_metric(attr):
+                if gpu_data is None or gpu_index is None:
+                    continue
+
                 percentile_results = self._statistics._calculate_percentiles(gpu_data)
                 for percentile_label, percentile_value in percentile_results.items():
                     self._stats_dict[attr][gpu_index][
@@ -77,6 +87,34 @@ class TelemetryStatistics:
                         for stat, value in gpu_data.items():
                             self._stats_dict[metric][key][stat] = value * factor
 
+    def create_records(self) -> GpuRecords:
+        """
+        Populates and returns a list of Records
+        """
+        telemetry_records: GpuRecords = {}
+        for metric_base_name, metric_info in self.stats_dict.items():
+            for gpu_id, gpu_info in metric_info.items():
+                if gpu_id == "unit":
+                    continue
+                elif gpu_id not in telemetry_records:
+                    telemetry_records[gpu_id] = {}
+
+                for metric_post_name, metric_value in gpu_info.items():
+                    metric_name = metric_base_name + "_" + metric_post_name
+
+                    try:
+                        new_record = RecordType.get_all_record_types()[metric_name](
+                            metric_value, gpu_id
+                        )
+                    except KeyError:
+                        raise GenAIPerfException(
+                            f"{metric_name} is not a valid Record tag."
+                        )
+
+                    telemetry_records[gpu_id][metric_name] = new_record
+
+        return telemetry_records
+
     def _should_skip(self, data: Dict[str, List[float]]) -> bool:
         if len(data) == 0:
             return True
@@ -90,5 +128,5 @@ class TelemetryStatistics:
         return attr in ["gpu_power_limit", "total_gpu_memory"]
 
     @property
-    def stats_dict(self) -> Dict:
+    def stats_dict(self) -> Dict[str, Any]:
         return self._stats_dict

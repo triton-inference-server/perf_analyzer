@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 #include <string>
 
 #include "perf_analyzer_exception.h"
+#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -116,6 +117,7 @@ CLParser::Usage(const std::string& msg)
             << std::endl;
   std::cerr << "\t--concurrency-range <start:end:step>" << std::endl;
   std::cerr << "\t--periodic-concurrency-range <start:end:step>" << std::endl;
+  std::cerr << "\t--session-concurrency <session concurrency>" << std::endl;
   std::cerr << "\t--request-period <number of responses>" << std::endl;
   std::cerr << "\t--request-rate-range <start:end:step>" << std::endl;
   std::cerr << "\t--request-distribution <\"poisson\"|\"constant\">"
@@ -337,6 +339,15 @@ CLParser::Usage(const std::string& msg)
              "provide --profile-export-file to specify where to dump all the "
              "measured timestamps. The default values of 'start', 'end', and "
              "'step' are 1.",
+             18)
+      << std::endl;
+  std::cerr
+      << FormatMessage(
+             " --session-concurrency <session concurrency>: Specifies the "
+             "number of concurrent multi-turn chat sessions to run during the "
+             "benchmark. A dataset must be provided using --input-data with at "
+             "least as many unique sessions as the specified session "
+             "concurrency. Only supported with --service-kind=openai.",
              18)
       << std::endl;
   std::cerr
@@ -934,8 +945,9 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"request-count", required_argument, 0, long_option_idx_base + 62},
       {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
       {"schedule", required_argument, 0, long_option_idx_base + 64},
-      {"proto", required_argument, 0, long_option_idx_base + 65},
-      {"rpc", required_argument, 0, long_option_idx_base + 66},
+      {"session-concurrency", required_argument, 0, long_option_idx_base + 65},
+      {"proto", required_argument, 0, long_option_idx_base + 66},
+      {"rpc", required_argument, 0, long_option_idx_base + 67},
       {0, 0, 0, 0}};
 
   // Parse commandline...
@@ -1302,7 +1314,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
         case long_option_idx_base + 30: {
           std::string arg = optarg;
           int64_t start_id;
-          int64_t end_id;
+          int64_t end_id{INT64_MAX};
           size_t pos = 0;
           int index = 0;
           while (pos != std::string::npos) {
@@ -1700,9 +1712,21 @@ CLParser::ParseCommandLine(int argc, char** argv)
           }
           params_->schedule = schedule;
           params_->request_count = schedule.size();
+          // TODO: Remove this dependency on request_rate_range
+          params_->using_request_rate_range = true;
           break;
         }
         case long_option_idx_base + 65: {
+          params_->session_concurrency = std::stoull(optarg);
+          if (params_->session_concurrency == 0) {
+            Usage(
+                "Failed to parse --session-concurrency. Session concurrency "
+                "must be > 0.");
+          }
+          params_->session_concurrency_mode = SessionConcurrencyMode::Enabled;
+          break;
+        }
+        case long_option_idx_base + 66: {
           std::string proto_file{optarg};
           if (!IsFile(proto_file)) {
             Usage(
@@ -1712,7 +1736,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->proto_file = proto_file;
           break;
         }
-        case long_option_idx_base + 66: {
+        case long_option_idx_base + 67: {
           std::string rpc{optarg};
           std::vector<std::string> components = SplitString(rpc, "/");
           if (components.size() != 2) {
@@ -1885,6 +1909,14 @@ CLParser::VerifyOptions()
 
   if (params_->using_request_rate_range && params_->using_old_options) {
     Usage("Cannot use concurrency options with --request-rate-range.");
+  }
+
+  if (!params_->schedule.empty() && params_->warmup_request_count > 0) {
+    Usage("Cannot use warmup options with --schedule");
+  }
+
+  if (!params_->schedule.empty() && params_->using_concurrency_range) {
+    Usage("Cannot use concurrency options with --schedule");
   }
 
   std::vector<bool> load_modes{
@@ -2146,6 +2178,12 @@ CLParser::VerifyOptions()
       params_->metrics_url =
           params_->url.substr(0, colon_pos) + ":8002/metrics";
     }
+  }
+
+  if (params_->session_concurrency_mode == SessionConcurrencyMode::Enabled &&
+      params_->kind != cb::BackendKind::OPENAI) {
+    Usage(
+        "Session concurrency mode is only supported with OpenAI service kind.");
   }
 }
 

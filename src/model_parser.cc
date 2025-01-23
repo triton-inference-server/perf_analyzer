@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -27,6 +27,7 @@
 #include "model_parser.h"
 
 #include "rapidjson/writer.h"
+#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -299,7 +300,7 @@ ModelParser::InitDynamicGrpc(
 cb::Error
 ModelParser::InitOpenAI(
     const std::string& model_name, const std::string& model_version,
-    const int32_t batch_size)
+    const int32_t batch_size, SessionConcurrencyMode session_concurrency_mode)
 {
   // OpenAI does not return model metadata hence we can not obtain any
   // parameters.
@@ -308,16 +309,26 @@ ModelParser::InitOpenAI(
   max_batch_size_ = batch_size;
 
   // OpenAI will take a single json input with a fully formed payload
-  auto in_it = inputs_->emplace("payload", ModelTensor()).first;
-  in_it->second.name_ = "payload";
-  in_it->second.datatype_ = "JSON";
-  in_it->second.shape_.push_back(1);
+  auto payload_input = inputs_->emplace("payload", ModelTensor()).first;
+  payload_input->second.name_ = "payload";
+  payload_input->second.datatype_ = "JSON";
+  payload_input->second.shape_.push_back(1);
 
   // OpenAI will reply with a single json output
-  auto out_it = outputs_->emplace("response", ModelTensor()).first;
-  out_it->second.name_ = "response";
-  out_it->second.datatype_ = "JSON";
-  out_it->second.shape_.push_back(1);
+  auto response_output = outputs_->emplace("response", ModelTensor()).first;
+  response_output->second.name_ = "response";
+  response_output->second.datatype_ = "JSON";
+  response_output->second.shape_.push_back(1);
+
+  // OpenAI in session concurrency mode takes an optional delay input
+  if (session_concurrency_mode == SessionConcurrencyMode::Enabled) {
+    auto delay_input = inputs_->emplace("delay", ModelTensor()).first;
+    delay_input->second.name_ = "delay";
+    delay_input->second.datatype_ = "UINT64";
+    delay_input->second.shape_.push_back(1);
+    delay_input->second.is_shape_tensor_ = false;
+    delay_input->second.is_optional_ = true;
+  }
 
   return cb::Error::Success;
 }

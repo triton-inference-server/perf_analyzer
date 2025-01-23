@@ -24,6 +24,7 @@ from genai_perf.tokenizer import Tokenizer
 class SyntheticPromptGenerator:
     _tokenized_corpus = None
     _corpus_length = 0
+    _prefix_prompts: List[str] = []
 
     @classmethod
     def create_synthetic_prompt(
@@ -106,3 +107,32 @@ class SyntheticPromptGenerator:
             prompt_tokens += cls._tokenized_corpus[: end_idx - cls._corpus_length]
 
         return tokenizer.decode(prompt_tokens)
+
+    @classmethod
+    def create_prefix_prompts_pool(
+        cls, tokenizer: Tokenizer, num_prompts: int, prompt_length: int
+    ) -> None:
+        """
+        Generate a pool of prefix prompts.
+
+        Args:
+            tokenizer: Tokenizer instance.
+            num_prompts: Number of prefix prompts to generate.
+            prompt_length: Number of tokens per prefix prompt.
+        """
+        if cls._tokenized_corpus is None:
+            cls._initialize_corpus(tokenizer)
+
+        cls._prefix_prompts = [
+            cls._generate_prompt(tokenizer, prompt_length) for _ in range(num_prompts)
+        ]
+
+    @classmethod
+    def get_random_prefix_prompt(cls) -> str:
+        """
+        Fetch a random prefix prompt from the pool.
+
+        Returns:
+            A random prefix prompt.
+        """
+        return random.choice(cls._prefix_prompts)

@@ -30,7 +30,8 @@ namespace triton::perfanalyzer {
 
 cb::Error
 CustomRequestScheduleManager::Create(
-    const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+    const PerfAnalyzerParameters& params,
+    const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory,
     std::unique_ptr<LoadManager>* manager)
 {
@@ -43,55 +44,35 @@ CustomRequestScheduleManager::Create(
 }
 
 CustomRequestScheduleManager::CustomRequestScheduleManager(
-    const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+    const PerfAnalyzerParameters& params,
+    const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory)
     : RequestRateManager(
-          params->async, params->streaming, Distribution::CUSTOM,
-          params->batch_size, params->measurement_window_ms, params->max_trials,
-          params->max_threads, params->num_of_sequences,
-          params->shared_memory_type, params->output_shm_size,
-          params->serial_sequences, parser, factory,
-          params->request_parameters),
-      schedule_(params->schedule)
+          params.async, params.streaming, Distribution::CUSTOM,
+          params.batch_size, params.measurement_window_ms, params.max_trials,
+          params.max_threads, params.num_of_sequences,
+          params.shared_memory_type, params.output_shm_size,
+          params.serial_sequences, parser, factory, params.request_parameters),
+      schedule_(params.schedule)
 {
+  max_threads_ = std::min(max_threads_, schedule_.size());
 }
 
 cb::Error
-CustomRequestScheduleManager::PerformWarmup(
-    double request_rate, size_t warmup_request_count)
-{
-  if (warmup_request_count == 0) {
-    return cb::Error::Success;
-  }
-  RETURN_IF_ERROR(ChangeRequestRate(request_rate, warmup_request_count));
-  WaitForWarmupAndCleanup();
-  return cb::Error::Success;
-}
-
-cb::Error
-CustomRequestScheduleManager::ChangeRequestRate(
-    const double request_rate, const size_t request_count)
+CustomRequestScheduleManager::InitCustomSchedule(const size_t request_count)
 {
   PauseWorkers();
   ConfigureThreads(request_count);
-  GenerateSchedule(request_rate, schedule_);
+  GenerateSchedule();
   ResumeWorkers();
 
   return cb::Error::Success;
 }
 
 void
-CustomRequestScheduleManager::GenerateSchedule(
-    const double request_rate, const std::vector<float>& schedule)
+CustomRequestScheduleManager::GenerateSchedule()
 {
-  std::vector<float> scaled_schedule;
-  scaled_schedule.reserve(schedule.size());
-  if (schedule.size() > 0) {
-    for (const auto& value : schedule) {
-      scaled_schedule.push_back(value / static_cast<float>(request_rate));
-    }
-  }
-  auto worker_schedules = CreateWorkerSchedules(schedule);
+  auto worker_schedules = CreateWorkerSchedules(schedule_);
   GiveSchedulesToWorkers(worker_schedules);
 }
 

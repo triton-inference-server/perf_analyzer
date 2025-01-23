@@ -1048,10 +1048,6 @@ TritonLoader::GetOutputs(
 
     std::string data_type{datatype};
     std::vector<uint8_t> data_copy;
-    if (data_type == "BYTES" && byte_size >= 4) {
-      base = static_cast<const uint8_t*>(base) + 4;
-      byte_size -= 4;
-    }
 
     if (memory_type == TRITONSERVER_MEMORY_GPU) {
       CUDARuntimeLibraryManager cuda_manager;

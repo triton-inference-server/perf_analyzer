@@ -229,6 +229,10 @@ InferContext::GetOutputs(const cb::InferResult& infer_result)
     std::vector<uint8_t> buf{};
     infer_result.RawData(requested_output->Name(), buf);
 
+    if (data_type == "BYTES" && buf.size() >= 4) {
+      buf.erase(buf.begin(), buf.begin() + 4);
+    }
+
     output.emplace(
         requested_output->Name(), RecordData(std::move(buf), data_type));
   }

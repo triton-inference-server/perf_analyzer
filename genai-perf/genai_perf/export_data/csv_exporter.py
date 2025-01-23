@@ -28,8 +28,10 @@
 import csv
 
 import genai_perf.logging as logging
-from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
-from genai_perf.export_data.exporter_config import ExporterConfig
+
+from . import exporter_utils
+from . import telemetry_data_exporter_util as telem_utils
+from .exporter_config import ExporterConfig
 
 logger = logging.getLogger(__name__)
 
@@ -83,25 +85,23 @@ class CsvExporter:
             if self._should_skip(metric.name):
                 continue
 
-            metric_str = metric.name.replace("_", " ").title()
-            metric_str += f" ({metric.unit})" if metric.unit != "tokens" else ""
+            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
             row_values = [metric_str]
             for stat in self.REQUEST_METRICS_HEADER[1:]:
-                value = self._stats[metric.name].get(stat, None)
-                row_values.append(f"{value:,.2f}" if value else "N/A")
+                row_values.append(
+                    exporter_utils.fetch_stat(self._stats, metric.name, stat)
+                )
 
             csv_writer.writerow(row_values)
 
     def _write_system_metrics(self, csv_writer) -> None:
         csv_writer.writerow(self.SYSTEM_METRICS_HEADER)
         for metric in self._metrics.system_metrics:
-            metric_str = metric.name.replace("_", " ").title()
-            metric_str += f" ({metric.unit})"
-            if metric.name == "request_goodput":
-                if not self._args.goodput:
-                    continue
-            value = self._stats[metric.name]["avg"]
-            csv_writer.writerow([metric_str, f"{value:.2f}"])
+            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
+            if metric.name == "request_goodput" and not self._args.goodput:
+                continue
+            value = exporter_utils.fetch_stat(self._stats, metric.name, "avg")
+            csv_writer.writerow([metric_str, exporter_utils.format_stat_value(value)])
 
     def _should_skip(self, metric_name: str) -> bool:
         if self._args.endpoint_type == "embeddings":
@@ -119,6 +119,7 @@ class CsvExporter:
         streaming_metrics = [
             "inter_token_latency",
             "time_to_first_token",
+            "time_to_second_token",
         ]
         if not self._args.streaming and metric_name in streaming_metrics:
             return True

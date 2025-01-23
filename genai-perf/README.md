@@ -33,6 +33,7 @@ generative AI models as served through an inference server.
 For large language models (LLMs), GenAI-Perf provides metrics such as
 [output token throughput](#output_token_throughput_metric),
 [time to first token](#time_to_first_token_metric),
+[time to second token](#time_to_second_token_metric),
 [inter token latency](#inter_token_latency_metric), and
 [request throughput](#request_throughput_metric).
 For a full list of metrics please see the [Metrics section](#metrics).
@@ -72,44 +73,33 @@ INSTALLATION
 
 ## Installation
 
-The easiest way to install GenAI-Perf is through
-[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver).
-Install the latest release using the following command:
+The easiest way to install GenAI-Perf is through pip.
+### Install GenAI-Perf (Ubuntu 24.04, Python 3.10+)
 
 ```bash
-export RELEASE="24.10"
-
-docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-# Check out genai_perf command inside the container:
-genai-perf --help
+pip install genai-perf
 ```
+**NOTE**: you must already have CUDA 12 installed
+
 
 <details>
 
-<summary>Alternatively, to install from source:</summary>
+<summary>Alternatively, to install the container:</summary>
 
-Since GenAI-Perf depends on Perf Analyzer,
-you'll need to install the Perf Analyzer binary:
+[Triton Server SDK container](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver)
 
-### Install Perf Analyzer (Ubuntu, Python 3.10+)
-
-**NOTE**: you must already have CUDA 12 installed
-(checkout the [CUDA installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)).
+Pull the latest release using the following command:
 
 ```bash
-pip install tritonclient
+export RELEASE="24.12"
 
-sudo apt update && sudo apt install -y --no-install-recommends libb64-0d
+docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
+
+# Validate the genai-perf command works inside the container:
+genai-perf --help
 ```
 
-You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) as well.
-
-### Install GenAI-Perf from source
-
-```bash
-pip install git+https://github.com/triton-inference-server/perf_analyzer.git#subdirectory=genai-perf
-```
+You can also build Perf Analyzer [from source](../docs/install.md#build-from-source) to use alongside GenAI-Perf as well.
 
 </details>
 
@@ -141,7 +131,7 @@ docker run -ti \
     --shm-size=1g --ulimit memlock=-1 \
     -v /tmp:/tmp \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.10-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:24.12-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
@@ -182,6 +172,15 @@ Example output:
 See [Tutorial](docs/tutorial.md) for additional examples.
 
 </br>
+
+<!--
+=====================
+Analyze Subcommand
+====================
+-->
+## Analyze
+GenAI-Perf can be used to sweep through PA or GenAI-Perf stimulus allowing the user to profile multiple scenarios with a single command.
+See [Analyze](docs/analyze.md) for details on how this subcommand can be utilized.
 
 <!--
 ======================
@@ -293,6 +292,9 @@ options:
   filepaths to images to use for benchmarking as JSON objects.
 
 For any dataset, you can specify the following options:
+* `--num-prefix-prompts <int>`: The number of synthetic prefix prompts to
+  sample from. If this value is >0, synthetic prefix prompts will be prepended
+  to user prompts.
 * `--output-tokens-mean <int>`: The mean number of tokens in each output. Ensure
   the `--tokenizer` value is set correctly, >= 1.
 * `--output-tokens-stddev <int>`: The standard deviation of the number of tokens
@@ -303,6 +305,8 @@ For any dataset, you can specify the following options:
   Triton service-kind. Note that there is still some variability in the
   requested number of output tokens, but GenAi-Perf attempts its best effort
   with your model to get the right number of output tokens.
+* `--prefix-prompt-length <int>`: The number of tokens to include in each
+  prefix prompt. This value is only used if --num-prefix-prompts is positive.
 
 You can optionally set additional model inputs with the following option:
 * `--extra-inputs <input_name>:<value>`: An additional input for use with the
@@ -328,12 +332,10 @@ AUTHENTICATION
 
 GenAI-Perf can benchmark secure endpoints such as OpenAI, which require API
 key authentication. To do so, you must add your API key directly in the command.
-At the end of your command, append the below flags. Replace the key with your
-API key. The `--` flag allows arguments to pass directly into Perf Analyzer in
-superuser mode. The `-H` flag is used to add HTTP headers.
+Add the following flag to your command.
 
 ```bash
--- -H "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
+-H "Authorization: Bearer ${API_KEY}" -H "Accept: text/event-stream"
 ```
 
 </br>
@@ -352,6 +354,7 @@ the inference server.
 | Metric | Description | Aggregations |
 | - | - | - |
 | <span id="time_to_first_token_metric">Time to First Token</span> | Time between when a request is sent and when its first response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
+| <span id="time_to_second_token_metric">Time to Second Token</span> | Time between when the first streaming response is received and when the second streaming response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | <span id="inter_token_latency_metric">Inter Token Latency</span> | Time between intermediate responses for a single request divided by the number of generated tokens of the latter response, one value per response per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Request Latency | Time between when a request is sent and when its final response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Output Sequence Length | Total number of output tokens of a request, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
@@ -360,6 +363,13 @@ the inference server.
 | <span id="request_throughput_metric">Request Throughput</span> | Number of final responses from benchmark divided by benchmark duration | None–one value per benchmark |
 
 </br>
+
+### Telemetry Metrics
+
+When using the Triton service kind, Telemetry metrics will be reported in
+the GenAI-Perf profile export files. These include GPU power usage, GPU
+utilization, energy consumption, total GPU memory, and more. If you would like
+these to be printed as output, you can use the `--verbose` flag.
 
 <!--
 ======================
@@ -445,6 +455,12 @@ flag for multiple inputs. Inputs should be in an input_name:value format.
 Alternatively, a string representing a json formatted dict can be provided.
 (default: `None`)
 
+##### `--header <str>`
+##### `--H <str>`
+Add a custom header to the requests. Headers must be specified as
+'Header:Value'. You can repeat this flag for multiple headers.
+(default: `None`)
+
 ##### `--input-file <path>`
 
 The input file or directory containing the content to use for
@@ -460,6 +476,12 @@ extensions. For example, 'synthetic:queries,passages'.
 
 The number of unique payloads to sample from. These will be reused until
 benchmarking is complete. (default: `100`)
+
+##### `--num-prefix-prompts <int>`
+
+The number of prefix prompts to select from. If this value is not zero, these
+are prompts that are prepended to input prompts. This is useful for
+benchmarking models that use a K-V cache. (default: `0`)
 
 ##### `--output-tokens-mean <int>`
 ##### `--osl`
@@ -486,6 +508,7 @@ when `--output-tokens-mean` is provided. (default: `0`)
 The seed used to generate random values. (default: `0`)
 
 ##### `--request-count <int>`
+##### `--num-requests <int>`
 
 The number of requests to use for measurement.
 By default, the benchmark does not terminate based on request count.
@@ -502,7 +525,15 @@ data. (default: `550`)
 The standard deviation of number of tokens in the generated prompts when
 using synthetic data. (default: `0`)
 
+##### `--prefix-prompt-length <int>`
+
+The number of tokens in each prefix prompt. This value is only used if
+--num-prefix-prompts is positive. Note that due to the prefix and user prompts
+being concatenated, the number of tokens in the final prompt may be off by one.
+(default: `100`)
+
 ##### `--warmup-request-count <int>`
+##### `--num-warmup-requests <int>`
 
 The number of warmup requests to send before benchmarking. (default: `0`)
 

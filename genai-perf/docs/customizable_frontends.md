@@ -123,6 +123,20 @@ converters = {
 }
 ```
 
+## Map an Endpoint Type to the Output Format
+
+Open `genai_perf/parser.py`.
+Add an mapping for your new endpoint type in the `_endpoint_type_map`.
+
+For example, see the code below.
+
+```python
+_endpoint_type_map = {
+    # Existing mappings
+    "NEW-ENDPOINT": EndpointConfig("v1/endpoint", "openai", ic.OutputFormat.NEW_ENDPOINT),
+}
+```
+
 ## Update the Metrics Parser
 
 GenAI-Perf needs to know which metrics format your API uses. Go to
@@ -142,7 +156,7 @@ After implementing your converter, you can run it against your server to
 ensure it works:
 
 ```bash
-genai-perf profile -m TEST_MODEL --endpoint NEW-ENDPOINT
+genai-perf profile -m TEST_MODEL --endpoint-type NEW-ENDPOINT
 ```
 
 You can also write unit tests to ensure it works as expected.

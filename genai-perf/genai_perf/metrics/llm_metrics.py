@@ -36,6 +36,7 @@ class LLMMetrics(Metrics):
 
     LLM_REQUEST_TIME_METRICS = [
         MetricMetadata("time_to_first_token", "ms"),
+        MetricMetadata("time_to_second_token", "ms"),
         MetricMetadata("inter_token_latency", "ms"),
     ]
 
@@ -64,6 +65,7 @@ class LLMMetrics(Metrics):
         request_throughputs: List[float] = [],
         request_latencies: List[int] = [],
         time_to_first_tokens: List[int] = [],
+        time_to_second_tokens: List[int] = [],
         inter_token_latencies: List[int] = [],
         output_token_throughputs: List[float] = [],
         output_token_throughputs_per_request: List[float] = [],
@@ -74,6 +76,7 @@ class LLMMetrics(Metrics):
     ) -> None:
         super().__init__(request_throughputs, request_latencies, request_goodputs)
         self.time_to_first_tokens = time_to_first_tokens
+        self.time_to_second_tokens = time_to_second_tokens
         self.inter_token_latencies = inter_token_latencies
         self.output_token_throughputs = output_token_throughputs
         self.output_token_throughputs_per_request = output_token_throughputs_per_request
@@ -86,6 +89,7 @@ class LLMMetrics(Metrics):
 
         # add base name mapping
         self._base_names["time_to_first_tokens"] = "time_to_first_token"
+        self._base_names["time_to_second_tokens"] = "time_to_second_token"
         self._base_names["inter_token_latencies"] = "inter_token_latency"  # nosec
         self._base_names["output_token_throughputs"] = (  # nosec
             "output_token_throughput"
