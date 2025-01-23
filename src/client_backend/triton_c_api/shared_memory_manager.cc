@@ -1,4 +1,4 @@
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -42,7 +42,6 @@ SharedMemoryManager::~SharedMemoryManager()
   UnregisterAll(TRITONSERVER_MEMORY_GPU);
 }
 
-#ifdef TRITON_ENABLE_GPU
 Error
 SharedMemoryManager::RegisterCUDAMemory(
     const std::string& name, void* dev_ptr, const size_t byte_size,
@@ -64,7 +63,6 @@ SharedMemoryManager::RegisterCUDAMemory(
                 TRITONSERVER_MEMORY_GPU, device_id))));
   return Error::Success;
 }
-#endif  // TRITON_ENABLE_GPU
 
 Error
 SharedMemoryManager::RegisterSystemMemory(

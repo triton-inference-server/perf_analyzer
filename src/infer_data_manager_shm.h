@@ -1,4 +1,4 @@
-// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -27,24 +27,24 @@
 
 #include "client_backend/client_backend.h"
 #include "constants.h"
-#include "cuda_runtime_library_manager.h"
 #include "data_loader.h"
 #include "infer_data.h"
 #include "infer_data_manager_base.h"
 #include "model_parser.h"
 #include "perf_utils.h"
 
+#ifdef TRITON_ENABLE_GPU
+#include "cuda_runtime_library_manager.h"
+#endif  // TRITON_ENABLE_GPU
+
 namespace triton { namespace perfanalyzer {
 
-namespace {
-
 #ifdef TRITON_ENABLE_GPU
-
-#include <cuda_runtime_api.h>
+namespace {
 
 #define RETURN_IF_CUDA_ERR(FUNC)                                             \
   {                                                                          \
-    const cudaError_t result = FUNC;                                         \
+    const CUDARuntimeLibraryManager::cudaError_t result = FUNC;              \
     if (result != cudaSuccess) {                                             \
       return cb::Error(                                                      \
           "CUDA exception (line " + std::to_string(__LINE__) + "): " +       \
@@ -57,7 +57,8 @@ namespace {
 cb::Error
 CreateCUDAIPCHandle(
     CUDARuntimeLibraryManager& cuda_runtime_library_manager,
-    cudaIpcMemHandle_t* cuda_handle, void* input_d_ptr, int device_id = 0)
+    CUDARuntimeLibraryManager::cudaIpcMemHandle_t* cuda_handle,
+    void* input_d_ptr, int device_id = 0)
 {
   // Set the GPU device to the desired GPU
   RETURN_IF_CUDA_ERR(cuda_runtime_library_manager.cudaSetDevice(device_id));
@@ -69,9 +70,8 @@ CreateCUDAIPCHandle(
   return cb::Error::Success;
 }
 
-#endif  // TRITON_ENABLE_GPU
-
 }  // namespace
+#endif  // TRITON_ENABLE_GPU
 
 /// Holds information about the shared memory locations
 struct SharedMemoryData {
@@ -163,8 +163,10 @@ class InferDataManagerShm : public InferDataManagerBase {
   // Map from shared memory key to its starting address and size
   std::unordered_map<std::string, SharedMemoryData> shared_memory_regions_;
 
+#ifdef TRITON_ENABLE_GPU
  private:
   CUDARuntimeLibraryManager cuda_runtime_library_manager_{};
+#endif  // TRITON_ENABLE_GPU
 };
 
 }}  // namespace triton::perfanalyzer

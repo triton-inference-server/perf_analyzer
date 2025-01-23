@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -34,6 +34,10 @@
 #include "../../constants.h"
 #include "../../perf_analyzer_exception.h"
 #include "json_utils.h"
+
+#ifdef TRITON_ENABLE_GPU
+#include "../../cuda_runtime_library_manager.h"
+#endif  // TRITON_ENABLE_GPU
 
 namespace {
 
@@ -482,9 +486,11 @@ TritonClientBackend::RegisterSystemSharedMemory(
   return Error::Success;
 }
 
+#ifdef TRITON_ENABLE_GPU
 Error
 TritonClientBackend::RegisterCudaSharedMemory(
-    const std::string& name, const cudaIpcMemHandle_t& handle,
+    const std::string& name,
+    const CUDARuntimeLibraryManager::cudaIpcMemHandle_t& handle,
     const size_t byte_size)
 {
   if (protocol_ == ProtocolType::GRPC) {
@@ -498,6 +504,7 @@ TritonClientBackend::RegisterCudaSharedMemory(
 
   return Error::Success;
 }
+#endif  // TRITON_ENABLE_GPU
 
 //
 // Shared Memory Utilities

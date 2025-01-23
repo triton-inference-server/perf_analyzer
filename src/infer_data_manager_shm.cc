@@ -1,4 +1,4 @@
-// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -27,6 +27,10 @@
 #include "infer_data_manager_shm.h"
 
 #include <algorithm>
+
+#ifdef TRITON_ENABLE_GPU
+#include "cuda_runtime_library_manager.h"
+#endif  // TRITON_ENABLE_GPU
 
 namespace triton { namespace perfanalyzer {
 
@@ -200,9 +204,10 @@ InferDataManagerShm::CreateMemoryRegion(
               std::unique_ptr<uint8_t, std::function<void(uint8_t*)>>(
                   reinterpret_cast<uint8_t*>(*ptr), [](uint8_t* memory) {}))));
     }
-  } else if (memory_type == SharedMemoryType::CUDA_SHARED_MEMORY) {
+  }
 #ifdef TRITON_ENABLE_GPU
-    cudaError_t cuda_err =
+  else if (memory_type == SharedMemoryType::CUDA_SHARED_MEMORY) {
+    CUDARuntimeLibraryManager::cudaError_t cuda_err =
         cuda_runtime_library_manager_.cudaMalloc((void**)ptr, byte_size);
     if (cuda_err != cudaSuccess) {
       return cb::Error(
@@ -226,7 +231,7 @@ InferDataManagerShm::CreateMemoryRegion(
               std::unique_ptr<uint8_t, std::function<void(uint8_t*)>>(
                   reinterpret_cast<uint8_t*>(*ptr),
                   [this, shm_region_name, byte_size](uint8_t* memory) {
-                    cudaError_t cuda_err =
+                    CUDARuntimeLibraryManager::cudaError_t cuda_err =
                         cuda_runtime_library_manager_.cudaFree(memory);
                     if (cuda_err != cudaSuccess) {
                       std::cerr
@@ -240,7 +245,7 @@ InferDataManagerShm::CreateMemoryRegion(
                     }
                   }))));
     } else {
-      cudaIpcMemHandle_t cuda_handle;
+      CUDARuntimeLibraryManager::cudaIpcMemHandle_t cuda_handle;
       RETURN_IF_ERROR(CreateCUDAIPCHandle(
           cuda_runtime_library_manager_, &cuda_handle,
           reinterpret_cast<void*>(*ptr)));
@@ -255,8 +260,9 @@ InferDataManagerShm::CreateMemoryRegion(
               std::unique_ptr<uint8_t, std::function<void(uint8_t*)>>(
                   reinterpret_cast<uint8_t*>(*ptr), [](uint8_t* memory) {}))));
     }
+  }
 #endif  // TRITON_ENABLE_GPU
-  } else {
+  else {
     return cb::Error(
         "CreateMemoryRegion called with invalid memory region type.",
         pa::GENERIC_ERROR);
@@ -282,16 +288,21 @@ InferDataManagerShm::CopySharedMemory(
       offset += tensor_datas[count].batch1_size;
       count++;
     }
-  } else {
+  }
 #ifdef TRITON_ENABLE_GPU
+  else {
     // Populate the region with data
     size_t count = 0;
     size_t offset = 0;
     size_t max_count = is_shape_tensor ? 1 : batch_size_;
     while (count < max_count) {
-      cudaError_t cuda_err = cuda_runtime_library_manager_.cudaMemcpy(
-          (void*)(input_shm_ptr + offset), (void*)tensor_datas[count].data_ptr,
-          tensor_datas[count].batch1_size, cudaMemcpyHostToDevice);
+      CUDARuntimeLibraryManager::cudaError_t cuda_err =
+          cuda_runtime_library_manager_.cudaMemcpy(
+              (void*)(input_shm_ptr + offset),
+              (void*)tensor_datas[count].data_ptr,
+              tensor_datas[count].batch1_size,
+              CUDARuntimeLibraryManager::cudaMemcpyKind::
+                  cudaMemcpyHostToDevice);
       if (cuda_err != cudaSuccess) {
         return cb::Error(
             "Failed to copy data to cuda shared memory for " + region_name +
@@ -303,8 +314,8 @@ InferDataManagerShm::CopySharedMemory(
       offset += tensor_datas[count].batch1_size;
       count++;
     }
-#endif  // TRITON_ENABLE_GPU
   }
+#endif  // TRITON_ENABLE_GPU
   return cb::Error::Success;
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -38,6 +38,10 @@ class CUDARuntimeLibraryManager {
   CUDARuntimeLibraryManager();
 
   ~CUDARuntimeLibraryManager();
+
+  using cudaError_t = ::cudaError_t;
+  using cudaIpcMemHandle_t = ::cudaIpcMemHandle_t;
+  using cudaMemcpyKind = ::cudaMemcpyKind;
 
   // Wrapper functions for CUDA API calls
   cudaError_t cudaMalloc(void** devPtr, size_t size);
