@@ -22,6 +22,15 @@ class ConfigField:
     A class to represent a configuration field.
     Only the default value is required, all other values are optional.
     Bounds and choices are checked when the value is set.
+
+    default: The default value of the configuration field.
+    required: Whether a value is required to be set by the user.
+    add_to_template: Whether the field should be added to the template.
+    template_comment: A comment to add to the template.
+    value: The value of the configuration field.
+    bounds: A dictionary with upper and lower bounds.
+    choices: A list of choices or an Enum.
+    is_set_by_user: Whether the value was set by the user.
     """
 
     def __init__(
@@ -99,6 +108,12 @@ class ConfigFields:
 
     The __getattr__ and __setattr__ methods are custom to allow
     the user to access the value of the ConfigField directly.
+
+    Examples:
+      field_a.field_b = 5 sets the value of field_b to 5
+      field_a.field_b returns the value of field_b
+
+      field_a.get_field("field_b") returns the ConfigField object of field_b
     """
 
     def __init__(self):
