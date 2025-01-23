@@ -220,7 +220,8 @@ RequestHandler::PrepareInputs(const std::string& payload) const
   const std::vector<int64_t> dims{1};
   const std::string datatype{"BYTES"};
 
-  auto error{cb::InferInput::Create(&infer_input, kind, name, dims, datatype)};
+  auto error{cb::InferInput::Create(
+      &infer_input, kind, name, dims, datatype, parser_->Streaming())};
 
   if (!error.IsOk()) {
     throw std::runtime_error(error.Message());
