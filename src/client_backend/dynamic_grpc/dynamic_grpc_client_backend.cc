@@ -49,7 +49,8 @@ DynamicGrpcClientBackend::Create(
     const std::string& url, const ProtocolType protocol,
     const SslOptionsBase& ssl_options,
     const grpc_compression_algorithm compression_algorithm,
-    std::shared_ptr<Headers> http_headers, const bool verbose,
+    std::shared_ptr<Headers> http_headers, const std::string& proto_file,
+    const std::string& grpc_method, const bool verbose,
     std::unique_ptr<ClientBackend>* client_backend)
 {
   if (protocol == ProtocolType::HTTP) {
@@ -65,7 +66,7 @@ DynamicGrpcClientBackend::Create(
   bool use_ssl = grpc_ssl_options_pair.first;
   SslOptions grpc_ssl_options = grpc_ssl_options_pair.second;
   grpc_client_backend->grpc_client_ = std::make_unique<DynamicGrpcClient>(
-      url, verbose, use_ssl, grpc_ssl_options);
+      url, proto_file, grpc_method, verbose, use_ssl, grpc_ssl_options);
 
   *client_backend = std::move(grpc_client_backend);
 
@@ -78,6 +79,8 @@ DynamicGrpcClientBackend::StreamInfer(
     const std::vector<InferInput*>& inputs,
     const std::vector<const InferRequestedOutput*>& outputs)
 {
+  auto raw_input = dynamic_cast<DynamicGrpcInferInput*>(inputs[0]);
+  raw_input->PrepareForRequest();
   RETURN_IF_CB_ERROR(grpc_client_->BidiStreamRPC(
       result, options, inputs, outputs, compression_algorithm_));
 

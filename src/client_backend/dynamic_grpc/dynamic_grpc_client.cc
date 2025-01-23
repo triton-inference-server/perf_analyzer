@@ -32,51 +32,46 @@ namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 Error
 DynamicGrpcInferResult::RequestStatus() const
 {
-  // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
+  if (!request_status_) {
+    return Error("Dynamic gRPC client request returned with error.");
+  }
+  return Error::Success;
 }
 
 Error
 DynamicGrpcInferResult::Id(std::string* id) const
 {
-  // TODO: Not required for synchronous streaming?
-  return Error("Not implemented yet.");
+  return Error("DynamicGrpcInferResult::Id is not supported.");
 }
 
 Error
 DynamicGrpcInferResult::RawData(
     const std::string& output_name, std::vector<uint8_t>& buf) const
 {
-  // TODO
-  return Error("Not implemented yet.");
+  return Error("DynamicGrpcInferResult::RawData is not supported.");
 }
 
 //==============================================================================
 //
 DynamicGrpcClient::DynamicGrpcClient(
-    const std::string& url, bool verbose, bool use_ssl,
+    const std::string& url, const std::string& proto_file,
+    const std::string& grpc_method, bool verbose, bool use_ssl,
     const SslOptions& ssl_options)
-    : verbose_(verbose)
+    : verbose_(verbose), proto_file_(proto_file), grpc_method_(grpc_method)
 {
   if (verbose) {
     std::cout << "Creating new channel with url: " << url << std::endl;
   }
-
-  // TODO: set ssl credentials
-  grpc::ChannelArguments arguments;
-  std::shared_ptr<grpc::ChannelCredentials> credentials;
-  credentials = grpc::InsecureChannelCredentials();
-
-  std::shared_ptr<grpc::Channel> channel =
-      grpc::CreateCustomChannel(url, credentials, arguments);
-
-  // Create a generic stub for dynamic calls
+  auto channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
   stub_ = std::make_unique<grpc::GenericStub>(channel);
 }
 
 DynamicGrpcClient::~DynamicGrpcClient()
 {
-  StopStream();
+  if (stream_started_) {
+    StopStream();
+    completion_queue_.Shutdown();
+  }
 }
 
 Error
@@ -86,8 +81,63 @@ DynamicGrpcClient::BidiStreamRPC(
     const std::vector<const InferRequestedOutput*>& outputs,
     grpc_compression_algorithm compression_algorithm)
 {
-  // TODO
-  return Error("Not implemented yet.");
+  auto request = std::make_shared<DynamicGrpcRequest>();
+  request->Timer().Reset();
+
+  auto stream_input =
+      dynamic_cast<DynamicGrpcInferInput*>(inputs[0]);  // single stream input
+  auto messages = stream_input->GetSerializedMessages();
+
+  request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::REQUEST_START);
+  request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::SEND_START);
+
+  void* tag;
+  bool ok;
+
+  std::cout << "Start sending stream" << std::endl;
+  for (const auto& message : messages) {
+    grpc::Slice slice(message.data(), message.size());
+    grpc::ByteBuffer request_buffer(&slice, 1);
+    bidi_stream_->Write(request_buffer, nullptr);
+    completion_queue_.Next(&tag, &ok);
+  }
+  std::cout << "Done sending stream"
+            << ", ok = " << ok << std::endl;
+
+  std::cout << "Call WritesDone" << std::endl;
+  bidi_stream_->WritesDone(nullptr);
+  completion_queue_.Next(&tag, &ok);
+  std::cout << "CQ: WritesDone"
+            << ", ok = " << ok << std::endl;
+
+  request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::SEND_END);
+  request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::RECV_START);
+
+  std::vector<std::chrono::time_point<std::chrono::system_clock>>
+      response_timestamps;
+
+  std::cout << "Start receiving stream" << std::endl;
+  while (true) {
+    grpc::ByteBuffer response_buffer;
+    bidi_stream_->Read(&response_buffer, nullptr);
+    bool status = completion_queue_.Next(&tag, &ok);
+    response_timestamps.push_back(std::chrono::system_clock::now());
+    if (!ok) {
+      *result = new DynamicGrpcInferResult(status, response_timestamps);
+      break;
+    }
+  }
+  std::cout << "Done receiving stream"
+            << ", ok = " << ok << std::endl;
+
+  request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::RECV_END);
+  request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::REQUEST_END);
+
+  Error update_status = UpdateInferStat(request->Timer());
+  if (!update_status.IsOk()) {
+    std::cerr << "Failed to update infer stats: " << update_status << std::endl;
+  }
+  return Error::Success;
 }
 
 Error
@@ -101,13 +151,16 @@ DynamicGrpcClient::StartStream(
   }
   grpc_context_.set_compression_algorithm(compression_algorithm);
 
-  // TODO: what is this used for?
-  enable_stream_stats_ = enable_stats;
+  bidi_stream_ = stub_->PrepareCall(
+      &grpc_context_, "/" + grpc_method_, &completion_queue_);
 
-  // TODO: need method name (& completion queue?)
-  bidi_stream_ =
-      stub_->PrepareCall(&grpc_context_, "Animate", &completion_queue_);
+  // Wait for StartCall to complete before proceeding with other operations
+  void* tag;
+  bool ok;
   bidi_stream_->StartCall(nullptr);
+  completion_queue_.Next(&tag, &ok);
+
+  stream_started_ = true;
 
   if (verbose_) {
     std::cout << "Started stream..." << std::endl;
@@ -119,7 +172,8 @@ DynamicGrpcClient::StartStream(
 Error
 DynamicGrpcClient::StopStream()
 {
-  bidi_stream_->WritesDone(nullptr);
+  grpc::Status grpc_status_;
+  bidi_stream_->Finish(&grpc_status_, nullptr);
   if (verbose_) {
     std::cout << "Stopped stream..." << std::endl;
   }
@@ -127,19 +181,61 @@ DynamicGrpcClient::StopStream()
 }
 
 Error
-DynamicGrpcClient::PreRunProcessing(
-    const InferOptions& options, const std::vector<InferInput*>& inputs,
-    const std::vector<const InferRequestedOutput*>& outputs)
-{
-  // TODO
-  return Error("Not implemented yet.");
-}
-
-Error
 DynamicGrpcClient::UpdateInferStat(const tc::RequestTimers& timer)
 {
-  // TODO
-  return Error("Not implemented yet.");
+  const uint64_t request_time_ns = timer.Duration(
+      triton::client::RequestTimers::Kind::REQUEST_START,
+      triton::client::RequestTimers::Kind::REQUEST_END);
+  const uint64_t send_time_ns = timer.Duration(
+      triton::client::RequestTimers::Kind::SEND_START,
+      triton::client::RequestTimers::Kind::SEND_END);
+  const uint64_t recv_time_ns = timer.Duration(
+      triton::client::RequestTimers::Kind::RECV_START,
+      triton::client::RequestTimers::Kind::RECV_END);
+
+  if ((request_time_ns == std::numeric_limits<uint64_t>::max()) ||
+      (send_time_ns == std::numeric_limits<uint64_t>::max()) ||
+      (recv_time_ns == std::numeric_limits<uint64_t>::max())) {
+    return Error(
+        "Timer not set correctly." +
+        ((timer.Timestamp(triton::client::RequestTimers::Kind::REQUEST_START) >
+          timer.Timestamp(triton::client::RequestTimers::Kind::REQUEST_END))
+             ? (" Request time from " +
+                std::to_string(timer.Timestamp(
+                    triton::client::RequestTimers::Kind::REQUEST_START)) +
+                " to " +
+                std::to_string(timer.Timestamp(
+                    triton::client::RequestTimers::Kind::REQUEST_END)) +
+                ".")
+             : "") +
+        ((timer.Timestamp(triton::client::RequestTimers::Kind::SEND_START) >
+          timer.Timestamp(triton::client::RequestTimers::Kind::SEND_END))
+             ? (" Send time from " +
+                std::to_string(timer.Timestamp(
+                    triton::client::RequestTimers::Kind::SEND_START)) +
+                " to " +
+                std::to_string(timer.Timestamp(
+                    triton::client::RequestTimers::Kind::SEND_END)) +
+                ".")
+             : "") +
+        ((timer.Timestamp(triton::client::RequestTimers::Kind::RECV_START) >
+          timer.Timestamp(triton::client::RequestTimers::Kind::RECV_END))
+             ? (" Receive time from " +
+                std::to_string(timer.Timestamp(
+                    triton::client::RequestTimers::Kind::RECV_START)) +
+                " to " +
+                std::to_string(timer.Timestamp(
+                    triton::client::RequestTimers::Kind::RECV_END)) +
+                ".")
+             : ""));
+  }
+
+  infer_stat_.completed_request_count++;
+  infer_stat_.cumulative_total_request_time_ns += request_time_ns;
+  infer_stat_.cumulative_send_time_ns += send_time_ns;
+  infer_stat_.cumulative_receive_time_ns += recv_time_ns;
+
+  return Error::Success;
 }
 
 //==============================================================================

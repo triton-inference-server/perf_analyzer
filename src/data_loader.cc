@@ -273,6 +273,80 @@ DataLoader::ParseData(
 }
 
 cb::Error
+DataLoader::ReadDataFromPipe(
+    const std::shared_ptr<ModelTensorMap>& inputs,
+    const std::shared_ptr<ModelTensorMap>& outputs, const std::string& command)
+{
+  FILE* pipe = popen(command.data(), "r");
+  if (pipe == nullptr) {
+    return cb::Error(
+        "Failed to open pipe with the following process: " + command,
+        pa::GENERIC_ERROR);
+  }
+
+  int offset = 0;
+  data_stream_cnt_ = 1;
+  step_num_.push_back(1);
+
+  for (size_t step = offset; step < step_num_[0]; step++) {
+    for (const auto& in : *inputs) {
+      std::string key_name(
+          in.first + "_" + std::to_string(0) + "_" + std::to_string(step));
+
+      auto it = input_data_.emplace(key_name, std::vector<char>()).first;
+
+      std::vector<char> size(sizeof(uint32_t));
+      std::vector<char> buffer;
+
+      while (true) {
+        // Read the length byte
+        uint32_t data_size = ReadDataSizeFromPipe(pipe);
+        if (data_size == 0) {
+          break;
+        }
+
+        // Ensure buffer is large enough
+        if (buffer.size() != data_size) {
+          buffer.resize(data_size);
+        }
+
+        // Read the payload using the length
+        size_t bytes_read = fread(buffer.data(), 1, data_size, pipe);
+        if (bytes_read != data_size) {
+          return cb::Error(
+              "Unmatching number of bytes read from the pipe: expected = " +
+                  std::to_string(data_size) +
+                  ", bytes read = " + std::to_string(bytes_read),
+              pa::GENERIC_ERROR);
+        }
+
+        std::memcpy(size.data(), &data_size, sizeof(data_size));
+        std::copy(size.begin(), size.end(), std::back_inserter(it->second));
+        std::copy(buffer.begin(), buffer.end(), std::back_inserter(it->second));
+      }
+    }
+  }
+
+  pclose(pipe);
+  return cb::Error::Success;
+}
+
+uint32_t
+DataLoader::ReadDataSizeFromPipe(FILE* pipe)
+{
+  uint32_t data_size = 0;
+  std::vector<char> buf(sizeof(data_size));
+
+  // Read first 4 bytes from the pipe to get the data size
+  if (fread(buf.data(), 1, sizeof(data_size), pipe) != sizeof(data_size)) {
+    return 0;
+  }
+  std::memcpy(&data_size, buf.data(), sizeof(data_size));
+  return data_size;
+}
+
+
+cb::Error
 DataLoader::GenerateData(
     std::shared_ptr<ModelTensorMap> inputs, const bool zero_input,
     const size_t string_length, const std::string& string_data)

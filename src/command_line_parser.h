@@ -159,6 +159,10 @@ struct PerfAnalyzerParameters {
   size_t warmup_request_count{0};
 
   std::vector<float> schedule{};
+
+  // Dynamic gRPC options
+  std::string proto_file{""};
+  std::string grpc_method{""};  // full gRPC method name
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;

@@ -319,6 +319,8 @@ ProfileDataExporter::AddServiceKind(cb::BackendKind& kind)
     raw_service_kind = "triton_c_api";
   } else if (kind == cb::BackendKind::OPENAI) {
     raw_service_kind = "openai";
+  } else if (kind == cb::BackendKind::DYNAMIC_GRPC) {
+    raw_service_kind = "dynamic_grpc";
   } else {
     std::cerr << "Unknown service kind detected. The 'service_kind' will not "
                  "be specified."

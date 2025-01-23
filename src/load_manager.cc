@@ -220,6 +220,9 @@ LoadManager::InitManagerInputs(
           parser_->Inputs(), parser_->Outputs(), user_data[0]));
       RETURN_IF_ERROR(data_loader_->ReadDataFromDir(
           parser_->Inputs(), parser_->Outputs(), user_data[0]));
+    } else if (factory_->Kind() == cb::BackendKind::DYNAMIC_GRPC) {
+      RETURN_IF_ERROR(data_loader_->ReadDataFromPipe(
+          parser_->Inputs(), parser_->Outputs(), "python input_stream.py"));
     } else {
       using_json_data_ = true;
       for (const auto& json_file : user_data) {

@@ -84,14 +84,15 @@ PerfAnalyzer::CreateAnalyzerObjects()
           params_->triton_server_path, params_->model_repository_path,
           params_->extra_verbose, params_->metrics_url,
           params_->input_tensor_format, params_->output_tensor_format,
-          &factory),
+          params_->proto_file, params_->grpc_method, &factory),
       "failed to create client factory");
 
   FAIL_IF_ERR(
       factory->CreateClientBackend(&backend_),
       "failed to create triton client backend");
 
-  parser_ = std::make_shared<pa::ModelParser>(params_->kind);
+  parser_ =
+      std::make_shared<pa::ModelParser>(params_->kind, params_->streaming);
   if (params_->kind == cb::BackendKind::TRITON ||
       params_->kind == cb::BackendKind::TRITON_C_API) {
     rapidjson::Document model_metadata;

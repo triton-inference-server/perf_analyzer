@@ -31,10 +31,11 @@ namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 Error
 DynamicGrpcInferInput::Create(
     InferInput** infer_input, const std::string& name,
-    const std::vector<int64_t>& dims, const std::string& datatype)
+    const std::vector<int64_t>& dims, const std::string& datatype,
+    const bool streaming)
 {
   DynamicGrpcInferInput* local_infer_input =
-      new DynamicGrpcInferInput(name, dims, datatype);
+      new DynamicGrpcInferInput(name, dims, datatype, streaming);
 
   *infer_input = local_infer_input;
   return Error::Success;
@@ -43,7 +44,12 @@ DynamicGrpcInferInput::Create(
 Error
 DynamicGrpcInferInput::AppendRaw(const uint8_t* input, size_t input_byte_size)
 {
-  // TODO: Not required for synchronous streaming?
+  if (bufs_.size() > 0) {
+    return Error(
+        "Dynamic gRPC does not support multi-batch at the moment.",
+        pa::GENERIC_ERROR);
+  }
+
   byte_size_ += input_byte_size;
 
   bufs_.push_back(input);
@@ -54,17 +60,50 @@ DynamicGrpcInferInput::AppendRaw(const uint8_t* input, size_t input_byte_size)
 Error
 DynamicGrpcInferInput::PrepareForRequest()
 {
-  // TODO: Not required for synchronous streaming?
   // Reset position so request sends entire input.
   bufs_idx_ = 0;
   buf_pos_ = 0;
   return Error::Success;
 }
 
+std::vector<std::vector<char>>
+DynamicGrpcInferInput::GetSerializedMessages()
+{
+  if (!streaming_) {
+    std::cerr << "Cannot get next serialized message for non-streaming RPC."
+              << std::endl;
+    throw PerfAnalyzerException(GENERIC_ERROR);
+  }
+
+  std::vector<std::vector<char>> messages;
+  std::vector<char> message;
+  uint32_t message_size = 4;
+
+  while (buf_pos_ + message_size < buf_byte_sizes_[bufs_idx_]) {
+    // Read message size
+    std::memcpy(&message_size, (bufs_[bufs_idx_] + buf_pos_), sizeof(uint32_t));
+    buf_pos_ += sizeof(uint32_t);
+
+    if (message.size() != message_size) {
+      message.resize(message_size);
+    }
+
+    // Read message
+    std::memcpy(message.data(), (bufs_[bufs_idx_] + buf_pos_), message_size);
+    buf_pos_ += message_size;
+
+    messages.push_back(message);
+    message_size = 4;
+  }
+
+  return messages;
+}
+
 DynamicGrpcInferInput::DynamicGrpcInferInput(
     const std::string& name, const std::vector<int64_t>& dims,
-    const std::string& datatype)
-    : InferInput(BackendKind::DYNAMIC_GRPC, name, datatype), shape_(dims)
+    const std::string& datatype, const bool streaming)
+    : InferInput(BackendKind::DYNAMIC_GRPC, name, datatype), shape_(dims),
+      streaming_(streaming)
 {
 }
 

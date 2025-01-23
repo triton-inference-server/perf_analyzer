@@ -177,7 +177,8 @@ InferDataManagerBase::CreateInferInput(
     const std::string& name, const std::vector<int64_t>& dims,
     const std::string& datatype)
 {
-  return cb::InferInput::Create(infer_input, kind, name, dims, datatype);
+  return cb::InferInput::Create(
+      infer_input, kind, name, dims, datatype, parser_->Streaming());
 }
 
 void

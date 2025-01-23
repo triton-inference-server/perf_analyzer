@@ -185,6 +185,8 @@ CLParser::Usage(const std::string& msg)
   std::cerr << "\t--streaming" << std::endl;
   std::cerr << "\t--grpc-compression-algorithm <compression_algorithm>"
             << std::endl;
+  std::cerr << "\t--proto" << std::endl;
+  std::cerr << "\t--rpc" << std::endl;
   std::cerr << "\t--trace-level" << std::endl;
   std::cerr << "\t--trace-rate" << std::endl;
   std::cerr << "\t--trace-count" << std::endl;
@@ -815,6 +817,21 @@ CLParser::Usage(const std::string& msg)
                    "version 3, while modelB's version is unspecified",
                    18)
             << std::endl;
+  std::cerr << FormatMessage(
+                   " --proto: Path to the protobuf file that defines all the "
+                   "gRPC service and RPC methods. The option is only supported "
+                   "by dynamic gRPC service kind for dynamically parsing the "
+                   "protobuf at runtime.",
+                   18)
+            << std::endl;
+  std::cerr
+      << FormatMessage(
+             " --rpc: A fully-qualified gRPC method name in "
+             "'<package>.<service>/<method>' format. The option is only "
+             "supported by dynamic gRPC service kind and is used to identify "
+             "the RPC to use when sending requests to the server.",
+             18)
+      << std::endl;
   throw pa::PerfAnalyzerException(GENERIC_ERROR);
 }
 
@@ -917,6 +934,8 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"request-count", required_argument, 0, long_option_idx_base + 62},
       {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
       {"schedule", required_argument, 0, long_option_idx_base + 64},
+      {"proto", required_argument, 0, long_option_idx_base + 65},
+      {"rpc", required_argument, 0, long_option_idx_base + 66},
       {0, 0, 0, 0}};
 
   // Parse commandline...
@@ -1683,6 +1702,28 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->request_count = schedule.size();
           break;
         }
+        case long_option_idx_base + 65: {
+          std::string proto_file{optarg};
+          if (!IsFile(proto_file)) {
+            Usage(
+                "Failed to parse --proto. The value must be a valid file "
+                "path.");
+          }
+          params_->proto_file = proto_file;
+          break;
+        }
+        case long_option_idx_base + 66: {
+          std::string rpc{optarg};
+          std::vector<std::string> components = SplitString(rpc, "/");
+          if (components.size() != 2) {
+            Usage(
+                "Received gRPC method name '" + rpc +
+                "' that does not match the format: "
+                "<package>.<service>/<method>.");
+          }
+          params_->grpc_method = rpc;
+          break;
+        }
         case 'v':
           params_->extra_verbose = params_->verbose;
           params_->verbose = true;
@@ -2059,15 +2100,17 @@ CLParser::VerifyOptions()
 
   // Sanity checks for Dynamic gRPC client backend
   if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
-    if (params_->user_data.empty()) {
-      Usage("Must supply --input-data for Dynamic gRPC service kind.");
+    if (!params_->streaming || params_->async) {
+      Usage(
+          "Dynamic gRPC client only supports synchronous bidirectional "
+          "streaming RPC at the moment.");
     }
-    if (params_->protocol != cb::ProtocolType::GRPC) {
-      std::cerr << "WARNING: Dynamic gRPC is a *gRPC-only* protocol. Perf "
-                   "Analyzer will automatically set the protocol as gRPC."
-                << std::endl;
-      params_->protocol = cb::ProtocolType::GRPC;
+    if (params_->streaming && params_->user_data.empty()) {
+      Usage(
+          "Must supply --input-data to provide input data stream for streaming "
+          "Dynamic gRPC service.");
     }
+    params_->protocol = cb::ProtocolType::GRPC;
   }
 
   if (params_->should_collect_metrics &&

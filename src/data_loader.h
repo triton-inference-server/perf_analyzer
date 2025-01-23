@@ -91,6 +91,19 @@ class DataLoader {
       const std::shared_ptr<ModelTensorMap>& outputs,
       const std::string& json_file);
 
+  /// Reads the input data stream from the user process through pipe.
+  /// \param inputs The pointer to the map holding the information about
+  /// input tensors of a model
+  /// \param outputs The pointer to the map holding the information about
+  /// output tensors of a model
+  /// \param command The command to execute and create pipe between the
+  /// user-provided input data stream process and the current process.
+  /// Returns error object indicating status
+  virtual cb::Error ReadDataFromPipe(
+      const std::shared_ptr<ModelTensorMap>& inputs,
+      const std::shared_ptr<ModelTensorMap>& outputs,
+      const std::string& command);
+
   /// Generates the input data to use with the inference requests
   /// \param inputs The pointer to the map holding the information about
   /// input tensors of a model
@@ -150,6 +163,12 @@ class DataLoader {
       const rapidjson::Document& json,
       const std::shared_ptr<ModelTensorMap>& inputs,
       const std::shared_ptr<ModelTensorMap>& outputs);
+
+  /// Helper function to read 4 bytes that represents the size of the data to
+  /// read from the pipe
+  /// \param pipe The stream to read from Returns the message
+  /// size of 4 bytes.
+  uint32_t ReadDataSizeFromPipe(FILE* pipe);
 
  private:
   /// Reads the data from file specified by path into vector of characters

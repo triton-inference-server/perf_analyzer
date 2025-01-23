@@ -146,10 +146,8 @@ InferContext::SendRequest(
     total_ongoing_requests_++;
   } else {
     cb::InferResult* results = nullptr;
-    std::chrono::time_point<std::chrono::system_clock> start_time_sync,
-        end_time_sync;
     thread_stat_->idle_timer.Start();
-    start_time_sync = std::chrono::system_clock::now();
+    auto start_time_sync = std::chrono::system_clock::now();
     if (streaming_) {
       thread_stat_->status_ = infer_backend_->StreamInfer(
           &results, *(infer_data_.options_), infer_data_.valid_inputs_,
@@ -160,27 +158,32 @@ InferContext::SendRequest(
           infer_data_.outputs_);
     }
     thread_stat_->idle_timer.Stop();
+
+    std::vector<std::chrono::time_point<std::chrono::system_clock>>
+        response_timestamps{std::chrono::system_clock::now()};
     RequestRecord::ResponseOutput response_outputs{};
+
     if (results != nullptr) {
       if (thread_stat_->status_.IsOk()) {
         response_outputs = GetOutputs(*results);
         thread_stat_->status_ = ValidateOutputs(results);
+
+        // When streaming, use the timestamps collected from client
+        if (streaming_) {
+          results->ResponseTimestamps(&response_timestamps);
+        }
       }
       delete results;
     }
     if (!thread_stat_->status_.IsOk()) {
       return;
     }
-    end_time_sync = std::chrono::system_clock::now();
-    std::vector<std::chrono::time_point<std::chrono::system_clock>>
-        end_time_syncs{end_time_sync};
     {
       // Add the request record to thread request records vector with proper
       // locking
       std::lock_guard<std::mutex> lock(thread_stat_->mu_);
-      auto total = end_time_sync - start_time_sync;
       thread_stat_->request_records_.emplace_back(RequestRecord(
-          start_time_sync, std::move(end_time_syncs), {request_inputs},
+          start_time_sync, std::move(response_timestamps), {request_inputs},
           {response_outputs}, infer_data_.options_->sequence_end_, delayed,
           sequence_id, false));
       thread_stat_->status_ =

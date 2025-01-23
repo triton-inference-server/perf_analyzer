@@ -25,25 +25,14 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
-#include <google/protobuf/compiler/parser.h>
-#include <google/protobuf/descriptor.h>
-#include <google/protobuf/dynamic_message.h>
 #include <grpcpp/generic/generic_stub.h>
 #include <grpcpp/grpcpp.h>
 
-#include <cstdint>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <queue>
-#include <sstream>
-#include <string>
-
 #include "../client_backend.h"
 #include "common.h"
+#include "dynamic_grpc_infer_input.h"
 
 namespace tc = triton::client;
-namespace pb = google::protobuf;
 
 namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 
@@ -65,29 +54,6 @@ struct SslOptions {
   std::string certificate_chain;
 };
 
-// GRPC KeepAlive: https://grpc.github.io/grpc/cpp/md_doc_keepalive.html
-struct KeepAliveOptions {
-  explicit KeepAliveOptions()
-      : keepalive_time_ms(INT_MAX), keepalive_timeout_ms(20000),
-        keepalive_permit_without_calls(false), http2_max_pings_without_data(2)
-  {
-  }
-  // The period (in milliseconds) after which a keepalive ping is sent on the
-  // transport
-  int keepalive_time_ms;
-  // The amount of time (in milliseconds) the sender of the keepalive ping waits
-  // for an acknowledgement. If it does not receive an acknowledgment within
-  // this time, it will close the connection.
-  int keepalive_timeout_ms;
-  // If true, allow keepalive pings to be sent even if there are no calls in
-  // flight.
-  bool keepalive_permit_without_calls;
-  // The maximum number of pings that can be sent when there is no data/header
-  // frame to be sent. gRPC Core will not continue sending pings if we run over
-  // the limit. Setting it to 0 allows sending pings without such a restriction.
-  int http2_max_pings_without_data;
-};
-
 class DynamicGrpcClient;
 
 //==============================================================================
@@ -98,8 +64,6 @@ class DynamicGrpcRequest {
   DynamicGrpcRequest(OnCompleteFn callback = nullptr)
       : callback_(callback), grpc_status_()
   {
-    // TODO: store response message (e.g. AnimateResponse)
-    // grpc_response_(std::make_shared<inference::ModelInferResponse>())
   }
 
   tc::RequestTimers& Timer() { return timer_; }
@@ -120,12 +84,12 @@ class DynamicGrpcRequest {
 class DynamicGrpcInferResult : public InferResult {
  public:
   DynamicGrpcInferResult(
-      // TODO: need to store grpc response
-      // std::shared_ptr<tensorflow::serving::PredictResponse> response,
-      Error& request_status)
-      : request_status_(request_status)
+      bool request_status = false,
+      std::vector<std::chrono::time_point<std::chrono::system_clock>>
+          response_timestamps = {})
+      : request_status_(request_status),
+        response_timestamps_(response_timestamps)
   {
-    // TODO: add grpc response
   }
 
   /// See InferResult::Id()
@@ -135,18 +99,25 @@ class DynamicGrpcInferResult : public InferResult {
   /// See InferResult::RawData()
   Error RawData(
       const std::string& output_name, std::vector<uint8_t>& buf) const override;
+  Error ResponseTimestamps(
+      std::vector<std::chrono::time_point<std::chrono::system_clock>>*
+          response_timestamp) const override
+  {
+    *response_timestamp = response_timestamps_;
+  }
 
  private:
-  // TODO: need to store grpc response
-  // std::shared_ptr<tensorflow::serving::PredictResponse> response_;
-  Error request_status_;
+  bool request_status_;
+  std::vector<std::chrono::time_point<std::chrono::system_clock>>
+      response_timestamps_;
 };
 
 //==============================================================================
 class DynamicGrpcClient {
  public:
   DynamicGrpcClient(
-      const std::string& url, bool verbose, bool use_ssl,
+      const std::string& url, const std::string& proto_file,
+      const std::string& grpc_method, bool verbose, bool use_ssl,
       const SslOptions& ssl_options);
 
   ~DynamicGrpcClient();
@@ -208,35 +179,16 @@ class DynamicGrpcClient {
   InferStat infer_stat_;
 
  private:
-  Error PreRunProcessing(
-      const InferOptions& options, const std::vector<InferInput*>& inputs,
-      const std::vector<const InferRequestedOutput*>& outputs);
-
-  // TODO: not needed since we are using synchronous stream?
-  // Required to support the grpc bi-directional streaming API.
-  // std::thread stream_worker_;
-
   // Generic bi-directional stream using dynamic protobuf message.
-  // std::shared_ptr<grpc::ClientReaderWriter<grpc::ByteBuffer,
-  // grpc::ByteBuffer>>
-  //    bidi_stream_;
-  std::shared_ptr<grpc::GenericClientAsyncReaderWriter> bidi_stream_;
+  std::unique_ptr<grpc::GenericClientAsyncReaderWriter> bidi_stream_;
   grpc::ClientContext grpc_context_;
   grpc::CompletionQueue completion_queue_;
-
-  bool enable_stream_stats_;
-  std::queue<std::unique_ptr<tc::RequestTimers>> ongoing_stream_request_timers_;
-
-  // TODO: not needed since we are using synchronous stream?
-  // std::mutex stream_mutex_;
+  bool stream_started_{false};
 
   // Generic gRPC stub for dynamic calls.
   std::unique_ptr<grpc::GenericStub> stub_;
-
-  // TODO: update
-  // request for GRPC call, one request object can be used for multiple calls
-  // since it can be overwritten as soon as the GRPC send finishes.
-  // inference::ModelInferRequest infer_request_;
+  const std::string proto_file_;
+  const std::string grpc_method_;
 };
 
 
