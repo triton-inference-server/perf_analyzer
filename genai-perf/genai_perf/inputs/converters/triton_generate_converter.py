@@ -55,8 +55,13 @@ class TritonGenerateConverter(BaseConverter):
                 payload = {
                     "text_input": prompt,
                 }
-                self._add_request_params(payload, config)
-                request_body["data"].append({"payload": [payload]})
+                request_body["data"].append(
+                    self._finalize_payload(
+                        payload,
+                        config,
+                        row,
+                    )
+                )
 
         return request_body
 

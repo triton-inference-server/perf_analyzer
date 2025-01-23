@@ -61,8 +61,10 @@ class TensorRTLLMConverter(BaseConverter):
                     "text_input": [text],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],  # default
                 }
-                self._add_request_params(payload, config)
-                request_body["data"].append(payload)
+
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row, triton_format=True)
+                )
 
         return request_body
 
