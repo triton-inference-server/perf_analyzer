@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from genai_perf.constants import ABBREVIATIONS
 from rich.console import Console
@@ -59,24 +59,19 @@ TELEMETRY_GROUPS = {
 }
 
 
-def merge_telemetry_stats_json(
-    telemetry_stats: Optional[Dict], stats_and_args: Dict
-) -> None:
-    if telemetry_stats is not None:
-        stats_and_args.update({"telemetry_stats": telemetry_stats})
+def merge_telemetry_stats_json(telemetry_stats: Dict, stats_and_args: Dict) -> None:
+    stats_and_args.update({"telemetry_stats": telemetry_stats})
 
 
-def export_telemetry_stats_csv(telemetry_stats: Optional[Dict], csv_writer) -> None:
-    if telemetry_stats:
-        _write_dynamic_telemetry_stats(telemetry_stats, csv_writer)
-        _write_constant_telemetry_stats(telemetry_stats, csv_writer)
+def export_telemetry_stats_csv(telemetry_stats: Dict, csv_writer) -> None:
+    _write_dynamic_telemetry_stats(telemetry_stats, csv_writer)
+    _write_constant_telemetry_stats(telemetry_stats, csv_writer)
 
 
 def export_telemetry_stats_console(
-    telemetry_stats: Optional[Dict], stat_column_keys: List[str], console: Console
+    telemetry_stats: Dict, stat_column_keys: List[str], console: Console
 ) -> None:
-    if telemetry_stats:
-        _construct_telemetry_stats_table(telemetry_stats, stat_column_keys, console)
+    _construct_telemetry_stats_table(telemetry_stats, stat_column_keys, console)
 
 
 def _construct_telemetry_stats_table(

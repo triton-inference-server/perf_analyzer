@@ -29,6 +29,7 @@ from typing import List, Optional
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
+from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.profile_data_parser import ProfileDataParser
@@ -36,8 +37,9 @@ from genai_perf.subcommand.common import (
     calculate_metrics,
     create_artifacts_dirs,
     create_config_options,
-    create_telemetry_data_collector,
+    create_telemetry_data_collectors,
     generate_inputs,
+    merge_telemetry_metrics,
     run_perf_analyzer,
 )
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
@@ -58,19 +60,19 @@ def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
         args.tokenizer_revision,
     )
     generate_inputs(config_options)
-    telemetry_data_collector = create_telemetry_data_collector(args)
+    telemetry_data_collectors = create_telemetry_data_collectors(args)
     run_perf_analyzer(
         args=args,
         extra_args=extra_args,
-        telemetry_data_collector=telemetry_data_collector,
+        telemetry_data_collectors=telemetry_data_collectors,
     )
     data_parser = calculate_metrics(args, tokenizer)
-    _report_output(data_parser, telemetry_data_collector, args)
+    _report_output(data_parser, telemetry_data_collectors, args)
 
 
 def _report_output(
     data_parser: ProfileDataParser,
-    telemetry_data_collector: Optional[TelemetryDataCollector],
+    telemetry_data_collectors: List[TelemetryDataCollector],
     args: Namespace,
 ) -> None:
     if args.concurrency:
@@ -83,10 +85,15 @@ def _report_output(
         raise GenAIPerfException("No valid infer mode specified")
 
     stats = data_parser.get_statistics(infer_mode, load_level)
-    telemetry_stats = (
-        telemetry_data_collector.get_statistics() if telemetry_data_collector else None
+    telemetry_metrics_list = [
+        collector.get_metrics() for collector in telemetry_data_collectors
+    ]
+
+    merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics_list)
+
+    reporter = OutputReporter(
+        stats, TelemetryStatistics(merged_telemetry_metrics), args
     )
-    reporter = OutputReporter(stats, telemetry_stats, args)
 
     reporter.report_output()
     if args.generate_plots:

@@ -373,7 +373,7 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
         or parsed_url.port is None
     ):
         parser.error(
-            "The URL passed for --server-metrics-url is invalid. "
+            "Invalid URL passed for --server-metrics-url: {parsed_url}. "
             "It must use 'http' or 'https', have a valid domain and port, "
             "and contain '/metrics' in the path. The expected structure is: "
             "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
@@ -393,12 +393,13 @@ def _check_server_metrics_url(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     """
-    Checks if the server metrics URL passed is valid
+    Checks if each server metrics URL passed is valid
     """
 
-    # Check if the URL is valid and contains the expected path
     if args.service_kind == "triton" and args.server_metrics_url:
-        _is_valid_url(parser, args.server_metrics_url)
+        for url in args.server_metrics_url:
+            # Check if the URL is valid and contains the expected path
+            _is_valid_url(parser, url)
 
     return args
 
@@ -637,11 +638,12 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--server-metrics-url",
         type=str,
-        default=None,
+        nargs="+",
+        default=[],
         required=False,
-        help="The full URL to access the server metrics endpoint. "
-        "This argument is required if the metrics are available on "
-        "a different machine than localhost (where GenAI-Perf is running).",
+        help="List of server metrics URLs for multiple sources. Example "
+        "usage: --server-metrics-url http://server1:8002/metrics "
+        "http://server2:8002/metrics",
     )
 
     endpoint_group.add_argument(

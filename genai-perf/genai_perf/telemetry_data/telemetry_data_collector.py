@@ -69,6 +69,9 @@ class TelemetryDataCollector(ABC):
             self._stop_event.set()
             self._thread.join()
 
+    def get_metrics(self) -> TelemetryMetrics:
+        return self._metrics
+
     def get_statistics(self) -> TelemetryStatistics:
         telemetry_stats = TelemetryStatistics(self._metrics)
         return telemetry_stats

@@ -36,6 +36,7 @@ from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.profile_data_parser import (
     ImageRetrievalProfileDataParser,
     LLMProfileDataParser,
@@ -124,21 +125,28 @@ def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
     return request_inputs
 
 
-def create_telemetry_data_collector(
+def create_telemetry_data_collectors(
     args: Namespace,
-) -> Optional[TelemetryDataCollector]:
-    telemetry_data_collector = None
-    if args.service_kind == "triton":
-        server_metrics_url = args.server_metrics_url or DEFAULT_TRITON_METRICS_URL
-        telemetry_data_collector = TritonTelemetryDataCollector(server_metrics_url)
+) -> List[TelemetryDataCollector]:
+    """
+    Initializes telemetry data collectors for all endpoints.
+    """
+    telemetry_collectors: List[TelemetryDataCollector] = []
 
-    if telemetry_data_collector and not telemetry_data_collector.is_url_reachable():
-        logger.warning(
-            f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
-            "GenAI-Perf cannot collect telemetry data."
-        )
-        telemetry_data_collector = None
-    return telemetry_data_collector
+    if not args.service_kind == "triton":
+        return telemetry_collectors
+
+    if not args.server_metrics_url:
+        args.server_metrics_url = [DEFAULT_TRITON_METRICS_URL]
+
+    for url in args.server_metrics_url:
+        collector = TritonTelemetryDataCollector(url.strip())
+        if collector.is_url_reachable():
+            telemetry_collectors.append(collector)
+        else:
+            logger.warning(f"Skipping unreachable metrics URL: {url}")
+
+    return telemetry_collectors
 
 
 def create_artifacts_dirs(args: Namespace) -> None:
@@ -192,11 +200,11 @@ def run_perf_analyzer(
     args: Namespace,
     extra_args: Optional[List[str]] = None,
     perf_analyzer_config: Optional[PerfAnalyzerConfig] = None,
-    telemetry_data_collector: Optional[TelemetryDataCollector] = None,
+    telemetry_data_collectors: List[TelemetryDataCollector] = [],
 ) -> None:
     try:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.start()
+        for collector in telemetry_data_collectors:
+            collector.start()
 
         if perf_analyzer_config is not None:
             cmd = perf_analyzer_config.create_command()
@@ -212,5 +220,28 @@ def run_perf_analyzer(
         else:
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
     finally:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.stop()
+        for collector in telemetry_data_collectors:
+            collector.stop()
+
+
+def merge_telemetry_metrics(metrics_list: List[TelemetryMetrics]) -> TelemetryMetrics:
+    """
+    Merges multiple TelemetryMetrics objects into a single one.
+
+    Args:
+        metrics_list (List[TelemetryMetrics]): A list of TelemetryMetrics instances.
+
+    Returns:
+        TelemetryMetrics: A new TelemetryMetrics instance with merged raw data.
+    """
+
+    merged_metrics = TelemetryMetrics()
+
+    for metrics in metrics_list:
+        for metric_name, gpu_data in metrics.data.items():
+            for gpu_id, values in gpu_data.items():
+                merged_metrics.data[gpu_id][metric_name].extend(
+                    values
+                )  # Merge raw lists
+
+    return merged_metrics

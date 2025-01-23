@@ -30,7 +30,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
-from genai_perf.subcommand.common import create_telemetry_data_collector
+from genai_perf.subcommand.common import create_telemetry_data_collectors
 from genai_perf.telemetry_data import TritonTelemetryDataCollector
 from requests import codes as http_codes
 
@@ -60,7 +60,7 @@ class TestCreateTelemetryDataCollector:
         mock_args = MockArgs(
             service_kind="triton", server_metrics_url=server_metrics_url
         )
-        telemetry_data_collector = create_telemetry_data_collector(mock_args)
+        telemetry_data_collector = create_telemetry_data_collectors(mock_args)[0]
 
         assert isinstance(telemetry_data_collector, TritonTelemetryDataCollector)
         assert telemetry_data_collector.metrics_url == expected_url
@@ -81,7 +81,7 @@ class TestCreateTelemetryDataCollector:
         mock_args = MockArgs(
             service_kind="triton", server_metrics_url=server_metrics_url
         )
-        telemetry_data_collector = create_telemetry_data_collector(mock_args)
+        telemetry_data_collector = create_telemetry_data_collectors(mock_args)[0]
 
         assert telemetry_data_collector is None
 
@@ -98,6 +98,6 @@ class TestCreateTelemetryDataCollector:
         mock_args = MockArgs(
             service_kind="openai", server_metrics_url=self.test_triton_metrics_url
         )
-        telemetry_data_collector = create_telemetry_data_collector(mock_args)
+        telemetry_data_collector = create_telemetry_data_collectors(mock_args)[0]
 
         assert telemetry_data_collector is None

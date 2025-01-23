@@ -27,8 +27,10 @@
 
 import argparse as args
 from dataclasses import dataclass
+from dataclasses import field
+from dataclasses import field as default_factory
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from genai_perf.metrics import Metrics
 
@@ -40,4 +42,4 @@ class ExporterConfig:
     args: args.Namespace
     extra_inputs: Dict[str, Any]
     artifact_dir: Path
-    telemetry_stats: Optional[Dict[str, Any]] = None
+    telemetry_stats: Dict[str, Any] = field(default_factory=dict)

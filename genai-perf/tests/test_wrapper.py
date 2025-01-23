@@ -157,7 +157,7 @@ class TestWrapper:
         run_perf_analyzer(
             args=args,
             extra_args=None,
-            telemetry_data_collector=telemetry_data_collector,
+            telemetry_data_collectors=[telemetry_data_collector],
         )
 
         # Check that standard output was not redirected.
@@ -177,7 +177,7 @@ class TestWrapper:
         run_perf_analyzer(
             args=args,
             extra_args=None,
-            telemetry_data_collector=telemetry_data_collector,
+            telemetry_data_collectors=[telemetry_data_collector],
         )
 
         # Check that standard output was redirected.
