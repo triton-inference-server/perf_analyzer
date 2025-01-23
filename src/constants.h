@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -42,6 +42,10 @@ constexpr static const uint32_t OPTION_ERROR = 3;
 
 constexpr static const uint32_t GENERIC_ERROR = 99;
 constexpr static const size_t DEFAULT_MAX_THREADS = 16;
+
+/// Size of the data being read from stream (e.g. pipe) when reading input data
+/// from user-provided data stream. Defaults to 4 bytes.
+constexpr uint32_t DEFAULT_STREAM_DATA_SIZE = 4;
 
 const double DELAY_PCT_THRESHOLD{1.0};
 

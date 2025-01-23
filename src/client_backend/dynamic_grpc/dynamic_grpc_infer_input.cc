@@ -77,12 +77,14 @@ DynamicGrpcInferInput::GetSerializedMessages()
 
   std::vector<std::vector<char>> messages;
   std::vector<char> message;
-  uint32_t message_size = 4;
+  uint32_t message_size;
 
-  while (buf_pos_ + message_size < buf_byte_sizes_[bufs_idx_]) {
+  while (buf_pos_ + pa::DEFAULT_STREAM_DATA_SIZE < buf_byte_sizes_[bufs_idx_]) {
     // Read message size
-    std::memcpy(&message_size, (bufs_[bufs_idx_] + buf_pos_), sizeof(uint32_t));
-    buf_pos_ += sizeof(uint32_t);
+    std::memcpy(
+        &message_size, (bufs_[bufs_idx_] + buf_pos_),
+        pa::DEFAULT_STREAM_DATA_SIZE);
+    buf_pos_ += pa::DEFAULT_STREAM_DATA_SIZE;
 
     if (message.size() != message_size) {
       message.resize(message_size);
@@ -93,7 +95,6 @@ DynamicGrpcInferInput::GetSerializedMessages()
     buf_pos_ += message_size;
 
     messages.push_back(message);
-    message_size = 4;
   }
 
   return messages;

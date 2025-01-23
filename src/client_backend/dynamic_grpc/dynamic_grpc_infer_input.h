@@ -58,7 +58,7 @@ class DynamicGrpcInferInput : public InferInput {
       const std::string& name, const std::vector<int64_t>& dims,
       const std::string& datatype, const bool streaming);
 
-  std::vector<int64_t> shape_;  // TODO: remove?
+  std::vector<int64_t> shape_;
   size_t byte_size_{0};
 
   size_t bufs_idx_, buf_pos_;

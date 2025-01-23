@@ -295,7 +295,7 @@ DataLoader::ReadDataFromPipe(
 
       auto it = input_data_.emplace(key_name, std::vector<char>()).first;
 
-      std::vector<char> size(sizeof(uint32_t));
+      std::vector<char> size(pa::DEFAULT_STREAM_DATA_SIZE);
       std::vector<char> buffer;
 
       while (true) {
@@ -334,14 +334,14 @@ DataLoader::ReadDataFromPipe(
 uint32_t
 DataLoader::ReadDataSizeFromPipe(FILE* pipe)
 {
-  uint32_t data_size = 0;
-  std::vector<char> buf(sizeof(data_size));
-
-  // Read first 4 bytes from the pipe to get the data size
-  if (fread(buf.data(), 1, sizeof(data_size), pipe) != sizeof(data_size)) {
+  // Read the size of the data
+  std::vector<char> buf(pa::DEFAULT_STREAM_DATA_SIZE);
+  size_t bytes_read = fread(buf.data(), 1, pa::DEFAULT_STREAM_DATA_SIZE, pipe);
+  if (bytes_read != pa::DEFAULT_STREAM_DATA_SIZE) {
     return 0;
   }
-  std::memcpy(&data_size, buf.data(), sizeof(data_size));
+  uint32_t data_size;
+  std::memcpy(&data_size, buf.data(), pa::DEFAULT_STREAM_DATA_SIZE);
   return data_size;
 }
 
