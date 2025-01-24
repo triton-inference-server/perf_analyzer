@@ -65,6 +65,7 @@ class Profiler:
     @staticmethod
     def build_cmd(args: Namespace, extra_args: Optional[List[str]] = None) -> List[str]:
         skip_args = [
+            "apply_chat_template",
             "artifact_dir",
             "backend",
             "batch_size_image",

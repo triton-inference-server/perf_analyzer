@@ -14,6 +14,7 @@
 
 import contextlib
 import io
+from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 # Use TYPE_CHECKING to import BatchEncoding only during static type checks
@@ -41,7 +42,14 @@ class Tokenizer:
         self._encode_args = {"add_special_tokens": False}
         self._decode_args = {"skip_special_tokens": True}
 
-    def set_tokenizer(self, name: str, trust_remote_code: bool, revision: str):
+    def set_tokenizer(
+        self,
+        name: str,
+        trust_remote_code: bool,
+        revision: str,
+        apply_chat_template: bool,
+        chat_template_path: Path,
+    ) -> None:
         """
         Downloading the tokenizer from Huggingface.co or local filesystem
         """
@@ -57,6 +65,11 @@ class Tokenizer:
                 tokenizer = AutoTokenizer.from_pretrained(
                     name, trust_remote_code=trust_remote_code, revision=revision
                 )
+                if apply_chat_template:
+                    # read the chat template and apply it to the tokenizer
+                    with open(chat_template_path, "r") as f:
+                        chat_template = f.read()
+                    tokenizer.apply_template(chat_template)
         except Exception as e:
             raise GenAIPerfException(e)
         self._tokenizer = tokenizer
@@ -88,10 +101,18 @@ def get_tokenizer(
     tokenizer_model: str,
     trust_remote_code: bool = False,
     tokenizer_revision: str = DEFAULT_TOKENIZER_REVISION,
+    apply_chat_template: bool = False,
+    chat_template_path: Path = Path("."),
 ) -> Tokenizer:
     """
     Return tokenizer for the given model name
     """
     tokenizer = Tokenizer()
-    tokenizer.set_tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
+    tokenizer.set_tokenizer(
+        tokenizer_model,
+        trust_remote_code,
+        tokenizer_revision,
+        apply_chat_template,
+        chat_template_path,
+    )
     return tokenizer

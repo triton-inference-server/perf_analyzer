@@ -37,7 +37,11 @@ from urllib.parse import urlparse
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.input.config_command import RunConfigDefaults
-from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
+from genai_perf.constants import (
+    DEFAULT_ARTIFACT_DIR,
+    DEFAULT_LOCAL_DIRECTORY,
+    DEFAULT_PROFILE_EXPORT_FILE,
+)
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
@@ -987,6 +991,21 @@ def _add_profile_args(parser):
 
 def _add_tokenizer_args(parser):
     tokenizer_group = parser.add_argument_group("Tokenizer")
+
+    tokenizer_group.add_argument(
+        "--apply-chat-template",
+        action="store_true",
+        required=False,
+        help="The HuggingFace tokenizer will apply the chat template stored "
+        "by default or provided via --chat-template-path.",
+    )
+
+    tokenizer_group.add_argument(
+        "--chat-template-path",
+        type=Path,
+        default=Path(DEFAULT_LOCAL_DIRECTORY),
+        help="The path to the HuggingFace tokenizer chat template.",
+    )
 
     tokenizer_group.add_argument(
         "--tokenizer",
