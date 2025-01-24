@@ -27,7 +27,7 @@
 ABBREVIATIONS = ["gpu"]
 DEFAULT_HTTP_URL = "localhost:8000"
 DEFAULT_GRPC_URL = "localhost:8001"
-DEFAULT_TRITON_METRICS_URL = "localhost:8002/metrics"
+DEFAULT_TRITON_METRICS_URL = "http://localhost:8002/metrics"
 
 
 DEFAULT_ARTIFACT_DIR = "artifacts"

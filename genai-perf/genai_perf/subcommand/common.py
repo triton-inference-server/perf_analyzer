@@ -235,13 +235,15 @@ def merge_telemetry_metrics(metrics_list: List[TelemetryMetrics]) -> TelemetryMe
         TelemetryMetrics: A new TelemetryMetrics instance with merged raw data.
     """
 
-    merged_metrics = TelemetryMetrics()
+    merged_metrics = TelemetryMetrics()  # Create an empty instance
 
     for metrics in metrics_list:
-        for metric_name, gpu_data in metrics.data.items():
-            for gpu_id, values in gpu_data.items():
-                merged_metrics.data[gpu_id][metric_name].extend(
-                    values
-                )  # Merge raw lists
+        for metric in TelemetryMetrics.TELEMETRY_METRICS:
+            metric_key = metric.name
+            metric_dict = getattr(merged_metrics, metric_key)
+            source_dict = getattr(metrics, metric_key)
+
+            for gpu_id, values in source_dict.items():
+                metric_dict[gpu_id].extend(values)
 
     return merged_metrics

@@ -60,7 +60,14 @@ TELEMETRY_GROUPS = {
 
 
 def merge_telemetry_stats_json(telemetry_stats: Dict, stats_and_args: Dict) -> None:
-    stats_and_args.update({"telemetry_stats": telemetry_stats})
+    filtered_telemetry_stats = {
+        metric_name: metric_data
+        for metric_name, metric_data in telemetry_stats.items()
+        if any(gpu_data for gpu_id, gpu_data in metric_data.items() if gpu_id != "unit")
+    }
+
+    if filtered_telemetry_stats:
+        stats_and_args.update({"telemetry_stats": filtered_telemetry_stats})
 
 
 def export_telemetry_stats_csv(telemetry_stats: Dict, csv_writer) -> None:
@@ -78,10 +85,20 @@ def _construct_telemetry_stats_table(
     telemetry_stats, stat_column_keys: List[str], console: Console
 ) -> None:
     for group_name, metrics in TELEMETRY_GROUPS.items():
+        group_has_data = False
         table = Table(title=f"NVIDIA GenAI-Perf | {group_name} Metrics")
 
         for metric_name in metrics:
             metric_data = telemetry_stats.get(metric_name, {})
+
+            gpu_data_exists = any(
+                len(values) > 0 for key, values in metric_data.items() if key != "unit"
+            )
+
+            if not gpu_data_exists:
+                continue
+
+            group_has_data = True
 
             unit = metric_data.get("unit", "N/A")
             metric_name_display = _format_metric_name(metric_name.replace("_", " "))
@@ -99,7 +116,8 @@ def _construct_telemetry_stats_table(
             )
             table.add_row(sub_table)
 
-        console.print(table)
+        if group_has_data:
+            console.print(table)
 
 
 def _construct_telemetry_stats_subtable(
@@ -124,6 +142,15 @@ def _construct_telemetry_stats_subtable(
 
 
 def _write_dynamic_telemetry_stats(telemetry_stats: Dict, csv_writer) -> None:
+    filtered_metrics = {
+        metric_name: metric_data
+        for metric_name, metric_data in telemetry_stats.items()
+        if any(gpu_data for gpu_id, gpu_data in metric_data.items() if gpu_id != "unit")
+    }
+
+    if not filtered_metrics:
+        return
+
     csv_writer.writerow([])
     csv_writer.writerow(TELEMETRY_DYNAMIC_METRICS_HEADER)
 
@@ -147,6 +174,15 @@ def _write_dynamic_telemetry_stats(telemetry_stats: Dict, csv_writer) -> None:
 
 
 def _write_constant_telemetry_stats(telemetry_stats: Dict, csv_writer) -> None:
+    filtered_metrics = {
+        metric_name: metric_data
+        for metric_name, metric_data in telemetry_stats.items()
+        if any(gpu_data for gpu_id, gpu_data in metric_data.items() if gpu_id != "unit")
+    }
+
+    if not filtered_metrics:
+        return
+
     csv_writer.writerow([])
     csv_writer.writerow(TELEMETRY_CONSTANT_METRICS_HEADER)
 
