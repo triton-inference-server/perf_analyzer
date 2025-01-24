@@ -23,11 +23,7 @@ from genai_perf.config.generate.objective_parameter import (
     ObjectiveParameter,
 )
 from genai_perf.config.generate.search_parameters import SearchUsage
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    ConfigInput,
-    ConfigOutputTokens,
-)
+from genai_perf.config.input.config_command import ConfigCommand
 
 
 class TestGenAIPerfConfig(unittest.TestCase):

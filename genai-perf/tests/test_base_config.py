@@ -16,11 +16,11 @@ import unittest
 from copy import deepcopy
 from unittest.mock import patch
 
-from genai_perf.config.input.config_fields import ConfigField, ConfigFields
+from genai_perf.config.input.base_config import BaseConfig, ConfigField
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, PromptSource
 
 
-class TestConfigFields(unittest.TestCase):
+class TestBaseConfig(unittest.TestCase):
 
     ###########################################################################
     # Setup & Teardown
@@ -162,85 +162,89 @@ class TestConfigFields(unittest.TestCase):
                 choices=ModelSelectionStrategy,
             )
 
-    def test_config_fields(self):
+    def test_base_config(self):
         """
-        Test that a ConfigFields object can be written and read from
+        Test that a BaseConfig object can be written and read from
         """
 
-        test_fields = ConfigFields()
-        test_fields.test_field_A = ConfigField(
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
             default=1, value=2, template_comment="test comment"
         )
-        test_fields.test_field_B = ConfigField(default=3, value=4)
+        test_base_config.test_field_B = ConfigField(default=3, value=4)
 
         # Check that just the value is returned when accessing the attribute
-        self.assertEqual(test_fields.test_field_A, 2)
-        self.assertEqual(test_fields.test_field_B, 4)
+        self.assertEqual(test_base_config.test_field_A, 2)
+        self.assertEqual(test_base_config.test_field_B, 4)
 
         # Check the get_field() method
-        self.assertEqual(test_fields.get_field("test_field_A").value, 2)
-        self.assertEqual(test_fields.get_field("test_field_A").default, 1)
+        self.assertEqual(test_base_config.get_field("test_field_A").value, 2)
+        self.assertEqual(test_base_config.get_field("test_field_A").default, 1)
         self.assertEqual(
-            test_fields.get_field("test_field_A").template_comment, "test comment"
+            test_base_config.get_field("test_field_A").template_comment, "test comment"
         )
 
-        self.assertEqual(test_fields.get_field("test_field_B").value, 4)
+        self.assertEqual(test_base_config.get_field("test_field_B").value, 4)
 
-    def test_config_fields_change_value(self):
+    def test_base_config_change_value(self):
         """
-        Test that a ConfigFields object can have its values changed
+        Test that a BaseConfig object can have its values changed
         """
 
-        test_fields = ConfigFields()
-        test_fields.test_field_A = ConfigField(
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
             default=1, value=2, template_comment="test comment"
         )
 
         # Change the value of a field
-        test_fields.test_field_A = 5
+        test_base_config.test_field_A = 5
 
         # Check that the value has changed
-        self.assertEqual(test_fields.test_field_A, 5)
+        self.assertEqual(test_base_config.test_field_A, 5)
 
-    def test_config_fields_change_bounds(self):
+    def test_base_config_change_bounds(self):
         """
-        Test that a ConfigFields object can have its bounds changed
+        Test that a BaseConfig object can have its bounds changed
         """
 
-        test_fields = ConfigFields()
-        test_fields.test_field_A = ConfigField(
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
             default=1, value=2, template_comment="test comment", bounds={"upper": 3}
         )
 
         # Change the bounds of a field
-        test_fields.get_field("test_field_A").bounds = {"upper": 5}
+        test_base_config.get_field("test_field_A").bounds = {"upper": 5}
 
         # Check that the value has changed
-        self.assertEqual(test_fields.get_field("test_field_A").bounds, {"upper": 5})
+        self.assertEqual(
+            test_base_config.get_field("test_field_A").bounds, {"upper": 5}
+        )
 
-    def test_config_fields_change_choices_using_a_list(self):
+    def test_base_config_change_choices_using_a_list(self):
         """
-        Test that a ConfigFields object can have its choices changed using a list
+        Test that a BaseConfig object can have its choices changed using a list
         """
 
-        test_fields = ConfigFields()
-        test_fields.test_field_A = ConfigField(
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
             default=1, value=2, template_comment="test comment", choices=[1, 2, 3]
         )
 
         # Change the choices of a field
-        test_fields.get_field("test_field_A").choices = [1, 2, 3, 4]
+        test_base_config.get_field("test_field_A").choices = [1, 2, 3, 4]
 
         # Check that the value has changed
-        self.assertEqual(test_fields.get_field("test_field_A").choices, [1, 2, 3, 4])
+        self.assertEqual(
+            test_base_config.get_field("test_field_A").choices, [1, 2, 3, 4]
+        )
 
-    def test_config_fields_change_choices_using_enum(self):
+    def test_base_config_change_choices_using_enum(self):
         """
-        Test that a ConfigFields object can have its choices changed using an Enum
+        Test that a BaseConfig object can have its choices changed using an Enum
         """
 
-        test_fields = ConfigFields()
-        test_fields.test_field_A = ConfigField(
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
             default=ModelSelectionStrategy.RANDOM,
             value=ModelSelectionStrategy.ROUND_ROBIN,
             template_comment="test comment",
@@ -248,18 +252,20 @@ class TestConfigFields(unittest.TestCase):
         )
 
         # Change the choices of a field
-        test_fields.get_field("test_field_A").choices = PromptSource
+        test_base_config.get_field("test_field_A").choices = PromptSource
 
         # Check that the value has changed
-        self.assertEqual(test_fields.get_field("test_field_A").choices, PromptSource)
+        self.assertEqual(
+            test_base_config.get_field("test_field_A").choices, PromptSource
+        )
 
-    def test_config_fields_out_of_bounds_enum(self):
+    def test_base_config_out_of_bounds_enum(self):
         """
-        Test that a ConfigFields object with an out of bounds enum value raises an error
+        Test that a BaseConfig object with an out of bounds enum value raises an error
         """
 
-        test_fields = ConfigFields()
-        test_fields.test_field_A = ConfigField(
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
             default=ModelSelectionStrategy.RANDOM,
             value=ModelSelectionStrategy.ROUND_ROBIN,
             template_comment="test comment",
@@ -268,25 +274,27 @@ class TestConfigFields(unittest.TestCase):
 
         # Change the value of a field to an out of bounds value
         with self.assertRaises(ValueError):
-            test_fields.test_field_A = PromptSource.SYNTHETIC
+            test_base_config.test_field_A = PromptSource.SYNTHETIC
 
-    def test_config_fields_deepcopy(self):
+    def test_base_config_deepcopy(self):
         """
-        Test that a ConfigFields object can be deepcopied
+        Test that a BaseConfig object can be deepcopied
         """
 
-        test_fields = ConfigFields()
-        test_fields.test_field_A = ConfigField(
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
             default=1, value=2, template_comment="test comment"
         )
 
-        test_fields_copy = deepcopy(test_fields)
+        test_base_config_copy = deepcopy(test_base_config)
 
         # Check that the copied object is not the same object
-        self.assertNotEqual(id(test_fields), id(test_fields_copy))
+        self.assertNotEqual(id(test_base_config), id(test_base_config_copy))
 
         # Check that the copied object is equal to the original object
-        self.assertEqual(test_fields.test_field_A, test_fields_copy.test_field_A)
+        self.assertEqual(
+            test_base_config.test_field_A, test_base_config_copy.test_field_A
+        )
 
 
 if __name__ == "__main__":

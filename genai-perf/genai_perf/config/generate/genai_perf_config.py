@@ -17,15 +17,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 from genai_perf.config.generate.search_parameter import SearchUsage
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    ConfigImage,
-    ConfigInput,
-    ConfigOutputTokens,
-    ConfigPrefixPrompt,
-    ConfigRequestCount,
-    ConfigSyntheticTokens,
-)
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.types import CheckpointObject, ModelObjectiveParameters, Parameters
 
 
