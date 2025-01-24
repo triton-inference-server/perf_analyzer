@@ -80,8 +80,3 @@ class BaseConfig:
         new_copy._values = self._values
         new_copy._children = self._children
         return new_copy
-
-    def __eq__(self, other):
-        if not isinstance(other, BaseConfig):
-            return False
-        return self._fields == other._fields

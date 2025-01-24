@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import deepcopy
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 
@@ -30,7 +29,6 @@ from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.types import CheckpointObject, ModelName
 
 
