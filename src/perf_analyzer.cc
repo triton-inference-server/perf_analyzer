@@ -167,13 +167,12 @@ PerfAnalyzer::CreateAnalyzerObjects()
     }
   }
 
-  if (params_->streaming) {
+  if (params_->streaming && params_->kind != cb::BackendKind::DYNAMIC_GRPC) {
     if (params_->forced_sync) {
       std::cerr << "can not use streaming with synchronous API" << std::endl;
       throw pa::PerfAnalyzerException(pa::GENERIC_ERROR);
     }
-    // TODO: I don't think this is still valid today.
-    // params_->async = true;
+    params_->async = true;
   }
 
   if (parser_->IsDecoupled() &&

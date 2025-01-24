@@ -121,23 +121,27 @@ class TestLoadManagerBase {
     if (params_.async) {
       if (params_.streaming) {
         CHECK(stats->num_infer_calls == 0);
+        CHECK(stats->num_stream_infer_calls == 0);
         CHECK(stats->num_async_infer_calls == 0);
         CHECK(stats->num_async_stream_infer_calls > 0);
         CHECK(stats->num_start_stream_calls > 0);
       } else {
         CHECK(stats->num_infer_calls == 0);
+        CHECK(stats->num_stream_infer_calls == 0);
         CHECK(stats->num_async_infer_calls > 0);
         CHECK(stats->num_async_stream_infer_calls == 0);
         CHECK(stats->num_start_stream_calls == 0);
       }
     } else {
       if (params_.streaming) {
-        CHECK(stats->num_infer_calls > 0);
+        CHECK(stats->num_infer_calls == 0);
+        CHECK(stats->num_stream_infer_calls > 0);
         CHECK(stats->num_async_infer_calls == 0);
         CHECK(stats->num_async_stream_infer_calls == 0);
         CHECK(stats->num_start_stream_calls > 0);
       } else {
         CHECK(stats->num_infer_calls > 0);
+        CHECK(stats->num_stream_infer_calls == 0);
         CHECK(stats->num_async_infer_calls == 0);
         CHECK(stats->num_async_stream_infer_calls == 0);
         CHECK(stats->num_start_stream_calls == 0);
