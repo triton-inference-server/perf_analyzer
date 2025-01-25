@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -75,6 +75,47 @@ class TestCreateTelemetryDataCollector:
         assert (
             telemetry_data_collector.metrics_url == expected_url
         ), f"Expected {expected_url}, got {telemetry_data_collector.metrics_url}"
+
+    @pytest.mark.parametrize(
+        "server_metrics_urls, expected_urls",
+        [
+            (
+                [
+                    "http://tritonmetrics1.com:8080/metrics",
+                    "http://tritonmetrics2.com:9090/metrics",
+                ],
+                [
+                    "http://tritonmetrics1.com:8080/metrics",
+                    "http://tritonmetrics2.com:9090/metrics",
+                ],
+            ),
+            (
+                [],
+                [DEFAULT_TRITON_METRICS_URL],
+            ),
+        ],
+    )
+    @patch("requests.get")
+    def test_creates_multiple_telemetry_data_collectors_success(
+        self, mock_requests_get, server_metrics_urls, expected_urls
+    ):
+        """Test successful creation of multiple Triton telemetry data collectors"""
+        mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
+
+        mock_args = MockArgs(
+            service_kind="triton", server_metrics_url=server_metrics_urls
+        )
+        telemetry_collectors = create_telemetry_data_collectors(mock_args)
+
+        assert len(telemetry_collectors) == len(
+            expected_urls
+        ), "Expected telemetry collectors for all valid URLs"
+
+        for collector, expected_url in zip(telemetry_collectors, expected_urls):
+            assert isinstance(collector, TritonTelemetryDataCollector)
+            assert (
+                collector.metrics_url == expected_url
+            ), f"Expected {expected_url}, got {collector.metrics_url}"
 
     @pytest.mark.parametrize(
         "server_metrics_url",

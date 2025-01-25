@@ -26,12 +26,41 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from collections import defaultdict
 from typing import Dict, List
 
 from genai_perf.metrics.telemetry_metrics import MetricMetadata, TelemetryMetrics
 
 
 class TestTelemetryMetrics:
+
+    def test_initialization(self):
+        telemetry = TelemetryMetrics()
+        for metric in telemetry.telemetry_metrics:
+            assert isinstance(getattr(telemetry, metric.name), defaultdict)
+            assert len(getattr(telemetry, metric.name)) == 0
+
+    def test_initialization_with_params(self):
+        gpu_power_usage = {"gpu0": [10.0]}
+        gpu_power_limit = {"gpu0": [100.0]}
+        energy_consumption = {"gpu0": [1000.0]}
+        gpu_utilization = {"gpu0": [80.0]}
+        total_gpu_memory = {"gpu0": [8000.0]}
+        gpu_memory_used = {"gpu0": [4000.0]}
+        telemetry = TelemetryMetrics(
+            gpu_power_usage=gpu_power_usage,
+            gpu_power_limit=gpu_power_limit,
+            energy_consumption=energy_consumption,
+            gpu_utilization=gpu_utilization,
+            total_gpu_memory=total_gpu_memory,
+            gpu_memory_used=gpu_memory_used,
+        )
+        assert telemetry.gpu_power_usage == gpu_power_usage
+        assert telemetry.gpu_power_limit == gpu_power_limit
+        assert telemetry.energy_consumption == energy_consumption
+        assert telemetry.gpu_utilization == gpu_utilization
+        assert telemetry.total_gpu_memory == total_gpu_memory
+        assert telemetry.gpu_memory_used == gpu_memory_used
 
     def test_update_metrics(self) -> None:
         telemetry = TelemetryMetrics()
@@ -51,6 +80,21 @@ class TestTelemetryMetrics:
         assert telemetry.gpu_utilization == {"gpu0": [85.0], "gpu1": [90.0]}
         assert telemetry.total_gpu_memory == {"gpu0": [9000.0], "gpu1": [9000.0]}
         assert telemetry.gpu_memory_used == {"gpu0": [4500.0], "gpu1": [4500.0]}
+
+    def test_update_metrics_with_empty_data(self):
+        """Test that updating metrics with empty data does not modify existing data."""
+        telemetry = TelemetryMetrics()
+        telemetry.update_metrics({})
+        for metric in telemetry.telemetry_metrics:
+            print(getattr(telemetry, metric.name))
+            assert len(getattr(telemetry, metric.name)) == 0
+
+    def test_update_metrics_multiple_times(self):
+        telemetry = TelemetryMetrics()
+        telemetry.update_metrics({"gpu_power_usage": {"gpu0": [10.5]}})
+        telemetry.update_metrics({"gpu_power_usage": {"gpu0": [15.0]}})
+
+        assert telemetry.gpu_power_usage == {"gpu0": [10.5, 15.0]}
 
     def test_telemetry_metrics_property(self) -> None:
         telemetry = TelemetryMetrics()

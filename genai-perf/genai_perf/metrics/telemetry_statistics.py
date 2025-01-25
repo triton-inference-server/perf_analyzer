@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -56,21 +56,26 @@ class TelemetryStatistics:
                 self._stats_dict[attr][gpu_index]["avg"] = (
                     self._statistics._calculate_mean(gpu_data)
                 )
-            if not self._is_constant_metric(attr):
-                if gpu_data is None or gpu_index is None:
-                    continue
+                if not self._is_constant_metric(attr):
+                    if gpu_data is None or gpu_index is None:
+                        continue
 
-                percentile_results = self._statistics._calculate_percentiles(gpu_data)
-                for percentile_label, percentile_value in percentile_results.items():
-                    self._stats_dict[attr][gpu_index][
-                        percentile_label
-                    ] = percentile_value
-                min, max = self._statistics._calculate_minmax(gpu_data)
-                self._stats_dict[attr][gpu_index]["min"] = min
-                self._stats_dict[attr][gpu_index]["max"] = max
-                self._stats_dict[attr][gpu_index]["std"] = (
-                    self._statistics._calculate_std(gpu_data)
-                )
+                    percentile_results = self._statistics._calculate_percentiles(
+                        gpu_data
+                    )
+                    for (
+                        percentile_label,
+                        percentile_value,
+                    ) in percentile_results.items():
+                        self._stats_dict[attr][gpu_index][
+                            percentile_label
+                        ] = percentile_value
+                    min, max = self._statistics._calculate_minmax(gpu_data)
+                    self._stats_dict[attr][gpu_index]["min"] = min
+                    self._stats_dict[attr][gpu_index]["max"] = max
+                    self._stats_dict[attr][gpu_index]["std"] = (
+                        self._statistics._calculate_std(gpu_data)
+                    )
 
     def scale_data(self) -> None:
         SCALING_FACTORS = {
