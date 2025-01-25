@@ -47,57 +47,73 @@ class TestCreateTelemetryDataCollector:
     @pytest.mark.parametrize(
         "server_metrics_url, expected_url",
         [
-            (test_triton_metrics_url, test_triton_metrics_url),
+            (
+                ["http://tritonmetrics.com:8080/metrics"],
+                "http://tritonmetrics.com:8080/metrics",
+            ),
             (None, DEFAULT_TRITON_METRICS_URL),
         ],
     )
     @patch("requests.get")
-    def test_creates_telemetry_data_collector_success(
+    def test_creates_telemetry_data_collectors_success(
         self, mock_requests_get, server_metrics_url, expected_url
     ):
+        """Test successful creation of a Triton telemetry data collector"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
 
         mock_args = MockArgs(
             service_kind="triton", server_metrics_url=server_metrics_url
         )
-        telemetry_data_collector = create_telemetry_data_collectors(mock_args)[0]
+        telemetry_collectors = create_telemetry_data_collectors(mock_args)
+
+        assert (
+            len(telemetry_collectors) > 0
+        ), "Expected at least one telemetry collector"
+        telemetry_data_collector = telemetry_collectors[0]
 
         assert isinstance(telemetry_data_collector, TritonTelemetryDataCollector)
-        assert telemetry_data_collector.metrics_url == expected_url
+        assert (
+            telemetry_data_collector.metrics_url == expected_url
+        ), f"Expected {expected_url}, got {telemetry_data_collector.metrics_url}"
 
     @pytest.mark.parametrize(
         "server_metrics_url",
         [
-            test_triton_metrics_url,
-            None,
+            ["http://tritonmetrics.com:8080/metrics"],
         ],
     )
     @patch("requests.get")
-    def test_create_telemetry_data_collector_unreachable_url(
+    def test_create_telemetry_data_collectors_unreachable_url(
         self, mock_requests_get, server_metrics_url
     ):
+        """Test handling of unreachable Triton metrics URL"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.not_found)
 
         mock_args = MockArgs(
             service_kind="triton", server_metrics_url=server_metrics_url
         )
-        telemetry_data_collector = create_telemetry_data_collectors(mock_args)[0]
+        telemetry_collectors = create_telemetry_data_collectors(mock_args)
 
-        assert telemetry_data_collector is None
+        assert isinstance(telemetry_collectors, list), "Expected a list return type"
+        assert (
+            len(telemetry_collectors) == 0
+        ), "Expected empty list when URL is unreachable"
 
     @patch("genai_perf.subcommand.common.TritonTelemetryDataCollector")
     @patch("requests.get")
-    def test_create_telemetry_data_collector_service_kind_not_triton(
-        self,
-        mock_requests_get,
-        mock_telemetry_collector,
+    def test_create_telemetry_data_collectors_service_kind_not_triton(
+        self, mock_requests_get, mock_telemetry_collector
     ):
+        """Test that telemetry data collectors are NOT created for non-Triton service kinds"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
         mock_telemetry_collector.return_value = MagicMock()
 
         mock_args = MockArgs(
-            service_kind="openai", server_metrics_url=self.test_triton_metrics_url
+            service_kind="openai", server_metrics_url=[self.test_triton_metrics_url]
         )
-        telemetry_data_collector = create_telemetry_data_collectors(mock_args)[0]
+        telemetry_collectors = create_telemetry_data_collectors(mock_args)
 
-        assert telemetry_data_collector is None
+        assert isinstance(telemetry_collectors, list), "Expected a list return type"
+        assert (
+            len(telemetry_collectors) == 0
+        ), "Expected empty list for non-Triton service kind"
