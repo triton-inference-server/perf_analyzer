@@ -24,9 +24,19 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import csv
+from io import StringIO
+
 import pytest
+from genai_perf.export_data.telemetry_data_exporter_util import (
+    export_telemetry_stats_console,
+    export_telemetry_stats_csv,
+    merge_telemetry_stats_json,
+)
+from genai_perf.metrics import TelemetryMetrics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.subcommand.common import merge_telemetry_metrics
+from rich.console import Console
 
 
 class TestMergeTelemetryMetrics:
@@ -52,6 +62,18 @@ class TestMergeTelemetryMetrics:
             }
         )
         return telemetry
+
+    @pytest.fixture
+    def telemetry_data(self):
+        return {
+            "gpu_power_usage": {
+                "gpu0": {"avg": 50.0, "min": 30.0, "max": 60.0, "p99": 59.0},
+                "unit": "W",
+            },
+            "gpu_utilization": {"gpu0": {"avg": 75.0, "p99": 90.0}, "unit": "%"},
+            "gpu_memory_used": {"gpu0": {"avg": 4096.0}, "unit": "MB"},
+            "total_gpu_memory": {"gpu0": {"avg": 8192.0}, "unit": "MB"},
+        }
 
     def test_merge_identical_metrics(self, telemetry_1):
         merged = merge_telemetry_metrics([telemetry_1, telemetry_1])
@@ -91,3 +113,50 @@ class TestMergeTelemetryMetrics:
         assert isinstance(merged, TelemetryMetrics)
         assert len(merged.gpu_power_usage) == 0
         assert len(merged.gpu_utilization) == 0
+
+    def test_export_telemetry_stats_console(self, telemetry_data):
+        console = Console(record=True)
+        export_telemetry_stats_console(telemetry_data, ["avg", "min", "max"], console)
+        output = console.export_text()
+        assert "Power Metrics" in output
+        assert "GPU Power Usage" in output
+        assert "75" in output
+
+    def test_export_telemetry_stats_csv(self, telemetry_data):
+        csv_output = StringIO()
+        csv_writer = csv.writer(csv_output)
+        export_telemetry_stats_csv(telemetry_data, csv_writer)
+        csv_output.seek(0)
+        csv_content = csv_output.read()
+        assert "GPU Power Usage" in csv_content
+        assert "GPU Utilization" in csv_content
+        assert "Total GPU Memory" in csv_content
+
+    def test_merge_telemetry_stats_json(self, telemetry_data):
+        stats_and_args = {}
+        merge_telemetry_stats_json(telemetry_data, stats_and_args)
+        assert "telemetry_stats" in stats_and_args
+        assert "gpu_power_usage" in stats_and_args["telemetry_stats"]
+        assert "gpu_utilization" in stats_and_args["telemetry_stats"]
+        assert (
+            stats_and_args["telemetry_stats"]["gpu_power_usage"]["gpu0"]["avg"] == 50.0
+        )
+
+    def test_export_empty_telemetry_stats_console(self):
+        console = Console(record=True)
+        export_telemetry_stats_console({}, ["avg", "min", "max"], console)
+        output = console.export_text()
+        assert output.strip() == ""
+
+    def test_export_empty_telemetry_stats_csv(self):
+        csv_output = StringIO()
+        csv_writer = csv.writer(csv_output)
+        export_telemetry_stats_csv({}, csv_writer)
+        csv_output.seek(0)
+        csv_content = csv_output.read()
+        assert csv_content.strip() == ""
+
+    def test_export_empty_json_stats_csv(self):
+        stats_and_args = {}
+        merge_telemetry_stats_json({}, stats_and_args)
+        assert "telemetry_stats" not in stats_and_args

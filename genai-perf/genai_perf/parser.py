@@ -355,7 +355,8 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
     """
     Validates a URL to ensure it meets the following criteria:
     - The scheme must be 'http' or 'https'.
-    - The netloc (domain) must be present OR the URL must be a valid localhost address.
+    - The netloc (domain) must be present OR the URL must be a valid localhost
+    address.
     - The path must contain '/metrics'.
     - The port must be specified.
 
@@ -369,24 +370,26 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
 
     if parsed_url.scheme not in ["http", "https"]:
         parser.error(
-            f"Invalid scheme '{parsed_url.scheme}' in URL: {url}. Use 'http' or 'https'."
+            f"Invalid scheme '{parsed_url.scheme}' in URL: {url}. Use 'http' "
+            "or 'https'."
         )
 
     valid_localhost = parsed_url.hostname in ["localhost", "127.0.0.1"]
 
     if not parsed_url.netloc and not valid_localhost:
         parser.error(
-            f"Invalid domain in URL: {url}. Use a valid hostname or 'localhost'."
+            f"Invalid domain in URL: {url}. Use a valid hostname or " "'localhost'."
         )
 
     if "/metrics" not in parsed_url.path:
         parser.error(
-            f"Invalid URL path '{parsed_url.path}' in {url}. The path must include '/metrics'."
+            f"Invalid URL path '{parsed_url.path}' in {url}. The path must "
+            "include '/metrics'."
         )
 
     if parsed_url.port is None:
         parser.error(
-            f"Port missing in URL: {url}. A port number is required (e.g., ':8002')."
+            f"Port missing in URL: {url}. A port number is required " "(e.g., ':8002')."
         )
 
 
@@ -408,7 +411,6 @@ def _check_server_metrics_url(
 
     if args.service_kind == "triton" and args.server_metrics_url:
         for url in args.server_metrics_url:
-            # Check if the URL is valid and contains the expected path
             _is_valid_url(parser, url)
 
     return args
@@ -651,7 +653,8 @@ def _add_endpoint_args(parser):
         nargs="+",
         default=[],
         required=False,
-        help="List of server metrics URLs for multiple sources. Example "
+        help="The list of Triton server metrics URLs. These are used for "
+        "Telemetry metric reporting with the Triton service-kind. Example "
         "usage: --server-metrics-url http://server1:8002/metrics "
         "http://server2:8002/metrics",
     )
