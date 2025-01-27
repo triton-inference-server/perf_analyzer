@@ -1,4 +1,4 @@
-# Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -78,3 +78,12 @@ repos:
   - id: mypy
     types_or: [python, cython]
     additional_dependencies: [tokenize-rt==3.2.0, types-requests]
+- repo: local
+  hooks:
+  - id: add-license
+    name: Add License
+    entry: python tools/add_copyright.py
+    language: python
+    stages: [pre-commit]
+    verbose: true
+    require_serial: true
