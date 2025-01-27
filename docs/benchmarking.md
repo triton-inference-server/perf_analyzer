@@ -30,6 +30,66 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 This is the default mode for Perf Analyzer.
 
+# Benchmarking OpenAI
+
+While [GenAI-Perf](../genai-perf/README.md) is recommended for benchmarking
+models deployed on OpenAI API-compatible servers, Perf Analyzer can also be used
+directly, but with fewer features.
+
+```bash
+# get chat template required for facebook/opt-125m model
+wget https://raw.githubusercontent.com/vllm-project/vllm/refs/heads/main/examples/template_chatml.jinja
+
+# start vllm, an OpenAI API-compatible server
+vllm serve facebook/opt-125m --chat-template=template_chatml.jinja > server.log 2>&1 &
+
+# wait for server to be ready
+while [ "$(curl -s -o /dev/null -w "%{http_code}" localhost:8000/v1/models)" != "200" ]; do sleep 1; done
+
+# create simple input data JSON for Perf Analyzer
+cat <<EOF > input_data.json
+{
+  "data": [
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [
+            {"role": "user", "content": "Who wrote the play Romeo and Juliet?"}
+          ],
+          "max_tokens": 128
+        }
+      ]
+    }
+  ]
+}
+EOF
+
+# run Perf Analyzer
+perf_analyzer -m facebook/opt-125m --service-kind=openai --endpoint=v1/chat/completions --async --input-data=input_data.json
+
+#  Successfully read data for 1 stream/streams with 1 step/steps.
+# *** Measurement Settings ***
+#   Service Kind: OPENAI
+#   Using "time_windows" mode for stabilization
+#   Stabilizing using average throughput
+#   Measurement window: 5000 msec
+#   Using asynchronous calls for inference
+
+# Request concurrency: 1
+#   Client:
+#     Request count: 89
+#     Throughput: 4.94426 infer/sec
+#     Avg latency: 200467 usec (standard deviation 17124 usec)
+#     p50 latency: 204443 usec
+#     p90 latency: 205549 usec
+#     p95 latency: 205706 usec
+#     p99 latency: 206259 usec
+#     Avg HTTP time: 200461 usec (send/recv 169 usec + response wait 200292 usec)
+# Inferences/Second vs. Client Average Batch Latency
+# Concurrency: 1, throughput: 4.94426 infer/sec, latency 200467 usec
+```
+
 # Benchmarking Triton directly via C API
 
 Besides using HTTP or gRPC server endpoints to communicate with Triton, Perf
@@ -168,65 +228,6 @@ The following points are important for interpreting the results:
    optimization. Unlike TFS, Triton has a single build which is optimized for
    execution on GPUs. When collecting performance on CPU models on Triton, try
    running Triton with the environment variable `TF_ENABLE_ONEDNN_OPTS=1`.
-
-# Benchmarking OpenAI
-
-While [GenAI-Perf](../genai-perf/README.md) is recommended for facilitating benchmarking models deployed on
-OpenAI API-compatible servers, Perf Analyzer can also be used directly but with less features.
-
-```bash
-# get chat template required for facebook/opt-125m model
-wget https://raw.githubusercontent.com/vllm-project/vllm/refs/heads/main/examples/template_chatml.jinja
-
-# start vllm, an OpenAI API-compatible server
-vllm serve facebook/opt-125m --chat-template=template_chatml.jinja > server.log 2>&1 &
-
-# wait for server to be ready
-while [ "$(curl -s -o /dev/null -w "%{http_code}" localhost:8000/v1/models)" != "200" ]; do sleep 1; done
-
-# create simple input data JSON for Perf Analyzer
-cat <<EOF > input_data.json
-{
-  "data": [
-    {
-      "payload": [
-        {
-          "model": "facebook/opt-125m",
-          "messages": [
-            {"role": "user", "content": "Who wrote the play Romeo and Juliet?"}
-          ],
-          "max_tokens": 128
-        }
-      ]
-    }
-  ]
-}
-EOF
-
-# run Perf Analyzer
-perf_analyzer -m facebook/opt-125m --service-kind=openai --endpoint=v1/chat/completions --async --input-data=input_data.json
-
-#  Successfully read data for 1 stream/streams with 1 step/steps.
-# *** Measurement Settings ***
-#   Service Kind: OPENAI
-#   Using "time_windows" mode for stabilization
-#   Stabilizing using average throughput
-#   Measurement window: 5000 msec
-#   Using asynchronous calls for inference
-
-# Request concurrency: 1
-#   Client:
-#     Request count: 89
-#     Throughput: 4.94426 infer/sec
-#     Avg latency: 200467 usec (standard deviation 17124 usec)
-#     p50 latency: 204443 usec
-#     p90 latency: 205549 usec
-#     p95 latency: 205706 usec
-#     p99 latency: 206259 usec
-#     Avg HTTP time: 200461 usec (send/recv 169 usec + response wait 200292 usec)
-# Inferences/Second vs. Client Average Batch Latency
-# Concurrency: 1, throughput: 4.94426 infer/sec, latency 200467 usec
-```
 
 # Benchmarking TorchServe
 
