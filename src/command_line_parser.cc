@@ -1853,7 +1853,8 @@ CLParser::ParseCommandLine(int argc, char** argv)
 void
 CLParser::VerifyOptions()
 {
-  if (params_->model_name.empty()) {
+  if (params_->model_name.empty() &&
+      params_->kind != cb::BackendKind::DYNAMIC_GRPC) {
     Usage("Failed to parse -m (model name). The value must be specified.");
   }
   if (params_->concurrency_range.start <= 0 ||
