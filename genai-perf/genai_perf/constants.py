@@ -48,14 +48,9 @@ exponential_range_parameters = [
 
 linear_range_parameters = ["instance_count", "num_dataset_entries"]
 
-model_parameters = [
-    "model_batch_size",
-    "instance_count",
-    "max_queue_delay",
-]
 
 runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
 
 runtime_gap_parameters = ["num_dataset_entries", "input_sequence_length"]
 
-all_parameters = model_parameters + runtime_pa_parameters + runtime_gap_parameters
+all_parameters = runtime_pa_parameters + runtime_gap_parameters

@@ -488,6 +488,9 @@ class PerfAnalyzerConfig:
         # Values set on the CLI are not kept (they can vary from run to run)
         del pa_config_dict["_args"]
 
+        # FIXME: TPA-2051: ConfigPerfAnalyzer does not get created from a checkpoint - this will need to be fixed
+        del pa_config_dict["_config"]
+
         return pa_config_dict
 
     @classmethod
@@ -503,9 +506,10 @@ class PerfAnalyzerConfig:
             config=ConfigCommand(user_config={}),
             model_objective_parameters={},
         )
-        perf_analyzer_config._config = ConfigPerfAnalyzer(
-            **perf_analyzer_config_dict["_config"]
-        )
+        # FIXME: TPA-2051 - ConfigPerfAnalyzer does not get created from a checkpoint - this will need to be fixed
+        # perf_analyzer_config._config = ConfigPerfAnalyzer(
+        #     **perf_analyzer_config_dict["_config"]
+        # )
         perf_analyzer_config._parameters = perf_analyzer_config_dict["_parameters"]
         perf_analyzer_config._cli_args = perf_analyzer_config_dict["_cli_args"]
 

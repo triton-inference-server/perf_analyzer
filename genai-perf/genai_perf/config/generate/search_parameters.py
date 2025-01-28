@@ -26,7 +26,6 @@ from genai_perf.config.input.config_command import ConfigCommand, Range, Subcomm
 from genai_perf.constants import (
     exponential_range_parameters,
     linear_range_parameters,
-    model_parameters,
     runtime_gap_parameters,
     runtime_pa_parameters,
 )
@@ -185,9 +184,7 @@ class SearchParameters:
         return category
 
     def _determine_parameter_usage(self, name: str) -> SearchUsage:
-        if name in model_parameters:
-            usage = SearchUsage.MODEL
-        elif name in runtime_pa_parameters:
+        if name in runtime_pa_parameters:
             usage = SearchUsage.RUNTIME_PA
         elif name in runtime_gap_parameters:
             usage = SearchUsage.RUNTIME_GAP

@@ -90,7 +90,8 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
 
         self.assertEqual("test_model", self._default_perf_analyzer_config._model_name)
         self.assertEqual(
-            expected_config_options, self._default_perf_analyzer_config._config
+            expected_config_options._fields,
+            self._default_perf_analyzer_config._config._fields,
         )
         self.assertEqual(
             expected_parameters, self._default_perf_analyzer_config._parameters
@@ -203,8 +204,8 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             self._default_perf_analyzer_config._model_name,
         )
         self.assertEqual(
-            pa_config_from_checkpoint._config,
-            self._default_perf_analyzer_config._config,
+            pa_config_from_checkpoint._config._fields,
+            self._default_perf_analyzer_config._config._fields,
         )
         self.assertEqual(
             pa_config_from_checkpoint._parameters,

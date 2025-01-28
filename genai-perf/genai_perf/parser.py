@@ -34,6 +34,7 @@ from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
+from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
@@ -64,47 +65,6 @@ class Subcommand(Enum):
 
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class EndpointConfig:
-    endpoint: Optional[str]
-    service_kind: str
-    output_format: ic.OutputFormat
-
-
-_endpoint_type_map = {
-    "chat": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_CHAT_COMPLETIONS
-    ),
-    "completions": EndpointConfig(
-        "v1/completions", "openai", ic.OutputFormat.OPENAI_COMPLETIONS
-    ),
-    "dynamic_grpc": EndpointConfig(None, "dynamic_grpc", ic.OutputFormat.DYANMIC_GRPC),
-    "embeddings": EndpointConfig(
-        "v1/embeddings", "openai", ic.OutputFormat.OPENAI_EMBEDDINGS
-    ),
-    "image_retrieval": EndpointConfig(
-        "v1/infer", "openai", ic.OutputFormat.IMAGE_RETRIEVAL
-    ),
-    "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
-    "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    # TODO: Deprecate this endpoint. Currently we have it for backward compatibility.
-    "vision": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_MULTIMODAL
-    ),
-    "multimodal": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_MULTIMODAL
-    ),
-    "generate": EndpointConfig(
-        "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
-    ),
-    "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
-    "template": EndpointConfig(None, "triton", ic.OutputFormat.TEMPLATE),
-    "tensorrtllm_engine": EndpointConfig(
-        None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
-    ),
-}
 
 
 def _check_payload_input_args(
@@ -232,10 +192,10 @@ def _check_conditional_args(
     elif args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
         args.endpoint_type = "tensorrtllm_engine"
 
-    if args.endpoint_type and args.endpoint_type not in _endpoint_type_map:
+    if args.endpoint_type and args.endpoint_type not in endpoint_type_map:
         parser.error(f"Invalid endpoint type {args.endpoint_type}")
 
-    endpoint_config = _endpoint_type_map[args.endpoint_type]
+    endpoint_config = endpoint_type_map[args.endpoint_type]
     args.output_format = endpoint_config.output_format
 
     if endpoint_config.service_kind != args.service_kind:
@@ -786,7 +746,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--endpoint-type",
         type=str,
-        choices=list(_endpoint_type_map.keys()),
+        choices=list(endpoint_type_map.keys()),
         required=False,
         help=f"The endpoint-type to send requests to on the " "server.",
     )
