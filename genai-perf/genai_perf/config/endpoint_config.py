@@ -1,4 +1,4 @@
-# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,32 +24,42 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-ABBREVIATIONS = ["gpu"]
-DEFAULT_HTTP_URL = "localhost:8000"
-DEFAULT_GRPC_URL = "localhost:8001"
-DEFAULT_TRITON_METRICS_URL = "http://localhost:8002/metrics"
+from dataclasses import dataclass
+from typing import Optional
+
+from genai_perf.inputs.input_constants import OutputFormat
 
 
-DEFAULT_ARTIFACT_DIR = "artifacts"
-DEFAULT_COMPARE_DIR = "compare"
-DEFAULT_PARQUET_FILE = "all_data"
-DEFAULT_PROFILE_EXPORT_FILE = "profile_export.json"
-
-# These map to the various fields that can be set for PA and model configs
-# See github.com/triton-inference-server/model_analyzer/blob/main/docs/config.md
-exponential_range_parameters = [
-    "model_batch_size",
-    "runtime_batch_size",
-    "concurrency",
-    "request_rate",
-    "input_sequence_length",
-]
-
-linear_range_parameters = ["instance_count", "num_dataset_entries"]
+@dataclass
+class EndpointConfig:
+    endpoint: Optional[str]
+    service_kind: str
+    output_format: OutputFormat
 
 
-runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
-
-runtime_gap_parameters = ["num_dataset_entries", "input_sequence_length"]
-
-all_parameters = runtime_pa_parameters + runtime_gap_parameters
+endpoint_type_map = {
+    "chat": EndpointConfig(
+        "v1/chat/completions", "openai", OutputFormat.OPENAI_CHAT_COMPLETIONS
+    ),
+    "completions": EndpointConfig(
+        "v1/completions", "openai", OutputFormat.OPENAI_COMPLETIONS
+    ),
+    "embeddings": EndpointConfig(
+        "v1/embeddings", "openai", OutputFormat.OPENAI_EMBEDDINGS
+    ),
+    "image_retrieval": EndpointConfig(
+        "v1/infer", "openai", OutputFormat.IMAGE_RETRIEVAL
+    ),
+    "nvclip": EndpointConfig("v1/embeddings", "openai", OutputFormat.NVCLIP),
+    "rankings": EndpointConfig("v1/ranking", "openai", OutputFormat.RANKINGS),
+    "vision": EndpointConfig(
+        "v1/chat/completions", "openai", OutputFormat.OPENAI_VISION
+    ),
+    "generate": EndpointConfig(
+        "v2/models/{MODEL_NAME}/generate", "triton", OutputFormat.TRITON_GENERATE
+    ),
+    "kserve": EndpointConfig(None, "triton", OutputFormat.TENSORRTLLM),
+    "tensorrtllm_engine": EndpointConfig(
+        None, "tensorrtllm_engine", OutputFormat.TENSORRTLLM_ENGINE
+    ),
+}

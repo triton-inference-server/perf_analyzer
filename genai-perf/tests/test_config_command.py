@@ -13,13 +13,15 @@
 # limitations under the License.
 
 import unittest
+from copy import deepcopy
 from unittest.mock import patch
 
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
-from genai_perf.config.input.config_command import ConfigCommand, Range
+from genai_perf.config.input.config_command import ConfigCommand, ConfigInput, Range
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 
 
 class TestConfigCommand(unittest.TestCase):
@@ -47,6 +49,24 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.model_names, ["gpt2"])
+        self.assertEqual(config.get_field("model_names").required, True)
+
+    def test_multi_model_name(self):
+        """
+        Test that a configuration with multiple model names is parsed correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_names:
+                - gpt2
+                - bert
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.model_names, ["gpt2_multi"])
 
     def test_analyze_subcommand(self):
         """
@@ -96,8 +116,8 @@ class TestConfigCommand(unittest.TestCase):
                 model_selection_strategy: random
                 backend: vllm
                 custom: custom_endpoint
-                type: endpoint_type
-                service_kind: test_service
+                type: chat
+                service_kind: openai
                 streaming: True
                 server_metrics_url: "test_server_metrics_url"
                 url: "test_url"
@@ -112,8 +132,8 @@ class TestConfigCommand(unittest.TestCase):
         )
         self.assertEqual(config.endpoint.backend, OutputFormat.VLLM)
         self.assertEqual(config.endpoint.custom, "custom_endpoint")
-        self.assertEqual(config.endpoint.type, "endpoint_type")
-        self.assertEqual(config.endpoint.service_kind, "test_service")
+        self.assertEqual(config.endpoint.type, "chat")
+        self.assertEqual(config.endpoint.service_kind, "openai")
         self.assertEqual(config.endpoint.streaming, True)
         self.assertEqual(config.endpoint.server_metrics_url, "test_server_metrics_url")
         self.assertEqual(config.endpoint.url, "test_url")
@@ -132,7 +152,6 @@ class TestConfigCommand(unittest.TestCase):
                     concurrency: 64
                 stability_percentage: 500
                 measurement_interval: 1000
-
 
             """)
         # yapf: enable
@@ -172,7 +191,7 @@ class TestConfigCommand(unittest.TestCase):
                     width_stddev: 10
                     height_mean: 11
                     height_stddev: 12
-                    format: "test_format"
+                    format: PNG
 
                 output_tokens:
                     mean: 13
@@ -188,8 +207,7 @@ class TestConfigCommand(unittest.TestCase):
                     length: 18
 
                 request_count:
-                    num: 19
-                    warmup: 20
+                    warmup: 19
             """)
         # yapf: enable
 
@@ -208,7 +226,7 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.image.width_stddev, 10)
         self.assertEqual(config.input.image.height_mean, 11)
         self.assertEqual(config.input.image.height_stddev, 12)
-        self.assertEqual(config.input.image.format, "test_format")
+        self.assertEqual(config.input.image.format, ImageFormat.PNG)
         self.assertEqual(config.input.output_tokens.mean, 13)
         self.assertEqual(config.input.output_tokens.deterministic, True)
         self.assertEqual(config.input.output_tokens.stddev, 14)
@@ -216,8 +234,7 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.synthetic_tokens.stddev, 16)
         self.assertEqual(config.input.prefix_prompt.num, 17)
         self.assertEqual(config.input.prefix_prompt.length, 18)
-        self.assertEqual(config.input.request_count.num, 19)
-        self.assertEqual(config.input.request_count.warmup, 20)
+        self.assertEqual(config.input.request_count.warmup, 19)
 
     def test_output(self):
         """
@@ -266,6 +283,45 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.tokenizer.name, "test_name")
         self.assertEqual(config.tokenizer.revision, "test_revision")
         self.assertEqual(config.tokenizer.trust_remote_code, True)
+
+    def test_deepcopy_config(self):
+        """
+        Test that the configuration can be deepcopied
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+        copied_config = deepcopy(config)
+
+        # Check that the copied object is not the same object
+        self.assertNotEqual(id(config), id(copied_config))
+
+        # Check that the copied object is equal to the original object
+        self.assertEqual(config.model_names, copied_config.model_names)
+
+    def test_deepcopy_config_input(self):
+        """
+        Test that the input configuration can be deepcopied
+        """
+        config_input = ConfigInput()
+        config_input.batch_size = 16
+
+        copied_config_input = deepcopy(config_input)
+
+        # Check that the copied object is not the same object
+        self.assertNotEqual(id(config_input), id(copied_config_input))
+
+        # Check that the copied object is equal to the original object
+        self.assertEqual(config_input.batch_size, copied_config_input.batch_size)
+
+        # Check that the copied object can be modified without affecting the original object
+        config_input.batch_size = 32
+        self.assertNotEqual(config_input.batch_size, copied_config_input.batch_size)
 
 
 if __name__ == "__main__":
