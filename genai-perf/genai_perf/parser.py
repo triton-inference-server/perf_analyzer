@@ -649,6 +649,7 @@ def _add_endpoint_args(parser):
 
     endpoint_group.add_argument(
         "--server-metrics-url",
+        "--server-metrics-urls",
         type=str,
         nargs="+",
         default=[],
