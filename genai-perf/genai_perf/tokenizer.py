@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ class Tokenizer:
         trust_remote_code: bool,
         revision: str,
         apply_chat_template: bool,
-        chat_template_path: Path,
+        chat_template_file: Path,
     ) -> None:
         """
         Downloading the tokenizer from Huggingface.co or local filesystem
@@ -67,7 +67,7 @@ class Tokenizer:
                 )
                 if apply_chat_template:
                     # read the chat template and apply it to the tokenizer
-                    with open(chat_template_path, "r") as f:
+                    with open(chat_template_file, "r") as f:
                         chat_template = f.read()
                     tokenizer.apply_template(chat_template)
         except Exception as e:
@@ -102,7 +102,7 @@ def get_tokenizer(
     trust_remote_code: bool = False,
     tokenizer_revision: str = DEFAULT_TOKENIZER_REVISION,
     apply_chat_template: bool = False,
-    chat_template_path: Path = Path("."),
+    chat_template_file: Path = Path("."),
 ) -> Tokenizer:
     """
     Return tokenizer for the given model name
@@ -113,6 +113,6 @@ def get_tokenizer(
         trust_remote_code,
         tokenizer_revision,
         apply_chat_template,
-        chat_template_path,
+        chat_template_file,
     )
     return tokenizer

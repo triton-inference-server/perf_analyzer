@@ -39,7 +39,7 @@ import genai_perf.utils as utils
 from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import (
     DEFAULT_ARTIFACT_DIR,
-    DEFAULT_LOCAL_DIRECTORY,
+    DEFAULT_CHAT_TEMPLATE_FILE,
     DEFAULT_PROFILE_EXPORT_FILE,
 )
 from genai_perf.inputs import input_constants as ic
@@ -997,13 +997,13 @@ def _add_tokenizer_args(parser):
         action="store_true",
         required=False,
         help="The HuggingFace tokenizer will apply the chat template stored "
-        "by default or provided via --chat-template-path.",
+        "by default or provided via --chat-template-file.",
     )
 
     tokenizer_group.add_argument(
-        "--chat-template-path",
+        "--chat-template-file",
         type=Path,
-        default=Path(DEFAULT_LOCAL_DIRECTORY),
+        default=Path(DEFAULT_CHAT_TEMPLATE_FILE),
         help="The path to the HuggingFace tokenizer chat template.",
     )
 

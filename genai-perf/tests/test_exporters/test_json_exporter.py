@@ -257,6 +257,8 @@ class TestJsonExporter:
           "header": null,
           "subcommand": "profile",
           "prompt_source": "synthetic",
+          "chat_template_file": "chat_template.json",
+          "apply_chat_template": false,
           "extra_inputs": {
             "max_tokens": 256,
             "ignore_eos": true
