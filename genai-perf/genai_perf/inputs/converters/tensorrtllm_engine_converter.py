@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -52,7 +52,9 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = config.tokenizer.encode(row.texts[0])
+                token_ids = config.tokenizer.encode(
+                    row.texts[0], add_special_tokens=False
+                )
                 payload = {
                     "input_ids": {
                         "content": token_ids,
@@ -82,4 +84,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 payload["min_length"] = [num_tokens]
 
         for key, value in config.extra_inputs.items():
-            payload[key] = [value]
+            if key == "set_end_id" and value:
+                payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
+            else:
+                payload[key] = [value]
