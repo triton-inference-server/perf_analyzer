@@ -84,7 +84,7 @@ class ImageDefaults:
 
 @dataclass(frozen=True)
 class OutputTokenDefaults:
-    MEAN = -1
+    MEAN = 0
     DETERMINISTIC = False
     STDDEV = 0
 
