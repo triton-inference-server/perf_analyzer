@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -73,7 +73,7 @@ def create_default_exporter_config(
     args: Optional[Namespace] = None,
     extra_inputs: Optional[Dict[str, Any]] = None,
     artifact_dir: Optional[Path] = None,
-    telemetry_stats: Optional[Dict[str, Any]] = None,
+    telemetry_stats: Dict[str, Any] = {},
 ) -> ExporterConfig:
     return ExporterConfig(
         stats=stats or {},

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,7 +27,7 @@
 ABBREVIATIONS = ["gpu"]
 DEFAULT_HTTP_URL = "localhost:8000"
 DEFAULT_GRPC_URL = "localhost:8001"
-DEFAULT_TRITON_METRICS_URL = "localhost:8002/metrics"
+DEFAULT_TRITON_METRICS_URL = "http://localhost:8002/metrics"
 
 
 DEFAULT_ARTIFACT_DIR = "artifacts"

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -414,6 +414,13 @@ Set a custom endpoint that differs from the OpenAI defaults. (default: `None`)
 
 The endpoint-type to send requests to on the server. This is only used with the
 `openai` service-kind. (default: `None`)
+
+##### `--server-metrics-url <list>`
+
+The list of Triton server metrics URLs. These are used for Telemetry metric
+reporting with the Triton service-kind. Example usage: --server-metrics-url
+http://server1:8002/metrics http://server2:8002/metrics.
+(default: `http://localhost:8002/metrics`)
 
 ##### `--service-kind {triton,openai}`
 

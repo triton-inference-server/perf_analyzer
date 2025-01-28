@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -222,7 +222,7 @@ class TestJsonExporter:
           "endpoint": null,
           "endpoint_type": "kserve",
           "service_kind": "triton",
-          "server_metrics_url": null,
+          "server_metrics_url": [],
           "streaming": true,
           "u": null,
           "num_dataset_entries": 100,
