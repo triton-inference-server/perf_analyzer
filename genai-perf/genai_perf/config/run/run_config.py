@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 
 from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.input.config_command import default_field
+from genai_perf.config.input.config_defaults import default_field
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.record import Record
