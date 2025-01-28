@@ -5,7 +5,7 @@
   "runArgs": ["--gpus=all", "--net=host", "--pull=always"],
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.cpptools", "ms-vscode.cmake-tools", "xaver.clang-format"]
+      "extensions": ["ms-vscode.cpptools", "ms-vscode.cmake-tools", "xaver.clang-format", "ms-python.python"]
     }
   }
 }
