@@ -283,9 +283,9 @@ ModelParser::InitDynamicGrpc(
 
   // TODO: temporary
   // Dynamic gRPC will take a single json input with a fully formed payload
-  auto in_it = inputs_->emplace("payload", ModelTensor()).first;
-  in_it->second.name_ = "payload";
-  in_it->second.datatype_ = "JSON";
+  auto in_it = inputs_->emplace("ipc_stream", ModelTensor()).first;
+  in_it->second.name_ = "ipc_stream";
+  in_it->second.datatype_ = "BYTES";
   in_it->second.shape_.push_back(1);
 
   // Dynamic gRPC will reply with a single json output

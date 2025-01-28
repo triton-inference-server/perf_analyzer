@@ -268,14 +268,12 @@ DataLoader::ParseData(
     }
   }
 
-
   return cb::Error::Success;
 }
 
 cb::Error
 DataLoader::ReadDataFromPipe(
-    const std::shared_ptr<ModelTensorMap>& inputs,
-    const std::shared_ptr<ModelTensorMap>& outputs, const std::string& command)
+    const std::string& command, const std::string& key_name)
 {
   FILE* pipe = popen(command.data(), "r");
   if (pipe == nullptr) {
@@ -284,47 +282,37 @@ DataLoader::ReadDataFromPipe(
         pa::GENERIC_ERROR);
   }
 
-  int offset = 0;
-  data_stream_cnt_ = 1;
-  step_num_.push_back(1);
+  auto it = input_data_.emplace(key_name, std::vector<char>()).first;
 
-  for (size_t step = offset; step < step_num_[0]; step++) {
-    for (const auto& in : *inputs) {
-      std::string key_name(
-          in.first + "_" + std::to_string(0) + "_" + std::to_string(step));
+  std::vector<char> size(pa::DEFAULT_STREAM_DATA_SIZE);
+  std::vector<char> buffer;
 
-      auto it = input_data_.emplace(key_name, std::vector<char>()).first;
-
-      std::vector<char> size(pa::DEFAULT_STREAM_DATA_SIZE);
-      std::vector<char> buffer;
-
-      while (true) {
-        // Read the length byte
-        uint32_t data_size = ReadDataSizeFromPipe(pipe);
-        if (data_size == 0) {
-          break;
-        }
-
-        // Ensure buffer is large enough
-        if (buffer.size() != data_size) {
-          buffer.resize(data_size);
-        }
-
-        // Read the payload using the length
-        size_t bytes_read = fread(buffer.data(), 1, data_size, pipe);
-        if (bytes_read != data_size) {
-          return cb::Error(
-              "Unmatching number of bytes read from the pipe: expected = " +
-                  std::to_string(data_size) +
-                  ", bytes read = " + std::to_string(bytes_read),
-              pa::GENERIC_ERROR);
-        }
-
-        std::memcpy(size.data(), &data_size, sizeof(data_size));
-        std::copy(size.begin(), size.end(), std::back_inserter(it->second));
-        std::copy(buffer.begin(), buffer.end(), std::back_inserter(it->second));
-      }
+  while (true) {
+    // Read the length byte
+    uint32_t data_size = ReadDataSizeFromPipe(pipe);
+    if (data_size == 0) {
+      break;
     }
+
+    // Ensure buffer is large enough
+    if (buffer.size() != data_size) {
+      buffer.resize(data_size);
+    }
+
+    // Read the payload using the length
+    size_t bytes_read = fread(buffer.data(), 1, data_size, pipe);
+    if (bytes_read != data_size) {
+      return cb::Error(
+          "Unmatching number of bytes read from the pipe: expected = " +
+              std::to_string(data_size) +
+              ", bytes read = " + std::to_string(bytes_read),
+          pa::GENERIC_ERROR);
+    }
+
+    // Store data size and data, respectively, into input data
+    std::memcpy(size.data(), &data_size, sizeof(data_size));
+    std::copy(size.begin(), size.end(), std::back_inserter(it->second));
+    std::copy(buffer.begin(), buffer.end(), std::back_inserter(it->second));
   }
 
   pclose(pipe);
@@ -567,8 +555,12 @@ DataLoader::ReadTensorData(
       auto it = tensor_data.emplace(key_name, std::vector<char>()).first;
 
       const rapidjson::Value& tensor = step[(io.first).c_str()];
-
       const rapidjson::Value* content;
+
+      if (tensor.IsString() && io.first == "ipc_stream") {
+        ReadDataFromPipe(tensor.GetString(), key_name);
+        break;
+      }
 
       // Check if the input data file is malformed
       if (!(tensor.IsArray() || tensor.IsObject())) {
@@ -817,5 +809,4 @@ DataLoader::ValidateParsingMode(const rapidjson::Value& steps)
   }
   return cb::Error::Success;
 }
-
 }}  // namespace triton::perfanalyzer

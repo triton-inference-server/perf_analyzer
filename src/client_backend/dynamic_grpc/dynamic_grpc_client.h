@@ -101,9 +101,13 @@ class DynamicGrpcInferResult : public InferResult {
       const std::string& output_name, std::vector<uint8_t>& buf) const override;
   Error ResponseTimestamps(
       std::vector<std::chrono::time_point<std::chrono::system_clock>>*
-          response_timestamp) const override
+          response_timestamps) const override
   {
-    *response_timestamp = response_timestamps_;
+    if (response_timestamps == nullptr) {
+      return cb::Error("Failed to store response timestamps.");
+    }
+    *response_timestamps = response_timestamps_;
+    return cb::Error::Success;
   }
 
  private:
