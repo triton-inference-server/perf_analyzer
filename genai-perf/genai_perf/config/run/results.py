@@ -14,7 +14,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import List
 
-from genai_perf.config.input.config_command import default_field
+from genai_perf.config.input.config_defaults import default_field
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.types import (
