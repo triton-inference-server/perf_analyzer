@@ -1035,6 +1035,19 @@ class TestCLIArguments:
                 ],
                 [test_triton_metrics_url],
             ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-urls",
+                    test_triton_metrics_url,
+                ],
+                [test_triton_metrics_url],
+            ),
             # server-metrics-url is not specified
             (
                 [
