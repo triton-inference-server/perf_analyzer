@@ -68,7 +68,7 @@ class Tokenizer:
                 if apply_chat_template:
                     # read the chat template and apply it to the tokenizer
                     with open(chat_template_file, "r") as f:
-                        chat_template = f.read()
+                        chat_template = f.readlines()
                     tokenizer.apply_chat_template(chat_template, tokenize=False)
         except Exception as e:
             raise GenAIPerfException(e)
