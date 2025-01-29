@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from enum import Enum, auto
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 
+import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_analyze import ConfigAnalyze
 from genai_perf.config.input.config_defaults import (
@@ -39,6 +41,8 @@ class Subcommand(Enum):
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigCommand(BaseConfig):
@@ -91,6 +95,8 @@ class ConfigCommand(BaseConfig):
 
         self._infer_settings()
         self._check_for_illegal_combinations()
+        self._set_artifact_directory()
+        self._set_profile_export_file()
 
     def _parse_model_names(self, model_names: str) -> None:
         if type(model_names) is str:
@@ -134,6 +140,61 @@ class ConfigCommand(BaseConfig):
                 raise ValueError(
                     "User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
                 )
+
+    ###########################################################################
+    # Set Path Methods
+    ###########################################################################
+    def _set_artifact_directory(self) -> None:
+        if not self.output.get_field("artifact_directory").is_set_by_user:
+            model_name = self.model_names[0]
+
+            # Preprocess Huggingface model names that include '/' in their model name.
+            if (model_name is not None) and ("/" in model_name):
+                filtered_name = "_".join(model_name.split("/"))
+                logger.info(
+                    f"Model name '{model_name}' cannot be used to create artifact "
+                    f"directory. Instead, '{filtered_name}' will be used."
+                )
+                name = [f"{filtered_name}"]
+            else:
+                name = [f"{model_name}"]
+
+            if self.endpoint.service_kind == "openai":
+                name += [f"{self.endpoint.service_kind}-{self.endpoint.type}"]
+            elif self.endpoint.service_kind == "triton":
+                name += [
+                    f"{self.endpoint.service_kind}-{self.endpoint.backend.to_lowercase()}"
+                ]
+            elif self.endpoint.service_kind == "tensorrtllm_engine":
+                name += [f"{self.endpoint.service_kind}"]
+            else:
+                raise ValueError(
+                    f"Unknown service kind '{self.endpoint.service_kind}'."
+                )
+
+            if "concurrency" in self.perf_analyzer.stimulus:
+                concurrency = self.perf_analyzer.stimulus["concurrency"]
+                name += [f"concurrency{concurrency}"]
+            elif "request_rate" in self.perf_analyzer.stimulus:
+                request_rate = self.perf_analyzer.stimulus["request_rate"]
+                name += [f"request_rate{request_rate}"]
+
+            self.output.artifact_directory = self.output.artifact_directory / Path(
+                "-".join(name)
+            )
+
+    def _set_profile_export_file(self) -> None:
+        if self.output.get_field("profile_export_file").is_set_by_user:
+            foo = Path(self.output.profile_export_file)
+            if Path(self.output.profile_export_file).parent != Path(""):
+                raise ValueError(
+                    "Please use artifact_directory option to define intermediary paths to "
+                    "the profile_export_file."
+                )
+
+        self.output.profile_export_file = (
+            self.output.artifact_directory / self.output.profile_export_file
+        )
 
     ###########################################################################
     # Utility Methods

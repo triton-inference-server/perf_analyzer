@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from typing import Any, Dict, List
+from urllib.parse import urlparse
 
 from genai_perf.config.endpoint_config import EndpointConfig, endpoint_type_map
 from genai_perf.config.input.base_config import BaseConfig
@@ -88,6 +89,7 @@ class ConfigEndPoint(BaseConfig):
     ###########################################################################
     def check_for_illegal_combinations(self) -> None:
         self._check_service_kind_and_type()
+        self._check_server_metrics_url()
 
     def _check_service_kind_and_type(self) -> None:
         if not self.type:
@@ -99,6 +101,53 @@ class ConfigEndPoint(BaseConfig):
                     f"User Config: service_kind {self.service_kind} requires a type to be specified"
                 )
 
+    def _check_server_metrics_url(self) -> None:
+        if self.service_kind == "triton" and self.server_metrics_urls:
+            for url in self.server_metrics_urls:
+                self._check_for_valid_url(url)
+
+    def _check_for_valid_url(self, url: str) -> None:
+        """
+        Validates a URL to ensure it meets the following criteria:
+        - The scheme must be 'http' or 'https'.
+        - The netloc (domain) must be present OR the URL must be a valid localhost
+        address.
+        - The path must contain '/metrics'.
+        - The port must be specified.
+
+        Raises:
+            ValueError if the URL is invalid.
+
+        The URL structure is expected to follow:
+        <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
+        """
+        parsed_url = urlparse(url)
+
+        if parsed_url.scheme not in ["http", "https"]:
+            raise ValueError(
+                f"Invalid scheme '{parsed_url.scheme}' in URL: {url}. Use 'http' "
+                "or 'https'."
+            )
+
+        valid_localhost = parsed_url.hostname in ["localhost", "127.0.0.1"]
+
+        if not parsed_url.netloc and not valid_localhost:
+            raise ValueError(
+                f"Invalid domain in URL: {url}. Use a valid hostname or " "'localhost'."
+            )
+
+        if "/metrics" not in parsed_url.path:
+            raise ValueError(
+                f"Invalid URL path '{parsed_url.path}' in {url}. The path must "
+                "include '/metrics'."
+            )
+
+        if parsed_url.port is None:
+            raise ValueError(
+                f"Port missing in URL: {url}. A port number is required "
+                "(e.g., ':8002')."
+            )
+
     ###########################################################################
     # Infer Methods
     ###########################################################################
@@ -109,6 +158,11 @@ class ConfigEndPoint(BaseConfig):
         self.infer_type(model_name)
 
     def infer_type(self, model_name: str) -> None:
+        if self.service_kind == "openai" and not self.get_field("type").is_set_by_user:
+            raise ValueError(
+                "User Config: type must be set when service_kind is 'openai'"
+            )
+
         if self.service_kind == "triton" and not self.type:
             self.type = "kserve"
 

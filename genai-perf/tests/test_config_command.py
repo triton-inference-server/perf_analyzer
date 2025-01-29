@@ -14,6 +14,7 @@
 
 import unittest
 from copy import deepcopy
+from pathlib import Path
 from unittest.mock import patch
 
 # Skip type checking to avoid mypy error
@@ -279,11 +280,16 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.output.artifact_directory, "test_artifact_directory")
         self.assertEqual(
-            config.output.checkpoint_directory, "test_checkpoint_directory"
+            config.output.artifact_directory, Path("test_artifact_directory")
         )
-        self.assertEqual(config.output.profile_export_file, "test_profile_export_file")
+        self.assertEqual(
+            config.output.checkpoint_directory, Path("test_checkpoint_directory")
+        )
+        self.assertEqual(
+            config.output.profile_export_file,
+            Path("test_artifact_directory/test_profile_export_file"),
+        )
         self.assertEqual(config.output.generate_plots, True)
 
     ###########################################################################
@@ -526,6 +532,216 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.endpoint.custom, "v1/embeddings")
+
+    ###########################################################################
+    # Test Artifact Directory Method
+    ###########################################################################
+    def test_set_artifact_directory_default(self):
+        """
+        Test that the artifact directory is set correctly for
+        a default configuration
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.artifact_directory,
+            Path("artifacts/gpt2-triton-tensorrtllm-concurrency1"),
+        )
+
+    def test_set_artifact_directory_openai(self):
+        """
+        Test that the artifact directory is set correctly for
+        a configuration with an openai service kind
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: openai
+                type: generate
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.artifact_directory,
+            Path("artifacts/gpt2-openai-generate-concurrency1"),
+        )
+
+    def test_set_artifact_directory_triton(self):
+        """
+        Test that the artifact directory is set correctly for
+        a configuration with a triton service kind
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: triton
+                type: kserve
+                backend: vllm
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.artifact_directory,
+            Path("artifacts/gpt2-triton-vllm-concurrency1"),
+        )
+
+    def test_set_artifact_directory_tensorrtllm_engine(self):
+        """
+        Test that the artifact directory is set correctly for
+        a configuration with a tensorrtllm_engine service kind
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: tensorrtllm_engine
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.artifact_directory,
+            Path("artifacts/gpt2-tensorrtllm_engine-concurrency1"),
+        )
+
+    def test_set_artifact_directory_concurrency_stimulus(self):
+        """
+        Test that the artifact directory is set correctly for
+        a configuration with a concurrency stimulus
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            perf_analyzer:
+                stimulus:
+                    concurrency: 64
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.artifact_directory,
+            Path("artifacts/gpt2-triton-tensorrtllm-concurrency64"),
+        )
+
+    def test_set_artifact_directory_request_rate_stimulus(self):
+        """
+        Test that the artifact directory is set correctly for
+        a configuration with a request rate stimulus
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            perf_analyzer:
+                stimulus:
+                    request_rate: 64
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.artifact_directory,
+            Path("artifacts/gpt2-triton-tensorrtllm-request_rate64"),
+        )
+
+    ###########################################################################
+    # Test Profile Export File Method
+    ###########################################################################
+    def test_set_profile_export_file_default(self):
+        """
+        Test that the profile export file is set correctly for
+        a default configuration
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.profile_export_file,
+            Path("artifacts/gpt2-triton-tensorrtllm-concurrency1/profile_export.json"),
+        )
+
+    def test_set_profile_export_file_non_default(self):
+        """
+        Test that the profile export file is set correctly for
+        a non-default configuration
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            perf_analyzer:
+                stimulus:
+                    concurrency: 64
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.profile_export_file,
+            Path("artifacts/gpt2-triton-tensorrtllm-concurrency64/profile_export.json"),
+        )
+
+    def test_set_profile_export_file_custom_path(self):
+        """
+        Test that the profile export file is set correctly for
+        a configuration with a custom path
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            perf_analyzer:
+                stimulus:
+                    concurrency: 64
+
+            output:
+                profile_export_file: "test_profile_export_file"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.output.profile_export_file,
+            Path(
+                "artifacts/gpt2-triton-tensorrtllm-concurrency64/test_profile_export_file"
+            ),
+        )
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 from typing import Any, Dict
 
 from genai_perf.config.input.base_config import BaseConfig
@@ -27,24 +28,24 @@ class ConfigOutput(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.artifact_directory: Any = ConfigField(
-            default=OutputDefaults.ARTIFACT_DIRECTORY
+            default=Path(OutputDefaults.ARTIFACT_DIRECTORY)
         )
         self.checkpoint_directory: Any = ConfigField(
-            default=OutputDefaults.CHECKPOINT_DIRECTORY
+            default=Path(OutputDefaults.CHECKPOINT_DIRECTORY)
         )
         self.profile_export_file: Any = ConfigField(
-            default=OutputDefaults.PROFILE_EXPORT_FILE
+            default=Path(OutputDefaults.PROFILE_EXPORT_FILE)
         )
         self.generate_plots: Any = ConfigField(default=OutputDefaults.GENERATE_PLOTS)
 
     def parse(self, output: Dict[str, Any]) -> None:
         for key, value in output.items():
             if key == "artifact_directory":
-                self.artifact_directory = value
+                self.artifact_directory = Path(value)
             elif key == "checkpoint_directory":
-                self.checkpoint_directory = value
+                self.checkpoint_directory = Path(value)
             elif key == "profile_export_file":
-                self.profile_export_file = value
+                self.profile_export_file = Path(value)
             elif key == "generate_plots":
                 self.generate_plots = value
             else:
