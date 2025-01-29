@@ -281,8 +281,7 @@ ModelParser::InitDynamicGrpc(
   model_version_ = model_version;
   max_batch_size_ = batch_size;
 
-  // TODO: temporary
-  // Dynamic gRPC will take a single json input with a fully formed payload
+  // Dynamic gRPC will take a single input that specifies a command to execute
   auto in_it = inputs_->emplace("ipc_stream", ModelTensor()).first;
   in_it->second.name_ = "ipc_stream";
   in_it->second.datatype_ = "BYTES";
