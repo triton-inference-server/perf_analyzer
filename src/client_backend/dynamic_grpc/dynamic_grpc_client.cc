@@ -84,8 +84,9 @@ DynamicGrpcClient::BidiStreamRPC(
   auto request = std::make_shared<DynamicGrpcRequest>();
   request->Timer().Reset();
 
-  auto stream_input =
-      dynamic_cast<DynamicGrpcInferInput*>(inputs[0]);  // single stream input
+  // For bidirectional streaming, there's only one input data that contains
+  // the entire serialized protobuf messages
+  auto stream_input = dynamic_cast<DynamicGrpcInferInput*>(inputs[0]);
   auto messages = stream_input->GetSerializedMessages();
 
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::REQUEST_START);
@@ -94,21 +95,15 @@ DynamicGrpcClient::BidiStreamRPC(
   void* tag;
   bool ok;
 
-  std::cout << "Start sending stream" << std::endl;
   for (const auto& message : messages) {
     grpc::Slice slice(message.data(), message.size());
     grpc::ByteBuffer request_buffer(&slice, 1);
     bidi_stream_->Write(request_buffer, nullptr);
     completion_queue_.Next(&tag, &ok);
   }
-  std::cout << "Done sending stream"
-            << ", ok = " << ok << std::endl;
 
-  std::cout << "Call WritesDone" << std::endl;
   bidi_stream_->WritesDone(nullptr);
   completion_queue_.Next(&tag, &ok);
-  std::cout << "CQ: WritesDone"
-            << ", ok = " << ok << std::endl;
 
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::SEND_END);
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::RECV_START);
@@ -116,7 +111,6 @@ DynamicGrpcClient::BidiStreamRPC(
   std::vector<std::chrono::time_point<std::chrono::system_clock>>
       response_timestamps;
 
-  std::cout << "Start receiving stream" << std::endl;
   while (true) {
     grpc::ByteBuffer response_buffer;
     bidi_stream_->Read(&response_buffer, nullptr);
@@ -127,8 +121,6 @@ DynamicGrpcClient::BidiStreamRPC(
       break;
     }
   }
-  std::cout << "Done receiving stream"
-            << ", ok = " << ok << std::endl;
 
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::RECV_END);
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::REQUEST_END);
