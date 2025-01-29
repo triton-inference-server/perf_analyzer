@@ -199,7 +199,7 @@ class TestConfigCommand(unittest.TestCase):
                 extra:
                     test_extra: 1
                 goodput:
-                    test_goodput : 2
+                    test_goodput: 2
                 header:
                     test_header: 3
                 file:

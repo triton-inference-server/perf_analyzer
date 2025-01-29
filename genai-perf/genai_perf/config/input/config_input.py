@@ -54,6 +54,9 @@ class ConfigInput(BaseConfig):
         self.prefix_prompt = ConfigPrefixPrompt()
         self.request_count = ConfigRequestCount()
 
+    ###########################################################################
+    # Parse Methods
+    ###########################################################################
     def parse(self, input: Dict[str, Any]) -> None:
         for key, value in input.items():
             if key == "batch_size":
@@ -61,7 +64,7 @@ class ConfigInput(BaseConfig):
             elif key == "extra":
                 self.extra = value
             elif key == "goodput":
-                self.goodput = value
+                self._parse_goodput(value)
             elif key == "header":
                 self.header = value
             elif key == "file":
@@ -82,6 +85,23 @@ class ConfigInput(BaseConfig):
                 self.request_count.parse(value)
             else:
                 raise ValueError(f"User Config: {key} is not a valid input parameter")
+
+    def _parse_goodput(self, goodputs: Dict[str, Any]) -> None:
+        constraints = {}
+        for target_metric, target_value in goodputs.items():
+            if isinstance(target_value, int) or isinstance(target_value, float):
+                if target_value < 0:
+                    raise ValueError(
+                        "User Config: Goodput values must be non-negative ({target_metric}: {target_value})"
+                    )
+
+                constraints[target_metric] = float(target_value)
+            else:
+                raise ValueError(
+                    "User Config: Goodput values must be integers or floats"
+                )
+
+        self.goodput = constraints
 
     ###########################################################################
     # Infer Methods
