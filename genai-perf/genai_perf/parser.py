@@ -37,6 +37,7 @@ from urllib.parse import urlparse
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
@@ -1099,10 +1100,28 @@ def refine_args(
 
 def parse_args():
     argv = sys.argv
-
     parser = init_parsers()
     passthrough_index = get_passthrough_args_index(argv)
-    args = parser.parse_args(argv[1:passthrough_index])
-    args = refine_args(parser, args)
 
-    return args, argv[passthrough_index + 1 :]
+    if subcommand_found(argv):
+        args = parser.parse_args(argv[1:passthrough_index])
+        args = refine_args(parser, args)
+
+        return args, _, argv[passthrough_index + 1 :]
+    else:
+        # FIXME: need to deal with -v/--verbose
+        # FIXME: for now just setting the subcommand to profile
+        args = parser.parse_args(["profile", "-m", ""])
+
+        user_config = utils.load_yaml(argv[1])
+        config = ConfigCommand(user_config)
+
+        return args, config, argv[passthrough_index + 1 :]
+
+
+def subcommand_found(argv) -> bool:
+    for sc in Subcommand:
+        if sc.name.lower() in argv:
+            return True
+
+    return False

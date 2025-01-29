@@ -24,7 +24,7 @@ class ConfigPerfAnalyzer(BaseConfig):
     Describes the configuration for PerfAnalyzer options
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.path: Any = ConfigField(default=PerfAnalyzerDefaults.PATH)
         self.stimulus: Any = ConfigField(

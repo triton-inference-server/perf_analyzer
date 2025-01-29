@@ -27,7 +27,7 @@
 import csv
 import os
 from argparse import Namespace
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import genai_perf.logging as logging
 from genai_perf.checkpoint.checkpoint import Checkpoint
@@ -72,11 +72,11 @@ logger = logging.getLogger(__name__)
 ###########################################################################
 # Analyze Handler
 ###########################################################################
-def analyze_handler(args: Namespace) -> None:
+def analyze_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
     """
     Handles `analyze` subcommand workflow
     """
-    analyze = Analyze(args)
+    analyze = Analyze(config)
     analyze.sweep()
     analyze.report()
 
@@ -125,9 +125,8 @@ class Analyze:
         GPUTotalMemoryAvg.tag,
     ]
 
-    def __init__(self, args: Namespace) -> None:
-        self._args = args
-        self._config = self._setup_config(args)
+    def __init__(self, config: ConfigCommand) -> None:
+        self._config = config
         self._model_name = self._config.model_names[0]
         self._model_search_parameters = {
             self._model_name: SearchParameters(
@@ -137,31 +136,9 @@ class Analyze:
         self._sweep_objective_generator = SweepObjectiveGenerator(
             self._config, self._model_search_parameters
         )
-        self._telemetry_data_collectors = create_telemetry_data_collectors(args)
+        self._telemetry_data_collectors = create_telemetry_data_collectors(self._config)
         self._checkpoint = Checkpoint(self._config)
         self._results = self._checkpoint.results
-
-    def _setup_config(self, args: Namespace) -> ConfigCommand:
-        config = ConfigCommand(user_config={})
-        config.model_names = [args.model_name]
-        sweep_type = self._map_args_to_config_sweep_type(args.sweep_type)
-
-        if args.sweep_list:
-            config.analyze.sweep_parameters = {sweep_type: args.sweep_list}
-        else:
-            config.analyze.sweep_parameters = {
-                sweep_type: Range(min=args.sweep_min, max=args.sweep_max)
-            }
-
-        return config
-
-    def _map_args_to_config_sweep_type(self, sweep_type: str) -> str:
-        # The CLI arg sweep type name doesn't have a 1:1 mapping to
-        # what was implemented in the config
-        if sweep_type == "batch_size":
-            return "runtime_batch_size"
-        else:
-            return sweep_type
 
     ###########################################################################
     # Sweep Methods
@@ -177,21 +154,14 @@ class Analyze:
             # Create GAP/PA Configs
             genai_perf_config = GenAIPerfConfig(
                 config=self._config,
-                args=self._args,
                 model_objective_parameters=objectives,
             )
-
-            # The GAP/PA Configs will (for now) modify the CLI args
-            # based on the objective being swept
-            gap_obj_args = genai_perf_config.get_obj_args()
 
             perf_analyzer_config = PerfAnalyzerConfig(
                 model_name=self._model_name,
-                args=gap_obj_args,
                 config=self._config,
                 model_objective_parameters=objectives,
             )
-            obj_args = perf_analyzer_config.get_obj_args()
 
             #
             # Check if this configuration has already been profiled (is in the checkpoint)
@@ -204,6 +174,9 @@ class Analyze:
             run_config_name = self._results.get_run_config_name_based_on_representation(
                 self._model_name, representation
             )
+
+            # FIXME: This is to make mypy happy until the code is complete
+            obj_args = Namespace()
 
             if not run_config_found:
                 #
@@ -237,7 +210,7 @@ class Analyze:
                 #
                 # Extract Telemetry Metrics
                 telemetry_metrics_list = [
-                    collector.get_metrics()
+                    collector.get_metrics()  # type: ignore
                     for collector in self._telemetry_data_collectors
                 ]
 

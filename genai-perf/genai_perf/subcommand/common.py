@@ -31,6 +31,7 @@ from typing import Any, Dict, List, Optional
 
 import genai_perf.logging as logging
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
@@ -126,20 +127,14 @@ def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
 
 
 def create_telemetry_data_collectors(
-    args: Namespace,
-) -> List[TelemetryDataCollector]:
-    """
-    Initializes telemetry data collectors for all endpoints.
-    """
-    telemetry_collectors: List[TelemetryDataCollector] = []
+    config: ConfigCommand,
+) -> List[Optional[TelemetryDataCollector]]:
+    telemetry_collectors: List[Optional[TelemetryDataCollector]] = []
 
-    if not args.service_kind == "triton":
+    if not config.endpoint.service_kind == "triton":
         return telemetry_collectors
 
-    if not args.server_metrics_url:
-        args.server_metrics_url = [DEFAULT_TRITON_METRICS_URL]
-
-    for url in args.server_metrics_url:
+    for url in config.endpoint.server_metrics_urls:
         collector = TritonTelemetryDataCollector(url.strip())
         if collector.is_url_reachable():
             telemetry_collectors.append(collector)
@@ -200,11 +195,12 @@ def run_perf_analyzer(
     args: Namespace,
     extra_args: Optional[List[str]] = None,
     perf_analyzer_config: Optional[PerfAnalyzerConfig] = None,
-    telemetry_data_collectors: List[TelemetryDataCollector] = [],
+    telemetry_data_collectors: List[Optional[TelemetryDataCollector]] = [],
 ) -> None:
     try:
         for collector in telemetry_data_collectors:
-            collector.start()
+            if collector:
+                collector.start()
 
         if perf_analyzer_config is not None:
             cmd = perf_analyzer_config.create_command()
@@ -221,7 +217,8 @@ def run_perf_analyzer(
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
     finally:
         for collector in telemetry_data_collectors:
-            collector.stop()
+            if collector:
+                collector.stop()
 
 
 def merge_telemetry_metrics(metrics_list: List[TelemetryMetrics]) -> TelemetryMetrics:

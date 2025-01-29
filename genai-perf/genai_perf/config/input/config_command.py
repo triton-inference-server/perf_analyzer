@@ -28,7 +28,7 @@ from genai_perf.config.input.config_input import ConfigInput
 from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.types import CheckpointObject, ModelName
 
 
@@ -66,7 +66,7 @@ class ConfigCommand(BaseConfig):
     # Top-Level Parsing Methods
     ###########################################################################
     def _parse_yaml(self, user_config: Optional[Dict[str, Any]] = None) -> None:
-        if user_config is None:
+        if not user_config:
             return
 
         for key, value in user_config.items():
@@ -89,6 +89,9 @@ class ConfigCommand(BaseConfig):
                     f"User Config: {key} is not a valid top-level parameter"
                 )
 
+            self._infer_settings()
+            self._check_for_illegal_combinations()
+
     def _parse_model_names(self, model_names: str) -> None:
         if type(model_names) is str:
             self.model_names = [model_names]
@@ -96,6 +99,41 @@ class ConfigCommand(BaseConfig):
             self.model_names = [model_names[0] + "_multi"]
         else:
             raise ValueError("User Config: model_names must be a string or list")
+
+    ###########################################################################
+    # Infer Methods
+    ###########################################################################
+    def _infer_settings(self) -> None:
+        self.endpoint.infer_settings(model_name=self.model_names[0])
+
+        self.input.infer_prompt_source()
+        self.input.infer_synthetic_input_files()
+
+    ###########################################################################
+    # Illegal Combination Methods
+    ###########################################################################
+    def _check_for_illegal_combinations(self) -> None:
+        self._check_output_tokens_and_service_kind()
+        self._check_output_format_and_generate_plots()
+
+    def _check_output_tokens_and_service_kind(self) -> None:
+        if self.endpoint.service_kind not in ["triton", "tensorrtllm_engine"]:
+            if self.input.output_tokens.get_field("deterministic").is_set_by_user:
+                raise ValueError(
+                    "User Config: input.output_tokens.deterministic is only supported with Triton or TensorRT-LLM Engine service kinds"
+                )
+
+    def _check_output_format_and_generate_plots(self) -> None:
+        if self.endpoint.output_format in [
+            OutputFormat.IMAGE_RETRIEVAL,
+            OutputFormat.NVCLIP,
+            OutputFormat.OPENAI_EMBEDDINGS,
+            OutputFormat.RANKINGS,
+        ]:
+            if self.output.generate_plots:
+                raise ValueError(
+                    "User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
+                )
 
     ###########################################################################
     # Utility Methods

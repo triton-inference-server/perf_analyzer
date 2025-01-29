@@ -20,7 +20,11 @@ from unittest.mock import patch
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
 from genai_perf.config.input.config_command import ConfigCommand, ConfigInput, Range
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.input_constants import (
+    ModelSelectionStrategy,
+    OutputFormat,
+    PromptSource,
+)
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 
 
@@ -135,7 +139,9 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.endpoint.type, "chat")
         self.assertEqual(config.endpoint.service_kind, "openai")
         self.assertEqual(config.endpoint.streaming, True)
-        self.assertEqual(config.endpoint.server_metrics_url, "test_server_metrics_url")
+        self.assertEqual(
+            config.endpoint.server_metrics_url, ["test_server_metrics_url"]
+        )
         self.assertEqual(config.endpoint.url, "test_url")
 
     def test_perf_analyzer(self):
@@ -322,6 +328,62 @@ class TestConfigCommand(unittest.TestCase):
         # Check that the copied object can be modified without affecting the original object
         config_input.batch_size = 32
         self.assertNotEqual(config_input.batch_size, copied_config_input.batch_size)
+
+    def test_infer_prompt_source_file(self):
+        """
+        Test that the prompt source is inferred correctly for non-synthetic names
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            input:
+              file: "test_file"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.input.prompt_source, PromptSource.FILE)
+
+    def test_infer_prompt_source_synthetic(self):
+        """
+        Test that the prompt source is inferred correctly for synthetic names
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            input:
+              file: "synthetic:test_file"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.input.prompt_source, PromptSource.SYNTHETIC)
+
+    def test_infer_synthetic_input_files(self):
+        """
+        Test that the synthetic input files are inferred correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            input:
+              file: "synthetic:test_file1,test_file2"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.input.synthetic_input_files, ["test_file1", "test_file2"]
+        )
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ class ConfigOutput(BaseConfig):
     Describes the configuration output options
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.artifact_directory: Any = ConfigField(
             default=OutputDefaults.ARTIFACT_DIRECTORY

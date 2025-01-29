@@ -27,6 +27,7 @@
 from argparse import Namespace
 from typing import List, Optional
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
@@ -48,10 +49,13 @@ from genai_perf.telemetry_data.triton_telemetry_data_collector import (
 from genai_perf.tokenizer import get_tokenizer
 
 
-def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
+def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
     """
     Handles `profile` subcommand workflow
     """
+    # FIXME: to make mypy happy
+    args = Namespace()
+
     config_options = create_config_options(args)
     create_artifacts_dirs(args)
     tokenizer = get_tokenizer(
@@ -60,7 +64,7 @@ def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
         args.tokenizer_revision,
     )
     generate_inputs(config_options)
-    telemetry_data_collectors = create_telemetry_data_collectors(args)
+    telemetry_data_collectors = create_telemetry_data_collectors(config)
     run_perf_analyzer(
         args=args,
         extra_args=extra_args,
@@ -72,7 +76,7 @@ def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
 
 def _report_output(
     data_parser: ProfileDataParser,
-    telemetry_data_collectors: List[TelemetryDataCollector],
+    telemetry_data_collectors: List[Optional[TelemetryDataCollector]],
     args: Namespace,
 ) -> None:
     if args.concurrency:
@@ -86,7 +90,7 @@ def _report_output(
 
     stats = data_parser.get_statistics(infer_mode, load_level)
     telemetry_metrics_list = [
-        collector.get_metrics() for collector in telemetry_data_collectors
+        collector.get_metrics() for collector in telemetry_data_collectors  # type: ignore
     ]
 
     merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics_list)

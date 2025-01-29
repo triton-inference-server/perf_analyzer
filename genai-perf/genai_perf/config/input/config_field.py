@@ -40,7 +40,7 @@ class ConfigField:
         template_comment: Optional[str] = None,
         value: Optional[Any] = None,
         bounds: Optional[Dict[str, Any]] = None,
-        choices: Optional[Union[List[Any], Enum]] = None,
+        choices: Optional[Any] = None,
     ):
         self.default = default
         self.required = required
@@ -53,7 +53,7 @@ class ConfigField:
         if value is not None:
             self.value = value
 
-    def _check_bounds(self):
+    def _check_bounds(self) -> None:
         if isinstance(self.value, (int, float)):
             if self.bounds and "upper" in self.bounds:
                 if self.bounds["upper"] < self.value:
@@ -66,7 +66,7 @@ class ConfigField:
                         f"User Config: {self.value} exceeds lower bounds (f{self.bounds})"
                     )
 
-    def _check_choices(self):
+    def _check_choices(self) -> None:
         if not self.choices or not self.value:
             return
 
