@@ -259,6 +259,105 @@ Note that for `STRING` type, an element is represented by a 4-byte unsigned
 integer giving the length followed by the actual bytes. The byte array to be
 encoded using base64 must include the 4-byte unsigned integers.
 
+### OpenAI Chat
+
+Perf Analyzer can also be used to profile OpenAI API-compatible servers. Users
+must provide an input data JSON via
+[`--input-data`](cli.md#--input-datazerorandompath) containing the HTTP request
+bodies of the requests to be sent to the OpenAI API-compatible server. See the
+example below:
+
+```json
+{
+  "data": [
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "Who wrote the play Romeo and Juliet?" }],
+          "max_tokens": 32
+        }
+      ]
+    },
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user", "content": "What is 1+1?" }],
+          "max_tokens": 32
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### OpenAI Multi-Turn Chat
+
+Perf Analyzer can also be used to benchmark multi-turn chat models on an
+OpenAI API-compatible server. This is currently done via the
+[`--session-concurrency`](cli.md) option. Users must provide an input data JSON
+via [`--input-data`](cli.md#--input-datazerorandompath) containing the HTTP
+request bodies of the requests to be sent with a delay associated with each
+request for how long to wait between the request's response returns and when the
+next request in the multi-turn chat is sent. The last request of a particular
+session/multi-turn chat does not need a delay value since there is no next turn.
+See the example below:
+
+```json
+{
+  "data": [
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "Who wrote the play Romeo and Juliet?" }],
+          "max_tokens": 32
+        }
+      ],
+      "session_id": ["16d63027-f8d8-4a2d-83ac-0cde28f5a431"],
+      "delay": [3000]
+    },
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "What is it about?" }],
+          "max_tokens": 32
+        }
+      ],
+      "session_id": ["16d63027-f8d8-4a2d-83ac-0cde28f5a431"]
+    },
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "What is 2+2?" }],
+          "max_tokens": 32
+        }
+      ],
+      "delay": [2000],
+      "session_id": ["d1ed35c3-2a3a-444e-8e0a-6f0714202cb1"],
+    },
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "What the square root of that?" }],
+          "max_tokens": 32
+        }
+      ],
+      "session_id": ["d1ed35c3-2a3a-444e-8e0a-6f0714202cb1"]
+    }
+  ]
+}
+```
+
 ### Output Validation
 
 When real input data is provided, it is optional to request Perf Analyzer to

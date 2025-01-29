@@ -34,11 +34,11 @@ This is the default mode for Perf Analyzer.
 
 While [GenAI-Perf](../genai-perf/README.md) is recommended for benchmarking
 models deployed on OpenAI API-compatible servers, Perf Analyzer can also be used
-directly, but with fewer features.
+directly, but with fewer features:
 
 ```bash
 # get chat template required for facebook/opt-125m model
-wget https://raw.githubusercontent.com/vllm-project/vllm/refs/heads/main/examples/template_chatml.jinja
+curl -o template_chatml.jinja https://raw.githubusercontent.com/vllm-project/vllm/refs/heads/main/examples/template_chatml.jinja
 
 # start vllm, an OpenAI API-compatible server
 vllm serve facebook/opt-125m --chat-template=template_chatml.jinja > server.log 2>&1 &
@@ -47,7 +47,7 @@ vllm serve facebook/opt-125m --chat-template=template_chatml.jinja > server.log 
 while [ "$(curl -s -o /dev/null -w "%{http_code}" localhost:8000/v1/models)" != "200" ]; do sleep 1; done
 
 # create simple input data JSON for Perf Analyzer
-cat <<EOF > input_data.json
+cat > input_data.json <<EOF
 {
   "data": [
     {
@@ -57,7 +57,7 @@ cat <<EOF > input_data.json
           "messages": [
             {"role": "user", "content": "Who wrote the play Romeo and Juliet?"}
           ],
-          "max_tokens": 128
+          "max_tokens": 32
         }
       ]
     }
@@ -66,7 +66,12 @@ cat <<EOF > input_data.json
 EOF
 
 # run Perf Analyzer
-perf_analyzer -m facebook/opt-125m --service-kind=openai --endpoint=v1/chat/completions --async --input-data=input_data.json
+perf_analyzer \
+  -m facebook/opt-125m \
+  --input-data=input_data.json \
+  --service-kind=openai \
+  --endpoint=v1/chat/completions \
+  --async
 
 #  Successfully read data for 1 stream/streams with 1 step/steps.
 # *** Measurement Settings ***
@@ -89,6 +94,122 @@ perf_analyzer -m facebook/opt-125m --service-kind=openai --endpoint=v1/chat/comp
 # Inferences/Second vs. Client Average Batch Latency
 # Concurrency: 1, throughput: 4.94426 infer/sec, latency 200467 usec
 ```
+
+## Benchmarking OpenAI Multi-Turn Chat
+
+Here is an example of using Perf Analyzer to benchmark a multi-turn chat model
+on an OpenAI API-compatible server:
+
+> [!NOTE] Multi-turn chat benchmarking does not report any statistics. It is
+> only intended to output a trace of the benchmark
+> ([`--profile-export-file`](cli.md#--profile-export-file-path)), which is used
+> by [GenAI-Perf](../genai-perf/docs/multi_turn.md) to calculate benchmark
+> statistics.
+
+<details>
+<summary>See instructions</summary>
+
+```bash
+# get chat template required for facebook/opt-125m model
+curl -o template_chatml.jinja https://raw.githubusercontent.com/vllm-project/vllm/refs/heads/main/examples/template_chatml.jinja
+
+# start vllm, an OpenAI API-compatible server
+vllm serve facebook/opt-125m --chat-template=template_chatml.jinja > server.log 2>&1 &
+
+# wait for server to be ready
+while [ "$(curl -s -o /dev/null -w "%{http_code}" localhost:8000/v1/models)" != "200" ]; do sleep 1; done
+
+# create simple input data JSON for Perf Analyzer
+cat > input_data.json <<EOF
+{
+  "data": [
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "Who wrote the play Romeo and Juliet?" }],
+          "max_tokens": 32
+        }
+      ],
+      "session_id": ["16d63027-f8d8-4a2d-83ac-0cde28f5a431"],
+      "delay": [3000]
+    },
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "What is it about?" }],
+          "max_tokens": 32
+        }
+      ],
+      "session_id": ["16d63027-f8d8-4a2d-83ac-0cde28f5a431"]
+    },
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "What is 2+2?" }],
+          "max_tokens": 32
+        }
+      ],
+      "delay": [2000],
+      "session_id": ["d1ed35c3-2a3a-444e-8e0a-6f0714202cb1"]
+    },
+    {
+      "payload": [
+        {
+          "model": "facebook/opt-125m",
+          "messages": [{ "role": "user",
+                         "content": "What the square root of that?" }],
+          "max_tokens": 32
+        }
+      ],
+      "session_id": ["d1ed35c3-2a3a-444e-8e0a-6f0714202cb1"]
+    }
+  ]
+}
+EOF
+
+# run Perf Analyzer
+perf_analyzer \
+  -m facebook/opt-125m \
+  --session-concurrency=2 \
+  --input-data=input_data.json \
+  --profile-export-file=profile_export.json \
+  --service-kind=openai \
+  --endpoint=v1/chat/completions \
+  --async
+
+jq . profile_export.json | head -n 21
+
+# {
+#   "experiments": [
+#     {
+#       "experiment": {
+#         "mode": "request_rate",
+#         "value": 0.0
+#       },
+#       "requests": [
+#         {
+#           "timestamp": 1741134590669919999,
+#           "request_inputs": {
+#             "delay": 2000,
+#             "session_id": "d1ed35c3-2a3a-444e-8e0a-6f0714202cb1",
+#             "payload": "{\"model\":\"facebook/opt-125m\",\"messages\":[{\"role\":\"user\",\"content\":\"What is 2+2?\"}],\"max_tokens\":32}"
+#           },
+#           "response_timestamps": [
+#             1741134590728534586
+#           ],
+#           "response_outputs": [
+#             {
+#               "response": "{\"id\":\"chatcmpl-dc4644927240492485f8e053c6092a9c\",\"object\":\"chat.completion\",\"created\":1741134590,\"model\":\"facebook/opt-125m\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"reasoning_content\":null,\"content\":\"What is \\\"user Education\\\"?<|im_end|>\\n<n>Assessment\\n<n>Assessment\\n[edit]\\n\\\\+\",\"tool_calls\":[]},\"logprobs\":null,\"finish_reason\":\"length\",\"stop_reason\":null}],\"usage\":{\"prompt_tokens\":33,\"total_tokens\":65,\"completion_tokens\":32,\"prompt_tokens_details\":null},\"prompt_logprobs\":null}"
+```
+
+</details>
+</br>
 
 # Benchmarking Triton directly via C API
 
