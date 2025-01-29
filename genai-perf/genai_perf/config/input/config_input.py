@@ -86,7 +86,11 @@ class ConfigInput(BaseConfig):
     ###########################################################################
     # Infer Methods
     ###########################################################################
-    def infer_prompt_source(self) -> None:
+    def infer_settings(self) -> None:
+        self._infer_prompt_source()
+        self._infer_synthetic_input_files()
+
+    def _infer_prompt_source(self) -> None:
         self.prompt_source: Any = ConfigField(
             default=PromptSource.SYNTHETIC, choices=PromptSource
         )
@@ -98,7 +102,7 @@ class ConfigInput(BaseConfig):
                 self.prompt_source = PromptSource.FILE
                 logger.debug(f"Input source is the following path: {self.file}")
 
-    def infer_synthetic_input_files(self) -> None:
+    def _infer_synthetic_input_files(self) -> None:
         self.synthetic_input_files: Any = ConfigField(default=[])
 
         if self.file:

@@ -73,8 +73,6 @@ class ConfigEndPoint(BaseConfig):
                     f"User Config: {key} is not a valid endpoint parameter"
                 )
 
-        self._check_for_illegal_combinations()
-
     def _parse_server_metrics_url(self, value: Any) -> List[str]:
         if type(value) is str:
             return [value]
@@ -88,7 +86,7 @@ class ConfigEndPoint(BaseConfig):
     ###########################################################################
     # Illegal Combination Methods
     ###########################################################################
-    def _check_for_illegal_combinations(self) -> None:
+    def check_for_illegal_combinations(self) -> None:
         self._check_service_kind_and_type()
 
     def _check_service_kind_and_type(self) -> None:
@@ -155,13 +153,17 @@ class ConfigEndPoint(BaseConfig):
             raise ValueError(f"User Config: {self.type} is not a valid endpoint type")
 
     def _check_inferred_service_kind(self, endpoint_config: EndpointConfig) -> None:
+        # This is inferred and cannot be checked by the endpoint_config
+        if self.service_kind == "openai" and self.type == "generate":
+            return
+
         if self.service_kind != endpoint_config.service_kind:
             raise ValueError(
                 f"Invalid service-kind '{self.service_kind}' for endpoint-type '{self.type}'"
             )
 
     def _check_inferred_backend(self) -> None:
-        if not self.get_field("backend").is_set_by_user:
+        if self.get_field("backend").is_set_by_user:
             if self.service_kind == "triton" and self.type == "kserve":
                 return
             else:

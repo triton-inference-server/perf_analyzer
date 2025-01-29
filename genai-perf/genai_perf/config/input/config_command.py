@@ -89,8 +89,8 @@ class ConfigCommand(BaseConfig):
                     f"User Config: {key} is not a valid top-level parameter"
                 )
 
-            self._infer_settings()
-            self._check_for_illegal_combinations()
+        self._infer_settings()
+        self._check_for_illegal_combinations()
 
     def _parse_model_names(self, model_names: str) -> None:
         if type(model_names) is str:
@@ -105,9 +105,7 @@ class ConfigCommand(BaseConfig):
     ###########################################################################
     def _infer_settings(self) -> None:
         self.endpoint.infer_settings(model_name=self.model_names[0])
-
-        self.input.infer_prompt_source()
-        self.input.infer_synthetic_input_files()
+        self.input.infer_settings()
 
     ###########################################################################
     # Illegal Combination Methods
@@ -115,6 +113,8 @@ class ConfigCommand(BaseConfig):
     def _check_for_illegal_combinations(self) -> None:
         self._check_output_tokens_and_service_kind()
         self._check_output_format_and_generate_plots()
+
+        self.endpoint.check_for_illegal_combinations()
 
     def _check_output_tokens_and_service_kind(self) -> None:
         if self.endpoint.service_kind not in ["triton", "tensorrtllm_engine"]:
