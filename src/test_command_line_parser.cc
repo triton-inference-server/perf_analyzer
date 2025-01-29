@@ -1960,6 +1960,49 @@ TEST_CASE("Testing Command Line Parser")
     }
   }
 
+  SUBCASE("Option : --rpc")
+  {
+    SUBCASE("correct full grpc method name")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--rpc",
+          "hello.world.ServiceName/MethodName"};
+      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
+      CHECK(!parser.UsageCalled());
+    }
+    SUBCASE("more than one slash")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--rpc",
+          "hello.world/ServiceName/MethodName"};
+
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv),
+          "Received gRPC method name 'hello.world/ServiceName/MethodName' that "
+          "does not match the format: <package>.<service>/<method>.",
+          PerfAnalyzerException);
+
+      check_params = false;
+    }
+    SUBCASE("no slash")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--rpc",
+          "hello.world.ServiceName.MethodName"};
+
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv),
+          "Received gRPC method name 'hello.world.ServiceName.MethodName' that "
+          "does not match the format: <package>.<service>/<method>.",
+          PerfAnalyzerException);
+
+      check_params = false;
+    }
+  }
+
   if (check_params) {
     if (act == nullptr) {
       std::cerr
