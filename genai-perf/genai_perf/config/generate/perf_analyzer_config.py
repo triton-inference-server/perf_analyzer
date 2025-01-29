@@ -41,12 +41,10 @@ from genai_perf.wrapper import Profiler
 # This is the list of GAP CLI args that are not used when creating
 # the PA command line
 perf_analyzer_ignore_args = [
-    "apply_chat_template",
     "artifact_dir",
     "backend",
     "batch_size_image",
     "batch_size_text",
-    "chat_template_file",
     "concurrency",
     "endpoint_type",
     "extra_inputs",

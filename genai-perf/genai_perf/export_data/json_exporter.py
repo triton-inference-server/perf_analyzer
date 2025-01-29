@@ -69,7 +69,6 @@ class JsonExporter:
         self._args.pop("input_file", None)
         self._args["profile_export_file"] = str(self._args["profile_export_file"])
         self._args["artifact_dir"] = str(self._args["artifact_dir"])
-        self._args["chat_template_file"] = str(self._args["chat_template_file"])
         for k, v in self._args.items():
             if isinstance(v, Enum):
                 self._args[k] = v.name.lower()

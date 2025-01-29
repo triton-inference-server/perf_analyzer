@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -93,6 +93,41 @@ class TestTensorRTLLMEngineConverter:
         }
 
         assert result == expected_result
+
+    def test_convert_with_chat_template(self):
+        generic_dataset = self.create_generic_dataset()
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = InputsConfig(
+            extra_inputs={"apply_chat_template": True},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.TENSORRTLLM_ENGINE,
+            tokenizer=tokenizer,
+        )
+
+        trtllm_engine_converter = TensorRTLLMEngineConverter()
+        result = trtllm_engine_converter.convert(generic_dataset, config)
+
+        assert "data" in result
+        assert isinstance(result["data"], list)
+        assert len(result["data"]) == 2
+
+        for payload in result["data"]:
+            assert "input_ids" in payload
+            assert "content" in payload["input_ids"]
+            assert len(payload["input_ids"]["content"]) > 0
+
+            prompt = generic_dataset.files_data["file1"].rows[i].texts[0]
+            expected_chat_template = [{"role": "user", "content": prompt}]
+
+            formatted_chat = tokenizer._tokenizer.apply_chat_template(
+                expected_chat_template, tokenize=False, add_special_tokens=False
+            )
+
+            expected_token_ids = tokenizer.encode(
+                formatted_chat, add_special_tokens=False
+            )
+            assert payload["input_ids"]["content"] == expected_token_ids
 
     def test_convert_with_request_parameters(self):
         generic_dataset = self.create_generic_dataset()

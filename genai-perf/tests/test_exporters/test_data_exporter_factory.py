@@ -62,7 +62,6 @@ class TestOutputReporter:
         "artifact_dir": ".",
         "extra_inputs": ["max_tokens:200"],
         "subcommand": "profile",
-        "chat_template_file": "chat_template.json",
     }
     args_namespace = Namespace(**args)
 

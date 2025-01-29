@@ -58,8 +58,6 @@ def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
         args.tokenizer,
         args.tokenizer_trust_remote_code,
         args.tokenizer_revision,
-        args.apply_chat_template,
-        args.chat_template_file,
     )
     generate_inputs(config_options)
     telemetry_data_collectors = create_telemetry_data_collectors(args)

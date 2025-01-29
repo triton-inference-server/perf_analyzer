@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
@@ -52,9 +52,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = config.tokenizer.encode(
-                    row.texts[0], add_special_tokens=False
-                )
+                token_ids = self._encode_tokens(row.texts[0], config)
                 payload = {
                     "input_ids": {
                         "content": token_ids,
@@ -84,7 +82,35 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 payload["min_length"] = [num_tokens]
 
         for key, value in config.extra_inputs.items():
-            if key == "set_end_id" and value:
+            if key == "set_end_id":
                 payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
+            elif key == "apply_chat_template":
+                pass
             else:
                 payload[key] = [value]
+
+    def _encode_tokens(self, prompt: str, config: InputsConfig) -> List[int]:
+        if config.extra_inputs.__contains__("apply_chat_template"):
+            token_ids = self._encode_with_chat_template(prompt, config)
+        else:
+            token_ids = config.tokenizer.encode(prompt, add_special_tokens=False)
+        return token_ids
+
+    def _encode_with_chat_template(
+        self, prompt: str, config: InputsConfig
+    ) -> List[int]:
+        """
+        Apply the default TRT-LLM engine chat template to the prompt
+        """
+        try:
+            import jinja2
+        except ImportError:
+            raise ImportError(
+                "Jinja2 is required for using TRT-LLM with chat template processing. Install it using: pip install jinja2."
+            )
+        default_template = [{"role": "user", "content": prompt}]
+        return config.tokenizer.encode(
+            config.tokenizer._tokenizer.apply_chat_template(
+                default_template, tokenize=False, add_special_tokens=False
+            )
+        )
