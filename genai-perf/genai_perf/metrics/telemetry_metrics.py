@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,7 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from genai_perf.metrics.metrics import MetricMetadata
 
@@ -58,19 +58,19 @@ class TelemetryMetrics:
 
     def __init__(
         self,
-        gpu_power_usage: Dict[str, List[float]] = defaultdict(list),
-        gpu_power_limit: Dict[str, List[float]] = defaultdict(list),
-        energy_consumption: Dict[str, List[float]] = defaultdict(list),
-        gpu_utilization: Dict[str, List[float]] = defaultdict(list),
-        total_gpu_memory: Dict[str, List[float]] = defaultdict(list),
-        gpu_memory_used: Dict[str, List[float]] = defaultdict(list),
-    ) -> None:
-        self.gpu_power_usage = gpu_power_usage
-        self.gpu_power_limit = gpu_power_limit
-        self.energy_consumption = energy_consumption
-        self.gpu_utilization = gpu_utilization
-        self.total_gpu_memory = total_gpu_memory
-        self.gpu_memory_used = gpu_memory_used
+        gpu_power_usage: Optional[Dict[str, List[float]]] = None,
+        gpu_power_limit: Optional[Dict[str, List[float]]] = None,
+        energy_consumption: Optional[Dict[str, List[float]]] = None,
+        gpu_utilization: Optional[Dict[str, List[float]]] = None,
+        total_gpu_memory: Optional[Dict[str, List[float]]] = None,
+        gpu_memory_used: Optional[Dict[str, List[float]]] = None,
+    ):
+        self.gpu_power_usage = defaultdict(list, gpu_power_usage or {})
+        self.gpu_power_limit = defaultdict(list, gpu_power_limit or {})
+        self.energy_consumption = defaultdict(list, energy_consumption or {})
+        self.gpu_utilization = defaultdict(list, gpu_utilization or {})
+        self.total_gpu_memory = defaultdict(list, total_gpu_memory or {})
+        self.gpu_memory_used = defaultdict(list, gpu_memory_used or {})
 
     def update_metrics(self, measurement_data: dict) -> None:
         for metric in self.TELEMETRY_METRICS:

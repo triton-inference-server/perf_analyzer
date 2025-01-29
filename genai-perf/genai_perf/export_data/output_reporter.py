@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from argparse import Namespace
-from typing import Optional
 
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
@@ -41,15 +40,14 @@ class OutputReporter:
     def __init__(
         self,
         stats: Statistics,
-        telemetry_stats: Optional[TelemetryStatistics],
+        telemetry_stats: TelemetryStatistics,
         args: Namespace,
     ):
         self.args = args
         self.stats = stats
         self.telemetry_stats = telemetry_stats
         self.stats.scale_data()
-        if self.telemetry_stats:
-            self.telemetry_stats.scale_data()
+        self.telemetry_stats.scale_data()
 
     def report_output(self) -> None:
         factory = DataExporterFactory()
@@ -62,9 +60,7 @@ class OutputReporter:
     def _create_exporter_config(self) -> ExporterConfig:
         assert isinstance(self.stats.metrics, Metrics)
         extra_inputs = get_extra_inputs_as_dict(self.args)
-        telemetry_stats = (
-            self.telemetry_stats.stats_dict if self.telemetry_stats else None
-        )
+        telemetry_stats = self.telemetry_stats.stats_dict
         config = ExporterConfig(
             self.stats.stats_dict,
             self.stats.metrics,

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -355,8 +355,10 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
     """
     Validates a URL to ensure it meets the following criteria:
     - The scheme must be 'http' or 'https'.
-    - The netloc (domain) must be present.
+    - The netloc (domain) must be present OR the URL must be a valid localhost
+    address.
     - The path must contain '/metrics'.
+    - The port must be specified.
 
     Raises:
         `parser.error()` if the URL is invalid.
@@ -366,17 +368,28 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
     """
     parsed_url = urlparse(url)
 
-    if (
-        parsed_url.scheme not in ["http", "https"]
-        or not parsed_url.netloc
-        or "/metrics" not in parsed_url.path
-        or parsed_url.port is None
-    ):
+    if parsed_url.scheme not in ["http", "https"]:
         parser.error(
-            "The URL passed for --server-metrics-url is invalid. "
-            "It must use 'http' or 'https', have a valid domain and port, "
-            "and contain '/metrics' in the path. The expected structure is: "
-            "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
+            f"Invalid scheme '{parsed_url.scheme}' in URL: {url}. Use 'http' "
+            "or 'https'."
+        )
+
+    valid_localhost = parsed_url.hostname in ["localhost", "127.0.0.1"]
+
+    if not parsed_url.netloc and not valid_localhost:
+        parser.error(
+            f"Invalid domain in URL: {url}. Use a valid hostname or " "'localhost'."
+        )
+
+    if "/metrics" not in parsed_url.path:
+        parser.error(
+            f"Invalid URL path '{parsed_url.path}' in {url}. The path must "
+            "include '/metrics'."
+        )
+
+    if parsed_url.port is None:
+        parser.error(
+            f"Port missing in URL: {url}. A port number is required " "(e.g., ':8002')."
         )
 
 
@@ -393,12 +406,12 @@ def _check_server_metrics_url(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     """
-    Checks if the server metrics URL passed is valid
+    Checks if each server metrics URL passed is valid
     """
 
-    # Check if the URL is valid and contains the expected path
     if args.service_kind == "triton" and args.server_metrics_url:
-        _is_valid_url(parser, args.server_metrics_url)
+        for url in args.server_metrics_url:
+            _is_valid_url(parser, url)
 
     return args
 
@@ -636,12 +649,15 @@ def _add_endpoint_args(parser):
 
     endpoint_group.add_argument(
         "--server-metrics-url",
+        "--server-metrics-urls",
         type=str,
-        default=None,
+        nargs="+",
+        default=[],
         required=False,
-        help="The full URL to access the server metrics endpoint. "
-        "This argument is required if the metrics are available on "
-        "a different machine than localhost (where GenAI-Perf is running).",
+        help="The list of Triton server metrics URLs. These are used for "
+        "Telemetry metric reporting with the Triton service-kind. Example "
+        "usage: --server-metrics-url http://server1:8002/metrics "
+        "http://server2:8002/metrics",
     )
 
     endpoint_group.add_argument(

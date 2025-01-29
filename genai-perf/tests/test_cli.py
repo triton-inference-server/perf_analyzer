@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -637,17 +637,66 @@ class TestCLIArguments:
                 [
                     "genai-perf",
                     "profile",
-                    "--model",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "ftp://invalid.com:8002/metrics",
+                ],
+                "Invalid scheme 'ftp' in URL: ftp://invalid.com:8002/metrics. Use 'http' or 'https'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "http:///metrics",
+                ],
+                "Invalid domain in URL: http:///metrics. Use a valid hostname or 'localhost'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "http://valid.com:8002/invalidpath",
+                ],
+                "Invalid URL path '/invalidpath' in http://valid.com:8002/invalidpath. The path must include '/metrics'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "http://valid.com/metrics",
+                ],
+                "Port missing in URL: http://valid.com/metrics. A port number is required (e.g., ':8002').",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
                     "test_model",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
                     "invalid_url",
                 ],
-                "The URL passed for --server-metrics-url is invalid. "
-                "It must use 'http' or 'https', have a valid domain and port, "
-                "and contain '/metrics' in the path. The expected structure is: "
-                "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
+                "Invalid scheme '' in URL: invalid_url. Use 'http' or 'https'.",
             ),
             (
                 [
@@ -984,7 +1033,20 @@ class TestCLIArguments:
                     "--server-metrics-url",
                     test_triton_metrics_url,
                 ],
-                test_triton_metrics_url,
+                [test_triton_metrics_url],
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-urls",
+                    test_triton_metrics_url,
+                ],
+                [test_triton_metrics_url],
             ),
             # server-metrics-url is not specified
             (
@@ -996,7 +1058,7 @@ class TestCLIArguments:
                     "--service-kind",
                     "triton",
                 ],
-                None,
+                [],
             ),
         ],
     )
