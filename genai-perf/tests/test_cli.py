@@ -843,15 +843,18 @@ class TestCLIArguments:
         [
             (
                 ["--extra-inputs", "hi:"],
-                "Input name or value is empty in --extra-inputs: hi:\nExpected input format: 'input_name:value'",
+                "Input name or value is empty in --extra-inputs: hi:\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", ":a"],
-                "Input name or value is empty in --extra-inputs: :a\nExpected input format: 'input_name:value'",
+                "Input name or value is empty in --extra-inputs: :a\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", ":a:"],
-                "Invalid input format for --extra-inputs: :a:\nExpected input format: 'input_name:value'",
+                "Invalid input format for --extra-inputs: :a:\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", "test_key:5", "--extra-inputs", "test_key:6"],

@@ -89,15 +89,16 @@ def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
             semicolon_count = input_str.count(":")
             if input_str.startswith("{") and input_str.endswith("}"):
                 request_inputs.update(load_json_str(input_str))
-            elif semicolon_count == 0:
+            elif semicolon_count == 0:  # extra input as a flag
                 request_inputs[input_str] = None
             elif semicolon_count == 1:
                 input_name, value = input_str.split(":", 1)
 
                 if not input_name or not value:
                     raise ValueError(
-                        f"Input name or value is empty in --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
+                        f"Input name or value is empty in --extra-inputs: "
+                        f"{input_str}\nExpected input format: 'input_name' or "
+                        "'input_name:value'"
                     )
 
                 is_bool = value.lower() in ["true", "false"]
@@ -115,13 +116,14 @@ def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
 
                 if input_name in request_inputs:
                     raise ValueError(
-                        f"Input name already exists in request_inputs dictionary: {input_name}"
+                        f"Input name already exists in request_inputs "
+                        f"dictionary: {input_name}"
                     )
                 request_inputs[input_name] = value
             else:
                 raise ValueError(
                     f"Invalid input format for --extra-inputs: {input_str}\n"
-                    "Expected input format: 'input_name:value'"
+                    "Expected input format: 'input_name' or 'input_name:value'"
                 )
 
     return request_inputs
