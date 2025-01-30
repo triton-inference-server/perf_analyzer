@@ -581,6 +581,12 @@ stable. The measurement is considered as stable if the ratio of max / min from
 the recent 3 measurements is within (stability percentage) in terms of both
 infer per second and latency. (default: `999`)
 
+### Session Options
+
+##### `--session-concurrency`
+The number of concurrent sessions to be simulated. This is the default mode for simulating sessions.
+(default: `1`)
+
 ### Output Options
 
 ##### `--artifact-dir`

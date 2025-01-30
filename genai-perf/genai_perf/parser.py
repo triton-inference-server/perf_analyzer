@@ -273,6 +273,18 @@ def _check_goodput_args(args):
     return args
 
 
+def _check_session_args(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> argparse.Namespace:
+    """
+    Check if session args are used correctly
+    """
+    if not args.session_concurrency:
+        args.session_concurrency = ic.DEFAULT_SESSION_CONCURRENCY
+
+    return args
+
+
 def _process_sweep_args(args):
     """
     Process the sweep args which can either be a list or
@@ -582,6 +594,20 @@ def _add_compare_args(parser):
         help="List of paths to the profile export JSON files. Users can specify "
         "this option instead of the `--config` option if they would like "
         "GenAI-Perf to generate default plots as well as initial YAML config file.",
+    )
+
+
+def _add_session_args(parser):
+
+    input_group = parser.add_argument_group("Session")
+    session_load_management_group = input_group.add_mutually_exclusive_group(
+        required=False
+    )
+
+    session_load_management_group.add_argument(
+        "--session-concurrency",
+        type=int,
+        help="The number of concurrent sessions to simulate.",
     )
 
 
@@ -1037,6 +1063,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(profile)
     _add_output_args(profile)
     _add_profile_args(profile)
+    _add_session_args(profile)
     _add_tokenizer_args(profile)
     profile.set_defaults(func=profile_handler)
     return profile
@@ -1109,6 +1136,7 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
+        args = _check_session_args(parser, args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
         args = _infer_prompt_source(args)
