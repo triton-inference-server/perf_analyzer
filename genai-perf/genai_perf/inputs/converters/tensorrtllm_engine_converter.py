@@ -108,9 +108,12 @@ class TensorRTLLMEngineConverter(BaseConverter):
             raise ImportError(
                 "Jinja2 is required for using TRT-LLM with chat template processing. Install it using: pip install jinja2."
             )
-        default_template = [{"role": "user", "content": prompt}]
+        default_template = self._construct_default_template(prompt)
         return config.tokenizer.encode(
             config.tokenizer._tokenizer.apply_chat_template(
                 default_template, tokenize=False, add_special_tokens=False
             )
         )
+
+    def _construct_default_template(self, prompt: str) -> List[Dict[str, str]]:
+        return [{"role": "user", "content": prompt}]
