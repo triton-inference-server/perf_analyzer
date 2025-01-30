@@ -83,18 +83,15 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
 
 
 def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
-    request_inputs = {}
+    request_inputs: Dict[str, Any] = {}
     if args.extra_inputs:
         for input_str in args.extra_inputs:
+            semicolon_count = input_str.count(":")
             if input_str.startswith("{") and input_str.endswith("}"):
                 request_inputs.update(load_json_str(input_str))
-            else:
-                semicolon_count = input_str.count(":")
-                if semicolon_count != 1:
-                    raise ValueError(
-                        f"Invalid input format for --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
-                    )
+            elif semicolon_count == 0:
+                request_inputs[input_str] = None
+            elif semicolon_count == 1:
                 input_name, value = input_str.split(":", 1)
 
                 if not input_name or not value:
@@ -121,6 +118,11 @@ def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
                         f"Input name already exists in request_inputs dictionary: {input_name}"
                     )
                 request_inputs[input_name] = value
+            else:
+                raise ValueError(
+                    f"Invalid input format for --extra-inputs: {input_str}\n"
+                    "Expected input format: 'input_name:value'"
+                )
 
     return request_inputs
 

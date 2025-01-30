@@ -854,16 +854,12 @@ class TestCLIArguments:
                 "Invalid input format for --extra-inputs: :a:\nExpected input format: 'input_name:value'",
             ),
             (
-                ["--extra-inputs", "unknown"],
-                "Invalid input format for --extra-inputs: unknown\nExpected input format: 'input_name:value'",
-            ),
-            (
                 ["--extra-inputs", "test_key:5", "--extra-inputs", "test_key:6"],
                 "Input name already exists in request_inputs dictionary: test_key",
             ),
         ],
     )
-    def test_repeated_extra_arg_warning(self, monkeypatch, args, expected_error):
+    def test_get_extra_inputs_as_dict_warning(self, monkeypatch, args, expected_error):
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 
@@ -991,6 +987,7 @@ class TestCLIArguments:
         "extra_inputs_list, expected_dict",
         [
             (["test_key:test_value"], {"test_key": "test_value"}),
+            (["test_key"], {"test_key": None}),
             (
                 ["test_key:1", "another_test_key:2"],
                 {"test_key": 1, "another_test_key": 2},
