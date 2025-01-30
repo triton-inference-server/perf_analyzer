@@ -843,19 +843,18 @@ class TestCLIArguments:
         [
             (
                 ["--extra-inputs", "hi:"],
-                "Input name or value is empty in --extra-inputs: hi:\nExpected input format: 'input_name:value'",
+                "Input name or value is empty in --extra-inputs: hi:\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", ":a"],
-                "Input name or value is empty in --extra-inputs: :a\nExpected input format: 'input_name:value'",
+                "Input name or value is empty in --extra-inputs: :a\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", ":a:"],
-                "Invalid input format for --extra-inputs: :a:\nExpected input format: 'input_name:value'",
-            ),
-            (
-                ["--extra-inputs", "unknown"],
-                "Invalid input format for --extra-inputs: unknown\nExpected input format: 'input_name:value'",
+                "Invalid input format for --extra-inputs: :a:\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", "test_key:5", "--extra-inputs", "test_key:6"],
@@ -863,7 +862,7 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_repeated_extra_arg_warning(self, monkeypatch, args, expected_error):
+    def test_get_extra_inputs_as_dict_warning(self, monkeypatch, args, expected_error):
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 
@@ -991,6 +990,7 @@ class TestCLIArguments:
         "extra_inputs_list, expected_dict",
         [
             (["test_key:test_value"], {"test_key": "test_value"}),
+            (["test_key"], {"test_key": None}),
             (
                 ["test_key:1", "another_test_key:2"],
                 {"test_key": 1, "another_test_key": 2},
