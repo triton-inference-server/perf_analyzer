@@ -38,6 +38,7 @@ from genai_perf.profile_data_parser.profile_data_parser import (
 )
 from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import load_json_str, remove_sse_prefix
+from genai_perf.utils.constants import EMPTY_RESPONSE_TOKEN
 
 
 class LLMProfileDataParser(ProfileDataParser):
@@ -299,7 +300,7 @@ class LLMProfileDataParser(ProfileDataParser):
                 token_ids.append(r["output_ids"])
             else:
                 # for the empty first/last responses
-                token_ids.append(0)
+                token_ids.append(EMPTY_RESPONSE_TOKEN)
         return token_ids, len(token_ids)
 
     def _get_triton_output_tokens(self, res_outputs: List[Dict]) -> List[str]:
