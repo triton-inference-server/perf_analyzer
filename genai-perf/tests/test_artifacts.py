@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
-from genai_perf.subcommand.common import create_artifacts_dirs
+from genai_perf.subcommand.common import create_artifacts_directory
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ def mock_makedirs(mocker):
 def test_create_artifacts_dirs_custom_path(mock_makedirs):
     artifacts_dir_path = "/genai_perf_artifacts"
     mock_args = Namespace(artifact_dir=Path(artifacts_dir_path), generate_plots=True)
-    create_artifacts_dirs(mock_args)
+    create_artifacts_directory(mock_args)
     mock_makedirs.assert_any_call(
         Path(artifacts_dir_path), exist_ok=True
     ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
@@ -52,7 +52,7 @@ def test_create_artifacts_dirs_custom_path(mock_makedirs):
 def test_create_artifacts_disable_generate_plots(mock_makedirs):
     artifacts_dir_path = "/genai_perf_artifacts"
     mock_args = Namespace(artifact_dir=Path(artifacts_dir_path))
-    create_artifacts_dirs(mock_args)
+    create_artifacts_directory(mock_args)
     mock_makedirs.assert_any_call(
         Path(artifacts_dir_path), exist_ok=True
     ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."

@@ -28,8 +28,9 @@
 import argparse as args
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.metrics import Metrics
 
 
@@ -37,7 +38,7 @@ from genai_perf.metrics import Metrics
 class ExporterConfig:
     stats: Dict[Any, Any]
     metrics: Metrics
-    args: args.Namespace
+    config: ConfigCommand
     extra_inputs: Dict[str, Any]
     artifact_dir: Path
     telemetry_stats: Dict[str, Any] = field(default_factory=dict)

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -64,11 +64,12 @@ class CsvExporter:
         self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
         self._output_dir = config.artifact_dir
-        self._args = config.args
+        self._config = config.config
 
     def export(self) -> None:
         filename = (
-            self._output_dir / f"{self._args.profile_export_file.stem}_genai_perf.csv"
+            self._output_dir
+            / f"{self._config.output.profile_export_file.stem}_genai_perf.csv"
         )
         logger.info(f"Generating {filename}")
 
@@ -98,13 +99,13 @@ class CsvExporter:
         csv_writer.writerow(self.SYSTEM_METRICS_HEADER)
         for metric in self._metrics.system_metrics:
             metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
-            if metric.name == "request_goodput" and not self._args.goodput:
+            if metric.name == "request_goodput" and not self._config.input.goodput:
                 continue
             value = exporter_utils.fetch_stat(self._stats, metric.name, "avg")
             csv_writer.writerow([metric_str, exporter_utils.format_stat_value(value)])
 
     def _should_skip(self, metric_name: str) -> bool:
-        if self._args.endpoint_type == "embeddings":
+        if self._config.endpoint.type == "embeddings":
             return False  # skip nothing
 
         # TODO (TMA-1712): need to decide if we need this metric. Remove
@@ -121,6 +122,6 @@ class CsvExporter:
             "time_to_first_token",
             "time_to_second_token",
         ]
-        if not self._args.streaming and metric_name in streaming_metrics:
+        if not self._config.endpoint.streaming and metric_name in streaming_metrics:
             return True
         return False

@@ -26,7 +26,7 @@
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import pytest
 from genai_perf import utils
@@ -70,17 +70,18 @@ def check_statistics(s1: Statistics, s2: Statistics) -> None:
 def create_default_exporter_config(
     stats: Optional[Dict[Any, Any]] = None,
     metrics: Optional[Metrics] = None,
-    args: Optional[Namespace] = None,
-    extra_inputs: Optional[Dict[str, Any]] = None,
-    artifact_dir: Optional[Path] = None,
+    config: Optional[ConfigCommand] = None,
     telemetry_stats: Dict[str, Any] = {},
 ) -> ExporterConfig:
+    if not config:
+        config = ConfigCommand({})
+
     return ExporterConfig(
         stats=stats or {},
         metrics=metrics or Metrics(),
-        args=args or Namespace(),
-        extra_inputs=extra_inputs or {},
-        artifact_dir=artifact_dir or Path("."),
+        config=config,
+        extra_inputs=config.input.extra,
+        artifact_dir=config.output.artifact_directory,
         telemetry_stats=telemetry_stats,
     )
 

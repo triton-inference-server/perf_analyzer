@@ -27,6 +27,7 @@
 from argparse import Namespace
 from typing import List, Optional
 
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
@@ -36,8 +37,9 @@ from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.profile_data_parser import ProfileDataParser
 from genai_perf.subcommand.common import (
     calculate_metrics,
-    create_artifacts_dirs,
-    create_config_options,
+    convert_config_to_inputs_config,
+    create_artifacts_directory,
+    create_plot_directory,
     create_telemetry_data_collectors,
     generate_inputs,
     merge_telemetry_metrics,
@@ -53,38 +55,40 @@ def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> N
     """
     Handles `profile` subcommand workflow
     """
-    # FIXME: to make mypy happy
-    args = Namespace()
+    tokenizer = get_tokenizer(config)
 
-    config_options = create_config_options(args)
-    create_artifacts_dirs(args)
-    tokenizer = get_tokenizer(
-        args.tokenizer,
-        args.tokenizer_trust_remote_code,
-        args.tokenizer_revision,
-    )
-    generate_inputs(config_options)
+    create_artifacts_directory(config)
+    create_plot_directory(config)
+
+    inputs_config = convert_config_to_inputs_config(config, tokenizer)
+    generate_inputs(inputs_config)
+
     telemetry_data_collectors = create_telemetry_data_collectors(config)
+
+    perf_analyzer_config = PerfAnalyzerConfig(
+        model_name=config.model_names[0], config=config, extra_args=extra_args
+    )
+
     run_perf_analyzer(
-        args=args,
-        extra_args=extra_args,
+        config=config,
+        perf_analyzer_config=perf_analyzer_config,
         telemetry_data_collectors=telemetry_data_collectors,
     )
-    data_parser = calculate_metrics(args, tokenizer)
-    _report_output(data_parser, telemetry_data_collectors, args)
+    data_parser = calculate_metrics(config, tokenizer)
+    _report_output(data_parser, telemetry_data_collectors, config)
 
 
 def _report_output(
     data_parser: ProfileDataParser,
     telemetry_data_collectors: List[Optional[TelemetryDataCollector]],
-    args: Namespace,
+    config: ConfigCommand,
 ) -> None:
-    if args.concurrency:
+    if "concurrency" in config.perf_analyzer.stimulus:
         infer_mode = "concurrency"
-        load_level = f"{args.concurrency}"
-    elif args.request_rate:
+        load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
+    elif "request_rate" in config.perf_analyzer.stimulus:
         infer_mode = "request_rate"
-        load_level = f"{args.request_rate}"
+        load_level = f'{config.perf_analyzer.stimulus["request_rate"]}'
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
@@ -96,24 +100,22 @@ def _report_output(
     merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics_list)
 
     reporter = OutputReporter(
-        stats, TelemetryStatistics(merged_telemetry_metrics), args
+        stats, TelemetryStatistics(merged_telemetry_metrics), config
     )
 
     reporter.report_output()
-    if args.generate_plots:
-        _create_plots(args)
+    if config.output.generate_plots:
+        _create_plots(config)
 
 
-def _create_plots(args: Namespace) -> None:
+def _create_plots(config: ConfigCommand) -> None:
     # TMA-1911: support plots CLI option
-    plot_dir = args.artifact_dir / "plots"
+    plot_dir = config.output.artifact_directory / "plots"
     PlotConfigParser.create_init_yaml_config(
-        filenames=[args.profile_export_file],  # single run
+        filenames=[config.output.profile_export_file],  # single run
         output_dir=plot_dir,
     )
     config_parser = PlotConfigParser(plot_dir / "config.yaml")
-    plot_configs = config_parser.generate_configs(
-        args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
-    )
+    plot_configs = config_parser.generate_configs(config)
     plot_manager = PlotManager(plot_configs)
     plot_manager.generate_plots()

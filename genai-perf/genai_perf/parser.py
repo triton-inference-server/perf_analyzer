@@ -31,20 +31,25 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import AnalyzeDefaults
+from genai_perf.config.input.config_defaults import (
+    AnalyzeDefaults,
+    PerfAnalyzerDefaults,
+)
+from genai_perf.config.input.config_field import ConfigField
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.subcommand.analyze import analyze_handler
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.telemetry_data import TelemetryDataCollector
@@ -1095,6 +1100,90 @@ def refine_args(
     return args
 
 
+def add_cli_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    # These can only be set via the CLI and are added here
+    config.subcommand = ConfigField(
+        default="profile", value=args.subcommand, required=True
+    )
+    config.verbose = ConfigField(default=False, value=args.verbose)
+
+    # Endpoint
+    config.endpoint.model_selection_strategy = args.model_selection_strategy
+    config.endpoint.backend = args.backend
+    config.endpoint.custom = args.endpoint
+    config.endpoint.type = args.endpoint_type
+    config.endpoint.service_kind = args.service_kind
+    config.endpoint.streaming = args.streaming
+    config.endpoint.server_metrics_urls = args.server_metrics_url
+    config.endpoint.url = args.u
+    config.endpoint.output_format = args.output_format
+
+    # Perf Analyzer
+    # config.perf_analyzer.path - There is no equivalent setting in the CLI
+    config.perf_analyzer.stimulus = _convert_args_to_stimulus(args)
+    config.perf_analyzer.stability_percentage = args.stability_percentage
+    config.perf_analyzer.measurement_interval = args.measurement_interval
+
+    # Input
+    config.input.batch_size = args.batch_size_text
+    config.input.extra = get_extra_inputs_as_dict(args)
+    config.input.goodput = args.goodput
+    config.input.header = args.header
+    config.input.file = args.input_file
+    config.input.num_dataset_entries = args.num_dataset_entries
+    config.input.random_seed = args.random_seed
+    config.input.prompt_source = args.prompt_source
+    config.input.synthetic_input_files = args.synthetic_input_files
+
+    # Input - Image
+    config.input.image.batch_size = args.batch_size_image
+    config.input.image.width_mean = args.image_width_mean
+    config.input.image.width_stddev = args.image_width_stddev
+    config.input.image.height_mean = args.image_height_mean
+    config.input.image.height_stddev = args.image_height_stddev
+    config.input.image.format = args.image_format
+
+    # Input - Output Tokens
+    config.input.output_tokens.mean = args.output_tokens_mean
+    config.input.output_tokens.deterministic = args.output_tokens_mean_deterministic
+    config.input.output_tokens.stddev = args.output_tokens_stddev
+
+    # Input - Synthetic Tokens
+    config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
+    config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
+
+    # Input - Prefix Prompt
+    config.input.prefix_prompt.num = args.num_prefix_prompts
+    config.input.prefix_prompt.length = args.prefix_prompt_length
+
+    # Input - Request Count
+    config.input.request_count.warmup = args.warmup_request_count
+
+    # Output
+    config.output.artifact_directory = args.artifact_dir
+    # config.output.checkpoint_directory - There is no equivalent setting in the CLI
+    config.output.profile_export_file = args.profile_export_file
+    config.output.generate_plots = args.generate_plots
+
+    # Tokenizer
+    config.tokenizer.name = args.tokenizer
+    config.tokenizer.revision = args.tokenizer_revision
+    config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
+
+    return config
+
+
+def _convert_args_to_stimulus(args: argparse.Namespace) -> Dict[str, int]:
+    if args.concurrency:
+        return {"concurrency": args.concurrency}
+    elif args.request_rate:
+        return {"request_rate": args.request_rate}
+    else:
+        return PerfAnalyzerDefaults.STIMULUS
+
+
 ### Entrypoint ###
 
 
@@ -1107,7 +1196,10 @@ def parse_args():
         args = parser.parse_args(argv[1:passthrough_index])
         args = refine_args(parser, args)
 
-        return args, _, argv[passthrough_index + 1 :]
+        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = add_cli_options_to_config(config, args)
+
+        return args, config, argv[passthrough_index + 1 :]
     else:
         # FIXME: need to deal with -v/--verbose
         # FIXME: for now just setting the subcommand to profile

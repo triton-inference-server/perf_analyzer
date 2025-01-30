@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,7 +37,7 @@ AnalyzeDataExporterList = [CsvExporter]
 
 class DataExporterFactory:
     def create_data_exporters(self, config: ExporterConfig) -> List[Any]:
-        if config.args.subcommand == "analyze":
+        if config.config.subcommand == "analyze":
             DataExporterList: List[Any] = AnalyzeDataExporterList
         else:
             DataExporterList = ProfileDataExporterList

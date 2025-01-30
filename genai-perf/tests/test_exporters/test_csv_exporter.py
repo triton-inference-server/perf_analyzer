@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,6 +31,7 @@ from unittest.mock import patch
 
 import pytest
 from genai_perf import parser
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.metrics import (
     LLMMetrics,
@@ -101,15 +102,18 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=llm_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = [
@@ -156,15 +160,17 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=llm_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_filename = f"custom_export_genai_perf.csv"
@@ -200,6 +206,8 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -208,11 +216,11 @@ class TestCsvExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = [
@@ -244,6 +252,8 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -259,11 +269,11 @@ class TestCsvExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = "Request Goodput (per sec),100.00\r\n"
@@ -294,6 +304,8 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -309,11 +321,11 @@ class TestCsvExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = "Request Goodput (per sec),-1.00\r\n"
@@ -343,6 +355,8 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         telemetry_metrics = TelemetryMetrics(
             gpu_power_usage={"gpu0": [45.2, 46.5]},
@@ -357,14 +371,14 @@ class TestCsvExporter:
         telemetry_stats = TelemetryStatistics(telemetry_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
+        exporter_config = create_default_exporter_config(
             stats=stats.stats_dict,
             metrics=stats.metrics,
-            args=args,
+            config=config,
             telemetry_stats=telemetry_stats.stats_dict,
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = [
@@ -426,12 +440,14 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=llm_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, args=args, metrics=stats.metrics
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, config=config, metrics=stats.metrics
         )
 
         # Missing data
@@ -439,7 +455,7 @@ class TestCsvExporter:
         del config.stats["output_sequence_length"]["max"]
         del config.stats["input_sequence_length"]
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         mock_logger.error.assert_any_call(

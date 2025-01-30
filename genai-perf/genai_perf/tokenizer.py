@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, List
 if TYPE_CHECKING:
     from transformers import BatchEncoding
 
+
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 
 DEFAULT_TOKENIZER = "hf-internal-testing/llama-tokenizer"
@@ -84,14 +86,15 @@ def get_empty_tokenizer() -> Tokenizer:
     return Tokenizer()
 
 
-def get_tokenizer(
-    tokenizer_model: str,
-    trust_remote_code: bool = False,
-    tokenizer_revision: str = DEFAULT_TOKENIZER_REVISION,
-) -> Tokenizer:
+def get_tokenizer(config: ConfigCommand) -> Tokenizer:
     """
     Return tokenizer for the given model name
     """
     tokenizer = Tokenizer()
-    tokenizer.set_tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
+    tokenizer.set_tokenizer(
+        config.tokenizer.name,
+        config.tokenizer.trust_remote_code,
+        config.tokenizer.revision,
+    )
+
     return tokenizer

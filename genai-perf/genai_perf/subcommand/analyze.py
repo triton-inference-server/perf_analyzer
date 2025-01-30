@@ -56,8 +56,8 @@ from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
 from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
 from genai_perf.subcommand.common import (
     calculate_metrics,
-    create_artifacts_dirs,
-    create_config_options,
+    convert_config_to_inputs_config,
+    create_artifacts_directory,
     create_telemetry_data_collectors,
     generate_inputs,
     merge_telemetry_metrics,
@@ -147,6 +147,9 @@ class Analyze:
         """
         Sweeps over the objectives
         """
+        # FIXME: need to remove args
+        obj_args = Namespace()
+
         for count, objectives in enumerate(
             self._sweep_objective_generator.get_objectives()
         ):
@@ -175,25 +178,20 @@ class Analyze:
                 self._model_name, representation
             )
 
-            # FIXME: This is to make mypy happy until the code is complete
-            obj_args = Namespace()
-
             if not run_config_found:
                 #
                 # Create Input/Artifacts
-                input_config_options = create_config_options(obj_args)
-                create_artifacts_dirs(obj_args)
-                tokenizer = get_tokenizer(
-                    obj_args.tokenizer,
-                    obj_args.tokenizer_trust_remote_code,
-                    obj_args.tokenizer_revision,
+                tokenizer = get_tokenizer(self._config)
+                input_config_options = convert_config_to_inputs_config(
+                    self._config, tokenizer
                 )
+                create_artifacts_directory(self._config)
                 generate_inputs(input_config_options)
 
                 #
                 # Run PA
                 run_perf_analyzer(
-                    args=obj_args,
+                    config=self._config,
                     perf_analyzer_config=perf_analyzer_config,
                     telemetry_data_collectors=self._telemetry_data_collectors,
                 )
@@ -203,7 +201,7 @@ class Analyze:
                 infer_mode, load_level = self._determine_infer_mode_and_load_level(
                     obj_args, objectives, self._model_name
                 )
-                data_parser = calculate_metrics(obj_args, tokenizer)
+                data_parser = calculate_metrics(self._config, tokenizer)
                 perf_stats = data_parser.get_statistics(infer_mode, load_level)
                 perf_metrics = perf_stats.create_records()
 
@@ -223,7 +221,7 @@ class Analyze:
                 #
                 # Create output CSV in artifact directory
                 OutputReporter(
-                    perf_stats, merged_telemetry_stats, obj_args
+                    perf_stats, merged_telemetry_stats, self._config
                 ).report_output()
 
                 #

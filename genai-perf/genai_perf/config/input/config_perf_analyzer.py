@@ -38,7 +38,6 @@ class ConfigPerfAnalyzer(BaseConfig):
         self.measurement_interval: Any = ConfigField(
             default=PerfAnalyzerDefaults.MEASUREMENT_INTERVAL, bounds={"min": 1}
         )
-        self.skip_args: Any = ConfigField(default=PerfAnalyzerDefaults.SKIP_ARGS)
 
     def parse(self, perf_analyzer: Dict[str, Any]) -> None:
         for key, value in perf_analyzer.items():

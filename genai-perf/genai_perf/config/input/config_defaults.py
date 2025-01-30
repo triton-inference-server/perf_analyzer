@@ -65,11 +65,10 @@ class EndPointDefaults:
 
 @dataclass(frozen=True)
 class PerfAnalyzerDefaults:
-    PATH = "./perf_analyzer"
+    PATH = "perf_analyzer"
     STIMULUS = {"concurrency": 1}
     STABILITY_PERCENTAGE = 999
     MEASUREMENT_INTERVAL = 10000
-    SKIP_ARGS = False
 
 
 @dataclass(frozen=True)

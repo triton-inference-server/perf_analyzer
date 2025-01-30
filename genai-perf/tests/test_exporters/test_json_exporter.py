@@ -31,6 +31,7 @@ from typing import Any, List, Tuple
 
 import genai_perf.parser as parser
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
@@ -305,13 +306,13 @@ class TestJsonExporter:
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
         args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        config = ConfigCommand({"model_name": "gpt2_vllm"})
+        config = parser.add_cli_options_to_config(config, args)
+        exporter_config = create_default_exporter_config(
             stats=self.stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
         )
-        json_exporter = JsonExporter(config)
+        json_exporter = JsonExporter(exporter_config)
         assert json_exporter._stats_and_args == json.loads(self.expected_json_output)
         json_exporter.export()
         expected_filename = "profile_export_genai_perf.json"
@@ -348,13 +349,13 @@ class TestJsonExporter:
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
         args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        config = ConfigCommand({"model_name": "gpt2_vllm"})
+        config = parser.add_cli_options_to_config(config, args)
+        exporter_config = create_default_exporter_config(
             stats=self.stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
         )
-        json_exporter = JsonExporter(config)
+        json_exporter = JsonExporter(exporter_config)
         json_exporter.export()
         written_data = [
             data for filename, data in mock_read_write if filename == expected_filename
@@ -494,13 +495,13 @@ class TestJsonExporter:
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
         args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        config = ConfigCommand({"model_name": "gpt2_vllm"})
+        config = parser.add_cli_options_to_config(config, args)
+        exporter_config = create_default_exporter_config(
             stats=valid_goodput_stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
         )
-        json_exporter = JsonExporter(config)
+        json_exporter = JsonExporter(exporter_config)
         assert json_exporter._stats_and_args["request_goodput"] == json.loads(
             expected_valid_goodput_json_output
         )
@@ -652,13 +653,13 @@ class TestJsonExporter:
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
         args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        config = ConfigCommand({"model_name": "gpt2_vllm"})
+        config = parser.add_cli_options_to_config(config, args)
+        exporter_config = create_default_exporter_config(
             stats=invalid_goodput_stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
         )
-        json_exporter = JsonExporter(config)
+        json_exporter = JsonExporter(exporter_config)
         assert json_exporter._stats_and_args["request_goodput"] == json.loads(
             expected_invalid_goodput_json_output
         )
@@ -838,14 +839,14 @@ class TestJsonExporter:
 
         monkeypatch.setattr("sys.argv", cli_cmd)
         args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        config = ConfigCommand({"model_name": "gpt2_vllm"})
+        config = parser.add_cli_options_to_config(config, args)
+        exporter_config = create_default_exporter_config(
             stats=self.stats,
             telemetry_stats=telemetry_stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
         )
-        json_exporter = JsonExporter(config)
+        json_exporter = JsonExporter(exporter_config)
         assert json_exporter._stats_and_args["telemetry_stats"] == json.loads(
             expected_telemetry_json_output
         )

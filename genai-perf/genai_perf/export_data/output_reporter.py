@@ -25,7 +25,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from argparse import Namespace
+from typing import List, Optional
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.metrics import Metrics, Statistics, TelemetryStatistics
@@ -41,9 +43,9 @@ class OutputReporter:
         self,
         stats: Statistics,
         telemetry_stats: TelemetryStatistics,
-        args: Namespace,
+        config: ConfigCommand,
     ):
-        self.args = args
+        self.config = config
         self.stats = stats
         self.telemetry_stats = telemetry_stats
         self.stats.scale_data()
@@ -59,14 +61,13 @@ class OutputReporter:
 
     def _create_exporter_config(self) -> ExporterConfig:
         assert isinstance(self.stats.metrics, Metrics)
-        extra_inputs = get_extra_inputs_as_dict(self.args)
         telemetry_stats = self.telemetry_stats.stats_dict
         config = ExporterConfig(
             self.stats.stats_dict,
             self.stats.metrics,
-            self.args,
-            extra_inputs,
-            self.args.artifact_dir,
+            self.config,
+            self.config.input.extra,
+            self.config.output.artifact_directory,
             telemetry_stats,
         )
 

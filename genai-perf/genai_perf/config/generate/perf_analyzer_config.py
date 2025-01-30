@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ from typing import Any, List, Optional
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
-from genai_perf.constants import DEFAULT_ARTIFACT_DIR
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_GRPC_URL
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON, OutputFormat
 from genai_perf.logging import logging
 from genai_perf.types import (
     CheckpointObject,
@@ -33,7 +33,6 @@ from genai_perf.types import (
     Parameters,
 )
 from genai_perf.utils import convert_option_name
-from genai_perf.wrapper import Profiler
 
 # This is the list of GAP CLI args that are not used when creating
 # the PA command line
@@ -110,117 +109,84 @@ class PerfAnalyzerConfig:
     def __init__(
         self,
         config: ConfigCommand,
-        model_objective_parameters: ModelObjectiveParameters,
         model_name: ModelName,
-        args: Namespace = Namespace(),
+        model_objective_parameters: Optional[ModelObjectiveParameters] = None,
         extra_args: Optional[List[str]] = None,
     ):
         self._model_name = model_name
-        self._args = deepcopy(args)
-        self._set_options_based_on_cli(args, extra_args)
-        self._set_options_based_on_config(config)
         self._set_options_based_on_objective(model_objective_parameters)
-        self._set_artifact_paths(model_objective_parameters)
+
+        self._cli_args = self._set_cli_args_based_on_config(config, extra_args)
+        self._cli_args += self._set_artifact_paths(config, model_objective_parameters)
 
     ###########################################################################
     # Set Options Methods
     ###########################################################################
-    def _set_options_based_on_cli(
-        self, args: Namespace, extra_args: Optional[List[str]] = None
-    ) -> None:
-        self._cli_args = []
+    def _set_cli_args_based_on_config(
+        self, config: ConfigCommand, extra_args: Optional[List[str]] = None
+    ) -> List[str]:
+        cli_args = []
 
-        # When restoring from a checkpoint there won't be any args
-        if not hasattr(self._args, "subcommand"):
-            return
+        cli_args += self._add_required_args(config)
+        cli_args += self._add_protocol_args(config)
+        cli_args += self._add_inference_load_args(config)
+        # FIXME: need to go through PA args and figure out what matches our config
+        # ignore list is going away
+        # cli_args += self._add_misc_args(args)
+        cli_args += self._add_config_args(config)
+        cli_args += self._add_extra_args(extra_args)
 
-        self._cli_args += self._add_required_args(args)
-        self._cli_args += Profiler.add_protocol_args(args)
-        self._cli_args += Profiler.add_inference_load_args(args)
-        self._cli_args += self._add_misc_args(args)
-        self._cli_args += self._add_extra_args(extra_args)
-
-    def _set_options_based_on_config(self, config: ConfigCommand) -> None:
-        self._config: ConfigPerfAnalyzer = config.perf_analyzer
+        return cli_args
 
     def _set_options_based_on_objective(
-        self, model_objective_parameters: ModelObjectiveParameters
+        self, model_objective_parameters: Optional[ModelObjectiveParameters]
     ) -> None:
         self._parameters: Parameters = {}
+
+        if not model_objective_parameters:
+            return
+
         for objective in model_objective_parameters.values():
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME_PA:
                     self._parameters[name] = parameter.get_value_based_on_category()
 
     def _set_artifact_paths(
-        self, model_objective_parameters: ModelObjectiveParameters
-    ) -> None:
-        # When restoring from a checkpoint there won't be any args
-        if not hasattr(self._args, "subcommand"):
-            return
+        self,
+        config: ConfigCommand,
+        model_objective_parameters: Optional[ModelObjectiveParameters],
+    ) -> List[str]:
+        artifact_directory = config.output.artifact_directory
+        profile_export_file = config.output.profile_export_file
 
-        if self._args.artifact_dir == Path(DEFAULT_ARTIFACT_DIR):
-            artifact_name = self._get_artifact_model_name()
-            artifact_name += self._get_artifact_service_kind()
-            artifact_name += self._get_artifact_stimulus_type(
-                model_objective_parameters
-            )
+        # if artifact_directory == Path(DEFAULT_ARTIFACT_DIR):
+        #     artifact_name = self._get_artifact_model_name()
+        #     artifact_name += self._get_artifact_service_kind()
+        #     artifact_name += self._get_artifact_stimulus_type(
+        #         model_objective_parameters
+        #     )
 
-            self._args.artifact_dir = self._args.artifact_dir / Path(
-                "-".join(artifact_name)
-            )
+        #     artifact_directory = config.output.artifact_directory / Path(
+        #         "-".join(artifact_name)
+        #     )
 
-        if self._args.profile_export_file.parent != Path(""):
-            raise ValueError(
-                "Please use --artifact-dir option to define intermediary paths to "
-                "the profile export file."
-            )
+        # profile_export_file = artifact_directory / profile_export_file
 
-        self._args.profile_export_file = (
-            self._args.artifact_dir / self._args.profile_export_file
-        )
-
-        self._cli_args += [
+        artifact_paths = [
             f"--input-data",
-            f"{self._args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
+            f"{artifact_directory / DEFAULT_INPUT_DATA_JSON}",
             f"--profile-export-file",
-            f"{self._args.profile_export_file}",
+            f"{profile_export_file}",
         ]
 
-    def _get_artifact_model_name(self) -> List[str]:
-        # Preprocess Huggingface model names that include '/' in their model name.
-        if (self._args.formatted_model_name is not None) and (
-            "/" in self._args.formatted_model_name
-        ):
-            filtered_name = "_".join(self._args.formatted_model_name.split("/"))
-            logger = logging.getLogger(__name__)
-            logger.info(
-                f"Model name '{self._args.formatted_model_name}' cannot be used to create artifact "
-                f"directory. Instead, '{filtered_name}' will be used."
-            )
-            model_name = [f"{filtered_name}"]
-        else:
-            model_name = [f"{self._args.formatted_model_name}"]
-
-        return model_name
-
-    def _get_artifact_service_kind(self) -> List[str]:
-        if self._args.service_kind == "openai":
-            service_kind = [f"{self._args.service_kind}-{self._args.endpoint_type}"]
-        elif self._args.service_kind == "triton":
-            service_kind = [
-                f"{self._args.service_kind}-{self._args.backend.to_lowercase()}"
-            ]
-        elif self._args.service_kind == "tensorrtllm_engine":
-            service_kind = [f"{self._args.service_kind}"]
-        else:
-            raise ValueError(f"Unknown service kind '{self._args.service_kind}'.")
-
-        return service_kind
+        return artifact_paths
 
     def _get_artifact_stimulus_type(
-        self, model_objective_parameters: ModelObjectiveParameters
+        self, model_objective_parameters: Optional[ModelObjectiveParameters]
     ) -> List[str]:
+        if not model_objective_parameters:
+            return []
+
         parameters = model_objective_parameters[self._model_name]
 
         if "concurrency" in parameters:
@@ -247,31 +213,67 @@ class PerfAnalyzerConfig:
 
         return stimulus
 
-    def _add_required_args(self, args: Namespace) -> List[str]:
+    def _add_required_args(self, config: ConfigCommand) -> List[str]:
         required_args = [
+            f"{config.perf_analyzer.path}",
             f"-m",
-            f"{args.formatted_model_name}",
+            f"{config.model_names[0]}",
             f"--async",
+            f"--stability-percentage",
+            f"{config.perf_analyzer.stability_percentage}",
         ]
 
         return required_args
 
-    def _add_misc_args(self, args: Namespace) -> List[str]:
-        misc_args = []
+    def _add_protocol_args(self, config: ConfigCommand) -> List[str]:
+        protocol_args = []
 
-        for arg, value in vars(args).items():
-            if arg in perf_analyzer_ignore_args:
-                pass
-            elif self._arg_is_tensorrtllm_engine(arg, value):
-                misc_args += self._add_tensorrtllm_engine_args()
-            elif value is None or value is False:
-                pass
-            elif value is True:
-                misc_args += self._add_boolean_arg(arg)
-            else:
-                misc_args += self._add_non_boolean_arg(arg, value)
+        if config.endpoint.service_kind == "triton":
+            protocol_args += ["-i", "grpc", "--streaming"]
+            if not config.endpoint.get_field("url").is_set_by_user:
+                protocol_args += ["-u", f"{DEFAULT_GRPC_URL}"]
+            if config.endpoint.output_format == OutputFormat.TENSORRTLLM:
+                protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
+        elif config.endpoint.service_kind == "openai":
+            protocol_args += ["-i", "http"]
 
-        return misc_args
+        return protocol_args
+
+    def _add_inference_load_args(self, config: ConfigCommand) -> List[str]:
+        inference_load_args = []
+
+        if "concurrency" in config.perf_analyzer.stimulus:
+            concurrency = config.perf_analyzer.stimulus["concurrency"]
+            inference_load_args += ["--concurrency-range", f"{concurrency}"]
+        elif "request_rate" in config.perf_analyzer.stimulus:
+            request_rate = config.perf_analyzer.stimulus["request_rate"]
+            inference_load_args += ["--request-rate-range", f"{request_rate}"]
+
+        return inference_load_args
+
+    def _add_config_args(self, config: ConfigCommand) -> List[str]:
+        config_args = []
+        config_args += ["--service-kind", f"{config.endpoint.service_kind}"]
+        config_args += ["--endpoint", f"{config.endpoint.backend.value.lower()}"]
+
+        return config_args
+
+    # def _add_misc_args(self, config: ConfigCommand) -> List[str]:
+    #     misc_args = []
+
+    #     for arg, value in vars(args).items():
+    #         if arg in perf_analyzer_ignore_args:
+    #             pass
+    #         elif self._arg_is_tensorrtllm_engine(arg, value):
+    #             misc_args += self._add_tensorrtllm_engine_args()
+    #         elif value is None or value is False:
+    #             pass
+    #         elif value is True:
+    #             misc_args += self._add_boolean_arg(arg)
+    #         else:
+    #             misc_args += self._add_non_boolean_arg(arg, value)
+
+    #     return misc_args
 
     def _add_boolean_arg(self, arg: str) -> List[str]:
         if len(arg) == 1:
@@ -313,20 +315,20 @@ class PerfAnalyzerConfig:
         """
         return self._parameters
 
-    def get_obj_args(self) -> Namespace:
-        """
-        Returns args that can be used by the existing CLI based methods in GAP
-        These will include any objectives that are set via parameters
-        """
-        obj_args = deepcopy(self._args)
-        if "concurrency" in self._parameters:
-            obj_args.concurrency = self._parameters["concurrency"]
-        if "request_rate" in self._parameters:
-            obj_args.request_rate = self._parameters["request_rate"]
-        if "runtime_batch_size" in self._parameters:
-            obj_args.batch_size = self._parameters["runtime_batch_size"]
+    # def get_obj_args(self) -> Namespace:
+    #     """
+    #     Returns args that can be used by the existing CLI based methods in GAP
+    #     These will include any objectives that are set via parameters
+    #     """
+    #     obj_args = deepcopy(self._args)
+    #     if "concurrency" in self._parameters:
+    #         obj_args.concurrency = self._parameters["concurrency"]
+    #     if "request_rate" in self._parameters:
+    #         obj_args.request_rate = self._parameters["request_rate"]
+    #     if "runtime_batch_size" in self._parameters:
+    #         obj_args.batch_size = self._parameters["runtime_batch_size"]
 
-        return obj_args
+    #     return obj_args
 
     def get_inference_type(self) -> InferenceType:
         """
@@ -369,13 +371,13 @@ class PerfAnalyzerConfig:
         Returns the PA command a list of strings
         """
 
-        cli_args = [self._config.path]
+        # cli_args = [self._config.path]
         # FIXME: For now these will come from the CLI until support for a config file is added
         # cli_args = self._create_required_args()
-        cli_args += self._cli_args
-        cli_args += self._create_parameter_args()
+        # cli_args += self._cli_args
+        # cli_args += self._create_parameter_args()
 
-        return cli_args
+        return self._cli_args
 
     def create_cli_string(self) -> str:
         """
@@ -386,17 +388,17 @@ class PerfAnalyzerConfig:
         cli_string = " ".join(cli_args)
         return cli_string
 
-    def _create_required_args(self) -> List[str]:
-        # These come from the config and are always used
-        required_args = [
-            self._config.path,
-            "-m",
-            self._model_name,
-            "--stability-percentage",
-            str(self._config.stability_percentage),
-        ]
+    # def _create_required_args(self) -> List[str]:
+    #     # These come from the config and are always used
+    #     required_args = [
+    #         self._config.path,
+    #         "-m",
+    #         self._model_name,
+    #         "--stability-percentage",
+    #         str(self._config.stability_percentage),
+    #     ]
 
-        return required_args
+    #     return required_args
 
     def _create_parameter_args(self) -> List[str]:
         parameter_args = []
