@@ -31,6 +31,7 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from genai_perf.constants import EMPTY_RESPONSE_TOKEN
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -38,7 +39,6 @@ from genai_perf.profile_data_parser.profile_data_parser import (
 )
 from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import load_json_str, remove_sse_prefix
-from genai_perf.utils.constants import EMPTY_RESPONSE_TOKEN
 
 
 class LLMProfileDataParser(ProfileDataParser):
