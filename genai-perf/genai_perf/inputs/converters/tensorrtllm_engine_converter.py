@@ -90,7 +90,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 payload[key] = [value]
 
     def _encode_tokens(self, prompt: str, config: InputsConfig) -> List[int]:
-        if config.extra_inputs.__contains__("apply_chat_template"):
+        if "apply_chat_template" in config.extra_inputs:
             token_ids = self._encode_with_chat_template(prompt, config)
         else:
             token_ids = config.tokenizer.encode(prompt, add_special_tokens=False)
