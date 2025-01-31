@@ -58,7 +58,7 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -92,7 +92,7 @@ class TestConsoleExporter:
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -147,7 +147,7 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -201,7 +201,7 @@ class TestConsoleExporter:
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -248,7 +248,7 @@ class TestConsoleExporter:
             "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -308,7 +308,7 @@ class TestConsoleExporter:
             "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -386,7 +386,7 @@ class TestConsoleExporter:
             endpoint_type,
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -417,7 +417,7 @@ class TestConsoleExporter:
             "--verbose",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -538,7 +538,7 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -560,9 +560,9 @@ class TestConsoleExporter:
         )
 
         # Missing data
-        del config.stats["request_latency"]["avg"]
-        del config.stats["output_sequence_length"]["max"]
-        del config.stats["input_sequence_length"]
+        del exporter_config.stats["request_latency"]["avg"]
+        del exporter_config.stats["output_sequence_length"]["max"]
+        del exporter_config.stats["input_sequence_length"]
 
         exporter = ConsoleExporter(exporter_config)
         exporter.export()
