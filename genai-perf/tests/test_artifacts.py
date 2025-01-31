@@ -28,7 +28,11 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
-from genai_perf.subcommand.common import create_artifacts_directory
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.subcommand.common import (
+    create_artifacts_directory,
+    create_plot_directory,
+)
 
 
 @pytest.fixture
@@ -38,8 +42,11 @@ def mock_makedirs(mocker):
 
 def test_create_artifacts_dirs_custom_path(mock_makedirs):
     artifacts_dir_path = "/genai_perf_artifacts"
-    mock_args = Namespace(artifact_dir=Path(artifacts_dir_path), generate_plots=True)
-    create_artifacts_directory(mock_args)
+    config = ConfigCommand({})
+    config.output.artifact_directory = Path(artifacts_dir_path)
+    config.output.generate_plots = True
+    create_artifacts_directory(config)
+    create_plot_directory(config)
     mock_makedirs.assert_any_call(
         Path(artifacts_dir_path), exist_ok=True
     ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
@@ -51,8 +58,10 @@ def test_create_artifacts_dirs_custom_path(mock_makedirs):
 
 def test_create_artifacts_disable_generate_plots(mock_makedirs):
     artifacts_dir_path = "/genai_perf_artifacts"
-    mock_args = Namespace(artifact_dir=Path(artifacts_dir_path))
-    create_artifacts_directory(mock_args)
+    config = ConfigCommand({})
+    config.output.artifact_directory = Path(artifacts_dir_path)
+    create_artifacts_directory(config)
+    create_plot_directory(config)
     mock_makedirs.assert_any_call(
         Path(artifacts_dir_path), exist_ok=True
     ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
