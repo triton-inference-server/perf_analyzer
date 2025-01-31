@@ -1,4 +1,4 @@
-# Copyright 2020-2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2020-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,10 +28,6 @@ cmake_minimum_required (VERSION 3.18)
 
 if(${TRITON_ENABLE_ZLIB})
   find_package(ZLIB REQUIRED)
-endif()
-
-if(${TRITON_ENABLE_GPU})
-  find_package(CUDAToolkit REQUIRED)
 endif()
 
 set(

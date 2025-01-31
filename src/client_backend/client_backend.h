@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -40,6 +40,10 @@
 #include "../metrics.h"
 #include "../perf_analyzer_exception.h"
 #include "ipc.h"
+
+#ifdef TRITON_ENABLE_GPU
+#include "../cuda_runtime_library_manager.h"
+#endif  // TRITON_ENABLE_GPU
 
 namespace pa = triton::perfanalyzer;
 
@@ -439,10 +443,13 @@ class ClientBackend {
   virtual Error RegisterSystemSharedMemory(
       const std::string& name, const std::string& key, const size_t byte_size);
 
+#ifdef TRITON_ENABLE_GPU
   /// Registers cuda shared memory to the server.
   virtual Error RegisterCudaSharedMemory(
-      const std::string& name, const cudaIpcMemHandle_t& handle,
+      const std::string& name,
+      const CUDARuntimeLibraryManager::cudaIpcMemHandle_t& handle,
       const size_t byte_size);
+#endif  // TRITON_ENABLE_GPU
 
   /// Registers cuda memory to the server.
   virtual Error RegisterCudaMemory(

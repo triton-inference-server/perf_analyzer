@@ -1,4 +1,4 @@
-// Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -34,10 +34,6 @@
 
 #include "../client_backend.h"
 
-#ifdef TRITON_ENABLE_GPU
-#include <cuda_runtime_api.h>
-#endif  // TRITON_ENABLE_GPU
-
 namespace triton { namespace perfanalyzer { namespace clientbackend {
 namespace tritoncapi {
 
@@ -46,7 +42,6 @@ class SharedMemoryManager {
   SharedMemoryManager() = default;
   ~SharedMemoryManager();
 
-#ifdef TRITON_ENABLE_GPU
   /// Add a memory block representing memory in CUDA (GPU) memory
   /// to the manager. Return an Error if a memory block of the same name
   /// already exists in the manager.
@@ -58,7 +53,6 @@ class SharedMemoryManager {
   Error RegisterCUDAMemory(
       const std::string& name, void* dev_ptr, const size_t byte_size,
       const int device_id);
-#endif  // TRITON_ENABLE_GPU
 
   /// Add a system memory block to the manager.
   /// Return an Error if a shared memory block of the same name

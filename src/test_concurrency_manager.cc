@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -532,11 +532,13 @@ TEST_CASE("Concurrency - shared memory infer input calls")
       params.shared_memory_type = SYSTEM_SHARED_MEMORY;
       ParameterizeSequence();
     }
+#ifdef TRITON_ENABLE_GPU
     SUBCASE("cuda shared memory")
     {
       params.shared_memory_type = CUDA_SHARED_MEMORY;
       ParameterizeSequence();
     }
+#endif  // TRITON_ENABLE_GPU
   }};
 
   ParameterizeMemory();
@@ -654,6 +656,7 @@ TEST_CASE("Concurrency - Shared memory methods")
     tcm.CheckSharedMemory(expected_stats);
   }
 
+#ifdef TRITON_ENABLE_GPU
   SUBCASE("Cuda shared memory usage")
   {
     params.shared_memory_type = CUDA_SHARED_MEMORY;
@@ -676,6 +679,7 @@ TEST_CASE("Concurrency - Shared memory methods")
     expected_stats.num_register_cuda_shared_memory_calls = 1;
     tcm.CheckSharedMemory(expected_stats);
   }
+#endif  // TRITON_ENABLE_GPU
 
   SUBCASE("No shared memory usage")
   {
@@ -936,6 +940,4 @@ TEST_CASE(
   tcm.TestReconfigThreads(
       target_concurrency, target_num_requests, expected_config_values);
 }
-
-
 }}  // namespace triton::perfanalyzer

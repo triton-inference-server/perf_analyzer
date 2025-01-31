@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -30,18 +30,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Triton SDK Container
 
-The recommended way to "install" Perf Analyzer is to run the pre-built
-executable from within the Triton SDK docker container available on the
+The recommended way to access Perf Analyzer is to run the pre-built executable
+from within the Triton SDK docker container available on the
 [NVIDIA GPU Cloud Catalog](https://ngc.nvidia.com/catalog/containers/nvidia:tritonserver).
 As long as the SDK container has its network exposed to the address and port of
 the inference server, Perf Analyzer will be able to run.
 
 ```bash
-export RELEASE=<yy.mm> # e.g. to use the release from the end of February of 2023, do `export RELEASE=23.02`
+export RELEASE=<yy.mm> # e.g. to use the release from the end of December of 2024, do `export RELEASE=24.12`
 
-docker pull nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
-
-docker run --gpus all --rm -it --net host nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
+docker run --rm --gpus=all -it --net=host nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
 # inside container
 perf_analyzer -m <model>
@@ -49,10 +47,10 @@ perf_analyzer -m <model>
 
 # Alternative Installation Methods
 
-- [Pip](#pip)
+- [pip](#pip)
 - [Build from Source](#build-from-source)
 
-## Pip
+## pip
 
 ```bash
 pip install tritonclient
@@ -65,42 +63,37 @@ errors showing which ones are missing. You will need to manually install them.
 
 ## Build from Source
 
-The Triton SDK container is used for building, so some build and runtime
-dependencies are already installed.
-
 ```bash
-export RELEASE=<yy.mm> # e.g. to use the release from the end of February of 2023, do `export RELEASE=23.02`
+docker run --rm --gpus=all -it --net=host ubuntu:24.04
 
-docker pull nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
+# inside container, install build/runtime dependencies
+apt update && DEBIAN_FRONTEND=noninteractive apt install -y cmake g++ git libssl-dev nvidia-cuda-toolkit python3 rapidjson-dev zlib1g-dev
 
-docker run --gpus all --rm -it --net host nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
+git clone --depth=1 https://github.com/triton-inference-server/perf_analyzer.git
 
-# inside container
-# prep installing newer version of cmake
-apt update && apt install -y gpg wget && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null && . /etc/os-release && echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ $UBUNTU_CODENAME main" | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+mkdir perf_analyzer/build
 
-# install build/runtime dependencies
-apt update && apt install -y cmake-data=3.27.7* cmake=3.27.7* libcurl4-openssl-dev rapidjson-dev
+cmake -B perf_analyzer/build -S perf_analyzer
 
-rm -rf perf_analyzer ; git clone --depth 1 https://github.com/triton-inference-server/perf_analyzer
+cmake --build perf_analyzer/build -- -j8
 
-mkdir perf_analyzer/build ; cd perf_analyzer/build
+export PATH=$(pwd)/perf_analyzer/build/perf_analyzer/src/perf-analyzer-build:$PATH
 
-cmake ..
-
-make -j8 perf-analyzer
-
-perf_analyzer/src/perf-analyzer-build/perf_analyzer -m <model>
+perf_analyzer -m <model>
 ```
 
 - To enable
-  [CUDA shared memory](input_data.md#shared-memory), add
-  `-DTRITON_ENABLE_GPU=ON` to the `cmake` command.
+  [OpenAI mode](benchmarking.md#benchmarking-openai), add
+  `-D TRITON_ENABLE_PERF_ANALYZER_OPENAI=ON` to the first `cmake` command.
 - To enable
   [C API mode](benchmarking.md#benchmarking-triton-directly-via-c-api), add
-  `-DTRITON_ENABLE_PERF_ANALYZER_C_API=ON` to the `cmake` command.
+  `-D TRITON_ENABLE_PERF_ANALYZER_C_API=ON` to the first `cmake` command.
 - To enable [TorchServe backend](benchmarking.md#benchmarking-torchserve), add
-  `-DTRITON_ENABLE_PERF_ANALYZER_TS=ON` to the `cmake` command.
+  `-D TRITON_ENABLE_PERF_ANALYZER_TS=ON` to the first `cmake` command.
 - To enable
   [Tensorflow Serving backend](benchmarking.md#benchmarking-tensorflow-serving),
-  add `-DTRITON_ENABLE_PERF_ANALYZER_TFS=ON` to the `cmake` command.
+  add `-D TRITON_ENABLE_PERF_ANALYZER_TFS=ON` to the first `cmake` command.
+- To disable
+  [CUDA shared memory support](input_data.md#shared-memory) and the dependency
+  on CUDA toolkit libraries, add
+  `-D TRITON_ENABLE_GPU=OFF` to the first `cmake` command.
