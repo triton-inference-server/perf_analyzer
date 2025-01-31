@@ -109,11 +109,10 @@ class PerfAnalyzerConfig:
     def __init__(
         self,
         config: ConfigCommand,
-        model_name: ModelName,
         model_objective_parameters: Optional[ModelObjectiveParameters] = None,
         extra_args: Optional[List[str]] = None,
     ):
-        self._model_name = model_name
+        self._model_name = config.model_names[0]
         self._set_options_based_on_objective(model_objective_parameters)
 
         self._cli_args = self._set_cli_args_based_on_config(config, extra_args)
@@ -128,6 +127,7 @@ class PerfAnalyzerConfig:
         cli_args = []
 
         cli_args += self._add_required_args(config)
+        cli_args += self._add_verbose_args(config)
         cli_args += self._add_protocol_args(config)
         cli_args += self._add_inference_load_args(config)
         # FIXME: need to go through PA args and figure out what matches our config
@@ -212,6 +212,13 @@ class PerfAnalyzerConfig:
             stimulus = [f"batch_size{runtime_batch_size}"]
 
         return stimulus
+
+    def _add_verbose_args(self, config: ConfigCommand) -> List[str]:
+        verbose_args = []
+        if config.perf_analyzer.verbose:
+            verbose_args += ["-v"]
+
+        return verbose_args
 
     def _add_required_args(self, config: ConfigCommand) -> List[str]:
         required_args = [
@@ -502,7 +509,6 @@ class PerfAnalyzerConfig:
         a new instance of a PerfAnalyzerConfig
         """
         perf_analyzer_config = PerfAnalyzerConfig(
-            model_name=perf_analyzer_config_dict["_model_name"],
             config=ConfigCommand(user_config={}),
             model_objective_parameters={},
         )

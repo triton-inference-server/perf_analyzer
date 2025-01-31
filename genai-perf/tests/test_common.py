@@ -15,18 +15,21 @@
 import subprocess
 from unittest.mock import MagicMock, patch
 
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_field import ConfigField
 from genai_perf.subcommand.common import run_perf_analyzer
 
 
 class TestCommon:
     @patch("genai_perf.subcommand.common.subprocess.run")
     def test_stdout_verbose(self, mock_subprocess_run):
-        args = MagicMock()
-        args.model = "test_model"
-        args.verbose = True
+        config = ConfigCommand(user_config={"model_name": "test_model"})
+        config.verbose = ConfigField(default=False, value=True)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
         run_perf_analyzer(
-            args=args,
-            extra_args=None,
+            config=config,
+            perf_analyzer_config=perf_analyzer_config,
         )
 
         # Check that standard output was not redirected.
@@ -38,12 +41,12 @@ class TestCommon:
 
     @patch("genai_perf.subcommand.common.subprocess.run")
     def test_stdout_not_verbose(self, mock_subprocess_run):
-        args = MagicMock()
-        args.model = "test_model"
-        args.verbose = False
+        config = ConfigCommand(user_config={"model_name": "test_model"})
+        config.verbose = ConfigField(default=False)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
         run_perf_analyzer(
-            args=args,
-            extra_args=None,
+            config=config,
+            perf_analyzer_config=perf_analyzer_config,
         )
 
         # Check that standard output was redirected.

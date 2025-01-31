@@ -27,6 +27,7 @@ class ConfigPerfAnalyzer(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.path: Any = ConfigField(default=PerfAnalyzerDefaults.PATH)
+        self.verbose: Any = ConfigField(default=PerfAnalyzerDefaults.VERBOSE)
         self.stimulus: Any = ConfigField(
             default=PerfAnalyzerDefaults.STIMULUS,
             choices=["concurrency", "request_rate"],
@@ -43,6 +44,8 @@ class ConfigPerfAnalyzer(BaseConfig):
         for key, value in perf_analyzer.items():
             if key == "path":
                 self.path = value
+            elif key == "verbose":
+                self.verbose = value
             elif key == "stimulus":
                 self.stimulus = value
             elif key == "stability_percentage":

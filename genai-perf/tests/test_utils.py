@@ -152,7 +152,6 @@ def create_run_config(
         config=config, model_objective_parameters=model_objective_parameters
     )
     perf_analyzer_config = PerfAnalyzerConfig(
-        model_name=model_name,
         config=config,
         model_objective_parameters=model_objective_parameters,
     )

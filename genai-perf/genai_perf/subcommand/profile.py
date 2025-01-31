@@ -65,9 +65,7 @@ def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> N
 
     telemetry_data_collectors = create_telemetry_data_collectors(config)
 
-    perf_analyzer_config = PerfAnalyzerConfig(
-        model_name=config.model_names[0], config=config, extra_args=extra_args
-    )
+    perf_analyzer_config = PerfAnalyzerConfig(config=config, extra_args=extra_args)
 
     run_perf_analyzer(
         config=config,

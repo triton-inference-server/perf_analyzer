@@ -167,6 +167,7 @@ class TestConfigCommand(unittest.TestCase):
 
             perf_analyzer:
                 path: test_path
+                verbose: True
                 stimulus:
                     concurrency: 64
                 stability_percentage: 500
@@ -179,6 +180,7 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.perf_analyzer.path, "test_path")
+        self.assertEqual(config.perf_analyzer.verbose, True)
         self.assertEqual(config.perf_analyzer.stimulus, {"concurrency": 64})
         self.assertEqual(config.perf_analyzer.stability_percentage, 500)
         self.assertEqual(config.perf_analyzer.measurement_interval, 1000)

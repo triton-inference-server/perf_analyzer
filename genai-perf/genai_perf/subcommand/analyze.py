@@ -161,7 +161,6 @@ class Analyze:
             )
 
             perf_analyzer_config = PerfAnalyzerConfig(
-                model_name=self._model_name,
                 config=self._config,
                 model_objective_parameters=objectives,
             )

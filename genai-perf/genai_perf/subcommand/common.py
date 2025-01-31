@@ -203,11 +203,10 @@ def run_perf_analyzer(
             f"Running Perf Analyzer : '{perf_analyzer_config.create_cli_string()}'"
         )
 
-        # FIXME: need to support verbose flag in config
-        # if args and args.verbose:
-        #     subprocess.run(cmd, check=True, stdout=None)  # nosec
-        # else:
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
+        if config.verbose or config.perf_analyzer.verbose:
+            subprocess.run(cmd, check=True, stdout=None)  # nosec
+        else:
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
     finally:
         for collector in telemetry_data_collectors:
             if collector:
