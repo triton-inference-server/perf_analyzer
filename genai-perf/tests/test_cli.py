@@ -494,7 +494,7 @@ class TestCLIArguments:
         args = ["genai-perf", "profile", "-m", "test_model"]
         other_args = ["--", "With", "great", "power"]
         monkeypatch.setattr("sys.argv", args + other_args)
-        _, pass_through_args = parser.parse_args()
+        _, _, pass_through_args = parser.parse_args()
 
         assert pass_through_args == other_args[1:]
 
@@ -868,10 +868,8 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        parsed_args, _, _ = parser.parse_args()
-
         with pytest.raises(ValueError) as exc_info:
-            get_extra_inputs_as_dict(parsed_args)
+            parsed_args, _, _ = parser.parse_args()
 
         assert str(exc_info.value) == expected_error
 
