@@ -33,6 +33,7 @@ from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
+from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from tests.test_utils import create_default_exporter_config
 
@@ -54,7 +55,7 @@ class TestOutputReporter:
         },
     }
     config = ConfigCommand({"model_name": "gpt2_vllm"})
-    config.endpoint.model_selection_strategy = "round_robin"
+    config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
     config.subcommand = "profile"
 
     args = {

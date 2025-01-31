@@ -301,10 +301,11 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         # Check that the attributes are set correctly
         for key, value in expected_attributes.items():
+            foo = getattr(args, key)
             assert getattr(args, key) == value
 
     @pytest.mark.parametrize(
@@ -338,7 +339,7 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile"] + models
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         # Check that models are handled correctly
         for key, value in expected_model_list.items():
@@ -359,7 +360,7 @@ class TestCLIArguments:
             "fakefile.txt",
         ]
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.input_file == Path(
             "fakefile.txt"
         ), "The file argument should be the path to the file"
@@ -410,7 +411,7 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         assert args.artifact_dir == Path(expected_path)
 
@@ -448,7 +449,7 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         assert args.artifact_dir == Path(expected_path)
         captured = capsys.readouterr()
@@ -459,7 +460,7 @@ class TestCLIArguments:
         monkeypatch.setattr(
             "sys.argv", ["genai-perf", "profile", "--model", "test_model"]
         )
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.concurrency == 1
 
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
@@ -835,7 +836,7 @@ class TestCLIArguments:
             "sys.argv", ["genai-perf", "profile", "-m", "test_model"] + args
         )
 
-        parsed_args, _ = parser.parse_args()
+        parsed_args, _, _ = parser.parse_args()
         assert parsed_args.output_format == expected_format
 
     @pytest.mark.parametrize(
@@ -867,7 +868,7 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        parsed_args, _ = parser.parse_args()
+        parsed_args, _, _ = parser.parse_args()
 
         with pytest.raises(ValueError) as exc_info:
             get_extra_inputs_as_dict(parsed_args)
@@ -909,7 +910,7 @@ class TestCLIArguments:
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         assert args.prompt_source == expected_prompt_source
 
@@ -1064,7 +1065,7 @@ class TestCLIArguments:
     )
     def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
 
     def test_tokenizer_args(self, monkeypatch):
@@ -1080,7 +1081,7 @@ class TestCLIArguments:
             "test_revision",
         ]
         monkeypatch.setattr("sys.argv", args)
-        parsed_args, _ = parser.parse_args()
+        parsed_args, _, _ = parser.parse_args()
 
         assert parsed_args.tokenizer == "test_tokenizer"
         assert parsed_args.tokenizer_trust_remote_code

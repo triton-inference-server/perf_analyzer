@@ -82,6 +82,10 @@ class ConfigField:
                     )
         elif issubclass(self.choices, Enum):
             for value in value_list:
+                if not isinstance(value, Enum):
+                    raise ValueError(
+                        f"User Config: {value} is not an Enum: f{self.choices}"
+                    )
                 if value.name not in [e.name for e in self.choices]:
                     raise ValueError(
                         f"User Config: {value.name} not in list of choices: f{self.choices}"

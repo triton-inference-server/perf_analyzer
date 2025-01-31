@@ -40,6 +40,7 @@ from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import (
     AnalyzeDefaults,
+    EndPointDefaults,
     PerfAnalyzerDefaults,
 )
 from genai_perf.config.input.config_field import ConfigField
@@ -173,11 +174,11 @@ def _check_conditional_args(
         if endpoint_config.endpoint:
             args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
 
+    args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
     if args.service_kind == "triton" and args.endpoint_type == "kserve":
-        args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
         args.output_format = args.backend
     else:
-        if args.backend is not ic.DEFAULT_BACKEND:
+        if args.backend is not EndPointDefaults.BACKEND:
             parser.error(
                 "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type."
             )
@@ -1201,11 +1202,10 @@ def parse_args():
 
         return args, config, argv[passthrough_index + 1 :]
     else:
-        # FIXME: need to deal with -v/--verbose
-        # FIXME: for now just setting the subcommand to profile
-        args = parser.parse_args(["profile", "-m", ""])
+        args = parser.parse_args(argv[1:passthrough_index])
 
-        user_config = utils.load_yaml(argv[1])
+        # The last argument must be the user config file
+        user_config = utils.load_yaml(argv[-1])
         config = ConfigCommand(user_config)
 
         return args, config, argv[passthrough_index + 1 :]
