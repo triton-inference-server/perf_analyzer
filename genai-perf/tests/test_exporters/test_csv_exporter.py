@@ -101,7 +101,7 @@ class TestCsvExporter:
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -159,7 +159,7 @@ class TestCsvExporter:
             "custom_export.json",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -173,7 +173,7 @@ class TestCsvExporter:
         exporter = CsvExporter(exporter_config)
         exporter.export()
 
-        expected_filename = f"custom_export_genai_perf.csv"
+        expected_filename = f"artifacts/model_name-openai-chat-concurrency1/custom_export_genai_perf.csv"
         expected_content = [
             "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
             "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
@@ -205,7 +205,7 @@ class TestCsvExporter:
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -251,7 +251,7 @@ class TestCsvExporter:
             "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -303,7 +303,7 @@ class TestCsvExporter:
             "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -354,7 +354,7 @@ class TestCsvExporter:
             "http://tritonserver:8002/metrics",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -439,7 +439,7 @@ class TestCsvExporter:
             "custom_export.json",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = parser.add_cli_options_to_config(config, args)
 
@@ -451,9 +451,9 @@ class TestCsvExporter:
         )
 
         # Missing data
-        del config.stats["request_latency"]["avg"]
-        del config.stats["output_sequence_length"]["max"]
-        del config.stats["input_sequence_length"]
+        del exporter_config.stats["request_latency"]["avg"]
+        del exporter_config.stats["output_sequence_length"]["max"]
+        del exporter_config.stats["input_sequence_length"]
 
         exporter = CsvExporter(exporter_config)
         exporter.export()
@@ -469,7 +469,7 @@ class TestCsvExporter:
         mock_logger.error.assert_any_call(
             "Metric 'input_sequence_length' is missing in the provided statistics."
         )
-        expected_filename = f"custom_export_genai_perf.csv"
+        expected_filename = f"artifacts/model_name-openai-chat-concurrency1/custom_export_genai_perf.csv"
         expected_content = [
             "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
             "Request Latency (ms),N/A,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
@@ -481,8 +481,8 @@ class TestCsvExporter:
             "Request Throughput (per sec),123.00\r\n",
             "Request Count (count),3.00\r\n",
         ]
+
         returned_data = [
             data for filename, data in mock_read_write if filename == expected_filename
         ]
-
         assert returned_data == expected_content

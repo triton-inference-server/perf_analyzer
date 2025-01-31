@@ -305,7 +305,7 @@ class TestJsonExporter:
             "ignore_eos:true",
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "gpt2_vllm"})
         config = parser.add_cli_options_to_config(config, args)
         exporter_config = create_default_exporter_config(
@@ -348,7 +348,7 @@ class TestJsonExporter:
             custom_filename,
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "gpt2_vllm"})
         config = parser.add_cli_options_to_config(config, args)
         exporter_config = create_default_exporter_config(
@@ -494,7 +494,7 @@ class TestJsonExporter:
             "output_token_throughput_per_request:650.0",
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "gpt2_vllm"})
         config = parser.add_cli_options_to_config(config, args)
         exporter_config = create_default_exporter_config(
@@ -652,7 +652,7 @@ class TestJsonExporter:
             "output_token_throughputs_per_requesdt:650.0",
         ]
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "gpt2_vllm"})
         config = parser.add_cli_options_to_config(config, args)
         exporter_config = create_default_exporter_config(
@@ -838,7 +838,7 @@ class TestJsonExporter:
         ]
 
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "gpt2_vllm"})
         config = parser.add_cli_options_to_config(config, args)
         exporter_config = create_default_exporter_config(
