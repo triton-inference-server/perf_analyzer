@@ -98,3 +98,7 @@ quiet-level = 3
 # Same as Black.
 line-length = 88
 indent-width = 4
+
+[project.optional-dependencies]
+test = ["jinja2"]
+

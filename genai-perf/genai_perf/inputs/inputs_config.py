@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -113,6 +113,9 @@ class InputsConfig:
 
     # Specify the output format
     output_format: OutputFormat = OutputFormat.TENSORRTLLM
+
+    # Supplement the TEMPLATE output format with a template
+    output_template: Optional[str] = None
 
     # If true, the output tokens will set the minimum and maximum tokens to be equivalent.
     output_tokens_deterministic: bool = False
