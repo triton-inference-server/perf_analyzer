@@ -63,12 +63,12 @@ class OutputReporter:
         assert isinstance(self.stats.metrics, Metrics)
         telemetry_stats = self.telemetry_stats.stats_dict
         config = ExporterConfig(
-            self.stats.stats_dict,
-            self.stats.metrics,
-            self.config,
-            self.config.input.extra,
-            self.config.output.artifact_directory,
-            telemetry_stats,
+            stats=self.stats.stats_dict,
+            metrics=self.stats.metrics,
+            config=self.config,
+            extra_inputs=self.config.input.extra,
+            artifact_dir=self.config.output.artifact_directory,
+            telemetry_stats=telemetry_stats,
         )
 
         return config

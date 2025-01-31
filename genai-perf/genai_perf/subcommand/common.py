@@ -154,7 +154,7 @@ def create_plot_directory(config: ConfigCommand) -> None:
 
 
 def convert_config_to_inputs_config(
-    config: ConfigCommand, tokenizer: Tokenizer
+    config: ConfigCommand, tokenizer: Optional[Tokenizer] = None
 ) -> InputsConfig:
     return InputsConfig(
         input_type=config.input.prompt_source,
@@ -178,7 +178,7 @@ def convert_config_to_inputs_config(
         random_seed=config.input.random_seed,
         num_dataset_entries=config.input.num_dataset_entries,
         add_stream=config.endpoint.streaming,
-        tokenizer=tokenizer,
+        tokenizer=tokenizer,  # type: ignore
         extra_inputs=config.input.extra,
         batch_size_image=config.input.image.batch_size,
         batch_size_text=config.input.batch_size,

@@ -366,6 +366,8 @@ class TestJsonExporter:
         expected_json_output["input_config"][
             "profile_export_file"
         ] = expected_profile_filename
+
+        foo = json.loads(written_data[0])
         assert json.loads(written_data[0]) == expected_json_output
 
     def test_valid_goodput_json_output(
@@ -505,7 +507,7 @@ class TestJsonExporter:
         assert json_exporter._stats_and_args["request_goodput"] == json.loads(
             expected_valid_goodput_json_output
         )
-        assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
+        assert json_exporter._config.input.goodput == json.loads(
             expected_valid_goodput_json_config
         )
 
@@ -524,9 +526,7 @@ class TestJsonExporter:
             expected_valid_goodput_json_output
         )
 
-        assert output_data_dict["input_config"]["goodput"] == json.loads(
-            expected_valid_goodput_json_config
-        )
+        assert config.input.goodput == json.loads(expected_valid_goodput_json_config)
 
     def test_invalid_goodput_json_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -663,11 +663,12 @@ class TestJsonExporter:
         assert json_exporter._stats_and_args["request_goodput"] == json.loads(
             expected_invalid_goodput_json_output
         )
-        print(json_exporter._stats_and_args["input_config"]["goodput"])
-        assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
+        print(json_exporter._config.input.goodput)
+        assert json_exporter._config.input.goodput == json.loads(
             expected_invalid_goodput_json_config
         )
         json_exporter.export()
+
         expected_filename = "profile_export_genai_perf.json"
 
         written_data = [
@@ -683,9 +684,7 @@ class TestJsonExporter:
             expected_invalid_goodput_json_output
         )
 
-        assert output_data_dict["input_config"]["goodput"] == json.loads(
-            expected_invalid_goodput_json_config
-        )
+        assert config.input.goodput == json.loads(expected_invalid_goodput_json_config)
 
     def test_triton_telemetry_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch

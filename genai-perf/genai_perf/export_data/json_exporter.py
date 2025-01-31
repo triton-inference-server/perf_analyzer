@@ -33,6 +33,8 @@ from typing import Dict, Union
 import genai_perf.logging as logging
 from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
+from genai_perf.subcommand.common import convert_config_to_inputs_config
+from genai_perf.tokenizer import get_tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -42,12 +44,15 @@ class JsonExporter:
     A class to export the statistics and arg values in a json format.
     """
 
-    def __init__(self, config: ExporterConfig):
+    def __init__(self, config: ExporterConfig) -> None:
         self._stats: Dict = config.stats
         self._telemetry_stats: Dict[str, Dict[str, Union[str, Dict[str, float]]]] = (
             config.telemetry_stats
         )
         self._config = config.config
+
+        self._inputs_config = convert_config_to_inputs_config(self._config)
+
         self._extra_inputs = config.extra_inputs
         self._output_dir = config.artifact_dir
         self._stats_and_args: Dict = {}
@@ -87,5 +92,4 @@ class JsonExporter:
         telem_utils.merge_telemetry_stats_json(
             self._telemetry_stats, self._stats_and_args
         )
-        # FIXME: this needs a complete rewrite
-        # self._stats_and_args.update({"input_config": self._config})
+        self._stats_and_args.update({"input_config": self._inputs_config})
