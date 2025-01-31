@@ -27,6 +27,9 @@ class Range:
     min: int
     max: int
 
+    def __dict__(self):
+        return {"min": self.min, "max": self.max}
+
 
 @dataclass(frozen=True)
 class TopLevelDefaults:

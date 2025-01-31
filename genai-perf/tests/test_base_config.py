@@ -17,6 +17,7 @@ from copy import deepcopy
 from unittest.mock import patch
 
 from genai_perf.config.input.base_config import BaseConfig, ConfigField
+from genai_perf.config.input.config_defaults import Range
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, PromptSource
 
 
@@ -31,6 +32,9 @@ class TestBaseConfig(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
+    ###########################################################################
+    # Basic ConfigField Testing
+    ###########################################################################
     def test_basic_config_field(self):
         """
         Test that a basic ConfigField can be written and read from
@@ -79,6 +83,9 @@ class TestBaseConfig(unittest.TestCase):
 
         self.assertEqual(test_field.is_set_by_user, False)
 
+    ###########################################################################
+    # ConfigField Bounds & Choice Testing
+    ###########################################################################
     def test_config_field_bounds(self):
         """
         Test that a ConfigField with bounds can be written and read from
@@ -163,6 +170,9 @@ class TestBaseConfig(unittest.TestCase):
                 choices=ModelSelectionStrategy,
             )
 
+    ###########################################################################
+    # Basic BaseConfig Testing
+    ###########################################################################
     def test_base_config(self):
         """
         Test that a BaseConfig object can be written and read from
@@ -277,6 +287,9 @@ class TestBaseConfig(unittest.TestCase):
         with self.assertRaises(ValueError):
             test_base_config.test_field_A = PromptSource.SYNTHETIC
 
+    ###########################################################################
+    # Utility Testing
+    ###########################################################################
     def test_base_config_deepcopy(self):
         """
         Test that a BaseConfig object can be deepcopied
@@ -296,6 +309,78 @@ class TestBaseConfig(unittest.TestCase):
         self.assertEqual(
             test_base_config.test_field_A, test_base_config_copy.test_field_A
         )
+
+    def test_to_dict(self):
+        """
+        Test that a BaseConfig object can be converted to a dictionary
+        """
+
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
+            default=1, value=2, template_comment="test comment"
+        )
+        test_base_config.test_field_B = ConfigField(default=3, value=4)
+
+        # Convert the object to a dictionary
+        test_dict = test_base_config.to_json()
+
+        # Check that the dictionary is correct
+        self.assertEqual(test_dict["test_field_A"], 2)
+        self.assertEqual(test_dict["test_field_B"], 4)
+
+    def test_to_dict_nested(self):
+        """
+        Test that a BaseConfig object with nested objects can be converted to a dictionary
+        """
+
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
+            default=1, value=2, template_comment="test comment"
+        )
+        test_base_config.test_field_B = BaseConfig()
+        test_base_config.test_field_B.test_field_C = ConfigField(default=3, value=4)
+
+        # Convert the object to a dictionary
+        test_dict = test_base_config.to_json()
+
+        # Check that the dictionary is correct
+        self.assertEqual(test_dict["test_field_A"], 2)
+        self.assertEqual(test_dict["test_field_B"]["test_field_C"], 4)
+
+    def test_to_dict_enum(self):
+        """
+        Test that a BaseConfig object with an Enum can be converted to a dictionary
+        """
+
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
+            default=ModelSelectionStrategy.RANDOM,
+            value=ModelSelectionStrategy.ROUND_ROBIN,
+            template_comment="test comment",
+            choices=ModelSelectionStrategy,
+        )
+
+        # Convert the object to a dictionary
+        test_dict = test_base_config.to_json()
+
+        # Check that the dictionary is correct
+        self.assertEqual(test_dict["test_field_A"], "round_robin")
+
+    def test_to_dict_range(self):
+        """
+        Test that a BaseConfig object with a Range can be converted to a dictionary
+        """
+
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
+            default=Range(0, 100), value=Range(10, 20), template_comment="test comment"
+        )
+
+        # Convert the object to a dictionary
+        test_dict = test_base_config.to_json()
+
+        # Check that the dictionary is correct
+        self.assertEqual(test_dict["test_field_A"], {"min": 10, "max": 20})
 
 
 if __name__ == "__main__":

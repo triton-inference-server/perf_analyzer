@@ -13,7 +13,10 @@
 # limitations under the License.
 
 from copy import deepcopy
+from enum import Enum
+from pathlib import PosixPath
 
+from genai_perf.config.input.config_defaults import Range
 from genai_perf.config.input.config_field import ConfigField
 
 
@@ -43,6 +46,32 @@ class BaseConfig:
             raise ValueError(f"{name} not found in ConfigFields")
 
         return self._fields[name]
+
+    def to_json(self):
+        config_dict = {}
+        for key, value in self._values.items():
+            if isinstance(value, BaseConfig):
+                config_dict[key] = value.to_json()
+            else:
+                config_dict[key] = self._get_legal_json_value(value)
+
+        return config_dict
+
+    def _get_legal_json_value(self, value):
+        if isinstance(value, Enum):
+            return value.name.lower()
+        elif isinstance(value, PosixPath):
+            return str(value)
+        elif hasattr(value, "__dict__"):
+            return value.__dict__()
+        elif isinstance(value, dict):
+            config_dict = {}
+            for k, v in value.items():
+                config_dict[k] = self._get_legal_json_value(v)
+
+            return config_dict
+        else:
+            return value
 
     def __setattr__(self, name, value):
         # This prevents recursion failure in __init__

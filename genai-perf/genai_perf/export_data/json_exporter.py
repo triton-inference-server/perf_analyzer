@@ -28,13 +28,12 @@
 import json
 import os
 from enum import Enum
+from pathlib import PosixPath
 from typing import Dict, Union
 
 import genai_perf.logging as logging
 from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.subcommand.common import convert_config_to_inputs_config
-from genai_perf.tokenizer import get_tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -50,13 +49,10 @@ class JsonExporter:
             config.telemetry_stats
         )
         self._config = config.config
-
-        self._inputs_config = convert_config_to_inputs_config(self._config)
-
+        self._args = self._config.to_json()
         self._extra_inputs = config.extra_inputs
         self._output_dir = config.artifact_dir
         self._stats_and_args: Dict = {}
-        self._prepare_args_for_export()
         self._merge_stats_and_args()
 
     def export(self) -> None:
@@ -68,28 +64,9 @@ class JsonExporter:
         with open(str(filename), "w") as f:
             f.write(json.dumps(self._stats_and_args, indent=2))
 
-    def _prepare_args_for_export(self) -> None:
-        pass
-        # FIXME: this needs a complete re-write
-        # self._args.pop("func", None)
-        # self._args.pop("output_format", None)
-        # self._args.pop("input_file", None)
-        # self._args["profile_export_file"] = str(self._args["profile_export_file"])
-        # self._args["artifact_dir"] = str(self._args["artifact_dir"])
-        # for k, v in self._args.items():
-        #     if isinstance(v, Enum):
-        #         self._args[k] = v.name.lower()
-        # self._add_extra_inputs_to_args()
-
-    def _add_extra_inputs_to_args(self) -> None:
-        pass
-        # FIXME: this needs a complete rewrite
-        # del self._args["extra_inputs"]
-        # self._args.update({"extra_inputs": self._extra_inputs})
-
     def _merge_stats_and_args(self) -> None:
         self._stats_and_args = dict(self._stats)
         telem_utils.merge_telemetry_stats_json(
             self._telemetry_stats, self._stats_and_args
         )
-        self._stats_and_args.update({"input_config": self._inputs_config})
+        self._stats_and_args.update({"input_config": self._args})
