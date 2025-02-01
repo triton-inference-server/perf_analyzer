@@ -34,64 +34,6 @@ from genai_perf.types import (
 )
 from genai_perf.utils import convert_option_name
 
-# This is the list of GAP CLI args that are not used when creating
-# the PA command line
-perf_analyzer_ignore_args = [
-    "artifact_dir",
-    "backend",
-    "batch_size_image",
-    "batch_size_text",
-    "concurrency",
-    "endpoint_type",
-    "extra_inputs",
-    "formatted_model_name",
-    "func",
-    "generate_plots",
-    "goodput",
-    "image_format",
-    "image_height_mean",
-    "image_height_stddev",
-    "image_width_mean",
-    "image_width_stddev",
-    "input_dataset",
-    "input_file",
-    "input_format",
-    "model",
-    "model_selection_strategy",
-    "num_dataset_entries",
-    "num_prefix_prompts",
-    "prefix_prompt_length",
-    "request_count",
-    "warmup_request_count",
-    "output_format",
-    "output_tokens_mean",
-    "output_tokens_mean_deterministic",
-    "output_tokens_stddev",
-    "profile_export_file",
-    "prompt_source",
-    "random_seed",
-    "request_rate",
-    "server_metrics_url",
-    # The 'streaming' passed in to this script is to determine if the
-    # LLM response should be streaming. That is different than the
-    # 'streaming' that PA takes, which means something else (and is
-    # required for decoupled models into triton).
-    "streaming",
-    "subcommand",
-    "sweep_list",
-    "sweep_type",
-    "sweep_range",
-    "sweep_min",
-    "sweep_max",
-    "sweep_step",
-    "synthetic_input_files",
-    "synthetic_input_tokens_mean",
-    "synthetic_input_tokens_stddev",
-    "tokenizer",
-    "tokenizer_trust_remote_code",
-    "tokenizer_revision",
-]
-
 
 class InferenceType(Enum):
     NONE = auto()
@@ -130,9 +72,6 @@ class PerfAnalyzerConfig:
         cli_args += self._add_verbose_args(config)
         cli_args += self._add_protocol_args(config)
         cli_args += self._add_inference_load_args(config)
-        # FIXME: need to go through PA args and figure out what matches our config
-        # ignore list is going away
-        # cli_args += self._add_misc_args(args)
         cli_args += self._add_config_args(config)
         cli_args += self._add_extra_args(extra_args)
 
@@ -156,21 +95,23 @@ class PerfAnalyzerConfig:
         config: ConfigCommand,
         model_objective_parameters: Optional[ModelObjectiveParameters],
     ) -> List[str]:
-        artifact_directory = config.output.artifact_directory
-        profile_export_file = config.output.profile_export_file
+        if not model_objective_parameters:
+            artifact_directory = config.output.artifact_directory
+            profile_export_file = config.output.profile_export_file
+        else:
+            artifact_name = [config.model_names[0]]
+            artifact_name += self._get_artifact_service_kind(config)
+            artifact_name += self._get_artifact_stimulus_type(
+                model_objective_parameters
+            )
 
-        # if artifact_directory == Path(DEFAULT_ARTIFACT_DIR):
-        #     artifact_name = self._get_artifact_model_name()
-        #     artifact_name += self._get_artifact_service_kind()
-        #     artifact_name += self._get_artifact_stimulus_type(
-        #         model_objective_parameters
-        #     )
+            artifact_directory = config.output.artifact_directory.parent / Path(
+                "-".join(artifact_name)
+            )
 
-        #     artifact_directory = config.output.artifact_directory / Path(
-        #         "-".join(artifact_name)
-        #     )
-
-        # profile_export_file = artifact_directory / profile_export_file
+            profile_export_file = (
+                artifact_directory / config.output.profile_export_file.name
+            )
 
         artifact_paths = [
             f"--input-data",
@@ -180,6 +121,20 @@ class PerfAnalyzerConfig:
         ]
 
         return artifact_paths
+
+    def _get_artifact_service_kind(self, config: ConfigCommand) -> List[str]:
+        if config.endpoint.service_kind == "openai":
+            service_kind = [f"{config.endpoint.service_kind}-{config.endpoint.type}"]
+        elif config.endpoint.service_kind == "triton":
+            service_kind = [
+                f"{config.endpoint.service_kind}-{config.endpoint.backend.value.lower()}"
+            ]
+        elif config.endpoint.service_kind == "tensorrtllm_engine":
+            service_kind = [f"{config.endpoint.service_kind}"]
+        else:
+            raise ValueError(f"Unknown service kind '{config.endpoint.service_kind}'.")
+
+        return service_kind
 
     def _get_artifact_stimulus_type(
         self, model_objective_parameters: Optional[ModelObjectiveParameters]
@@ -228,6 +183,8 @@ class PerfAnalyzerConfig:
             f"--async",
             f"--stability-percentage",
             f"{config.perf_analyzer.stability_percentage}",
+            f"--measurement-interval",
+            f"{config.perf_analyzer.measurement_interval}",
         ]
 
         return required_args
@@ -249,12 +206,25 @@ class PerfAnalyzerConfig:
     def _add_inference_load_args(self, config: ConfigCommand) -> List[str]:
         inference_load_args = []
 
-        if "concurrency" in config.perf_analyzer.stimulus:
-            concurrency = config.perf_analyzer.stimulus["concurrency"]
-            inference_load_args += ["--concurrency-range", f"{concurrency}"]
-        elif "request_rate" in config.perf_analyzer.stimulus:
-            request_rate = config.perf_analyzer.stimulus["request_rate"]
-            inference_load_args += ["--request-rate-range", f"{request_rate}"]
+        if not self._parameters:
+            if "concurrency" in config.perf_analyzer.stimulus:
+                inference_load_args += [
+                    "--concurrency-range",
+                    f'{config.perf_analyzer.stimulus["concurrency"]}',
+                ]
+            elif "request_rate" in config.perf_analyzer.stimulus:
+                inference_load_args += [
+                    "--request-rate-range",
+                    f'{config.perf_analyzer.stimulus["request_rate"]}',
+                ]
+        else:
+            for parameter, value in self._parameters.items():
+                if parameter == "concurrency":
+                    inference_load_args += ["--concurrency-range", f"{value}"]
+                elif parameter == "request_rate":
+                    inference_load_args += ["--request-rate-range", f"{value}"]
+                elif parameter == "runtime_batch_size":
+                    inference_load_args += ["-b", f"{value}"]
 
         return inference_load_args
 
@@ -264,23 +234,6 @@ class PerfAnalyzerConfig:
         config_args += ["--endpoint", f"{config.endpoint.backend.value.lower()}"]
 
         return config_args
-
-    # def _add_misc_args(self, config: ConfigCommand) -> List[str]:
-    #     misc_args = []
-
-    #     for arg, value in vars(args).items():
-    #         if arg in perf_analyzer_ignore_args:
-    #             pass
-    #         elif self._arg_is_tensorrtllm_engine(arg, value):
-    #             misc_args += self._add_tensorrtllm_engine_args()
-    #         elif value is None or value is False:
-    #             pass
-    #         elif value is True:
-    #             misc_args += self._add_boolean_arg(arg)
-    #         else:
-    #             misc_args += self._add_non_boolean_arg(arg, value)
-
-    #     return misc_args
 
     def _add_boolean_arg(self, arg: str) -> List[str]:
         if len(arg) == 1:
@@ -377,14 +330,9 @@ class PerfAnalyzerConfig:
         """
         Returns the PA command a list of strings
         """
+        cli_args = self._create_pa_cli_cmd_args()
 
-        # cli_args = [self._config.path]
-        # FIXME: For now these will come from the CLI until support for a config file is added
-        # cli_args = self._create_required_args()
-        # cli_args += self._cli_args
-        # cli_args += self._create_parameter_args()
-
-        return self._cli_args
+        return cli_args
 
     def create_cli_string(self) -> str:
         """
@@ -395,25 +343,17 @@ class PerfAnalyzerConfig:
         cli_string = " ".join(cli_args)
         return cli_string
 
-    # def _create_required_args(self) -> List[str]:
-    #     # These come from the config and are always used
-    #     required_args = [
-    #         self._config.path,
-    #         "-m",
-    #         self._model_name,
-    #         "--stability-percentage",
-    #         str(self._config.stability_percentage),
-    #     ]
-
-    #     return required_args
-
-    def _create_parameter_args(self) -> List[str]:
-        parameter_args = []
+    def _create_pa_cli_cmd_args(self) -> List[str]:
+        cli_args = self._cli_args
         for name, value in self._parameters.items():
-            parameter_args.append(self._convert_objective_to_cli_option(name))
-            parameter_args.append(str(value))
+            cli_name = self._convert_objective_to_cli_option(name)
+            if cli_name in cli_args:
+                cli_args[cli_args.index(cli_name) + 1] = str(value)
+            else:
+                cli_args.append(cli_name)
+                cli_args.append(str(value))
 
-        return parameter_args
+        return cli_args
 
     def _convert_objective_to_cli_option(self, objective_name: str) -> str:
         obj_to_cli_dict = {
@@ -492,12 +432,6 @@ class PerfAnalyzerConfig:
         """
         pa_config_dict = deepcopy(self.__dict__)
 
-        # Values set on the CLI are not kept (they can vary from run to run)
-        del pa_config_dict["_args"]
-
-        # FIXME: TPA-2051: ConfigPerfAnalyzer does not get created from a checkpoint - this will need to be fixed
-        del pa_config_dict["_config"]
-
         return pa_config_dict
 
     @classmethod
@@ -509,13 +443,12 @@ class PerfAnalyzerConfig:
         a new instance of a PerfAnalyzerConfig
         """
         perf_analyzer_config = PerfAnalyzerConfig(
-            config=ConfigCommand(user_config={}),
+            config=ConfigCommand(
+                user_config={"model_name": perf_analyzer_config_dict["_model_name"]}
+            ),
             model_objective_parameters={},
         )
-        # FIXME: TPA-2051 - ConfigPerfAnalyzer does not get created from a checkpoint - this will need to be fixed
-        # perf_analyzer_config._config = ConfigPerfAnalyzer(
-        #     **perf_analyzer_config_dict["_config"]
-        # )
+
         perf_analyzer_config._parameters = perf_analyzer_config_dict["_parameters"]
         perf_analyzer_config._cli_args = perf_analyzer_config_dict["_cli_args"]
 

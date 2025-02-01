@@ -35,9 +35,9 @@ from genai_perf.types import CheckpointObject, ModelName
 
 
 class Subcommand(Enum):
-    COMPARE = auto()
-    PROFILE = auto()
-    ANALYZE = auto()
+    COMPARE = "compare"
+    PROFILE = "profile"
+    ANALYZE = "analyze"
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
@@ -185,7 +185,6 @@ class ConfigCommand(BaseConfig):
 
     def _set_profile_export_file(self) -> None:
         if self.output.get_field("profile_export_file").is_set_by_user:
-            foo = Path(self.output.profile_export_file)
             if Path(self.output.profile_export_file).parent != Path(""):
                 raise ValueError(
                     "Please use artifact_directory option to define intermediary paths to "
