@@ -196,7 +196,7 @@ class PerfAnalyzerConfig:
             protocol_args += ["-i", "grpc", "--streaming"]
             if not config.endpoint.get_field("url").is_set_by_user:
                 protocol_args += ["-u", f"{DEFAULT_GRPC_URL}"]
-            if config.endpoint.output_format == OutputFormat.TENSORRTLLM:
+            if config.endpoint.backend == OutputFormat.TENSORRTLLM:
                 protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif config.endpoint.service_kind == "openai":
             protocol_args += ["-i", "http"]
@@ -274,21 +274,6 @@ class PerfAnalyzerConfig:
         Returns a dictionary of parameters and their values
         """
         return self._parameters
-
-    # def get_obj_args(self) -> Namespace:
-    #     """
-    #     Returns args that can be used by the existing CLI based methods in GAP
-    #     These will include any objectives that are set via parameters
-    #     """
-    #     obj_args = deepcopy(self._args)
-    #     if "concurrency" in self._parameters:
-    #         obj_args.concurrency = self._parameters["concurrency"]
-    #     if "request_rate" in self._parameters:
-    #         obj_args.request_rate = self._parameters["request_rate"]
-    #     if "runtime_batch_size" in self._parameters:
-    #         obj_args.batch_size = self._parameters["runtime_batch_size"]
-
-    #     return obj_args
 
     def get_inference_type(self) -> InferenceType:
         """
@@ -388,7 +373,7 @@ class PerfAnalyzerConfig:
         ]
         options_only_to_remove = ["--verbose", "--extra-verbose", "--verbose-csv"]
 
-        command = self.create_command()
+        command = deepcopy(self.create_command())
 
         # Remove the PA call path which is always the first item
         command.pop(0)
