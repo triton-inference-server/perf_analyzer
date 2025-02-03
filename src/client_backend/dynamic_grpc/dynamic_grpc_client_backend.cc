@@ -97,6 +97,13 @@ DynamicGrpcClientBackend::StartStream(OnCompleteFn callback, bool enable_stats)
 }
 
 Error
+DynamicGrpcClientBackend::StopStream()
+{
+  RETURN_IF_CB_ERROR(grpc_client_->StopStream());
+  return Error::Success;
+}
+
+Error
 DynamicGrpcClientBackend::ClientInferStat(InferStat* infer_stat)
 {
   *infer_stat = grpc_client_->ClientInferStat();

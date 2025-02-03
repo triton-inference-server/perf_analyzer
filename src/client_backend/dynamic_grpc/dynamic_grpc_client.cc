@@ -70,7 +70,6 @@ DynamicGrpcClient::~DynamicGrpcClient()
 {
   if (stream_started_) {
     StopStream();
-    completion_queue_.Shutdown();
   }
 }
 
@@ -99,11 +98,17 @@ DynamicGrpcClient::BidiStreamRPC(
     grpc::Slice slice(message.data(), message.size());
     grpc::ByteBuffer request_buffer(&slice, 1);
     bidi_stream_->Write(request_buffer, nullptr);
-    completion_queue_.Next(&tag, &ok);
+    completion_queue_->Next(&tag, &ok);
+  }
+
+  if (!ok) {
+    return Error(
+        "Failed to write data to the gRPC stream. This could happen when the "
+        "call is dead or server dropped the channel.");
   }
 
   bidi_stream_->WritesDone(nullptr);
-  completion_queue_.Next(&tag, &ok);
+  completion_queue_->Next(&tag, &ok);
 
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::SEND_END);
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::RECV_START);
@@ -114,7 +119,7 @@ DynamicGrpcClient::BidiStreamRPC(
   while (true) {
     grpc::ByteBuffer response_buffer;
     bidi_stream_->Read(&response_buffer, nullptr);
-    bool status = completion_queue_.Next(&tag, &ok);
+    bool status = completion_queue_->Next(&tag, &ok);
     response_timestamps.push_back(std::chrono::system_clock::now());
     if (!ok) {
       *result = new DynamicGrpcInferResult(status, response_timestamps);
@@ -137,20 +142,24 @@ DynamicGrpcClient::StartStream(
     OnCompleteFn callback, bool enable_stats, const Headers& headers,
     grpc_compression_algorithm compression_algorithm)
 {
+  // Reset the context and queue
+  grpc_context_ = std::make_unique<grpc::ClientContext>();
+  completion_queue_ = std::make_unique<grpc::CompletionQueue>();
+
   // Set grpc contexts
   for (const auto& it : headers) {
-    grpc_context_.AddMetadata(it.first, it.second);
+    grpc_context_->AddMetadata(it.first, it.second);
   }
-  grpc_context_.set_compression_algorithm(compression_algorithm);
+  grpc_context_->set_compression_algorithm(compression_algorithm);
 
   bidi_stream_ = stub_->PrepareCall(
-      &grpc_context_, "/" + grpc_method_, &completion_queue_);
+      grpc_context_.get(), "/" + grpc_method_, completion_queue_.get());
 
   // Wait for StartCall to complete before proceeding with other operations
   void* tag;
   bool ok;
   bidi_stream_->StartCall(nullptr);
-  completion_queue_.Next(&tag, &ok);
+  completion_queue_->Next(&tag, &ok);
 
   stream_started_ = true;
 
@@ -166,6 +175,9 @@ DynamicGrpcClient::StopStream()
 {
   grpc::Status grpc_status_;
   bidi_stream_->Finish(&grpc_status_, nullptr);
+  completion_queue_->Shutdown();
+  stream_started_ = false;
+
   if (verbose_) {
     std::cout << "Stopped stream..." << std::endl;
   }

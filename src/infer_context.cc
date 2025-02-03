@@ -47,12 +47,26 @@ InferContext::Init()
 }
 
 void
+InferContext::PrepareRequest()
+{
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+  // Restart the stream
+  if (streaming_ && inference_started_) {
+    infer_backend_->StopStream();
+    infer_backend_->StartStream(
+        async_callback_func_, (!parser_->IsDecoupled()));
+  }
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
+}
+
+void
 InferContext::SendInferRequest(bool delayed)
 {
   // Update the inputs if required
   if (using_json_data_) {
     UpdateJsonData();
   }
+  PrepareRequest();
   SendRequest(request_id_++, delayed);
 }
 
@@ -112,6 +126,7 @@ InferContext::SendRequest(
   }
 
   thread_stat_->num_sent_requests_++;
+  inference_started_ = true;
 
   // Parse the request inputs to save in the profile export file
   RequestRecord::RequestInput request_inputs{GetInputs()};

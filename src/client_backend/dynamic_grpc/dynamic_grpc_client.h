@@ -185,8 +185,8 @@ class DynamicGrpcClient {
  private:
   // Generic bi-directional stream using dynamic protobuf message.
   std::unique_ptr<grpc::GenericClientAsyncReaderWriter> bidi_stream_;
-  grpc::ClientContext grpc_context_;
-  grpc::CompletionQueue completion_queue_;
+  std::unique_ptr<grpc::ClientContext> grpc_context_;
+  std::unique_ptr<grpc::CompletionQueue> completion_queue_;
   bool stream_started_{false};
 
   // Generic gRPC stub for dynamic calls.

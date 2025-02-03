@@ -431,6 +431,9 @@ class ClientBackend {
   /// Established a stream to the server.
   virtual Error StartStream(OnCompleteFn callback, bool enable_stats);
 
+  /// Close a gRPC stream to the server.
+  virtual Error StopStream();
+
   /// Issues an asynchronous inference request to the underlying stream.
   virtual Error AsyncStreamInfer(
       const InferOptions& options, const std::vector<InferInput*>& inputs,

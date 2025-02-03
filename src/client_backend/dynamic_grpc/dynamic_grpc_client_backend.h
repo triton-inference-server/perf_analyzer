@@ -79,6 +79,9 @@ class DynamicGrpcClientBackend : public ClientBackend {
   /// See ClientBackend::StartStream()
   Error StartStream(OnCompleteFn callback, bool enable_stats) override;
 
+  /// See ClientBackend::StopStream()
+  Error StopStream() override;
+
   /// See ClientBackend::ClientInferStat()
   Error ClientInferStat(InferStat* infer_stat) override;
 

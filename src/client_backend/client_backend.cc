@@ -311,6 +311,15 @@ ClientBackend::StartStream(OnCompleteFn callback, bool enable_stats)
 }
 
 Error
+ClientBackend::StopStream()
+{
+  return Error(
+      "client backend of kind " + BackendKindToString(kind_) +
+          " does not support StopStream()",
+      pa::GENERIC_ERROR);
+}
+
+Error
 ClientBackend::AsyncStreamInfer(
     const InferOptions& options, const std::vector<InferInput*>& inputs,
     const std::vector<const InferRequestedOutput*>& outputs)

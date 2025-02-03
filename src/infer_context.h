@@ -118,6 +118,9 @@ class InferContext {
   bool HasReceivedFinalResponse() { return has_received_final_response_; }
 
  protected:
+  // Run any necessary pre-request setups before initiating the request
+  void PrepareRequest();
+
   /// A helper function to issue inference request to the server.
   /// \param request_id The unique id to be associated with the request.
   /// \param delayed Whether the request fell behind its scheduled time.
@@ -178,6 +181,7 @@ class InferContext {
   // The backend to communicate with the server
   std::unique_ptr<cb::ClientBackend> infer_backend_;
   InferData infer_data_;
+  bool inference_started_{false};
 
   // FIXME: update build to use C++17 instead of C++14. This is a workaround
   // since C++14 doesn't have std::optional, but C++17 does.
