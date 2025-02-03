@@ -50,15 +50,15 @@ class GenAIPerfConfig:
         parameters: Parameters = {}
 
         # ENDPOINT
-        parameters["endpoint"] = deepcopy(config.endpoint)
+        parameters["endpoint"] = config.endpoint.to_json_dict()
         del parameters["endpoint"]["server_metrics_urls"]
         del parameters["endpoint"]["url"]
 
         # INPUT
-        parameters["input"] = deepcopy(config.input)
+        parameters["input"] = config.input.to_json_dict()
 
         # TOKENIZER
-        parameters["tokenizer"] = deepcopy(config.tokenizer)
+        parameters["tokenizer"] = config.tokenizer.to_json_dict()
 
         return parameters
 

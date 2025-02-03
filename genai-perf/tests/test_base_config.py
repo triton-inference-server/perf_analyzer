@@ -333,7 +333,7 @@ class TestBaseConfig(unittest.TestCase):
         test_base_config.test_field_B = ConfigField(default=3, value=4)
 
         # Convert the object to a dictionary
-        test_dict = test_base_config.to_json()
+        test_dict = test_base_config.to_json_dict()
 
         # Check that the dictionary is correct
         self.assertEqual(test_dict["test_field_A"], 2)
@@ -352,7 +352,7 @@ class TestBaseConfig(unittest.TestCase):
         test_base_config.test_field_B.test_field_C = ConfigField(default=3, value=4)
 
         # Convert the object to a dictionary
-        test_dict = test_base_config.to_json()
+        test_dict = test_base_config.to_json_dict()
 
         # Check that the dictionary is correct
         self.assertEqual(test_dict["test_field_A"], 2)
@@ -372,7 +372,7 @@ class TestBaseConfig(unittest.TestCase):
         )
 
         # Convert the object to a dictionary
-        test_dict = test_base_config.to_json()
+        test_dict = test_base_config.to_json_dict()
 
         # Check that the dictionary is correct
         self.assertEqual(test_dict["test_field_A"], "round_robin")
@@ -388,7 +388,7 @@ class TestBaseConfig(unittest.TestCase):
         )
 
         # Convert the object to a dictionary
-        test_dict = test_base_config.to_json()
+        test_dict = test_base_config.to_json_dict()
 
         # Check that the dictionary is correct
         self.assertEqual(test_dict["test_field_A"], {"min": 10, "max": 20})

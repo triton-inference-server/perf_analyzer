@@ -46,11 +46,11 @@ class BaseConfig:
 
         return self._fields[name]
 
-    def to_json(self):
+    def to_json_dict(self):
         config_dict = {}
         for key, value in self._values.items():
             if isinstance(value, BaseConfig):
-                config_dict[key] = value.to_json()
+                config_dict[key] = value.to_json_dict()
             else:
                 config_dict[key] = self._get_legal_json_value(value)
 

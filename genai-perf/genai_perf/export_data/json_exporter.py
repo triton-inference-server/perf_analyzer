@@ -49,7 +49,7 @@ class JsonExporter:
             config.telemetry_stats
         )
         self._config = config.config
-        self._args = self._config.to_json()
+        self._args = self._config.to_json_dict()
         self._extra_inputs = config.extra_inputs
         self._output_dir = config.perf_analyzer_config.get_artifact_directory()
         self._stats_and_args: Dict = {}
