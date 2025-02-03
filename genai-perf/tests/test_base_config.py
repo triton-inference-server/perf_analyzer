@@ -298,6 +298,9 @@ class TestBaseConfig(unittest.TestCase):
         test_base_config.test_field_A = ConfigField(
             default=1, value=2, template_comment="test comment"
         )
+        child_base_config = BaseConfig()
+        child_base_config.test_field_B = ConfigField(default=3, value=4)
+        test_base_config.child_element = child_base_config
 
         test_base_config_copy = deepcopy(test_base_config)
 
@@ -307,6 +310,15 @@ class TestBaseConfig(unittest.TestCase):
         # Check that the copied object is equal to the original object
         self.assertEqual(
             test_base_config.test_field_A, test_base_config_copy.test_field_A
+        )
+
+        # Modify the copied object
+        test_base_config_copy.child_element.test_field_B = 6
+
+        # Check that the copied object is not equal to the original object
+        self.assertNotEqual(
+            test_base_config.child_element.test_field_B,
+            test_base_config_copy.child_element.test_field_B,
         )
 
     def test_to_dict(self):

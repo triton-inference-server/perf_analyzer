@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import deepcopy
+import copy
 from enum import Enum
 from pathlib import PosixPath
 
@@ -97,14 +97,35 @@ class BaseConfig:
         elif name in self._children:
             return self._children[name]
         else:
+            if not name in self._fields:
+                raise AttributeError(f"{name} not found in ConfigFields")
+
             if self._fields[name].is_set_by_user:
                 return self._fields[name].value
             else:
                 return self._fields[name].default
 
     def __deepcopy__(self, memo):
-        new_copy = BaseConfig()
-        new_copy._fields = deepcopy(self._fields, memo)
-        new_copy._values = self._values
-        new_copy._children = self._children
+        # new_copy = BaseConfig()
+        cls = self.__class__
+        new_copy = cls.__new__(cls)
+        new_copy.__init__()
+        memo[id(self)] = new_copy
+
+        for key, value in self._fields.items():
+            new_value = copy.deepcopy(value, memo)
+            new_copy.__setattr__(key, new_value)
+
+        for key, value in self._children.items():
+            new_value = copy.deepcopy(value, memo)
+            new_copy.__setattr__(key, new_value)
+
         return new_copy
+
+    def __delitem__(self, key):
+        if key in self._fields:
+            del self._fields[key]
+            del self._values[key]
+        else:
+            del self._children[key]
+        return

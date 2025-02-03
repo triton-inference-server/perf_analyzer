@@ -203,7 +203,7 @@ class Analyze:
                 #
                 # Extract Perf Metrics
                 infer_mode, load_level = self._determine_infer_mode_and_load_level(
-                    self._config, objectives, self._model_name
+                    objectives
                 )
                 data_parser = calculate_metrics(
                     self._config, perf_analyzer_config, tokenizer
@@ -355,29 +355,25 @@ class Analyze:
     ###########################################################################
     def _determine_infer_mode_and_load_level(
         self,
-        config: ConfigCommand,
         objectives: ModelObjectiveParameters,
-        model_name: str,
     ) -> Tuple[str, str]:
-        if "concurrency" in config.analyze.sweep_parameters:
+        if "concurrency" in self._config.analyze.sweep_parameters:
             infer_mode = "concurrency"
-            load_level = (
-                f"{objectives[model_name][infer_mode].get_value_based_on_category()}"
-            )
-        elif "request_rate" in config.analyze.sweep_parameters:
+            load_level = f"{objectives[self._model_name][infer_mode].get_value_based_on_category()}"
+        elif "request_rate" in self._config.analyze.sweep_parameters:
             infer_mode = "request_rate"
-            load_level = f"{float(objectives[model_name][infer_mode].get_value_based_on_category())}"
+            load_level = f"{float(objectives[self._model_name][infer_mode].get_value_based_on_category())}"
         elif (
-            "input_sequence_length" in config.analyze.sweep_parameters
-            or "num_dataset_entries" in config.analyze.sweep_parameters
-            or "batch_size" in config.analyze.sweep_parameters
+            "input_sequence_length" in self._config.analyze.sweep_parameters
+            or "num_dataset_entries" in self._config.analyze.sweep_parameters
+            or "batch_size" in self._config.analyze.sweep_parameters
         ):
-            if "concurrency" in config.perf_analyzer.stimulus:
+            if "concurrency" in self._config.perf_analyzer.stimulus:
                 infer_mode = "concurrency"
-                load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
-            elif "request_rate" in config.perf_analyzer.stimulus:
+                load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
+            elif "request_rate" in self._config.perf_analyzer.stimulus:
                 infer_mode = "request_rate"
-                load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
+                load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
             else:
                 raise GenAIPerfException("Cannot determine infer_mode/load_level")
         else:
@@ -386,14 +382,14 @@ class Analyze:
         return infer_mode, load_level
 
     def _determine_infer_type(self):
-        if self._args.sweep_type == "concurrency":
+        if "concurrency" in self._config.analyze.sweep_parameters:
             infer_type = "concurrency"
-        elif self._args.sweep_type == "request_rate":
+        elif "request_rate" in config.analyze.sweep_parameters:
             infer_type = "request_rate"
         else:
-            if self._args.concurrency:
+            if "concurrency" in self._config.perf_analyzer.stimulus:
                 infer_type = "concurrency"
-            elif self._args.request_rate:
+            elif "request_rate" in self._config.perf_analyzer.stimulus:
                 infer_type = "request_rate"
             else:
                 infer_type = "concurrency"

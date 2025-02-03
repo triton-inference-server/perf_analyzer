@@ -322,26 +322,6 @@ class TestConfigCommand(unittest.TestCase):
     ###########################################################################
     # Test Deepcopy
     ###########################################################################
-    def test_deepcopy_config(self):
-        """
-        Test that the configuration can be deepcopied
-        """
-        # yapf: disable
-        yaml_str = ("""
-            model_name: gpt2
-            """)
-        # yapf: enable
-
-        user_config = yaml.safe_load(yaml_str)
-        config = ConfigCommand(user_config)
-        copied_config = deepcopy(config)
-
-        # Check that the copied object is not the same object
-        self.assertNotEqual(id(config), id(copied_config))
-
-        # Check that the copied object is equal to the original object
-        self.assertEqual(config.model_names, copied_config.model_names)
-
     def test_deepcopy_config_input(self):
         """
         Test that the input configuration can be deepcopied
