@@ -31,6 +31,7 @@ from unittest.mock import create_autospec, mock_open, patch
 
 import genai_perf.parser as parser
 import pytest
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.metrics import Metrics, TelemetryMetrics, TelemetryStatistics
 from genai_perf.metrics.statistics import Statistics
@@ -117,8 +118,11 @@ class TestIntegrationTelemetry:
         ):
             config = ConfigCommand({"model_name": args.model[0]})
             config = parser.add_cli_options_to_config(config, args)
+            perf_analyzer_config = PerfAnalyzerConfig(config)
 
-            _report_output(mock_parser, telemetry_collectors, config)
+            _report_output(
+                mock_parser, telemetry_collectors, config, perf_analyzer_config
+            )
 
             mock_file_open.assert_called()
 

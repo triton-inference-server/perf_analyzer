@@ -31,6 +31,7 @@ from enum import Enum
 from typing import Dict, Union
 
 import genai_perf.logging as logging
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
 
@@ -50,7 +51,7 @@ class JsonExporter:
         self._config = config.config
         self._args = self._config.to_json()
         self._extra_inputs = config.extra_inputs
-        self._output_dir = config.artifact_dir
+        self._output_dir = config.perf_analyzer_config.get_artifact_directory()
         self._stats_and_args: Dict = {}
         self._merge_stats_and_args()
 

@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict
 
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.metrics import Metrics
 
@@ -39,6 +40,6 @@ class ExporterConfig:
     stats: Dict[Any, Any]
     metrics: Metrics
     config: ConfigCommand
+    perf_analyzer_config: PerfAnalyzerConfig
     extra_inputs: Dict[str, Any]
-    artifact_dir: Path
     telemetry_stats: Dict[str, Any] = field(default_factory=dict)

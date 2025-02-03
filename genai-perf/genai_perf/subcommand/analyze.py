@@ -227,7 +227,10 @@ class Analyze:
                 #
                 # Create output CSV in artifact directory
                 OutputReporter(
-                    perf_stats, merged_telemetry_stats, self._config
+                    perf_stats,
+                    merged_telemetry_stats,
+                    self._config,
+                    perf_analyzer_config,
                 ).report_output()
 
                 #

@@ -28,6 +28,7 @@
 import csv
 
 import genai_perf.logging as logging
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 
 from . import exporter_utils
 from . import telemetry_data_exporter_util as telem_utils
@@ -63,14 +64,12 @@ class CsvExporter:
         self._stats = config.stats
         self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
-        self._output_dir = config.artifact_dir
+        self._output_dir = config.perf_analyzer_config.get_artifact_directory()
+        self._profile_export_file = config.config.output.profile_export_file
         self._config = config.config
 
     def export(self) -> None:
-        filename = (
-            self._output_dir
-            / f"{self._config.output.profile_export_file.stem}_genai_perf.csv"
-        )
+        filename = self._output_dir / f"{self._profile_export_file.stem}_genai_perf.csv"
         logger.info(f"Generating {filename}")
 
         with open(filename, mode="w", newline="") as f:

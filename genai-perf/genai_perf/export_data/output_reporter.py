@@ -26,6 +26,7 @@
 
 from argparse import Namespace
 
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
@@ -43,8 +44,10 @@ class OutputReporter:
         stats: Statistics,
         telemetry_stats: TelemetryStatistics,
         config: ConfigCommand,
+        perf_analyzer_config: PerfAnalyzerConfig,
     ):
         self.config = config
+        self.perf_analyzer_config = perf_analyzer_config
         self.stats = stats
         self.telemetry_stats = telemetry_stats
         self.stats.scale_data()
@@ -65,8 +68,8 @@ class OutputReporter:
             stats=self.stats.stats_dict,
             metrics=self.stats.metrics,
             config=self.config,
+            perf_analyzer_config=self.perf_analyzer_config,
             extra_inputs=self.config.input.extra,
-            artifact_dir=self.config.output.artifact_directory,
             telemetry_stats=telemetry_stats,
         )
 

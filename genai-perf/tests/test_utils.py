@@ -74,14 +74,16 @@ def create_default_exporter_config(
     telemetry_stats: Dict[str, Any] = {},
 ) -> ExporterConfig:
     if not config:
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
+
+    perf_analyzer_config = PerfAnalyzerConfig(config=config)
 
     return ExporterConfig(
         stats=stats or {},
         metrics=metrics or Metrics(),
         config=config,
+        perf_analyzer_config=perf_analyzer_config,
         extra_inputs=config.input.extra,
-        artifact_dir=config.output.artifact_directory,
         telemetry_stats=telemetry_stats,
     )
 

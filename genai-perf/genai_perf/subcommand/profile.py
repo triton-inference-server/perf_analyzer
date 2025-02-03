@@ -74,13 +74,19 @@ def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> N
         telemetry_data_collectors=telemetry_data_collectors,
     )
     data_parser = calculate_metrics(config, perf_analyzer_config, tokenizer)
-    _report_output(data_parser, telemetry_data_collectors, config)
+    _report_output(
+        data_parser=data_parser,
+        telemetry_data_collectors=telemetry_data_collectors,
+        config=config,
+        perf_analyzer_config=perf_analyzer_config,
+    )
 
 
 def _report_output(
     data_parser: ProfileDataParser,
     telemetry_data_collectors: List[Optional[TelemetryDataCollector]],
     config: ConfigCommand,
+    perf_analyzer_config: PerfAnalyzerConfig,
 ) -> None:
     if "concurrency" in config.perf_analyzer.stimulus:
         infer_mode = "concurrency"
@@ -99,7 +105,10 @@ def _report_output(
     merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics_list)
 
     reporter = OutputReporter(
-        stats, TelemetryStatistics(merged_telemetry_metrics), config
+        stats=stats,
+        telemetry_stats=TelemetryStatistics(merged_telemetry_metrics),
+        config=config,
+        perf_analyzer_config=perf_analyzer_config,
     )
 
     reporter.report_output()
