@@ -484,6 +484,10 @@ multiple files, prefix the path with 'synthetic:', followed by a
 comma-separated list of filenames. The synthetic filenames should not have
 extensions. For example, 'synthetic:queries,passages'.
 (default: `None`)
+To use payload file for fixed schedule workload, prefix the
+path with 'payload:', followed by the filename. The payload filename should not
+have an extension. For example, 'payload:input'.
+
 
 ##### `--num-dataset-entries <int>`
 

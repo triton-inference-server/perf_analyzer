@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -140,7 +140,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         optional_data = {
             k: v
             for k, v in data.items()
-            if k not in ["text", "text_input", "timestamp"]
+            if k not in ["text", "text_input", "timestamp", "hash_ids"]
         }
         return optional_data
 

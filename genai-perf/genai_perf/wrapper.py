@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -66,24 +66,7 @@ class Profiler:
     @staticmethod
     def add_payload_args(args: Namespace) -> List[str]:
         cmd = []
-        timings = []
-
-        if args.prompt_source == PromptSource.PAYLOAD:
-            try:
-                with open(args.payload_input_file, "r") as file:
-                    for line in file:
-                        try:
-                            timestamp = float(json.loads(line)["timestamp"])
-                            timings.append(timestamp)
-                        except (KeyError, ValueError) as e:
-                            raise ValueError(
-                                f"Invalid line in payload file: {line.strip()}. Details: {e}"
-                            )
-                cmd += ["--schedule", ",".join(map(str, timings))]
-            except FileNotFoundError:
-                raise FileNotFoundError(
-                    f"Payload input file not found: {args.payload_input_file}"
-                )
+        cmd += ["--fixed-schedule"]
         return cmd
 
     @staticmethod
@@ -138,10 +121,10 @@ class Profiler:
 
         if args.prompt_source == PromptSource.PAYLOAD:
             skip_args += [
-                "request_count",
-                "measurement_interval",
                 "stability_percentage",
                 "warmup_request_count",
+                "request_count",
+                "measurement_interval",
             ]
 
         utils.remove_file(args.profile_export_file)
@@ -155,8 +138,8 @@ class Profiler:
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
         cmd += Profiler.add_protocol_args(args)
-        cmd += Profiler.add_inference_load_args(args)
         cmd += Profiler.add_payload_args(args)
+        cmd += Profiler.add_inference_load_args(args)
 
         for arg, value in vars(args).items():
             if arg in skip_args:

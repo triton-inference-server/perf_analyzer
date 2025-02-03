@@ -110,14 +110,20 @@ def _check_payload_input_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> None:
     """
-    Raise an error if concurrency or request-range is set
+    Raise an error if any of the profiling options are set
     when using payload input
     """
     if args.prompt_source == ic.PromptSource.PAYLOAD:
-        if args.concurrency or args.request_rate:
-            parser.error(
-                "Concurrency and request_rate cannot be used with payload input."
-            )
+        incompatible_args = [
+            "concurrency",
+            "request_rate",
+            "request_count",
+            "warmup_request_count",
+        ]
+        for arg in incompatible_args:
+            if getattr(args, arg, None):
+                formatted_arg = f"--{arg.replace('_', '-')}"
+                parser.error((f"--{formatted_arg} cannot be used with payload input."))
 
 
 def _check_model_args(
@@ -267,6 +273,8 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     """
     Check inference load args
     """
+    if args.prompt_source == ic.PromptSource.PAYLOAD:
+        return args
     # If no concurrency or request rate is set, default to 1
     if not args.concurrency and not args.request_rate:
         args.concurrency = 1
@@ -511,6 +519,8 @@ def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
                     f"Invalid payload input: '{input_file_str}' is missing the file path"
                 )
             args.payload_input_file = Path(f"{input_file_str}.jsonl")
+            if not args.payload_input_file.is_file():
+                raise ValueError(f"'{args.payload_input_file}' is not a valid file")
             logger.debug(
                 f"Input source is a payload file with timing information in the following path: {args.payload_input_file}"
             )
