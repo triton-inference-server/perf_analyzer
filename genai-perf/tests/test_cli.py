@@ -305,7 +305,6 @@ class TestCLIArguments:
 
         # Check that the attributes are set correctly
         for key, value in expected_attributes.items():
-            foo = getattr(args, key)
             assert getattr(args, key) == value
 
     @pytest.mark.parametrize(

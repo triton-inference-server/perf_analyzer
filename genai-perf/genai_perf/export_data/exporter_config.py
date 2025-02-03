@@ -28,7 +28,7 @@
 import argparse as args
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.metrics import Metrics

@@ -16,7 +16,6 @@ from copy import deepcopy
 from enum import Enum
 from pathlib import PosixPath
 
-from genai_perf.config.input.config_defaults import Range
 from genai_perf.config.input.config_field import ConfigField
 
 

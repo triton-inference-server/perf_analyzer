@@ -28,7 +28,6 @@
 import json
 import os
 from enum import Enum
-from pathlib import PosixPath
 from typing import Dict, Union
 
 import genai_perf.logging as logging

@@ -28,7 +28,6 @@ from genai_perf.config.generate.perf_analyzer_config import (
 )
 from genai_perf.config.generate.search_parameters import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
-from genai_perf.config.input.config_field import ConfigField
 
 
 class TestPerfAnalyzerConfig(unittest.TestCase):

@@ -67,7 +67,6 @@ class TestBaseConfig(unittest.TestCase):
             value=2,
         )
 
-        foo = test_field.is_set_by_user
         self.assertEqual(test_field.is_set_by_user, True)
 
     def test_is_not_set_by_user(self):

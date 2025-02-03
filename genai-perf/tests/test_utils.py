@@ -26,7 +26,7 @@
 
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import pytest
 from genai_perf import utils

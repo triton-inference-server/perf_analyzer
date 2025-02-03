@@ -168,7 +168,6 @@ class Results:
     ###########################################################################
     def found_representation(self, representation: str) -> bool:
         for run_config in self.run_configs:
-            foo = run_config.representation()
             if representation == run_config.representation():
                 return True
 

@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from argparse import Namespace
-from typing import List, Optional
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
