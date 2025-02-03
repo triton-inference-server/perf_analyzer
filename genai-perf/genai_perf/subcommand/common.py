@@ -27,6 +27,7 @@
 import os
 import subprocess  # nosec
 from argparse import Namespace
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import genai_perf.logging as logging
@@ -63,20 +64,24 @@ def generate_inputs(config_options: InputsConfig) -> None:
     inputs.create_inputs()
 
 
-def calculate_metrics(config: ConfigCommand, tokenizer: Tokenizer) -> ProfileDataParser:
+def calculate_metrics(
+    config: ConfigCommand,
+    perf_analyzer_config: PerfAnalyzerConfig,
+    tokenizer: Tokenizer,
+) -> ProfileDataParser:
     if config.endpoint.type in ["embeddings", "nvclip", "rankings"]:
         return ProfileDataParser(
-            config.output.profile_export_file,
+            perf_analyzer_config.get_profile_export_file(),
             goodput_constraints=config.input.goodput,
         )
     elif config.endpoint.type == "image_retrieval":
         return ImageRetrievalProfileDataParser(
-            config.output.profile_export_file,
+            perf_analyzer_config.get_profile_export_file(),
             goodput_constraints=config.input.goodput,
         )
     else:
         return LLMProfileDataParser(
-            filename=config.output.profile_export_file,
+            filename=perf_analyzer_config.get_profile_export_file(),
             tokenizer=tokenizer,
             goodput_constraints=config.input.goodput,
         )
@@ -143,18 +148,20 @@ def create_telemetry_data_collectors(
     return telemetry_collectors
 
 
-def create_artifacts_directory(config: ConfigCommand) -> None:
-    os.makedirs(config.output.artifact_directory, exist_ok=True)
+def create_artifact_directory(artifact_directory: Path) -> None:
+    os.makedirs(artifact_directory, exist_ok=True)
 
 
-def create_plot_directory(config: ConfigCommand) -> None:
+def create_plot_directory(config: ConfigCommand, artifact_directory: Path) -> None:
     if config.output.generate_plots:
-        plot_dir = config.output.artifact_directory / "plots"
+        plot_dir = artifact_directory / "plots"
         os.makedirs(plot_dir, exist_ok=True)
 
 
 def convert_config_to_inputs_config(
-    config: ConfigCommand, tokenizer: Optional[Tokenizer] = None
+    config: ConfigCommand,
+    perf_analyzer_config: PerfAnalyzerConfig,
+    tokenizer: Optional[Tokenizer] = None,
 ) -> InputsConfig:
     return InputsConfig(
         input_type=config.input.prompt_source,
@@ -182,7 +189,7 @@ def convert_config_to_inputs_config(
         extra_inputs=config.input.extra,
         batch_size_image=config.input.image.batch_size,
         batch_size_text=config.input.batch_size,
-        output_dir=config.output.artifact_directory,
+        output_dir=perf_analyzer_config.get_artifact_directory(),
         num_prefix_prompts=config.input.prefix_prompt.num,
         prefix_prompt_length=config.input.prefix_prompt.length,
     )

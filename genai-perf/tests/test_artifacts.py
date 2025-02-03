@@ -28,9 +28,10 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.subcommand.common import (
-    create_artifacts_directory,
+    create_artifact_directory,
     create_plot_directory,
 )
 
@@ -42,27 +43,31 @@ def mock_makedirs(mocker):
 
 def test_create_artifacts_dirs_custom_path(mock_makedirs):
     artifacts_dir_path = "/genai_perf_artifacts"
-    config = ConfigCommand({})
+    config = ConfigCommand({"model_name": "test_model"})
     config.output.artifact_directory = Path(artifacts_dir_path)
     config.output.generate_plots = True
-    create_artifacts_directory(config)
-    create_plot_directory(config)
+
+    perf_analyzer_config = PerfAnalyzerConfig(config=config, extra_args=[])
+    create_artifact_directory(perf_analyzer_config.get_artifact_directory())
+    create_plot_directory(config, perf_analyzer_config.get_artifact_directory())
     mock_makedirs.assert_any_call(
-        Path(artifacts_dir_path), exist_ok=True
+        perf_analyzer_config.get_artifact_directory(), exist_ok=True
     ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
     mock_makedirs.assert_any_call(
-        Path(artifacts_dir_path) / "plots", exist_ok=True
+        perf_analyzer_config.get_artifact_directory() / "plots", exist_ok=True
     ), f"Expected os.makedirs to create plots directory inside {artifacts_dir_path}/plots path."
     assert mock_makedirs.call_count == 2
 
 
 def test_create_artifacts_disable_generate_plots(mock_makedirs):
     artifacts_dir_path = "/genai_perf_artifacts"
-    config = ConfigCommand({})
+    config = ConfigCommand({"model_name": "test_model"})
     config.output.artifact_directory = Path(artifacts_dir_path)
-    create_artifacts_directory(config)
-    create_plot_directory(config)
+
+    perf_analyzer_config = PerfAnalyzerConfig(config=config, extra_args=[])
+    create_artifact_directory(perf_analyzer_config.get_artifact_directory())
+    create_plot_directory(config, perf_analyzer_config.get_artifact_directory())
     mock_makedirs.assert_any_call(
-        Path(artifacts_dir_path), exist_ok=True
+        perf_analyzer_config.get_artifact_directory(), exist_ok=True
     ), f"Expected os.makedirs to create artifacts directory inside {artifacts_dir_path} path."
     assert mock_makedirs.call_count == 1

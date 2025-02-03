@@ -30,6 +30,8 @@ from pathlib import Path
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
@@ -219,11 +221,7 @@ class TestCLIArguments:
             (["-p", "100"], {"measurement_interval": 100}),
             (
                 ["--profile-export-file", "test.json"],
-                {
-                    "profile_export_file": Path(
-                        "artifacts/test_model-triton-tensorrtllm-concurrency1/test.json"
-                    )
-                },
+                {"profile_export_file": Path("test.json")},
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
             (["--request-count", "100"], {"request_count": 100}),
@@ -411,8 +409,11 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = parser.add_cli_options_to_config(config, args)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
 
-        assert args.artifact_dir == Path(expected_path)
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     @pytest.mark.parametrize(
         "arg, expected_path, expected_output",
@@ -450,9 +451,11 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
         args, _, _ = parser.parse_args()
 
-        assert args.artifact_dir == Path(expected_path)
-        captured = capsys.readouterr()
-        assert expected_output in captured.out
+        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = parser.add_cli_options_to_config(config, args)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
+
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     def test_default_load_level(self, monkeypatch, capsys):
         logging.init_logging()

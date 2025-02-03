@@ -294,10 +294,10 @@ class TestJsonExporter:
     def test_generate_json_custom_export(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
-        artifacts_dir = "artifacts/gpt2_vllm-triton-vllm-concurrency1"
+        artifacts_dir = "artifacts"
         custom_filename = "custom_export.json"
         expected_filename = f"{artifacts_dir}/custom_export_genai_perf.json"
-        expected_profile_filename = f"{artifacts_dir}/custom_export.json"
+        expected_profile_filename = "custom_export.json"
         cli_cmd = [
             "genai-perf",
             "profile",

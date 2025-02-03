@@ -38,7 +38,7 @@ from genai_perf.profile_data_parser import ProfileDataParser
 from genai_perf.subcommand.common import (
     calculate_metrics,
     convert_config_to_inputs_config,
-    create_artifacts_directory,
+    create_artifact_directory,
     create_plot_directory,
     create_telemetry_data_collectors,
     generate_inputs,
@@ -55,24 +55,25 @@ def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> N
     """
     Handles `profile` subcommand workflow
     """
+    perf_analyzer_config = PerfAnalyzerConfig(config=config, extra_args=extra_args)
+
+    create_artifact_directory(perf_analyzer_config.get_artifact_directory())
+    create_plot_directory(config, perf_analyzer_config.get_artifact_directory())
+
     tokenizer = get_tokenizer(config)
-
-    create_artifacts_directory(config)
-    create_plot_directory(config)
-
-    inputs_config = convert_config_to_inputs_config(config, tokenizer)
+    inputs_config = convert_config_to_inputs_config(
+        config, perf_analyzer_config, tokenizer
+    )
     generate_inputs(inputs_config)
 
     telemetry_data_collectors = create_telemetry_data_collectors(config)
-
-    perf_analyzer_config = PerfAnalyzerConfig(config=config, extra_args=extra_args)
 
     run_perf_analyzer(
         config=config,
         perf_analyzer_config=perf_analyzer_config,
         telemetry_data_collectors=telemetry_data_collectors,
     )
-    data_parser = calculate_metrics(config, tokenizer)
+    data_parser = calculate_metrics(config, perf_analyzer_config, tokenizer)
     _report_output(data_parser, telemetry_data_collectors, config)
 
 

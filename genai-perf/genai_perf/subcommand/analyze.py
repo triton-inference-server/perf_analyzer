@@ -57,7 +57,8 @@ from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
 from genai_perf.subcommand.common import (
     calculate_metrics,
     convert_config_to_inputs_config,
-    create_artifacts_directory,
+    create_artifact_directory,
+    create_plot_directory,
     create_telemetry_data_collectors,
     generate_inputs,
     merge_telemetry_metrics,
@@ -76,7 +77,7 @@ def analyze_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> N
     """
     Handles `analyze` subcommand workflow
     """
-    analyze = Analyze(config)
+    analyze = Analyze(config, extra_args)
     analyze.sweep()
     analyze.report()
 
@@ -125,8 +126,9 @@ class Analyze:
         GPUTotalMemoryAvg.tag,
     ]
 
-    def __init__(self, config: ConfigCommand) -> None:
+    def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
         self._config = config
+        self._extra_args = extra_args
         self._model_name = self._config.model_names[0]
         self._model_search_parameters = {
             self._model_name: SearchParameters(
@@ -147,8 +149,6 @@ class Analyze:
         """
         Sweeps over the objectives
         """
-        # FIXME: need to remove args
-        obj_args = Namespace()
 
         for count, objectives in enumerate(
             self._sweep_objective_generator.get_objectives()
@@ -163,6 +163,7 @@ class Analyze:
             perf_analyzer_config = PerfAnalyzerConfig(
                 config=self._config,
                 model_objective_parameters=objectives,
+                extra_args=self._extra_args,
             )
 
             #
@@ -180,11 +181,15 @@ class Analyze:
             if not run_config_found:
                 #
                 # Create Input/Artifacts
+                create_artifact_directory(perf_analyzer_config.get_artifact_directory())
+                create_plot_directory(
+                    self._config, perf_analyzer_config.get_artifact_directory()
+                )
+
                 tokenizer = get_tokenizer(self._config)
                 input_config_options = convert_config_to_inputs_config(
-                    self._config, tokenizer
+                    self._config, perf_analyzer_config, tokenizer
                 )
-                create_artifacts_directory(self._config)
                 generate_inputs(input_config_options)
 
                 #
@@ -198,9 +203,11 @@ class Analyze:
                 #
                 # Extract Perf Metrics
                 infer_mode, load_level = self._determine_infer_mode_and_load_level(
-                    obj_args, objectives, self._model_name
+                    self._config, objectives, self._model_name
                 )
-                data_parser = calculate_metrics(self._config, tokenizer)
+                data_parser = calculate_metrics(
+                    self._config, perf_analyzer_config, tokenizer
+                )
                 perf_stats = data_parser.get_statistics(infer_mode, load_level)
                 perf_metrics = perf_stats.create_records()
 
@@ -344,30 +351,32 @@ class Analyze:
     # Inference Determination Methods
     ###########################################################################
     def _determine_infer_mode_and_load_level(
-        self, args: Namespace, objectives: ModelObjectiveParameters, model_name: str
+        self,
+        config: ConfigCommand,
+        objectives: ModelObjectiveParameters,
+        model_name: str,
     ) -> Tuple[str, str]:
-        if args.sweep_type == "concurrency":
+        if "concurrency" in config.analyze.sweep_parameters:
             infer_mode = "concurrency"
             load_level = (
                 f"{objectives[model_name][infer_mode].get_value_based_on_category()}"
             )
-        elif args.sweep_type == "request_rate":
+        elif "request_rate" in config.analyze.sweep_parameters:
             infer_mode = "request_rate"
             load_level = f"{float(objectives[model_name][infer_mode].get_value_based_on_category())}"
         elif (
-            args.sweep_type == "input_sequence_length"
-            or args.sweep_type == "num_dataset_entries"
-            or args.sweep_type == "batch_size"
+            "input_sequence_length" in config.analyze.sweep_parameters
+            or "num_dataset_entries" in config.analyze.sweep_parameters
+            or "batch_size" in config.analyze.sweep_parameters
         ):
-            if args.concurrency:
+            if "concurrency" in config.perf_analyzer.stimulus:
                 infer_mode = "concurrency"
-                load_level = f"{args.concurrency}"
-            elif args.request_rate:
+                load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
+            elif "request_rate" in config.perf_analyzer.stimulus:
                 infer_mode = "request_rate"
-                load_level = f"{args.request_rate}"
+                load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
             else:
-                infer_mode = "concurrency"
-                load_level = "1"
+                raise GenAIPerfException("Cannot determine infer_mode/load_level")
         else:
             raise GenAIPerfException("Cannot determine infer_mode/load_level")
 

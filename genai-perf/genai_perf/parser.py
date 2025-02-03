@@ -389,49 +389,6 @@ def _check_server_metrics_url(
     return args
 
 
-def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
-    """
-    Set paths for all the artifacts.
-    """
-    if args.artifact_dir == Path(DEFAULT_ARTIFACT_DIR):
-        # Preprocess Huggingface model names that include '/' in their model name.
-        if (args.formatted_model_name is not None) and (
-            "/" in args.formatted_model_name
-        ):
-            filtered_name = "_".join(args.formatted_model_name.split("/"))
-            logger.info(
-                f"Model name '{args.formatted_model_name}' cannot be used to create artifact "
-                f"directory. Instead, '{filtered_name}' will be used."
-            )
-            name = [f"{filtered_name}"]
-        else:
-            name = [f"{args.formatted_model_name}"]
-
-        if args.service_kind == "openai":
-            name += [f"{args.service_kind}-{args.endpoint_type}"]
-        elif args.service_kind == "triton":
-            name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
-        elif args.service_kind == "tensorrtllm_engine":
-            name += [f"{args.service_kind}"]
-        else:
-            raise ValueError(f"Unknown service kind '{args.service_kind}'.")
-
-        if args.concurrency:
-            name += [f"concurrency{args.concurrency}"]
-        elif args.request_rate:
-            name += [f"request_rate{args.request_rate}"]
-        args.artifact_dir = args.artifact_dir / Path("-".join(name))
-
-    if args.profile_export_file.parent != Path(""):
-        raise ValueError(
-            "Please use --artifact-dir option to define intermediary paths to "
-            "the profile export file."
-        )
-
-    args.profile_export_file = args.artifact_dir / args.profile_export_file
-    return args
-
-
 def parse_goodput(values):
     constraints = {}
     try:
@@ -1081,7 +1038,6 @@ def refine_args(
         args = _check_image_input_args(parser, args)
         args = _check_load_manager_args(args)
         args = _check_server_metrics_url(parser, args)
-        args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
@@ -1109,6 +1065,21 @@ def add_cli_options_to_config(
         default="profile", value=args.subcommand, required=True
     )
     config.verbose = ConfigField(default=False, value=args.verbose)
+
+    # Analyze
+    if args.subcommand == "analyze":
+
+        config.analyze.sweep_parameters = {}
+        if args.sweep_list:
+            sweep_parameters = {args.sweep_type: args.sweep_list}
+        else:
+            sweep_parameters = {
+                args.sweep_type: {"start": args.sweep_min, "stop": args.sweep_max}
+            }
+            if args.sweep_step:
+                sweep_parameters[args.sweep_type]["step"] = args.sweep_step
+
+        config.analyze.parse(sweep_parameters)
 
     # Endpoint
     config.endpoint.model_selection_strategy = args.model_selection_strategy

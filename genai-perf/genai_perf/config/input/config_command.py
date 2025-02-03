@@ -95,8 +95,7 @@ class ConfigCommand(BaseConfig):
 
         self._infer_settings()
         self._check_for_illegal_combinations()
-        self._set_artifact_directory()
-        self._set_profile_export_file()
+        self._check_profile_export_file()
 
     def _parse_model_names(self, model_names: str) -> None:
         if type(model_names) is str:
@@ -183,17 +182,13 @@ class ConfigCommand(BaseConfig):
                 "-".join(name)
             )
 
-    def _set_profile_export_file(self) -> None:
+    def _check_profile_export_file(self) -> None:
         if self.output.get_field("profile_export_file").is_set_by_user:
             if Path(self.output.profile_export_file).parent != Path(""):
                 raise ValueError(
                     "Please use artifact_directory option to define intermediary paths to "
                     "the profile_export_file."
                 )
-
-        self.output.profile_export_file = (
-            self.output.artifact_directory / self.output.profile_export_file
-        )
 
     ###########################################################################
     # Utility Methods

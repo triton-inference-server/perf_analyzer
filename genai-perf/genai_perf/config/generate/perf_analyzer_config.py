@@ -34,6 +34,8 @@ from genai_perf.types import (
 )
 from genai_perf.utils import convert_option_name
 
+logger = logging.getLogger(__name__)
+
 
 class InferenceType(Enum):
     NONE = auto()
@@ -55,10 +57,17 @@ class PerfAnalyzerConfig:
         extra_args: Optional[List[str]] = None,
     ):
         self._model_name = config.model_names[0]
+        self._artifact_directory = self._set_artifact_directory(
+            config, model_objective_parameters
+        )
+        self._profile_export_file = self._set_profile_export_file(
+            config, model_objective_parameters
+        )
+
         self._set_options_based_on_objective(model_objective_parameters)
 
         self._cli_args = self._set_cli_args_based_on_config(config, extra_args)
-        self._cli_args += self._set_artifact_paths(config, model_objective_parameters)
+        self._cli_args += self._get_artifact_paths()
 
     ###########################################################################
     # Set Options Methods
@@ -90,37 +99,60 @@ class PerfAnalyzerConfig:
                 if parameter.usage == SearchUsage.RUNTIME_PA:
                     self._parameters[name] = parameter.get_value_based_on_category()
 
-    def _set_artifact_paths(
+    def _set_artifact_directory(
         self,
         config: ConfigCommand,
         model_objective_parameters: Optional[ModelObjectiveParameters],
-    ) -> List[str]:
-        if not model_objective_parameters:
-            artifact_directory = config.output.artifact_directory
-            profile_export_file = config.output.profile_export_file
-        else:
-            artifact_name = [config.model_names[0]]
-            artifact_name += self._get_artifact_service_kind(config)
-            artifact_name += self._get_artifact_stimulus_type(
-                model_objective_parameters
-            )
+    ) -> Path:
+        artifact_name = [self._get_artifact_model_name(config)]
+        artifact_name += self._get_artifact_service_kind(config)
+        artifact_name += self._get_artifact_stimulus_type(
+            config, model_objective_parameters
+        )
 
-            artifact_directory = config.output.artifact_directory.parent / Path(
-                "-".join(artifact_name)
-            )
+        artifact_directory = config.output.artifact_directory / Path(
+            "-".join(artifact_name)
+        )
 
-            profile_export_file = (
-                artifact_directory / config.output.profile_export_file.name
-            )
+        return artifact_directory
 
+    def _set_profile_export_file(
+        self,
+        config: ConfigCommand,
+        model_objective_parameters: Optional[ModelObjectiveParameters],
+    ) -> Path:
+        profile_export_file = (
+            self._artifact_directory / config.output.profile_export_file
+        )
+
+        return profile_export_file
+
+    ###########################################################################
+    # Misc. Private Methods
+    ###########################################################################
+    def _get_artifact_paths(self) -> List[str]:
         artifact_paths = [
             f"--input-data",
-            f"{artifact_directory / DEFAULT_INPUT_DATA_JSON}",
+            f"{self._artifact_directory / DEFAULT_INPUT_DATA_JSON}",
             f"--profile-export-file",
-            f"{profile_export_file}",
+            f"{self._profile_export_file}",
         ]
 
         return artifact_paths
+
+    def _get_artifact_model_name(self, config: ConfigCommand) -> str:
+        model_name: str = config.model_names[0]
+
+        # Preprocess Huggingface model names that include '/' in their model name.
+        if (model_name is not None) and ("/" in model_name):
+            filtered_name = "_".join(model_name.split("/"))
+            logger.info(
+                f"Model name '{model_name}' cannot be used to create artifact "
+                f"directory. Instead, '{filtered_name}' will be used."
+            )
+            return filtered_name
+        else:
+            return model_name
 
     def _get_artifact_service_kind(self, config: ConfigCommand) -> List[str]:
         if config.endpoint.service_kind == "openai":
@@ -137,36 +169,49 @@ class PerfAnalyzerConfig:
         return service_kind
 
     def _get_artifact_stimulus_type(
-        self, model_objective_parameters: Optional[ModelObjectiveParameters]
+        self,
+        config: ConfigCommand,
+        model_objective_parameters: Optional[ModelObjectiveParameters],
     ) -> List[str]:
         if not model_objective_parameters:
-            return []
+            if "concurrency" in config.perf_analyzer.stimulus:
+                concurrency = config.perf_analyzer.stimulus["concurrency"]
+                return [f"concurrency{concurrency}"]
+            elif "request_rate" in config.perf_analyzer.stimulus:
+                request_rate = config.perf_analyzer.stimulus["request_rate"]
+                return [f"request_rate{request_rate}"]
+            else:
+                raise GenAIPerfException(f"Stimulus type not found in config")
+        else:
+            parameters = model_objective_parameters[self._model_name]
 
-        parameters = model_objective_parameters[self._model_name]
+            if "concurrency" in parameters:
+                concurrency = str(
+                    parameters["concurrency"].get_value_based_on_category()
+                )
+                stimulus = [f"concurrency{concurrency}"]
+            elif "request_rate" in parameters:
+                request_rate = str(
+                    parameters["request_rate"].get_value_based_on_category()
+                )
+                stimulus = [f"request_rate{request_rate}"]
+            elif "input_sequence_length" in parameters:
+                input_sequence_length = str(
+                    parameters["input_sequence_length"].get_value_based_on_category()
+                )
+                stimulus = [f"input_sequence_length{input_sequence_length}"]
+            elif "num_dataset_entries" in parameters:
+                input_sequence_length = str(
+                    parameters["num_dataset_entries"].get_value_based_on_category()
+                )
+                stimulus = [f"num_dataset_entries{input_sequence_length}"]
+            elif "runtime_batch_size" in parameters:
+                runtime_batch_size = str(
+                    parameters["runtime_batch_size"].get_value_based_on_category()
+                )
+                stimulus = [f"batch_size{runtime_batch_size}"]
 
-        if "concurrency" in parameters:
-            concurrency = str(parameters["concurrency"].get_value_based_on_category())
-            stimulus = [f"concurrency{concurrency}"]
-        elif "request_rate" in parameters:
-            request_rate = str(parameters["request_rate"].get_value_based_on_category())
-            stimulus = [f"request_rate{request_rate}"]
-        elif "input_sequence_length" in parameters:
-            input_sequence_length = str(
-                parameters["input_sequence_length"].get_value_based_on_category()
-            )
-            stimulus = [f"input_sequence_length{input_sequence_length}"]
-        elif "num_dataset_entries" in parameters:
-            input_sequence_length = str(
-                parameters["num_dataset_entries"].get_value_based_on_category()
-            )
-            stimulus = [f"num_dataset_entries{input_sequence_length}"]
-        elif "runtime_batch_size" in parameters:
-            runtime_batch_size = str(
-                parameters["runtime_batch_size"].get_value_based_on_category()
-            )
-            stimulus = [f"batch_size{runtime_batch_size}"]
-
-        return stimulus
+            return stimulus
 
     def _add_verbose_args(self, config: ConfigCommand) -> List[str]:
         verbose_args = []
@@ -308,6 +353,12 @@ class PerfAnalyzerConfig:
 
         return infer_value
 
+    def get_artifact_directory(self) -> Path:
+        return self._artifact_directory
+
+    def get_profile_export_file(self) -> Path:
+        return self._profile_export_file
+
     ###########################################################################
     # CLI String Creation Methods
     ###########################################################################
@@ -416,6 +467,9 @@ class PerfAnalyzerConfig:
         the checkpoint file
         """
         pa_config_dict = deepcopy(self.__dict__)
+
+        del pa_config_dict["_artifact_directory"]
+        del pa_config_dict["_profile_export_file"]
 
         return pa_config_dict
 
