@@ -149,7 +149,6 @@ set(
   profile_data_exporter.cc
   periodic_concurrency_manager.cc
   periodic_concurrency_worker.cc
-  cuda_runtime_library_manager.cc
   session_concurrency/payload_dataset_manager.cc
   session_concurrency/payload_json_utils.cc
   session_concurrency/request_handler.cc
@@ -199,7 +198,6 @@ set(
   periodic_concurrency_manager.h
   periodic_concurrency_worker.h
   thread_config.h
-  cuda_runtime_library_manager.h
   thread_stat.h
   session_concurrency/payload_dataset_manager.h
   session_concurrency/payload_json_utils.h
@@ -269,6 +267,12 @@ if(TRITON_ENABLE_GPU)
 
   target_include_directories(perf_analyzer
                              PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+
+  target_sources(perf_analyzer
+    PRIVATE
+    cuda_runtime_library_manager.h
+    cuda_runtime_library_manager.cc
+  )
 
 endif() # TRITON_ENABLE_GPU
 
@@ -374,6 +378,20 @@ target_sources(
     ${libb64_SOURCE_DIR}/src/cencode.c
 )
 
+if(TRITON_ENABLE_GPU)
+  target_sources(perf_analyzer_unit_tests
+    PRIVATE
+      cuda_runtime_library_manager.h
+      cuda_runtime_library_manager.cc
+  )
+
+  target_compile_definitions(
+    perf_analyzer_unit_tests
+    PUBLIC
+      TRITON_ENABLE_GPU=1
+  )
+endif()
+
 target_include_directories(
   perf_analyzer_unit_tests
   PRIVATE
@@ -400,4 +418,3 @@ install(
   TARGETS perf_analyzer_unit_tests
   RUNTIME DESTINATION bin
 )
-

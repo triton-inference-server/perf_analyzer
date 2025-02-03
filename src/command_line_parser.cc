@@ -1207,8 +1207,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
             params_->shared_memory_type = SharedMemoryType::CUDA_SHARED_MEMORY;
 #else
             Usage(
-                "Cuda shared memory is not supported when "
-                "TRITON_ENABLE_GPU=0.");
+                "CUDA shared memory is not supported when building with `cmake "
+                "-D TRITON_ENABLE_GPU=OFF ...`. Install CUDA runtime library "
+                "(e.g. `apt install nvidia-cuda-toolkit`) then recompile with "
+                "`cmake -D TRITON_ENABLE_GPU=ON ...`.");
 #endif  // TRITON_ENABLE_GPU
           } else if (arg.compare("none") == 0) {
             params_->shared_memory_type = SharedMemoryType::NO_SHARED_MEMORY;

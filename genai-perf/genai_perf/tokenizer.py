@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class Tokenizer:
         self._encode_args = {"add_special_tokens": False}
         self._decode_args = {"skip_special_tokens": True}
 
-    def set_tokenizer(self, name: str, trust_remote_code: bool, revision: str):
+    def set_tokenizer(self, name: str, trust_remote_code: bool, revision: str) -> None:
         """
         Downloading the tokenizer from Huggingface.co or local filesystem
         """
@@ -93,5 +93,9 @@ def get_tokenizer(
     Return tokenizer for the given model name
     """
     tokenizer = Tokenizer()
-    tokenizer.set_tokenizer(tokenizer_model, trust_remote_code, tokenizer_revision)
+    tokenizer.set_tokenizer(
+        tokenizer_model,
+        trust_remote_code,
+        tokenizer_revision,
+    )
     return tokenizer

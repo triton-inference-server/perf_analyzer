@@ -575,13 +575,16 @@ class NaggyMockClientBackend : public ClientBackend {
     return Error::Success;
   }
 
+#ifdef TRITON_ENABLE_GPU
   Error RegisterCudaSharedMemory(
-      const std::string& name, const cudaIpcMemHandle_t& handle,
+      const std::string& name,
+      const CUDARuntimeLibraryManager::cudaIpcMemHandle_t& handle,
       const size_t byte_size) override
   {
     stats_->memory_stats.num_register_cuda_shared_memory_calls++;
     return Error::Success;
   }
+#endif  // TRITON_ENABLE_GPU
 
   Error RegisterCudaMemory(
       const std::string& name, void* handle, const size_t byte_size) override

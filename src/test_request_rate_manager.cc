@@ -1101,11 +1101,13 @@ TEST_CASE(
       params.shared_memory_type = SharedMemoryType::SYSTEM_SHARED_MEMORY;
       ParameterizeBatchSize();
     }
+#ifdef TRITON_ENABLE_GPU
     SUBCASE("cuda_shared_memory")
     {
       params.shared_memory_type = SharedMemoryType::CUDA_SHARED_MEMORY;
       ParameterizeBatchSize();
     }
+#endif  // TRITON_ENABLE_GPU
   }};
 
   const auto& ParameterizeNumThreads{[&]() {
@@ -1320,12 +1322,14 @@ TEST_CASE("custom_json_data: handling missing optional is_shape_tensor")
     ParameterizeNumThreads();
     expect_init_failure = true;
   }
+#ifdef TRITON_ENABLE_GPU
   SUBCASE("cuda shm")
   {
     params.shared_memory_type = SharedMemoryType::CUDA_SHARED_MEMORY;
     ParameterizeNumThreads();
     expect_init_failure = true;
   }
+#endif  // TRITON_ENABLE_GPU
 
   TestRequestRateManager trrm(params, is_sequence_model);
 
@@ -1559,10 +1563,12 @@ TEST_CASE("custom_json_data: multiple streams")
     {
       params.shared_memory_type = SYSTEM_SHARED_MEMORY;
     }
+#ifdef TRITON_ENABLE_GPU
     SUBCASE("cuda shared memory")
     {
       params.shared_memory_type = CUDA_SHARED_MEMORY;
     }
+#endif  // TRITON_ENABLE_GPU
   }};
 
   const auto& ParameterizeNumThreads{[&]() {
@@ -1677,6 +1683,7 @@ TEST_CASE("Request rate - Shared memory methods")
     trrm.CheckSharedMemory(expected_stats);
   }
 
+#ifdef TRITON_ENABLE_GPU
   SUBCASE("Cuda shared memory usage")
   {
     params.shared_memory_type = CUDA_SHARED_MEMORY;
@@ -1701,6 +1708,7 @@ TEST_CASE("Request rate - Shared memory methods")
     expected_stats.num_register_cuda_shared_memory_calls = 1;
     trrm.CheckSharedMemory(expected_stats);
   }
+#endif  // TRITON_ENABLE_GPU
 
   SUBCASE("No shared memory usage")
   {
@@ -1774,11 +1782,13 @@ TEST_CASE("Request rate - Shared memory infer input calls")
       params.shared_memory_type = SYSTEM_SHARED_MEMORY;
       ParameterizeSequence();
     }
+#ifdef TRITON_ENABLE_GPU
     SUBCASE("cuda shared memory")
     {
       params.shared_memory_type = CUDA_SHARED_MEMORY;
       ParameterizeSequence();
     }
+#endif  // TRITON_ENABLE_GPU
   }};
 
   ParameterizeMemory();

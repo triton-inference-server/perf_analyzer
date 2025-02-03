@@ -48,6 +48,10 @@
 #include "torchserve/torchserve_client_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_TS
 
+#ifdef TRITON_ENABLE_GPU
+#include "../cuda_runtime_library_manager.h"
+#endif  // TRITON_ENABLE_GPU
+
 namespace triton { namespace perfanalyzer { namespace clientbackend {
 
 //================================================
@@ -365,9 +369,11 @@ ClientBackend::RegisterSystemSharedMemory(
       pa::GENERIC_ERROR);
 }
 
+#ifdef TRITON_ENABLE_GPU
 Error
 ClientBackend::RegisterCudaSharedMemory(
-    const std::string& name, const cudaIpcMemHandle_t& handle,
+    const std::string& name,
+    const CUDARuntimeLibraryManager::cudaIpcMemHandle_t& handle,
     const size_t byte_size)
 {
   return Error(
@@ -375,6 +381,7 @@ ClientBackend::RegisterCudaSharedMemory(
           " does not support RegisterCudaSharedMemory API",
       pa::GENERIC_ERROR);
 }
+#endif  // TRITON_ENABLE_GPU
 
 Error
 ClientBackend::RegisterCudaMemory(

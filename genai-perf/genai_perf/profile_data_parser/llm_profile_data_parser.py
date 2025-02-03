@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,6 +31,7 @@ from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from genai_perf.constants import EMPTY_RESPONSE_TOKEN
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -295,8 +296,11 @@ class LLMProfileDataParser(ProfileDataParser):
         for r in res_outputs:
             if isinstance(r["output_ids"], list):
                 token_ids += r["output_ids"]
-            else:
+            elif isinstance(r["output_ids"], int):
                 token_ids.append(r["output_ids"])
+            else:
+                # for the empty first/last responses
+                token_ids.append(EMPTY_RESPONSE_TOKEN)
         return token_ids, len(token_ids)
 
     def _get_triton_output_tokens(self, res_outputs: List[Dict]) -> List[str]:

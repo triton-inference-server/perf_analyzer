@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -23,6 +23,9 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import sys
+from unittest.mock import MagicMock, patch
 
 import pytest
 from genai_perf.exceptions import GenAIPerfException
@@ -93,6 +96,43 @@ class TestTensorRTLLMEngineConverter:
         }
 
         assert result == expected_result
+
+    def test_convert_with_chat_template(self):
+        generic_dataset = self.create_generic_dataset()
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = InputsConfig(
+            extra_inputs={"apply_chat_template": True},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.TENSORRTLLM_ENGINE,
+            tokenizer=tokenizer,
+        )
+
+        trtllm_engine_converter = TensorRTLLMEngineConverter()
+        # Mock Jinja2 import to prevent ImportError
+        with patch.dict(sys.modules, {"jinja2": MagicMock()}):
+            with patch.object(
+                tokenizer._tokenizer,
+                "apply_chat_template",
+                return_value="formatted chat text",
+            ) as mock_template:
+                with patch.object(
+                    tokenizer, "encode", return_value=[101, 202, 303]
+                ) as mock_encode:
+
+                    result = trtllm_engine_converter.convert(generic_dataset, config)
+
+                    mock_template.assert_called()
+                    mock_encode.assert_called_with("formatted chat text")
+
+                    assert "data" in result
+                    assert isinstance(result["data"], list)
+                    assert len(result["data"]) == 2
+
+                    for payload in result["data"]:
+                        assert "input_ids" in payload
+                        assert "content" in payload["input_ids"]
+                        assert payload["input_ids"]["content"] == [101, 202, 303]
 
     def test_convert_with_request_parameters(self):
         generic_dataset = self.create_generic_dataset()
