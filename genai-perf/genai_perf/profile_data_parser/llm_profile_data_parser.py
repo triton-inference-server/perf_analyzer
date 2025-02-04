@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import tqdm
 from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -38,6 +39,9 @@ from genai_perf.profile_data_parser.profile_data_parser import (
 )
 from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import load_json_str, remove_sse_prefix
+from genai_perf.logging import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProfileDataParser(ProfileDataParser):
@@ -75,77 +79,76 @@ class LLMProfileDataParser(ProfileDataParser):
         super().__init__(filename, goodput_constraints)
 
     def _parse_requests(self, requests: dict) -> Metrics:
-        """Parse each requests in profile export data to extract key metrics."""
+        """Parse each request in profile export data to extract key metrics."""
         min_req_timestamp, max_res_timestamp = float("inf"), 0
         request_latencies = []
         time_to_first_tokens = []
+        time_to_second_tokens = []
         inter_token_latencies = []
         output_token_throughputs_per_request = []
         input_sequence_lengths = []
         output_sequence_lengths = []
         chunked_inter_token_latencies = []
 
-        for request in requests:
-            req_timestamp = request["timestamp"]
-            req_inputs = request["request_inputs"]
-            res_timestamps = request["response_timestamps"]
-            res_outputs = request["response_outputs"]
+        logger.info(f"Parsing {len(requests)} requests")
+        with tqdm(total=len(requests), desc="Parsing Requests", unit="req") as pbar:
+            for request in requests:
+                req_timestamp = request["timestamp"]
+                req_inputs = request["request_inputs"]
+                res_timestamps = request["response_timestamps"]
+                res_outputs = request["response_outputs"]
 
-            self._preprocess_response(res_timestamps, res_outputs)
+                self._preprocess_response(res_timestamps, res_outputs)
 
-            # Skip requests with empty response. This happens sometimes when the
-            # model returns a single response with empty string.
-            if not res_timestamps:
-                continue
+                # Skip requests with empty response. This happens sometimes when the
+                # model returns a single response with empty string.
+                if not res_timestamps:
+                    pbar.update(1)
+                    continue
 
-            # track entire benchmark duration
-            min_req_timestamp = min(min_req_timestamp, req_timestamp)
-            max_res_timestamp = max(max_res_timestamp, res_timestamps[-1])
+                # Track entire benchmark duration
+                min_req_timestamp = min(min_req_timestamp, req_timestamp)
+                max_res_timestamp = max(max_res_timestamp, res_timestamps[-1])
 
-            # request latencies
-            req_latency_ns = res_timestamps[-1] - req_timestamp
-            request_latencies.append(req_latency_ns)  # nanosec
-            req_latency_s = req_latency_ns / 1e9  # sec
+                # Request latencies
+                req_latency_ns = res_timestamps[-1] - req_timestamp
+                request_latencies.append(req_latency_ns)  # nanoseconds
+                req_latency_s = req_latency_ns / 1e9  # seconds
 
-            # time to first token
-            ttft = res_timestamps[0] - req_timestamp
-            time_to_first_tokens.append(ttft)
+                # Time to first token
+                ttft = res_timestamps[0] - req_timestamp
+                time_to_first_tokens.append(ttft)
 
-            # number of input tokens
-            input_seq_len = self._get_input_token_count(req_inputs)
-            input_sequence_lengths.append(input_seq_len)
+                # Time to second token (if available)
+                if len(res_timestamps) > 1:
+                    ttst = res_timestamps[1] - res_timestamps[0]
+                    time_to_second_tokens.append(ttst)
 
-            # output token throughput per request
-            output_token_counts, total_output_token = self._get_output_token_counts(
-                res_outputs
-            )
-            output_token_throughputs_per_request.append(
-                total_output_token / req_latency_s
-            )
-            output_sequence_lengths.append(total_output_token)
+                # Number of input tokens
+                input_seq_len = self._get_input_token_count(req_inputs)
+                input_sequence_lengths.append(input_seq_len)
 
-            # inter token latencies
-            if total_output_token > 1:
-                inter_token_latency = (req_latency_ns - ttft) / (total_output_token - 1)
-                inter_token_latencies.append(round(inter_token_latency))
+                # Output token throughput per request
+                output_token_counts, total_output_token = self._get_output_token_counts(res_outputs)
+                output_token_throughputs_per_request.append(total_output_token / req_latency_s)
+                output_sequence_lengths.append(total_output_token)
 
-            # The new ITL calculation above loses all token-level ITL information
-            # and as a result breaks ITL vs token position visualization. Keep
-            # the old version of inter token latency as a WAR to preserve the
-            # visualization.
-            chunked_inter_token_latency = []
-            for (t1, _), (t2, n2) in self._pairwise(
-                zip(res_timestamps, output_token_counts)
-            ):
-                # TMA-1676: handle empty first/last responses
-                # if the latter response has zero token (e.g. empty string),
-                # then set it default to one for the sake of inter token latency
-                # calculation and to avoid divide by zero.
-                num_token = 1 if n2 == 0 else n2
-                chunked_inter_token_latency.append(round((t2 - t1) / num_token))
-            chunked_inter_token_latencies.append(chunked_inter_token_latency)
+                # Inter token latencies
+                if total_output_token > 1:
+                    inter_token_latency = (req_latency_ns - ttft) / (total_output_token - 1)
+                    inter_token_latencies.append(round(inter_token_latency))
 
-        # request & output token throughput
+                # The new ITL calculation above loses all token-level ITL information
+                # and as a result breaks ITL vs token position visualization.
+                chunked_inter_token_latency = []
+                for (t1, _), (t2, n2) in self._pairwise(zip(res_timestamps, output_token_counts)):
+                    num_token = 1 if n2 == 0 else n2
+                    chunked_inter_token_latency.append(round((t2 - t1) / num_token))
+                chunked_inter_token_latencies.append(chunked_inter_token_latency)
+                
+                pbar.update(1)
+
+        # Request & output token throughput
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
@@ -154,6 +157,7 @@ class LLMProfileDataParser(ProfileDataParser):
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
+            time_to_second_tokens,
             inter_token_latencies,
             output_token_throughputs,
             output_token_throughputs_per_request,
@@ -188,7 +192,8 @@ class LLMProfileDataParser(ProfileDataParser):
                         first_data = response.find("data: ")
                         if first_data == -1:
                             res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"] + response.strip()
+                                res_outputs[i - 1]["response"] +
+                                response.strip()
                             )
                             res_outputs[i]["response"] = ""
                         else:
@@ -203,9 +208,11 @@ class LLMProfileDataParser(ProfileDataParser):
                 response = res_outputs[i]["response"]
                 responses = response.strip().split("\n\n")
                 if len(responses) > 1:
-                    merged_response = load_json_str(remove_sse_prefix(responses[0]))
+                    merged_response = load_json_str(
+                        remove_sse_prefix(responses[0]))
                     if (self._response_format != ResponseFormat.TRITON_GENERATE) and (
-                        merged_response["choices"][0]["delta"].get("content", None)
+                        merged_response["choices"][0]["delta"].get(
+                            "content", None)
                         is None
                     ):
                         merged_response["choices"][0]["delta"]["content"] = ""
@@ -259,7 +266,8 @@ class LLMProfileDataParser(ProfileDataParser):
             content = payload["messages"][0]["content"]
             return " ".join(c["text"] for c in content if c["type"] == "text")
         else:
-            raise ValueError("Failed to parse request input in profile export file.")
+            raise ValueError(
+                "Failed to parse request input in profile export file.")
 
     def _get_output_token_counts(
         self, res_outputs: List[Dict]
@@ -275,7 +283,8 @@ class LLMProfileDataParser(ProfileDataParser):
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
-        full_text_token_count = len(self._tokenizer.encode("".join(output_texts)))
+        full_text_token_count = len(
+            self._tokenizer.encode("".join(output_texts)))
 
         output_tokens = self._get_response_output_tokens(output_texts)
         output_token_counts = list(map(len, output_tokens))
@@ -347,7 +356,8 @@ class LLMProfileDataParser(ProfileDataParser):
             text_output = completions["delta"].get("content", "")
         else:
             obj_type = data["object"]
-            raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
+            raise ValueError(
+                f"Unknown OpenAI response object type '{obj_type}'.")
         return text_output
 
     def _is_empty_response(self, response: str) -> bool:
