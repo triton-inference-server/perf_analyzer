@@ -251,10 +251,15 @@ class Analyze:
                 self._checkpoint.create_checkpoint_object()
 
             else:
-                objective = list(objectives[self._model_name])[0]
-                value = list(objectives[self._model_name].values())[0].value
+                obj_list = []
+                for name, parameter in objectives[self._model_name].items():
+                    obj_list.append(f"{name}{parameter.get_value_based_on_category()}")
+
+                obj_str = "-".join(obj_list)
+                # objective = list(objectives[self._model_name])[0]
+                # value = list(objectives[self._model_name].values())[0].value
                 logger.info(
-                    f"{run_config_name}:{objective}{value} found in checkpoint - skipping profiling..."
+                    f"{run_config_name}:{obj_str} found in checkpoint - skipping profiling..."
                 )
 
     ###########################################################################
