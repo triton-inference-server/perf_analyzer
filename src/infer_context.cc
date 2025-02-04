@@ -49,14 +49,21 @@ InferContext::Init()
 void
 InferContext::PrepareRequest()
 {
-#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
-  // Restart the stream
+  // TPA-560: Explicitly restrict the function to dynamic grpc client backend
+  // only for now. Understand why Triton grpc client doesn't require resetting
+  // the stream across multiple requests.
+  if (backend_kind_ != cb::BackendKind::DYNAMIC_GRPC) {
+    return;
+  }
+
+  // Dynamic grpc client requires to restart the stream before every new request
+  // because the for each request, the stream is half-closed from the client
+  // side due to calling WritesDone.
   if (streaming_ && inference_started_) {
     infer_backend_->StopStream();
     infer_backend_->StartStream(
         async_callback_func_, (!parser_->IsDecoupled()));
   }
-#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 }
 
 void
