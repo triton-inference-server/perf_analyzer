@@ -27,6 +27,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from tqdm import tqdm
 from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -39,6 +40,9 @@ from genai_perf.profile_data_parser.profile_data_parser import (
 )
 from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import load_json_str, remove_sse_prefix
+from genai_perf.logging import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProfileDataParser(ProfileDataParser):
@@ -87,70 +91,75 @@ class LLMProfileDataParser(ProfileDataParser):
         output_sequence_lengths = []
         chunked_inter_token_latencies = []
 
-        for request in requests:
-            req_timestamp = request["timestamp"]
-            req_inputs = request["request_inputs"]
-            res_timestamps = request["response_timestamps"]
-            res_outputs = request["response_outputs"]
+        logger.info(f"Parsing {len(requests)} requests")
+        with tqdm(total=len(requests), desc="Parsing Requests", unit="req") as pbar:
+            for request in requests:
+                req_timestamp = request["timestamp"]
+                req_inputs = request["request_inputs"]
+                res_timestamps = request["response_timestamps"]
+                res_outputs = request["response_outputs"]
 
-            self._preprocess_response(res_timestamps, res_outputs)
+                self._preprocess_response(res_timestamps, res_outputs)
 
-            # Skip requests with empty response. This happens sometimes when the
-            # model returns a single response with empty string.
-            if not res_timestamps:
-                continue
+                # Skip requests with empty response. This happens sometimes when the
+                # model returns a single response with empty string.
+                if not res_timestamps:
+                    pbar.update(1)
+                    continue
 
-            # track entire benchmark duration
-            min_req_timestamp = min(min_req_timestamp, req_timestamp)
-            max_res_timestamp = max(max_res_timestamp, res_timestamps[-1])
+                # track entire benchmark duration
+                min_req_timestamp = min(min_req_timestamp, req_timestamp)
+                max_res_timestamp = max(max_res_timestamp, res_timestamps[-1])
 
-            # request latencies
-            req_latency_ns = res_timestamps[-1] - req_timestamp
-            request_latencies.append(req_latency_ns)  # nanosec
-            req_latency_s = req_latency_ns / 1e9  # sec
+                # request latencies
+                req_latency_ns = res_timestamps[-1] - req_timestamp
+                request_latencies.append(req_latency_ns)  # nanosec
+                req_latency_s = req_latency_ns / 1e9  # sec
 
-            # time to first token
-            ttft = res_timestamps[0] - req_timestamp
-            time_to_first_tokens.append(ttft)
+                # time to first token
+                ttft = res_timestamps[0] - req_timestamp
+                time_to_first_tokens.append(ttft)
 
-            # time to second token (if available)
-            if len(res_timestamps) > 1:
-                ttst = res_timestamps[1] - res_timestamps[0]
-                time_to_second_tokens.append(ttst)
+                # time to second token (if available)
+                if len(res_timestamps) > 1:
+                    ttst = res_timestamps[1] - res_timestamps[0]
+                    time_to_second_tokens.append(ttst)
 
-            # number of input tokens
-            input_seq_len = self._get_input_token_count(req_inputs)
-            input_sequence_lengths.append(input_seq_len)
+                # number of input tokens
+                input_seq_len = self._get_input_token_count(req_inputs)
+                input_sequence_lengths.append(input_seq_len)
 
-            # output token throughput per request
-            output_token_counts, total_output_token = self._get_output_token_counts(
-                res_outputs
-            )
-            output_token_throughputs_per_request.append(
-                total_output_token / req_latency_s
-            )
-            output_sequence_lengths.append(total_output_token)
+                # output token throughput per request
+                output_token_counts, total_output_token = self._get_output_token_counts(
+                    res_outputs
+                )
+                output_token_throughputs_per_request.append(
+                    total_output_token / req_latency_s
+                )
+                output_sequence_lengths.append(total_output_token)
 
-            # inter token latencies
-            if total_output_token > 1:
-                inter_token_latency = (req_latency_ns - ttft) / (total_output_token - 1)
-                inter_token_latencies.append(round(inter_token_latency))
+                # inter token latencies
+                if total_output_token > 1:
+                    inter_token_latency = (req_latency_ns - ttft) / (total_output_token - 1)
+                    inter_token_latencies.append(round(inter_token_latency))
 
-            # The new ITL calculation above loses all token-level ITL information
-            # and as a result breaks ITL vs token position visualization. Keep
-            # the old version of inter token latency as a WAR to preserve the
-            # visualization.
-            chunked_inter_token_latency = []
-            for (t1, _), (t2, n2) in self._pairwise(
-                zip(res_timestamps, output_token_counts)
-            ):
-                # TMA-1676: handle empty first/last responses
-                # if the latter response has zero token (e.g. empty string),
-                # then set it default to one for the sake of inter token latency
-                # calculation and to avoid divide by zero.
-                num_token = 1 if n2 == 0 else n2
-                chunked_inter_token_latency.append(round((t2 - t1) / num_token))
-            chunked_inter_token_latencies.append(chunked_inter_token_latency)
+                # The new ITL calculation above loses all token-level ITL information
+                # and as a result breaks ITL vs token position visualization. Keep
+                # the old version of inter token latency as a WAR to preserve the
+                # visualization.
+                chunked_inter_token_latency = []
+                for (t1, _), (t2, n2) in self._pairwise(
+                    zip(res_timestamps, output_token_counts)
+                ):
+                    # TMA-1676: handle empty first/last responses
+                    # if the latter response has zero token (e.g. empty string),
+                    # then set it default to one for the sake of inter token latency
+                    # calculation and to avoid divide by zero.
+                    num_token = 1 if n2 == 0 else n2
+                    chunked_inter_token_latency.append(round((t2 - t1) / num_token))
+                chunked_inter_token_latencies.append(chunked_inter_token_latency)
+                
+                pbar.update(1)
 
         # request & output token throughput
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
