@@ -307,9 +307,7 @@ class Analyze:
                     self._model_name, InputSequenceLengthP99.tag
                 )
             )
-            num_dataset_entries = run_config.genai_perf_config.get_parameters()[
-                "num_dataset_entries"
-            ]
+            num_dataset_entries = self._get_num_dataset_entries(run_config)
 
             metrics = []
             for tag in Analyze.PERF_METRICS_TAGS:
@@ -394,4 +392,14 @@ class Analyze:
             else:
                 infer_type = "concurrency"
 
-        return infer_type
+    def _get_num_dataset_entries(self, run_config: RunConfig) -> int:
+        if "num_dataset_entries" in self._config.analyze.sweep_parameters:
+            num_dataset_entries = run_config.genai_perf_config.get_parameters()[
+                "num_dataset_entries"
+            ]
+        else:
+            num_dataset_entries = run_config.genai_perf_config.get_parameters()[
+                "input"
+            ]["num_dataset_entries"]
+
+        return num_dataset_entries
