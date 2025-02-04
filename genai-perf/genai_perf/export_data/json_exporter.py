@@ -31,7 +31,6 @@ from enum import Enum
 from typing import Dict, Union
 
 import genai_perf.logging as logging
-from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
 from genai_perf.export_data.exporter_config import ExporterConfig
 

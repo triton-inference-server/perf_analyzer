@@ -28,7 +28,6 @@
 import csv
 
 import genai_perf.logging as logging
-from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 
 from . import exporter_utils
 from . import telemetry_data_exporter_util as telem_utils
