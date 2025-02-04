@@ -6,3 +6,6 @@ artifacts/
 
 # Avoid squashing local people's file for now
 /.vscode
+
+# Ignore files that define env variables (e.g. devcontainer.env)
+*.env
