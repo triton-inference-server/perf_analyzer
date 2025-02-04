@@ -39,12 +39,12 @@ def run():
     # TMA-1900: refactor CLI handler
     logging.init_logging()
     args, config, extra_args = parser.parse_args()
-    if args.subcommand == "compare":
+    if config.subcommand == "compare":
         args.func(config)
-    elif args.subcommand == "analyze":
+    elif config.subcommand == "analyze":
         args.func(config, extra_args)
     else:  # profile
-        args.func(config, extra_args)
+        arg.func(config, extra_args)
 
 
 def main():

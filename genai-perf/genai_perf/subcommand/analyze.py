@@ -131,9 +131,7 @@ class Analyze:
         self._extra_args = extra_args
         self._model_name = self._config.model_names[0]
         self._model_search_parameters = {
-            self._model_name: SearchParameters(
-                config=self._config, subcommand=Subcommand.ANALYZE
-            )
+            self._model_name: SearchParameters(config=self._config)
         }
         self._sweep_objective_generator = SweepObjectiveGenerator(
             self._config, self._model_search_parameters

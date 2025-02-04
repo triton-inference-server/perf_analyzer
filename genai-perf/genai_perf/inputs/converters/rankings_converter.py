@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -94,6 +94,7 @@ class RankingsConverter(BaseConverter):
         return False
 
     def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
-            if not (key == "rankings" and value == "tei"):
-                payload[key] = value
+        if config.extra_inputs:
+            for key, value in config.extra_inputs.items():
+                if not (key == "rankings" and value == "tei"):
+                    payload[key] = value

@@ -14,6 +14,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from typing import Any
 
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 

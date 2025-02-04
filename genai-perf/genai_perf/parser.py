@@ -1013,7 +1013,7 @@ def init_parsers():
     _ = _parse_compare_args(subparsers)
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
-    subparsers.required = True
+    subparsers.required = False
 
     return parser
 
@@ -1164,7 +1164,14 @@ def parse_args():
     parser = init_parsers()
     passthrough_index = get_passthrough_args_index(argv)
 
-    if subcommand_found(argv):
+    # Assumption is that the subcommand will be implied by
+    # the fields set in the config file
+    if (
+        subcommand_found(argv)
+        or "-h" in argv
+        or "--help" in argv
+        or "--version" in argv
+    ):
         args = parser.parse_args(argv[1:passthrough_index])
         args = refine_args(parser, args)
 
@@ -1173,11 +1180,32 @@ def parse_args():
 
         return args, config, argv[passthrough_index + 1 :]
     else:
-        args = parser.parse_args(argv[1:passthrough_index])
-
-        # The last argument must be the user config file
-        user_config = utils.load_yaml(argv[-1])
+        # Assumption is the last argument before the
+        # passthrough is the user config file
+        user_config = utils.load_yaml(argv[passthrough_index - 1])
         config = ConfigCommand(user_config)
+
+        #
+        # Parse Args
+
+        # Set subcommand
+        if config.analyze.get_field("sweep_parameters").is_set_by_user:
+            config_args = ["analyze"]
+        else:
+            config_args = ["profile"]
+
+        # Setup args in the way that argparse expects
+        config_args += ["-m", config.model_names[0]]
+        config_args += argv[1 : passthrough_index - 2]
+
+        args = parser.parse_args(config_args)
+
+        config.subcommand = ConfigField(
+            default="profile", value=args.subcommand, required=True
+        )
+
+        # Set verbose
+        config.verbose = ConfigField(default=False, value=args.verbose)
 
         return args, config, argv[passthrough_index + 1 :]
 
