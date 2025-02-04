@@ -173,45 +173,44 @@ class PerfAnalyzerConfig:
         config: ConfigCommand,
         model_objective_parameters: Optional[ModelObjectiveParameters],
     ) -> List[str]:
-        if not model_objective_parameters:
-            if "concurrency" in config.perf_analyzer.stimulus:
-                concurrency = config.perf_analyzer.stimulus["concurrency"]
-                return [f"concurrency{concurrency}"]
-            elif "request_rate" in config.perf_analyzer.stimulus:
-                request_rate = config.perf_analyzer.stimulus["request_rate"]
-                return [f"request_rate{request_rate}"]
-            else:
-                raise GenAIPerfException(f"Stimulus type not found in config")
+        if model_objective_parameters:
+            stimulus = self._get_artifact_stimulus_based_on_objective(
+                model_objective_parameters
+            )
         else:
-            parameters = model_objective_parameters[self._model_name]
+            stimulus = self._get_artifact_stimulus_based_on_config(config)
 
-            if "concurrency" in parameters:
-                concurrency = str(
-                    parameters["concurrency"].get_value_based_on_category()
-                )
-                stimulus = [f"concurrency{concurrency}"]
-            elif "request_rate" in parameters:
-                request_rate = str(
-                    parameters["request_rate"].get_value_based_on_category()
-                )
-                stimulus = [f"request_rate{request_rate}"]
-            elif "input_sequence_length" in parameters:
-                input_sequence_length = str(
-                    parameters["input_sequence_length"].get_value_based_on_category()
-                )
-                stimulus = [f"input_sequence_length{input_sequence_length}"]
-            elif "num_dataset_entries" in parameters:
-                input_sequence_length = str(
-                    parameters["num_dataset_entries"].get_value_based_on_category()
-                )
-                stimulus = [f"num_dataset_entries{input_sequence_length}"]
-            elif "runtime_batch_size" in parameters:
-                runtime_batch_size = str(
-                    parameters["runtime_batch_size"].get_value_based_on_category()
-                )
-                stimulus = [f"batch_size{runtime_batch_size}"]
+        return stimulus
 
-            return stimulus
+    def _get_artifact_stimulus_based_on_config(
+        self, config: ConfigCommand
+    ) -> List[str]:
+        if "concurrency" in config.perf_analyzer.stimulus:
+            concurrency = config.perf_analyzer.stimulus["concurrency"]
+            stimulus = [f"concurrency{concurrency}"]
+        elif "request_rate" in config.perf_analyzer.stimulus:
+            request_rate = config.perf_analyzer.stimulus["request_rate"]
+            stimulus = [f"request_rate{request_rate}"]
+        else:
+            raise GenAIPerfException(f"Stimulus type not found in config")
+
+        return stimulus
+
+    def _get_artifact_stimulus_based_on_objective(
+        self, model_objective_parameters: ModelObjectiveParameters
+    ) -> List[str]:
+        stimulus = []
+        for objective in model_objective_parameters.values():
+            for name, parameter in objective.items():
+                # Need to ensure that every artifact directory is unique
+                # so we also include GAP parameters in the name
+                if (
+                    parameter.usage == SearchUsage.RUNTIME_PA
+                    or parameter.usage == SearchUsage.RUNTIME_GAP
+                ):
+                    stimulus.append(f"{name}{parameter.get_value_based_on_category()}")
+
+        return stimulus
 
     def _add_verbose_args(self, config: ConfigCommand) -> List[str]:
         verbose_args = []
