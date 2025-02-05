@@ -865,6 +865,16 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
+        "--rpc",
+        type=str,
+        required=False,
+        help="A fully-qualified gRPC method name in "
+        "'<package>.<service>/<method>' format. The option is only "
+        "supported by dynamic gRPC is used to identify "
+        "the RPC to use when sending requests to the server.",
+    )
+
+    input_group.add_argument(
         "--synthetic-input-tokens-mean",
         "--isl",
         type=int,
