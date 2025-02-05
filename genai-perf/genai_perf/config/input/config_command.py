@@ -145,38 +145,9 @@ class ConfigCommand(BaseConfig):
     ###########################################################################
     def _set_artifact_directory(self) -> None:
         if not self.output.get_field("artifact_directory").is_set_by_user:
-            model_name = self.model_names[0]
-
-            # Preprocess Huggingface model names that include '/' in their model name.
-            if (model_name is not None) and ("/" in model_name):
-                filtered_name = "_".join(model_name.split("/"))
-                logger.info(
-                    f"Model name '{model_name}' cannot be used to create artifact "
-                    f"directory. Instead, '{filtered_name}' will be used."
-                )
-                name = [f"{filtered_name}"]
-            else:
-                name = [f"{model_name}"]
-
-            if self.endpoint.service_kind == "openai":
-                name += [f"{self.endpoint.service_kind}-{self.endpoint.type}"]
-            elif self.endpoint.service_kind == "triton":
-                name += [
-                    f"{self.endpoint.service_kind}-{self.endpoint.backend.to_lowercase()}"
-                ]
-            elif self.endpoint.service_kind == "tensorrtllm_engine":
-                name += [f"{self.endpoint.service_kind}"]
-            else:
-                raise ValueError(
-                    f"Unknown service kind '{self.endpoint.service_kind}'."
-                )
-
-            if "concurrency" in self.perf_analyzer.stimulus:
-                concurrency = self.perf_analyzer.stimulus["concurrency"]
-                name += [f"concurrency{concurrency}"]
-            elif "request_rate" in self.perf_analyzer.stimulus:
-                request_rate = self.perf_analyzer.stimulus["request_rate"]
-                name += [f"request_rate{request_rate}"]
+            name = self._preprocess_model_name(self.model_names[0])
+            name += self._process_service_kind()
+            name += self._process_stimulus()
 
             self.output.artifact_directory = self.output.artifact_directory / Path(
                 "-".join(name)
@@ -189,6 +160,40 @@ class ConfigCommand(BaseConfig):
                     "Please use artifact_directory option to define intermediary paths to "
                     "the profile_export_file."
                 )
+
+    def _preprocess_model_name(self, model_name: str) -> List[str]:
+        # Preprocess Huggingface model names that include '/' in their model name.
+        if (model_name is not None) and ("/" in model_name):
+            filtered_name = "_".join(model_name.split("/"))
+            logger.info(
+                f"Model name '{model_name}' cannot be used to create artifact "
+                f"directory. Instead, '{filtered_name}' will be used."
+            )
+            return [f"{filtered_name}"]
+        else:
+            return [f"{model_name}"]
+
+    def _process_service_kind(self) -> List[str]:
+        if self.endpoint.service_kind == "openai":
+            return [f"{self.endpoint.service_kind}-{self.endpoint.type}"]
+        elif self.endpoint.service_kind == "triton":
+            return [
+                f"{self.endpoint.service_kind}-{self.endpoint.backend.to_lowercase()}"
+            ]
+        elif self.endpoint.service_kind == "tensorrtllm_engine":
+            return [f"{self.endpoint.service_kind}"]
+        else:
+            raise ValueError(f"Unknown service kind '{self.endpoint.service_kind}'.")
+
+    def _process_stimulus(self) -> List[str]:
+        if "concurrency" in self.perf_analyzer.stimulus:
+            concurrency = self.perf_analyzer.stimulus["concurrency"]
+            return [f"concurrency{concurrency}"]
+        elif "request_rate" in self.perf_analyzer.stimulus:
+            request_rate = self.perf_analyzer.stimulus["request_rate"]
+            return [f"request_rate{request_rate}"]
+        else:
+            return []
 
     ###########################################################################
     # Utility Methods
