@@ -227,11 +227,19 @@ class TestCLIArguments:
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
             (["--request-count", "100"], {"request_count": 100}),
+            (
+                ["--rpc", "nvidia.maxine.audio2face2d.v1.Audio2Face2DService/Animate"],
+                {"rpc": "nvidia.maxine.audio2face2d.v1.Audio2Face2DService/Animate"},
+            ),
             (["--num-requests", "100"], {"request_count": 100}),
             (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
             (["--num-warmup-requests", "100"], {"warmup_request_count": 100}),
             (["--request-rate", "9.0"], {"request_rate": 9.0}),
             (["-s", "99.5"], {"stability_percentage": 99.5}),
+            (
+                ["--service-kind", "dynamic_grpc"],
+                {"service_kind": "dynamic_grpc", "endpoint_type": "dynamic_grpc"},
+            ),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
             (
                 ["--service-kind", "tensorrtllm_engine"],
@@ -795,6 +803,17 @@ class TestCLIArguments:
                     "vllm",
                 ],
                 "Invalid endpoint-type 'kserve' for service-kind 'openai'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "unknown_service",
+                ],
+                "--service-kind: invalid choice: 'unknown_service'",
             ),
         ],
     )

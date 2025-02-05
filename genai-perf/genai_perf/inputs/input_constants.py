@@ -48,6 +48,7 @@ class OutputFormat(Enum):
     # Other output formats
     ################################################################
     IMAGE_RETRIEVAL = auto()
+    DYANMIC_GRPC = auto()
     NVCLIP = auto()
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()

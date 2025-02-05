@@ -32,9 +32,6 @@ import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON, PromptSource
 from genai_perf.inputs.inputs import OutputFormat
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +40,7 @@ class Profiler:
     @staticmethod
     def add_protocol_args(args: Namespace) -> List[str]:
         cmd = []
-        if args.service_kind == "triton":
+        if args.service_kind in ["dynamic_grpc", "triton"]:
             cmd += ["-i", "grpc", "--streaming"]
             if args.u is None:  # url
                 cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
@@ -129,14 +126,16 @@ class Profiler:
 
         utils.remove_file(args.profile_export_file)
 
+        # TODO: Temp, remove below change
         cmd = [
-            f"perf_analyzer",
-            f"-m",
-            f"{args.formatted_model_name}",
-            f"--async",
+            f"build/install/bin/perf_analyzer",
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
+
+        if args.service_kind != "dynamic_grpc":
+            extra_base_args = ["--async", "-m", f"{args.formatted_model_name}"]
+            cmd.extend(extra_base_args)
 
         cmd += Profiler.add_inference_load_args(args)
         cmd += Profiler.add_payload_args(args)

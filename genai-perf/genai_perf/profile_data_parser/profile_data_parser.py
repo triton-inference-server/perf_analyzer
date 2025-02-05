@@ -114,7 +114,7 @@ class ProfileDataParser:
                 else:
                     raise RuntimeError("Unknown OpenAI response format.")
 
-        elif self._service_kind == "triton":
+        elif self._service_kind in ["dynamic_grpc", "triton"]:
             self._response_format = ResponseFormat.TRITON
         elif self._service_kind == "triton_c_api":
             pass  # ignore
