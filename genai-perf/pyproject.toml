@@ -48,7 +48,7 @@ keywords = []
 requires-python = ">=3.10,<4"
 dependencies = [
   "tritonclient",
-  "numpy<2",
+  "numpy",
   "pytest",
   "rich",
   "transformers",
