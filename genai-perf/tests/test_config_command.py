@@ -133,7 +133,7 @@ class TestConfigCommand(unittest.TestCase):
                 type: kserve
                 service_kind: triton
                 streaming: True
-                server_metrics_url: "test_server_metrics_url"
+                server_metrics_url: "http://test_server_metrics_url:8002/metrics"
                 url: "test_url"
             """)
         # yapf: enable
@@ -150,7 +150,8 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.endpoint.service_kind, "triton")
         self.assertEqual(config.endpoint.streaming, True)
         self.assertEqual(
-            config.endpoint.server_metrics_url, ["test_server_metrics_url"]
+            config.endpoint.server_metrics_urls,
+            ["http://test_server_metrics_url:8002/metrics"],
         )
         self.assertEqual(config.endpoint.url, "test_url")
 

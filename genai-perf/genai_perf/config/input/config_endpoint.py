@@ -66,7 +66,7 @@ class ConfigEndPoint(BaseConfig):
             elif key == "streaming":
                 self.streaming = value
             elif key == "server_metrics_url" or key == "server_metrics_urls":
-                self.server_metrics_url = self._parse_server_metrics_url(value)
+                self.server_metrics_urls = self._parse_server_metrics_url(value)
             elif key == "url":
                 self.url = value
             else:

@@ -138,6 +138,9 @@ def create_telemetry_data_collectors(
     if not config.endpoint.service_kind == "triton":
         return telemetry_collectors
 
+    if not config.endpoint.server_metrics_urls:
+        config.endpoint.server_metrics_urls = [DEFAULT_TRITON_METRICS_URL]
+
     for url in config.endpoint.server_metrics_urls:
         collector = TritonTelemetryDataCollector(url.strip())
         if collector.is_url_reachable():

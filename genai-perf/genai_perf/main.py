@@ -44,7 +44,7 @@ def run():
     elif config.subcommand == "analyze":
         args.func(config, extra_args)
     else:  # profile
-        arg.func(config, extra_args)
+        args.func(config, extra_args)
 
 
 def main():

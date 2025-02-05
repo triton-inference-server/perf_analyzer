@@ -62,8 +62,8 @@ class EndPointDefaults:
     TYPE = ""
     SERVICE_KIND = "triton"
     STREAMING = False
-    SERVER_METRICS_URL = ["http://localhost:8002/metrics"]
-    URL = "http://localhost:8001"
+    SERVER_METRICS_URL = None
+    URL = ""
 
 
 @dataclass(frozen=True)

@@ -1088,8 +1088,13 @@ def add_cli_options_to_config(
     config.endpoint.type = args.endpoint_type
     config.endpoint.service_kind = args.service_kind
     config.endpoint.streaming = args.streaming
-    config.endpoint.server_metrics_urls = args.server_metrics_url
-    config.endpoint.url = args.u
+
+    if args.server_metrics_url:
+        config.endpoint.server_metrics_urls = args.server_metrics_url
+
+    if args.u:
+        config.endpoint.url = args.u
+
     config.endpoint.output_format = args.output_format
 
     # Perf Analyzer
