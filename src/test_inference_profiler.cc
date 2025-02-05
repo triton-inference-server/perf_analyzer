@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -1106,7 +1106,8 @@ TEST_CASE("summarize_client_stat: testing the SummarizeClientStat function")
 
   SUBCASE("testing logic relevant to response throughput metric")
   {
-    mock_inference_profiler.parser_ = std::make_shared<MockModelParser>();
+    mock_inference_profiler.parser_ =
+        std::make_shared<MockModelParser>(cb::BackendKind::TRITON);
     mock_inference_profiler.manager_ = std::make_unique<MockLoadManager>();
 
     const cb::InferStat start_stat{};
