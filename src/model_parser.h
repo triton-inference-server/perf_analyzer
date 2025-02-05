@@ -68,9 +68,8 @@ class ModelParser {
     ENSEMBLE_SEQUENCE
   };
 
-  explicit ModelParser(cb::BackendKind backend_kind, bool streaming = false)
-      : backend_kind_(backend_kind),
-        inputs_(std::make_shared<ModelTensorMap>()),
+  explicit ModelParser(bool streaming = false)
+      : inputs_(std::make_shared<ModelTensorMap>()),
         outputs_(std::make_shared<ModelTensorMap>()),
         composing_models_map_(std::make_shared<ComposingModelMap>()),
         scheduler_type_(NONE), max_batch_size_(0), is_decoupled_(false),
