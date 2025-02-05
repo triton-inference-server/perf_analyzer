@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,11 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
+from genai_perf.inputs.input_constants import DEFAULT_CORPUS_FILE
+from genai_perf.logging import logging
 from genai_perf.tokenizer import Tokenizer
+
+logger = logging.getLogger(__name__)
 
 
 class SyntheticPromptGenerator:
@@ -26,6 +30,7 @@ class SyntheticPromptGenerator:
     _tokenized_corpus = None
     _corpus_length = 0
     _prefix_prompts: List[str] = []
+    logger = logging.getLogger(__name__)
 
     @classmethod
     def create_synthetic_prompt(
@@ -74,14 +79,16 @@ class SyntheticPromptGenerator:
         return prompt
 
     @classmethod
-    def _initialize_corpus(cls, tokenizer: Tokenizer):
+    def _initialize_corpus(
+        cls, tokenizer: Tokenizer, corpus_file: str = DEFAULT_CORPUS_FILE
+    ) -> None:
         """
         Load and tokenize the corpus once, storing it for reuse.
 
         Args:
             tokenizer: Tokenizer for tokenizing the corpus.
         """
-        corpus_path = pathlib.Path(__file__).parent / "sonnets.txt"
+        corpus_path = pathlib.Path(__file__).parent / corpus_file
 
         with open(corpus_path, "r") as f:
             lines = f.readlines()
@@ -118,6 +125,11 @@ class SyntheticPromptGenerator:
         """
         if not cls._tokenized_corpus:
             raise ValueError("Tokenized corpus is not initialized.")
+        if num_tokens > cls._corpus_length:
+            logger.warning(
+                f"Requested prompt length {num_tokens} is longer than the corpus. "
+                f"Returning a prompt of length {cls._corpus_length}."
+            )
 
         start_idx = random.randrange(cls._corpus_length)
 
