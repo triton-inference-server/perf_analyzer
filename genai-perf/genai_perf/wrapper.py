@@ -121,10 +121,10 @@ class Profiler:
 
         if args.prompt_source == PromptSource.PAYLOAD:
             skip_args += [
+                "measurement_interval",
+                "request_count",
                 "stability_percentage",
                 "warmup_request_count",
-                "request_count",
-                "measurement_interval",
             ]
 
         utils.remove_file(args.profile_export_file)
@@ -137,9 +137,10 @@ class Profiler:
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
-        cmd += Profiler.add_protocol_args(args)
-        cmd += Profiler.add_payload_args(args)
+
         cmd += Profiler.add_inference_load_args(args)
+        cmd += Profiler.add_payload_args(args)
+        cmd += Profiler.add_protocol_args(args)
 
         for arg, value in vars(args).items():
             if arg in skip_args:

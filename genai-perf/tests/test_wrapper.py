@@ -206,7 +206,7 @@ class TestWrapper:
 
         assert "--fixed-schedule" in cmd_string
 
-    def test_skipped_args_for_payload_input_not_in_cmd(self, monkeypatch, mocker):
+    def test_payload_skipped_args_not_in_cmd(self, monkeypatch, mocker):
         args = [
             "genai-perf",
             "profile",
