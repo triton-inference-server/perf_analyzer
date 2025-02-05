@@ -195,7 +195,7 @@ class TestWrapper:
             "-m",
             "test_model",
             "--input-file",
-            "payload:input",
+            "payload:input.jsonl",
         ]
         mocker.patch.object(Path, "is_file", return_value=True)
         mocker.patch("genai_perf.utils.remove_file")
@@ -213,7 +213,7 @@ class TestWrapper:
             "-m",
             "test_model",
             "--input-file",
-            "payload:input",
+            "payload:input.jsonl",
         ]
 
         mocker.patch.object(Path, "is_file", return_value=True)

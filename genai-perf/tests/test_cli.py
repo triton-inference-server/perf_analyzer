@@ -918,12 +918,12 @@ class TestCLIArguments:
                 None,
             ),
             (
-                ["--input-file", "payload:test"],
+                ["--input-file", "payload:test.jsonl"],
                 PromptSource.PAYLOAD,
                 Path("test.jsonl"),
             ),
             (
-                ["--input-file", "synthetic:test"],
+                ["--input-file", "synthetic:test.jsonl"],
                 PromptSource.SYNTHETIC,
                 None,
             ),
@@ -948,7 +948,7 @@ class TestCLIArguments:
         "args",
         [
             (["--input-file", "payload:"]),
-            (["--input-file", "payload:input.jsonl"]),
+            (["--input-file", "payload:input"]),
         ],
     )
     def test_inferred_prompt_source_invalid_payload_input(
@@ -1022,7 +1022,7 @@ class TestCLIArguments:
             "-m",
             "test_model",
             "--input-file",
-            "payload:test",
+            "payload:test.jsonl",
         ] + args
 
         mocker.patch.object(Path, "is_file", return_value=True)
@@ -1039,7 +1039,7 @@ class TestCLIArguments:
             "-m",
             "test_model",
             "--input-file",
-            "payload:test",
+            "payload:test.jsonl",
         ]
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", valid_args)
