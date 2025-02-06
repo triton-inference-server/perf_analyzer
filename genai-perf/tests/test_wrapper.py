@@ -185,3 +185,35 @@ class TestWrapper:
                 assert (
                     False
                 ), f"Missing expected header flag: {expected_flag} or value: {expected_value}"
+
+    @pytest.mark.parametrize(
+        "session_arg, expected_session_arg",
+        [
+            (["--session-concurrency", "5"], "--session-concurrency 5"),
+            ([], "--session-concurrency 1"),
+            (
+                ["--num-sessions", "7", "--session-concurrency", "5"],
+                "--session-concurrency 5",
+            ),
+            # [TPA-962] Uncomment when session rate supported in PA
+            # (["--session-rate", "4"], "--session-rate 4"),
+            # (["--num-sessions", "7", "--session-rate", "5"], "--session-concurrency 5"),
+        ],
+    )
+    def test_session_args_passed_correctly(
+        self, monkeypatch, session_arg, expected_session_arg
+    ):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--num-sessions",
+            "7",
+        ] + session_arg
+
+        monkeypatch.setattr("sys.argv", args)
+        args, extra_args = parser.parse_args()
+        cmd = Profiler.build_cmd(args, extra_args)
+        cmd_string = " ".join(cmd)
+        assert expected_session_arg in cmd_string

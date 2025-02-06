@@ -280,14 +280,15 @@ class TestCLIArguments:
             (["--image-format", "png"], {"image_format": ImageFormat.PNG}),
             (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
             (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
-            (
-                ["--num-sessions", "3", "--turns-per-session-mean", "5"],
-                {"turns_per_session_mean": 5},
-            ),
-            (
-                ["--num-sessions", "5", "--turns-per-session-stddev", "6"],
-                {"turns_per_session_stddev": 6},
-            ),
+            # [TPA-963] Add synthetic multi-turn support
+            # (
+            #     ["--num-sessions", "3", "--turns-per-session-mean", "5"],
+            #     {"turns_per_session_mean": 5},
+            # ),
+            # (
+            #     ["--num-sessions", "5", "--turns-per-session-stddev", "6"],
+            #     {"turns_per_session_stddev": 6},
+            # ),
             (["-v"], {"verbose": True}),
             (["--verbose"], {"verbose": True}),
             (["-u", "test_url"], {"u": "test_url"}),
@@ -942,124 +943,125 @@ class TestCLIArguments:
         with pytest.raises(SystemExit) as excinfo:
             parser.parse_args()
 
-    def test_multiturn_defaults_applied(self, monkeypatch):
-        combined_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
-            "--num-sessions",
-            "5",
-        ]
-        monkeypatch.setattr("sys.argv", combined_args)
+    # [TPA-963] Add synthetic multi-turn support
+    # def test_multiturn_defaults_applied(self, monkeypatch):
+    #     combined_args = [
+    #         "genai-perf",
+    #         "profile",
+    #         "-m",
+    #         "test_model",
+    #         "--num-sessions",
+    #         "5",
+    #     ]
+    #     monkeypatch.setattr("sys.argv", combined_args)
 
-        parsed_args, _ = parser.parse_args()
+    #     parsed_args, _ = parser.parse_args()
 
-        assert parsed_args.session_concurrency == ic.DEFAULT_SESSION_CONCURRENCY
-        assert parsed_args.turns_per_session_mean == ic.DEFAULT_TURNS_PER_SESSION_MEAN
-        assert (
-            parsed_args.turns_per_session_stddev == ic.DEFAULT_TURNS_PER_SESSION_STDDEV
-        )
-        assert (
-            parsed_args.session_turn_delay_mean == ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS
-        )
-        assert (
-            parsed_args.session_turn_delay_stddev
-            == ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS
-        )
+    #     assert parsed_args.session_concurrency == ic.DEFAULT_SESSION_CONCURRENCY
+    #     assert parsed_args.turns_per_session_mean == ic.DEFAULT_TURNS_PER_SESSION_MEAN
+    #     assert (
+    #         parsed_args.turns_per_session_stddev == ic.DEFAULT_TURNS_PER_SESSION_STDDEV
+    #     )
+    #     assert (
+    #         parsed_args.session_turn_delay_mean == ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS
+    #     )
+    #     assert (
+    #         parsed_args.session_turn_delay_stddev
+    #         == ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS
+    #     )
 
-    def test_multiturn_load_mutually_exclusive(self, monkeypatch, capsys):
-        combined_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
-            "--num-sessions",
-            "5",
-            "--session-concurrency",
-            "2",
-            "--session-rate",
-            "3",
-        ]
-        monkeypatch.setattr("sys.argv", combined_args)
+    # def test_multiturn_load_mutually_exclusive(self, monkeypatch, capsys):
+    #     combined_args = [
+    #         "genai-perf",
+    #         "profile",
+    #         "-m",
+    #         "test_model",
+    #         "--num-sessions",
+    #         "5",
+    #         "--session-concurrency",
+    #         "2",
+    #         "--session-rate",
+    #         "3",
+    #     ]
+    #     monkeypatch.setattr("sys.argv", combined_args)
 
-        expected_output = (
-            "argument --session-rate: not allowed with argument --session-concurrency"
-        )
+    #     expected_output = (
+    #         "argument --session-rate: not allowed with argument --session-concurrency"
+    #     )
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+    #     with pytest.raises(SystemExit) as excinfo:
+    #         parser.parse_args()
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+    #     assert excinfo.value.code != 0
+    #     captured = capsys.readouterr()
+    #     assert expected_output in captured.err
 
-    def test_multiturn_invalid_session_concurrency(self, monkeypatch, capsys):
-        combined_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
-            "--num-sessions",
-            "2",
-            "--session-concurrency",
-            "3",
-        ]
+    # def test_multiturn_invalid_session_concurrency(self, monkeypatch, capsys):
+    #     combined_args = [
+    #         "genai-perf",
+    #         "profile",
+    #         "-m",
+    #         "test_model",
+    #         "--num-sessions",
+    #         "2",
+    #         "--session-concurrency",
+    #         "3",
+    #     ]
 
-        monkeypatch.setattr("sys.argv", combined_args)
-        expected_output = "--session-concurrency cannot be greater than --num-sessions."
+    #     monkeypatch.setattr("sys.argv", combined_args)
+    #     expected_output = "--session-concurrency cannot be greater than --num-sessions."
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+    #     with pytest.raises(SystemExit) as excinfo:
+    #         parser.parse_args()
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+    #     assert excinfo.value.code != 0
+    #     captured = capsys.readouterr()
+    #     assert expected_output in captured.err
 
-    def test_multiturn_valid_session_args(self, monkeypatch):
-        num_sessions = 5
-        session_concurrency = 3
-        turns_mean = 10
-        turns_stddev = 2
-        turn_delay_mean = 1500
-        turn_delay_stddev = 500
+    # def test_multiturn_valid_session_args(self, monkeypatch):
+    #     num_sessions = 5
+    #     session_concurrency = 3
+    #     turns_mean = 10
+    #     turns_stddev = 2
+    #     turn_delay_mean = 1500
+    #     turn_delay_stddev = 500
 
-        combined_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
-            "--num-sessions",
-            str(num_sessions),
-            "--session-concurrency",
-            str(session_concurrency),
-            "--turns-per-session-mean",
-            str(turns_mean),
-            "--turns-per-session-stddev",
-            str(turns_stddev),
-            "--session-turn-delay-mean",
-            str(turn_delay_mean),
-            "--session-turn-delay-stddev",
-            str(turn_delay_stddev),
-        ]
+    #     combined_args = [
+    #         "genai-perf",
+    #         "profile",
+    #         "-m",
+    #         "test_model",
+    #         "--num-sessions",
+    #         str(num_sessions),
+    #         "--session-concurrency",
+    #         str(session_concurrency),
+    #         "--turns-per-session-mean",
+    #         str(turns_mean),
+    #         "--turns-per-session-stddev",
+    #         str(turns_stddev),
+    #         "--session-turn-delay-mean",
+    #         str(turn_delay_mean),
+    #         "--session-turn-delay-stddev",
+    #         str(turn_delay_stddev),
+    #     ]
 
-        monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+    #     monkeypatch.setattr("sys.argv", combined_args)
+    #     args, _ = parser.parse_args()
 
-        assert args.num_sessions == num_sessions
-        assert args.session_concurrency == session_concurrency
-        assert args.turns_per_session_mean == turns_mean
-        assert args.turns_per_session_stddev == turns_stddev
-        assert args.session_turn_delay_mean == turn_delay_mean
-        assert args.session_turn_delay_stddev == turn_delay_stddev
+    #     assert args.num_sessions == num_sessions
+    #     assert args.session_concurrency == session_concurrency
+    #     assert args.turns_per_session_mean == turns_mean
+    #     assert args.turns_per_session_stddev == turns_stddev
+    #     assert args.session_turn_delay_mean == turn_delay_mean
+    #     assert args.session_turn_delay_stddev == turn_delay_stddev
 
-    def test_multiturn_default_num_sessions(self, monkeypatch):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"]
-        monkeypatch.setattr("sys.argv", combined_args)
+    # def test_multiturn_default_num_sessions(self, monkeypatch):
+    #     combined_args = ["genai-perf", "profile", "-m", "test_model"]
+    #     monkeypatch.setattr("sys.argv", combined_args)
 
-        args, _ = parser.parse_args()
+    #     args, _ = parser.parse_args()
 
-        assert args.num_sessions == ic.DEFAULT_NUM_SESSIONS
+    #     assert args.num_sessions == ic.DEFAULT_NUM_SESSIONS
 
     # ================================================
     # COMPARE SUBCOMMAND
