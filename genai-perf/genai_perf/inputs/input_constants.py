@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -48,6 +48,7 @@ class OutputFormat(Enum):
     # Other output formats
     ################################################################
     IMAGE_RETRIEVAL = auto()
+    DYANMIC_GRPC = auto()
     NVCLIP = auto()
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ class Profiler:
     @staticmethod
     def add_protocol_args(args: Namespace) -> List[str]:
         cmd = []
-        if args.service_kind == "triton":
+        if args.service_kind in ["dynamic_grpc", "triton"]:
             cmd += ["-i", "grpc", "--streaming"]
             if args.u is None:  # url
                 cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
@@ -113,17 +113,18 @@ class Profiler:
 
         utils.remove_file(args.profile_export_file)
 
+        # TODO: Temp, remove below change
         cmd = [
-            f"perf_analyzer",
+            f"build/install/bin/perf_analyzer",
             f"-m",
             f"{args.formatted_model_name}",
-            f"--async",
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
+        if args.service_kind != "dynamic_grpc":
+            cmd += "--async"
         cmd += Profiler.add_protocol_args(args)
         cmd += Profiler.add_inference_load_args(args)
-
         for arg, value in vars(args).items():
             if arg in skip_args:
                 pass

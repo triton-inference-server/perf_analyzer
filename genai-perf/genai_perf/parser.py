@@ -40,12 +40,9 @@ from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-from genai_perf.plots.plot_config_parser import PlotConfigParser
-from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
-from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
@@ -85,6 +82,7 @@ _endpoint_type_map = {
     "completions": EndpointConfig(
         "v1/completions", "openai", ic.OutputFormat.OPENAI_COMPLETIONS
     ),
+    "dynamic_grpc": EndpointConfig(None, "dynamic_grpc", ic.OutputFormat.DYANMIC_GRPC),
     "embeddings": EndpointConfig(
         "v1/embeddings", "openai", ic.OutputFormat.OPENAI_EMBEDDINGS
     ),
@@ -168,16 +166,16 @@ def _check_conditional_args(
     """
 
     # Endpoint and output format checks
-    if args.service_kind == "openai":
+    if args.service_kind in ["openai"]:
         if args.endpoint_type is None:
             parser.error(
                 "The --endpoint-type option is required when using the 'openai' service-kind."
             )
-
-    if args.service_kind == "triton" and args.endpoint_type is None:
+    elif args.service_kind in "dynamic_grpc":
+        args.endpoint_type = "dynamic_grpc"
+    elif args.service_kind == "triton" and args.endpoint_type is None:
         args.endpoint_type = "kserve"
-
-    if args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
+    elif args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
         args.endpoint_type = "tensorrtllm_engine"
 
     if args.endpoint_type and args.endpoint_type not in _endpoint_type_map:
@@ -434,7 +432,7 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
         else:
             name = [f"{args.formatted_model_name}"]
 
-        if args.service_kind == "openai":
+        if args.service_kind in ["dynamic_grpc", "openai"]:
             name += [f"{args.service_kind}-{args.endpoint_type}"]
         elif args.service_kind == "triton":
             name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
@@ -639,7 +637,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--service-kind",
         type=str,
-        choices=["triton", "openai", "tensorrtllm_engine"],
+        choices=["dynamic_grpc", "openai", "tensorrtllm_engine", "triton"],
         default="triton",
         required=False,
         help="The kind of service perf_analyzer will "
@@ -870,7 +868,7 @@ def _add_input_args(parser):
         required=False,
         help="A fully-qualified gRPC method name in "
         "'<package>.<service>/<method>' format. The option is only "
-        "supported by dynamic gRPC is used to identify "
+        "supported by dynamic gRPC service kind and is used to identify "
         "the RPC to use when sending requests to the server.",
     )
 
@@ -1066,6 +1064,7 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     _add_output_args(analyze)
     _add_profile_args(analyze)
     _add_tokenizer_args(analyze)
+
     analyze.set_defaults(func=analyze_handler)
     return analyze
 

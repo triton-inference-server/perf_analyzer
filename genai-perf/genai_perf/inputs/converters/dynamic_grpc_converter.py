@@ -29,27 +29,21 @@ from typing import Any, Dict
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    PromptSource,
-)
+from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.utils import sample_bounded_normal
 
 
-class VLLMConverter(BaseConverter):
+class DynamicGRPCConverter(BaseConverter):
 
     def check_config(self, config: InputsConfig) -> None:
         if config.batch_size_text != DEFAULT_BATCH_SIZE:
             raise GenAIPerfException(
                 f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
             )
-        if config.input_filename == "" and not config.extra_inputs.get("ipc_stream"):
+        if config.input_filename == "":
             raise GenAIPerfException(
-                f"The Maxine converter only supports synthetic inputs with "
-                "an ipc_stream specified in --extra-args or the input file path."
+                f"The dynamic GRPC converter only supports the input file path."
             )
 
     def convert(
@@ -63,9 +57,7 @@ class VLLMConverter(BaseConverter):
                 payload = {
                     "model": model_name,
                 }
-                ipc_stream = config.extra_inputs.get("ipc_stream")
-                if not ipc_stream:
-                    payload["ipc_stream"] = row.texts[0]
+                payload["ipc_stream"] = row.texts[0]
                 self._add_request_params(payload, config)
                 request_body["data"].append(payload)
 

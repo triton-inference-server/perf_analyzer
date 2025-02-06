@@ -64,7 +64,7 @@ def generate_inputs(config_options: InputsConfig) -> None:
 
 
 def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParser:
-    if args.endpoint_type in ["embeddings", "nvclip", "rankings"]:
+    if args.endpoint_type in ["embeddings", "nvclip", "rankings", "dynamic_grpc"]:
         return ProfileDataParser(
             args.profile_export_file,
             goodput_constraints=args.goodput,
