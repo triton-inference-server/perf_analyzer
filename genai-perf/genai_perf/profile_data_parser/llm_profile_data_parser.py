@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import numpy as np
 import json
 from itertools import tee
 from pathlib import Path
@@ -86,12 +87,17 @@ class LLMProfileDataParser(ProfileDataParser):
         output_sequence_lengths = []
         chunked_inter_token_latencies = []
 
+        req_cnt = 0
         for request in requests:
             req_timestamp = request["timestamp"]
             req_inputs = request["request_inputs"]
             res_timestamps = request["response_timestamps"]
             res_outputs = request["response_outputs"]
 
+            req_cnt += 1
+            tok_lat = np.diff(np.array(res_timestamps) - req_timestamp, prepend=0) / 1000000 # in ms
+            print(f"Request {req_cnt}: {tok_lat.tolist()}")
+    
             self._preprocess_response(res_timestamps, res_outputs)
 
             # Skip requests with empty response. This happens sometimes when the
