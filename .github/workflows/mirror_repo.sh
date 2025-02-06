@@ -1,3 +1,7 @@
+#!/bin/bash -e
+# Description: This script triggers a GitLab mirror update and waits for completion
+# Usage: ./update_gitlab_mirror.sh <gitlab_access_token> <gitlab_mirror_url>
+
 # Copyright (c) 2025, NVIDIA CORPORATION. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -23,10 +27,6 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#!/bin/bash -e
-# Description: This script triggers a GitLab mirror update and waits for completion
-# Usage: ./update_gitlab_mirror.sh <gitlab_access_token> <gitlab_mirror_url>
 
 GITLAB_ACCESS_TOKEN=$1
 GITLAB_MIRROR_URL=$2
