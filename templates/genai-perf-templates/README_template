@@ -527,6 +527,12 @@ Instead, it continues until stabilization is detected. (default: `0`)
 The mean of number of tokens in the generated prompts when using synthetic
 data. (default: `550`)
 
+##### `--rpc <str>`
+
+A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
+The option is only supported by dynamic gRPC service kind and is used to
+identify the RPC to use when sending requests to the server.
+
 ##### `--synthetic-input-tokens-stddev <int>`
 
 The standard deviation of number of tokens in the generated prompts when
