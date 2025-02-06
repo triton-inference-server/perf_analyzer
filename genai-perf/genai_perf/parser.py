@@ -166,7 +166,7 @@ def _check_conditional_args(
     """
 
     # Endpoint and output format checks
-    if args.service_kind in ["openai"]:
+    if args.service_kind == "openai":
         if args.endpoint_type is None:
             parser.error(
                 "The --endpoint-type option is required when using the 'openai' service-kind."

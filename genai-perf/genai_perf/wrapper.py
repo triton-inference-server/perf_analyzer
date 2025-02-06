@@ -32,9 +32,6 @@ import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
 from genai_perf.inputs.inputs import OutputFormat
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -116,13 +113,12 @@ class Profiler:
         # TODO: Temp, remove below change
         cmd = [
             f"build/install/bin/perf_analyzer",
-            f"-m",
-            f"{args.formatted_model_name}",
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
         if args.service_kind != "dynamic_grpc":
-            cmd += "--async"
+            extra_base_args = ["--async", "-m", f"{args.formatted_model_name}"]
+            cmd.extend(extra_base_args)
         cmd += Profiler.add_protocol_args(args)
         cmd += Profiler.add_inference_load_args(args)
         for arg, value in vars(args).items():
