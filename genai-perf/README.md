@@ -617,6 +617,16 @@ An option to enable verbose mode. (default: `False`)
 
 An option to print the version and exit.
 
+##### `-g <list>`
+##### `--goodput <list>`
+
+An option to provide constraints in order to compute goodput. Specify goodput
+constraints as 'key:value' pairs, where the key is a valid metric name, and the
+value is a number representing either milliseconds or a throughput value per
+second. For example, 'request_latency:300' or
+'output_token_throughput_per_request:600'. Multiple key:value pairs can be
+provided, separated by spaces. (default: `None`)
+
 </br>
 
 <!--
