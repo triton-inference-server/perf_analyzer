@@ -61,7 +61,7 @@ class InferContext {
       const std::shared_ptr<IInferDataManager>& infer_data_manager,
       std::shared_ptr<SequenceManager> sequence_manager)
       : thread_id_(thread_id), id_(id), async_(async), streaming_(streaming),
-        on_sequence_model_(on_sequence_model),
+        on_sequence_model_(on_sequence_model), backend_kind_(factory->Kind()),
         using_json_data_(using_json_data), batch_size_(batch_size),
         thread_stat_(thread_stat), data_loader_(data_loader), parser_(parser),
         factory_(factory), data_step_id_(thread_id), execute_(execute),
@@ -182,6 +182,7 @@ class InferContext {
   std::unique_ptr<cb::ClientBackend> infer_backend_;
   InferData infer_data_;
   bool inference_started_{false};
+  cb::BackendKind backend_kind_;
 
   // FIXME: update build to use C++17 instead of C++14. This is a workaround
   // since C++14 doesn't have std::optional, but C++17 does.
