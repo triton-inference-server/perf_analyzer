@@ -281,7 +281,9 @@ def _check_session_args(
     Check if session args are used correctly
     """
     if args.num_sessions > 0:
-        if not args.session_concurrency and not args.session_rate:
+        # [TPA-962] Uncomment to replace conditional when session rate supported in PA
+        # if not args.session_concurrency and not args.session_rate:
+        if not args.session_concurrency:
             args.session_concurrency = ic.DEFAULT_SESSION_CONCURRENCY
 
         if args.session_concurrency > args.num_sessions:
@@ -627,34 +629,36 @@ def _add_session_args(parser):
         type=int,
         help="The number of concurrent sessions to simulate.",
     )
-    session_load_management_group.add_argument(
-        "--session-rate", type=int, help="The rate at which sessions are started."
-    )
+    # [TPA-962] Uncomment when session rate supported in PA
+    # session_load_management_group.add_argument(
+    #     "--session-rate", type=int, help="The rate at which sessions are started."
+    # )
 
-    input_group.add_argument(
-        "--session-turn-delay-mean",
-        type=int,
-        default=ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
-        help="The mean delay (in ms) between turns in a session.",
-    )
-    input_group.add_argument(
-        "--session-turn-delay-stddev",
-        type=int,
-        default=ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
-        help="The standard deviation (in ms) of the delay between turns in a session.",
-    )
-    input_group.add_argument(
-        "--turns-per-session-mean",
-        type=int,
-        default=ic.DEFAULT_TURNS_PER_SESSION_MEAN,
-        help="The mean number of turns per session.",
-    )
-    input_group.add_argument(
-        "--turns-per-session-stddev",
-        type=int,
-        default=ic.DEFAULT_TURNS_PER_SESSION_STDDEV,
-        help="The standard deviation of the number of turns per session.",
-    )
+    # [TPA-963] Add synthetic multi-turn support
+    # input_group.add_argument(
+    #     "--session-turn-delay-mean",
+    #     type=int,
+    #     default=ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
+    #     help="The mean delay (in ms) between turns in a session.",
+    # )
+    # input_group.add_argument(
+    #     "--session-turn-delay-stddev",
+    #     type=int,
+    #     default=ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
+    #     help="The standard deviation (in ms) of the delay between turns in a session.",
+    # )
+    # input_group.add_argument(
+    #     "--turns-per-session-mean",
+    #     type=int,
+    #     default=ic.DEFAULT_TURNS_PER_SESSION_MEAN,
+    #     help="The mean number of turns per session.",
+    # )
+    # input_group.add_argument(
+    #     "--turns-per-session-stddev",
+    #     type=int,
+    #     default=ic.DEFAULT_TURNS_PER_SESSION_STDDEV,
+    #     help="The standard deviation of the number of turns per session.",
+    # )
 
 
 def _add_endpoint_args(parser):

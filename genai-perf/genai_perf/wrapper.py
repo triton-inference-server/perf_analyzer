@@ -67,8 +67,9 @@ class Profiler:
         cmd = []
         if args.session_concurrency:
             cmd += ["--session-concurrency", f"{args.session_concurrency}"]
-        elif args.session_rate:
-            cmd += ["--session-rate", f"{args.session_rate}"]
+        # [TPA-962] Uncomment when session rate supported in PA
+        # elif args.session_rate:
+        #     cmd += ["--session-rate", f"{args.session_rate}"]
         return cmd
 
     @staticmethod
