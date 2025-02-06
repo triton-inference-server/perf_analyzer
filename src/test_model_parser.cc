@@ -1,4 +1,4 @@
-// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -100,10 +100,119 @@ class TestModelParser {
   };
 };
 
+TEST_CASE("ModelParser: test Init* functions")
+{
+  MockModelParser mmp;
+
+  std::string model_name{"some_model"};
+  std::string model_version{"1234"};
+  int32_t batch_size{123};
+
+  std::vector<std::string> expected_input_names;
+  std::vector<std::string> expected_output_names;
+  cb::Error status;
+
+  SUBCASE("InitTriton")
+  {
+    rapidjson::Document metadata;
+    std::string metadata_json{R"(
+    {
+      "name": "some_model",
+      "inputs": [
+        {
+          "name": "INPUT0",
+          "datatype": "UINT8",
+          "shape": [1]
+        }
+      ],
+      "outputs": [
+        {
+          "name": "OUTPUT0",
+          "datatype": "UINT8",
+          "shape": [1]
+        }
+      ]
+    }
+    )"};
+    metadata.Parse(metadata_json.c_str());
+
+    rapidjson::Document config;
+    std::string config_json{R"(
+    {
+      "name": "some_model",
+      "max_batch_size": 123,
+      "model_transaction_policy": {
+        "decoupled": false
+      },
+      "scheduling_choice": {
+        "dynamic_batching": {
+          "max_queue_delay_microseconds": 100
+        }
+      },
+      "input": [
+        {
+          "name": "INPUT0",
+          "data_type": "UINT8",
+          "dims": [1]
+        }
+      ]
+    }
+    )"};
+    config.Parse(config_json.c_str());
+
+    std::vector<cb::ModelIdentifier> bls_composing_models;
+    std::unordered_map<std::string, std::vector<int64_t>> input_shapes;
+    std::unique_ptr<cb::ClientBackend> backend;
+
+    status = mmp.InitTriton(
+        metadata, config, model_version, bls_composing_models, input_shapes,
+        backend);
+    expected_input_names.push_back("INPUT0");
+    expected_output_names.push_back("OUTPUT0");
+  }
+
+  SUBCASE("InitDynamicGrpc")
+  {
+    status = mmp.InitDynamicGrpc(model_name, model_version, batch_size);
+    expected_input_names.push_back("ipc_stream");
+    expected_output_names.push_back("response");
+  }
+
+  SUBCASE("InitOpenAI")
+  {
+    status = mmp.InitOpenAI(
+        model_name, model_version, batch_size,
+        SessionConcurrencyMode::Disabled);
+    expected_input_names.push_back("payload");
+    expected_output_names.push_back("response");
+  }
+
+  SUBCASE("InitTorchServe")
+  {
+    status = mmp.InitTorchServe(model_name, model_version, batch_size);
+    expected_input_names.push_back("TORCHSERVE_INPUT");
+  }
+
+  CHECK(status.IsOk());
+  CHECK(mmp.ModelName() == model_name);
+  CHECK(mmp.ModelVersion() == model_version);
+  CHECK(mmp.MaxBatchSize() == batch_size);
+
+  auto actual_inputs = mmp.Inputs();
+  for (const auto& name : expected_input_names) {
+    CHECK(actual_inputs->find(name) != actual_inputs->end());
+  }
+
+  auto actual_outputs = mmp.Outputs();
+  for (const auto& name : expected_output_names) {
+    CHECK(actual_outputs->find(name) != actual_outputs->end());
+  }
+}
+
 TEST_CASE("ModelParser: testing the GetInt function")
 {
   int64_t integer_value{0};
-  MockModelParser mmp;
+  MockModelParser mmp(cb::BackendKind::TRITON);
 
   SUBCASE("valid string")
   {
@@ -244,7 +353,7 @@ TEST_CASE(
 
   std::unique_ptr<cb::ClientBackend> backend = std::move(mock_backend);
 
-  MockModelParser mmp;
+  MockModelParser mmp(cb::BackendKind::TRITON);
 
   mmp.DetermineComposingModelMap(input_bls_composing_models, config, backend);
 
@@ -350,7 +459,7 @@ TEST_CASE(
 
   std::unique_ptr<cb::ClientBackend> backend = std::move(mock_backend);
 
-  MockModelParser mmp;
+  MockModelParser mmp(cb::BackendKind::TRITON);
   mmp.composing_models_map_ =
       std::make_shared<ComposingModelMap>(input_composing_model_map);
   mmp.DetermineSchedulerType(config, backend);

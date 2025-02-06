@@ -75,6 +75,7 @@ DEFAULT_BACKEND = "tensorrtllm"
 ###########################
 # Default Prompt Parameters
 ###########################
+DEFAULT_CORPUS_FILE = "shakespeare.txt"
 DEFAULT_STARTING_INDEX = 0
 MINIMUM_STARTING_INDEX = 0
 DEFAULT_LENGTH = 100

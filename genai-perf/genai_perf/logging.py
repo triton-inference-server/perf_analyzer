@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -101,6 +101,16 @@ def init_logging() -> None:
                 "propagate": False,
             },
             "genai_perf.subcommand.common": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+            "genai_perf.inputs.retrievers.synthetic_prompt_generator": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+            "genai_perf.profile_data_parser": {
                 "handlers": ["console"],
                 "level": "DEBUG",
                 "propagate": False,

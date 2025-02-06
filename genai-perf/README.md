@@ -149,7 +149,12 @@ triton start
 Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-genai-perf profile -m gpt2 --service-kind triton --backend tensorrtllm --streaming
+genai-perf profile \
+  -m gpt2 \
+  --tokenizer gpt2 \
+  --service-kind triton \
+  --backend tensorrtllm \
+  --streaming
 ```
 
 Example output:
@@ -197,6 +202,7 @@ by passing the `--generate-plots` option when running the benchmark:
 ```bash
 genai-perf profile \
   -m gpt2 \
+  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --streaming \
@@ -616,6 +622,16 @@ An option to enable verbose mode. (default: `False`)
 ##### `--version`
 
 An option to print the version and exit.
+
+##### `-g <list>`
+##### `--goodput <list>`
+
+An option to provide constraints in order to compute goodput. Specify goodput
+constraints as 'key:value' pairs, where the key is a valid metric name, and the
+value is a number representing either milliseconds or a throughput value per
+second. For example, 'request_latency:300' or
+'output_token_throughput_per_request:600'. Multiple key:value pairs can be
+provided, separated by spaces. (default: `None`)
 
 </br>
 

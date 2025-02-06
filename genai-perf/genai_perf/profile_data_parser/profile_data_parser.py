@@ -31,8 +31,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
+from genai_perf.logging import logging
 from genai_perf.metrics import Metrics, Statistics
 from genai_perf.utils import load_json
+
+logger = logging.getLogger(__name__)
 
 
 class ResponseFormat(Enum):
@@ -58,6 +61,7 @@ class ProfileDataParser:
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._goodput_constraints = goodput_constraints
+        logger.info("Loading response data from '%s'", str(filename))
         data = load_json(filename)
         self._get_profile_metadata(data)
         self._parse_profile_data(data)

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -60,7 +60,7 @@ This is a required option.
 Specifies the version of the model to be used. If not specified the most
 recent version (the highest numbered version) of the model will be used.
 
-#### `--service-kind=[triton|triton_c_api|tfserving|torchserve]`
+#### `--service-kind=[triton|triton_c_api|tfserving|torchserve|dynamic_grpc]`
 
 Specifies the kind of service for Perf Analyzer to generate load for. Note: in
 order to use `torchserve` backend, the `--input-data` option must point to a
@@ -432,7 +432,8 @@ Default is `binary`.
 #### `-i [http|grpc]`
 
 Specifies the communication protocol to use. The available protocols are HTTP
-and gRPC.
+and gRPC. Note that when the service kind is set to `dynamic_grpc`,
+Perf Analyzer will automatically set the protocol to `grpc`.
 
 Default is `http`.
 
@@ -455,7 +456,8 @@ Analyzer with sequential model in synchronous mode.
 
 #### `--streaming`
 
-Enables the use of streaming API. This option is only valid with gRPC protocol.
+Enables the use of bidirectional streaming RPC. This option is only valid
+with gRPC protocol.
 
 #### `-H <string>`
 
@@ -469,6 +471,18 @@ Specifies the compression algorithm to be used by gRPC when sending requests.
 Only supported when gRPC protocol is being used.
 
 Default is `none`.
+
+#### `--rpc <string>`
+
+Specifies a fully-qualified gRPC method name in `<package>.<service>/<method>` format.
+The option is only supported with `dynamic_grpc` service kind and is used to identify
+the RPC to use when sending requests to the server.
+
+#### `--proto <string>`
+
+Specifies the path to the protobuf file that defines all the gRPC service and RPC methods.
+The options is only supported with `dynamic_grpc` service kind for dynamically parsing
+the protobuf at runtime.
 
 ## Server Options
 
