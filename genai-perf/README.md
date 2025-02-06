@@ -149,7 +149,12 @@ triton start
 Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-genai-perf profile -m gpt2 --service-kind triton --backend tensorrtllm --streaming
+genai-perf profile \
+  -m gpt2 \
+  --tokenizer gpt2 \
+  --service-kind triton \
+  --backend tensorrtllm \
+  --streaming
 ```
 
 Example output:
@@ -197,6 +202,7 @@ by passing the `--generate-plots` option when running the benchmark:
 ```bash
 genai-perf profile \
   -m gpt2 \
+  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --streaming \
