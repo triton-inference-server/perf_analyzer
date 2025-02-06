@@ -124,7 +124,7 @@ class SyntheticPromptGenerator:
         remaining_tokens = num_tokens
         prompt_tokens = []
         while remaining_tokens > 0:
-            length = min(len(cls._corpus_length - start_idx), remaining_tokens)
+            length = min(cls._corpus_length - start_idx, remaining_tokens)
             prompt_tokens += cls._tokenized_corpus[start_idx:start_idx + length]
             start_idx = 0
             remaining_tokens -= length
