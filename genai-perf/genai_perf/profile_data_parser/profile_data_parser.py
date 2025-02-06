@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,9 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
+from genai_perf.logging import logging
 from genai_perf.metrics import Metrics, Statistics
 from genai_perf.utils import load_json
-from genai_perf.logging import logging
 
 logger = logging.getLogger(__name__)
 

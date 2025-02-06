@@ -27,12 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from tqdm import tqdm
 from itertools import tee
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 from genai_perf.constants import EMPTY_RESPONSE_TOKEN
+from genai_perf.logging import logging
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
@@ -40,7 +40,7 @@ from genai_perf.profile_data_parser.profile_data_parser import (
 )
 from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import load_json_str, remove_sse_prefix
-from genai_perf.logging import logging
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,9 @@ class LLMProfileDataParser(ProfileDataParser):
 
                 # inter token latencies
                 if total_output_token > 1:
-                    inter_token_latency = (req_latency_ns - ttft) / (total_output_token - 1)
+                    inter_token_latency = (req_latency_ns - ttft) / (
+                        total_output_token - 1
+                    )
                     inter_token_latencies.append(round(inter_token_latency))
 
                 # The new ITL calculation above loses all token-level ITL information
@@ -158,7 +160,7 @@ class LLMProfileDataParser(ProfileDataParser):
                     num_token = 1 if n2 == 0 else n2
                     chunked_inter_token_latency.append(round((t2 - t1) / num_token))
                 chunked_inter_token_latencies.append(chunked_inter_token_latency)
-                
+
                 pbar.update(1)
 
         # request & output token throughput
