@@ -114,10 +114,11 @@ DynamicGrpcClientBackend::ClientInferStat(InferStat* infer_stat)
 
 Error
 DynamicGrpcInferRequestedOutput::Create(
-    InferRequestedOutput** infer_output, const std::string& name)
+    InferRequestedOutput** infer_output, const std::string& name,
+    const std::string& datatype)
 {
   DynamicGrpcInferRequestedOutput* local_infer_output =
-      new DynamicGrpcInferRequestedOutput(name);
+      new DynamicGrpcInferRequestedOutput(name, datatype);
 
   tc::InferRequestedOutput* dynamic_grpc_infer_output;
   RETURN_IF_TRITON_ERROR(
@@ -130,8 +131,8 @@ DynamicGrpcInferRequestedOutput::Create(
 }
 
 DynamicGrpcInferRequestedOutput::DynamicGrpcInferRequestedOutput(
-    const std::string& name)
-    : InferRequestedOutput(BackendKind::DYNAMIC_GRPC, name)
+    const std::string& name, const std::string& datatype)
+    : InferRequestedOutput(BackendKind::DYNAMIC_GRPC, name, datatype)
 {
 }
 

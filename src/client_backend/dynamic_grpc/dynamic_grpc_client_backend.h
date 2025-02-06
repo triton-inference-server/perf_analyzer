@@ -108,13 +108,15 @@ class DynamicGrpcClientBackend : public ClientBackend {
 class DynamicGrpcInferRequestedOutput : public InferRequestedOutput {
  public:
   static Error Create(
-      InferRequestedOutput** infer_output, const std::string& name);
+      InferRequestedOutput** infer_output, const std::string& name,
+      const std::string& datatype);
   /// Returns the raw InferRequestedOutput object required by gRPC client
   /// library.
   tc::InferRequestedOutput* Get() const { return output_.get(); }
 
  private:
-  explicit DynamicGrpcInferRequestedOutput(const std::string& name);
+  explicit DynamicGrpcInferRequestedOutput(
+      const std::string& name, const std::string& datatype);
 
   std::unique_ptr<tc::InferRequestedOutput> output_;
 };

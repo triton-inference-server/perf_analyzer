@@ -588,7 +588,7 @@ InferRequestedOutput::Create(
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
   else if (kind == DYNAMIC_GRPC) {
     RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcInferRequestedOutput::Create(
-        infer_output, name));
+        infer_output, name, datatype));
   }
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
