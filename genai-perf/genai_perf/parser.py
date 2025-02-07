@@ -39,14 +39,10 @@ import genai_perf.utils as utils
 from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.converters.template_converter import NAMED_TEMPLATES
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-from genai_perf.plots.plot_config_parser import PlotConfigParser
-from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
-from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
@@ -101,6 +97,7 @@ _endpoint_type_map = {
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
     ),
     "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
+    "template": EndpointConfig(None, "template", ic.OutputFormat.TEMPLATE),
     "tensorrtllm_engine": EndpointConfig(
         None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
     ),
@@ -241,15 +238,12 @@ def _check_conditional_args(
         ic.OutputFormat.NVCLIP,
         ic.OutputFormat.OPENAI_EMBEDDINGS,
         ic.OutputFormat.RANKINGS,
+        ic.OutputFormat.TEMPLATE,
     ]:
         if args.generate_plots:
             parser.error(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
-
-    # Override the output format if the user has specified a template
-    if args.output_template:
-        args.output_format = ic.OutputFormat.TEMPLATE
 
     return args
 
@@ -818,17 +812,6 @@ def _add_input_args(parser):
         "benchmarking models that use a K-V cache.",
     )
 
-    input_group.add_argument(
-        "--output-template",
-        type=str,
-        required=False,
-        help=f"Use a Jinja template to format the output. "
-        "You can provide your own template, or use one of the named templates "
-        f"{set(sorted(NAMED_TEMPLATES.keys()))}. "
-        "The template should be a valid Jinja template string "
-        "transforming a list of text strings into a valid JSON list. "
-        "Each item in the list should be a valid input for the model. ",
-    )
     input_group.add_argument(
         "--output-tokens-mean",
         "--osl",

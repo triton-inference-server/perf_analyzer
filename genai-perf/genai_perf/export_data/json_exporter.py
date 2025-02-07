@@ -66,7 +66,6 @@ class JsonExporter:
     def _prepare_args_for_export(self) -> None:
         self._args.pop("func", None)
         self._args.pop("output_format", None)
-        self._args.pop("output_template", None)
         self._args.pop("input_file", None)
         self._args["profile_export_file"] = str(self._args["profile_export_file"])
         self._args["artifact_dir"] = str(self._args["artifact_dir"])

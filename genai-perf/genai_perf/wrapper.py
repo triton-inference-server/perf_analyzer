@@ -89,7 +89,6 @@ class Profiler:
             "num_dataset_entries",
             "num_prefix_prompts",
             "output_format",
-            "output_template",
             "output_tokens_mean",
             "output_tokens_mean_deterministic",
             "output_tokens_stddev",

@@ -174,7 +174,6 @@ def create_config_options(args: Namespace) -> InputsConfig:
     return InputsConfig(
         input_type=args.prompt_source,
         output_format=args.output_format,
-        output_template=args.output_template,
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
         input_filename=args.input_file,

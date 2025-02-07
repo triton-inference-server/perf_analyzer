@@ -26,7 +26,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from genai_perf.inputs.input_constants import (
     DEFAULT_IMAGE_HEIGHT_MEAN,
@@ -74,7 +74,7 @@ class InputsConfig:
     batch_size_text: int = 1
 
     # If provided, append these inputs to every request
-    extra_inputs: Dict = field(default_factory=dict)
+    extra_inputs: Dict[str, Any] = field(default_factory=dict)
 
     # The filename where the input data is available
     input_filename: Optional[Path] = Path("")
@@ -113,9 +113,6 @@ class InputsConfig:
 
     # Specify the output format
     output_format: OutputFormat = OutputFormat.TENSORRTLLM
-
-    # Supplement the TEMPLATE output format with a template
-    output_template: Optional[str] = None
 
     # If true, the output tokens will set the minimum and maximum tokens to be equivalent.
     output_tokens_deterministic: bool = False

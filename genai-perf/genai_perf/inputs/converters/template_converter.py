@@ -25,8 +25,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from typing import Any, Dict, Optional
+import os
+from typing import Any, Dict, cast
 
+import jinja2
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.inputs_config import InputsConfig
@@ -42,49 +44,63 @@ NAMED_TEMPLATES = {
 
 
 class TemplateConverter(BaseConverter):
-    """Convert a GenericDataset to a request body.
+    """
+    Convert a GenericDataset to a request body.
 
     The template should render a list of text strings, and return a list of payloads.
     """
 
-    def resolve_template(self, template_name_or_content: Optional[str]):
-        try:
-            import jinja2
-        except ImportError:
-            raise ImportError(
-                "Jinja2 is required for template processing. Install it using: pip install jinja2."
+    def resolve_template(self, template_name_or_content: str):
+
+        if template_name_or_content in NAMED_TEMPLATES:
+            environment = jinja2.Environment(
+                autoescape=True,
+                loader=jinja2.DictLoader(NAMED_TEMPLATES),
+            )
+            return environment.get_template(template_name_or_content)
+
+        if os.path.isfile(template_name_or_content):
+            try:
+                with open(template_name_or_content, "r", encoding="utf-8") as f:
+                    template_content = f.read()
+            except Exception as e:
+                raise GenAIPerfException(f"Error reading template file: {e}")
+        else:
+            raise GenAIPerfException(
+                f"Template file not found: {template_name_or_content}"
             )
 
-        environment = jinja2.Environment(
-            autoescape=True,
-            loader=jinja2.DictLoader(NAMED_TEMPLATES),
-        )
-
-        return (
-            environment.get_template(template_name_or_content)
-            if template_name_or_content in NAMED_TEMPLATES
-            else environment.from_string(template_name_or_content)
-        )
+        environment = jinja2.Environment(autoescape=True)
+        return environment.from_string(template_content)
 
     def check_config(self, config: InputsConfig) -> None:
-        if config.output_template:
-            try:
-                template = self.resolve_template(config.output_template)
-                test_texts = ["test1", "test2"]
-                payloads_json = template.render(texts=test_texts)
-                payloads = json.loads(payloads_json)
-                if not isinstance(payloads, list):
-                    raise ValueError(
-                        "Template does not render a list of strings to a list of items. "
-                        f"For example, {test_texts} is rendered into {payloads}."
-                    )
-            except Exception as e:
-                raise GenAIPerfException(e)
+        output_template = config.extra_inputs.get("output_template")
+        if not output_template:
+            raise GenAIPerfException(
+                f"The template converter requires the "
+                "extra input output_template, only "
+                "detected the following --extra-inputs: "
+                "{config.extra_inputs.keys}."
+            )
+        try:
+            template = self.resolve_template(output_template)
+            test_texts = ["test1", "test2"]
+            payloads_json = template.render(texts=test_texts)
+            payloads = json.loads(payloads_json)
+            if not isinstance(payloads, list):
+                raise ValueError(
+                    "Template does not render a list of strings to a list of items. "
+                    f"For example, {test_texts} is rendered into {payloads}."
+                )
+        except Exception as e:
+            raise GenAIPerfException(e)
 
     def convert(
         self, generic_dataset: GenericDataset, config: InputsConfig
     ) -> Dict[Any, Any]:
-        template = self.resolve_template(config.output_template)
+        output_template = config.extra_inputs.get("output_template")
+        output_template = cast(str, output_template)
+        template = self.resolve_template(output_template)
 
         request_body: Dict[str, Any] = {"data": []}
 
