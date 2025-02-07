@@ -1864,7 +1864,6 @@ TEST_CASE("Request rate - Shared memory infer input calls")
 TEST_CASE("request_rate_deadlock")
 {
   PerfAnalyzerParameters params{};
-  params.max_concurrency = 6;
   bool is_sequence_model{true};
   bool some_infer_failures{false};
 

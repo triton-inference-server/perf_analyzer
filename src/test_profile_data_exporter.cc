@@ -1,4 +1,4 @@
-// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
 
   MockProfileDataExporter exporter{};
 
-  InferenceLoadMode infer_mode{4, 0.0};
+  ProfileDataCollector::InferenceLoadMode infer_mode{4, 0.0};
   uint64_t sequence_id{1};
 
   auto clock_epoch{time_point<system_clock>()};
@@ -116,11 +116,11 @@ TEST_CASE("profile_data_exporter: ConvertToJson")
   std::vector<RequestRecord> requests{request_record};
   std::vector<uint64_t> window_boundaries{1, 5, 6};
 
-  Experiment experiment;
+  ProfileDataCollector::Experiment experiment;
   experiment.mode = infer_mode;
   experiment.requests = requests;
   experiment.window_boundaries = window_boundaries;
-  std::vector<Experiment> experiments{experiment};
+  std::vector<ProfileDataCollector::Experiment> experiments{experiment};
 
   std::string version{"1.2.3"};
   cb::BackendKind service_kind = cb::BackendKind::TRITON;
@@ -375,13 +375,13 @@ TEST_CASE("profile_data_exporter: AddExperiment")
 {
   MockProfileDataExporter exporter{};
 
-  Experiment raw_experiment;
+  ProfileDataCollector::Experiment raw_experiment;
   rapidjson::Value entry(rapidjson::kObjectType);
   rapidjson::Value experiment(rapidjson::kObjectType);
 
   SUBCASE("Concurrency mode")
   {
-    InferenceLoadMode infer_mode{15, 0.0};
+    ProfileDataCollector::InferenceLoadMode infer_mode{15, 0.0};
     raw_experiment.mode = infer_mode;
 
     exporter.AddExperiment(entry, experiment, raw_experiment);
@@ -392,7 +392,7 @@ TEST_CASE("profile_data_exporter: AddExperiment")
 
   SUBCASE("Request rate mode")
   {
-    InferenceLoadMode infer_mode{0, 23.5};
+    ProfileDataCollector::InferenceLoadMode infer_mode{0, 23.5};
     raw_experiment.mode = infer_mode;
 
     exporter.AddExperiment(entry, experiment, raw_experiment);

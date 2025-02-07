@@ -140,6 +140,9 @@ class DataLoader {
   /// Return an error if the stream index or step index are invalid
   cb::Error ValidateIndexes(int stream_index, int step_index) const;
 
+  static size_t GetDatasetSize(
+      const std::vector<std::string>& input_data_paths);
+
  protected:
   /// Parses the input and output data from the json document
   /// \param inputs The input tensors of a model

@@ -25,8 +25,39 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <stdexcept>
+#include <string>
+
 namespace triton::perfanalyzer {
 
-enum class SessionConcurrencyMode : bool { Disabled = false, Enabled = true };
+enum class InferenceLoadMode {
+  None,
+  Concurrency,
+  RequestRate,
+  CustomIntervals,
+  PeriodicConcurrency,
+  SessionConcurrency,
+  FixedSchedule
+};
+
+inline std::string
+to_string(InferenceLoadMode inference_load_mode)
+{
+  switch (inference_load_mode) {
+    case InferenceLoadMode::None:
+      return "None";
+    case InferenceLoadMode::Concurrency:
+      return "Concurrency";
+    case InferenceLoadMode::CustomIntervals:
+      return "CustomIntervals";
+    case InferenceLoadMode::PeriodicConcurrency:
+      return "PeriodicConcurrency";
+    case InferenceLoadMode::SessionConcurrency:
+      return "SessionConcurrency";
+    case InferenceLoadMode::FixedSchedule:
+      return "FixedSchedule";
+  }
+  throw std::invalid_argument("Invalid InferenceLoadMode value");
+}
 
 }  // namespace triton::perfanalyzer

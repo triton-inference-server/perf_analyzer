@@ -52,7 +52,9 @@ class TestConcurrencyManager : public TestLoadManagerBase,
         TestLoadManagerBase(params, is_sequence_model, is_decoupled_model),
         ConcurrencyManager(
             params.async, params.streaming, params.batch_size,
-            params.max_threads, params.max_concurrency,
+            params.max_threads,
+            std::max(
+                params.concurrency_range.start, params.concurrency_range.end),
             params.shared_memory_type, params.output_shm_size, GetParser(),
             GetFactory(), params.request_parameters)
   {
@@ -115,7 +117,7 @@ class TestConcurrencyManager : public TestLoadManagerBase,
     // needed.
     stats_->SetDelays({50});
 
-    ChangeConcurrencyLevel(params_.max_concurrency);
+    ChangeConcurrencyLevel(max_concurrency_);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
@@ -129,7 +131,7 @@ class TestConcurrencyManager : public TestLoadManagerBase,
   {
     stats_->SetDelays({response_delay});
 
-    ChangeConcurrencyLevel(params_.max_concurrency);
+    ChangeConcurrencyLevel(max_concurrency_);
     std::this_thread::sleep_for(sleep_time);
 
     CheckConcurrency();
@@ -143,8 +145,8 @@ class TestConcurrencyManager : public TestLoadManagerBase,
     stats_->SetDelays({delay_ms});
 
     auto stats = cb::InferStat();
-    double concurrency1 = params_.max_concurrency / 2;
-    double concurrency2 = params_.max_concurrency;
+    double concurrency1 = max_concurrency_ / 2;
+    double concurrency2 = max_concurrency_;
     int sleep_ms = 500;
 
     auto sleep_time = std::chrono::milliseconds(sleep_ms);
@@ -201,7 +203,7 @@ class TestConcurrencyManager : public TestLoadManagerBase,
   void TestTimeouts()
   {
     TestWatchDog watchdog(1000);
-    ChangeConcurrencyLevel(params_.max_concurrency);
+    ChangeConcurrencyLevel(max_concurrency_);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     StopWorkerThreads();
     watchdog.stop();
@@ -211,7 +213,7 @@ class TestConcurrencyManager : public TestLoadManagerBase,
   void TestOverhead()
   {
     stats_->SetDelays({1});
-    ChangeConcurrencyLevel(params_.max_concurrency);
+    ChangeConcurrencyLevel(max_concurrency_);
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // During a run of 100 ms (100,000,000 ns), make sure that the idle time is
     // at least 95% of that
@@ -239,12 +241,12 @@ class TestConcurrencyManager : public TestLoadManagerBase,
 
   void CheckConcurrency()
   {
-    if (params_.max_concurrency < 4) {
-      CHECK(stats_->num_active_infer_calls == params_.max_concurrency);
+    if (max_concurrency_ < 4) {
+      CHECK(stats_->num_active_infer_calls == max_concurrency_);
     } else {
       CHECK(
           stats_->num_active_infer_calls ==
-          doctest::Approx(params_.max_concurrency).epsilon(0.25));
+          doctest::Approx(max_concurrency_).epsilon(0.25));
     }
   }
 
@@ -268,7 +270,7 @@ TEST_CASE("concurrency_infer_type")
 {
   PerfAnalyzerParameters params{};
 
-  params.max_concurrency = 1;
+  params.concurrency_range = {1, 1, 1};
 
   SUBCASE("async_streaming")
   {
@@ -316,7 +318,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = true;
     params.async = false;
     params.streaming = false;
-    params.max_concurrency = 1;
+    params.concurrency_range = {1, 1, 1};
     params.max_threads = 1;
   }
 
@@ -325,7 +327,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = true;
     params.async = false;
     params.streaming = false;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
     params.max_threads = 4;
   }
 
@@ -334,7 +336,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = false;
-    params.max_concurrency = 1;
+    params.concurrency_range = {1, 1, 1};
     params.max_threads = 1;
   }
 
@@ -343,7 +345,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = false;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
     params.max_threads = 1;
   }
 
@@ -352,7 +354,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = false;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
     params.max_threads = 2;
   }
 
@@ -361,7 +363,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = false;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
     params.max_threads = 4;
   }
 
@@ -370,7 +372,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = true;
-    params.max_concurrency = 1;
+    params.concurrency_range = {1, 1, 1};
     params.max_threads = 1;
   }
 
@@ -379,7 +381,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = true;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
     params.max_threads = 1;
   }
 
@@ -388,7 +390,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = true;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
     params.max_threads = 2;
   }
 
@@ -397,7 +399,7 @@ TEST_CASE("concurrency_concurrency")
     params.forced_sync = false;
     params.async = true;
     params.streaming = true;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
     params.max_threads = 4;
   }
 
@@ -444,7 +446,7 @@ TEST_CASE("concurrency_free_ctx_ids")
   PerfAnalyzerParameters params{};
   params.async = true;
   params.streaming = true;
-  params.max_concurrency = 6;
+  params.concurrency_range = {6, 6, 1};
 
   bool is_sequence_model{true};
 
@@ -486,7 +488,7 @@ TEST_CASE("concurrency_free_ctx_ids")
 TEST_CASE("Concurrency - shared memory infer input calls")
 {
   PerfAnalyzerParameters params{};
-  params.max_concurrency = 4;
+  params.concurrency_range = {4, 4, 1};
   bool is_sequence_model{false};
 
   const auto& ParameterizeAsyncAndStreaming{[&]() {
@@ -704,7 +706,7 @@ TEST_CASE("Concurrency - Shared memory methods")
 TEST_CASE("concurrency_deadlock")
 {
   PerfAnalyzerParameters params{};
-  params.max_concurrency = 6;
+  params.concurrency_range = {6, 6, 1};
   bool is_sequence_model{true};
   bool some_infer_failures{false};
 
@@ -730,13 +732,13 @@ TEST_CASE("concurrency_deadlock")
     SUBCASE("10 concurrency, 10 thread")
     {
       ParameterizeSyncStreaming();
-      params.max_concurrency = 10;
+      params.concurrency_range = {10, 10, 1};
       params.max_threads = 10;
     }
     SUBCASE("10 concurrency, 4 thread")
     {
       ParameterizeSyncStreaming();
-      params.max_concurrency = 10;
+      params.concurrency_range = {10, 10, 1};
       params.max_threads = 4;
     }
   }};
@@ -810,22 +812,22 @@ TEST_CASE("concurrency_overhead")
   SUBCASE("sync, conc 1")
   {
     params.async = false;
-    params.max_concurrency = 1;
+    params.concurrency_range = {1, 1, 1};
   }
   SUBCASE("sync, conc 4")
   {
     params.async = false;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
   }
   SUBCASE("async, conc 1")
   {
     params.async = true;
-    params.max_concurrency = 1;
+    params.concurrency_range = {1, 1, 1};
   }
   SUBCASE("async, conc 1")
   {
     params.async = true;
-    params.max_concurrency = 4;
+    params.concurrency_range = {4, 4, 1};
   }
   TestConcurrencyManager tcm(params, false);
   tcm.InitManager(

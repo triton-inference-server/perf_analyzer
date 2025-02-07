@@ -1,4 +1,4 @@
-// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -52,9 +52,9 @@ class ProfileDataExporter {
   /// @param service_kind Service that Perf Analyzer generates load for.
   /// @param endpoint Endpoint to send the requests.
   void Export(
-      const std::vector<Experiment>& raw_experiments, std::string& raw_version,
-      std::string& file_path, cb::BackendKind& service_kind,
-      std::string& endpoint);
+      const std::vector<ProfileDataCollector::Experiment>& raw_experiments,
+      std::string& raw_version, std::string& file_path,
+      cb::BackendKind& service_kind, std::string& endpoint);
 
  private:
   ProfileDataExporter() = default;
@@ -66,15 +66,16 @@ class ProfileDataExporter {
   /// @param service_kind Service that Perf Analyzer generates load for.
   /// @param endpoint Endpoint to send the requests.
   virtual void ConvertToJson(
-      const std::vector<Experiment>& raw_experiments, std::string& raw_version,
-      cb::BackendKind& service_kind, std::string& endpoint);
+      const std::vector<ProfileDataCollector::Experiment>& raw_experiments,
+      std::string& raw_version, cb::BackendKind& service_kind,
+      std::string& endpoint);
   virtual void OutputToFile(std::string& file_path);
   virtual void AddExperiment(
       rapidjson::Value& entry, rapidjson::Value& experiment,
-      const Experiment& raw_experiment);
+      const ProfileDataCollector::Experiment& raw_experiment);
   void AddRequests(
       rapidjson::Value& entry, rapidjson::Value& requests,
-      const Experiment& raw_experiment);
+      const ProfileDataCollector::Experiment& raw_experiment);
   void SetValueToJSON(
       rapidjson::Value& json, const size_t index,
       const std::vector<uint8_t>& buf, const std::string& data_type);
@@ -93,7 +94,7 @@ class ProfileDataExporter {
       const std::vector<RequestRecord::ResponseOutput>& outputs);
   void AddWindowBoundaries(
       rapidjson::Value& entry, rapidjson::Value& window_boundaries,
-      const Experiment& raw_experiment);
+      const ProfileDataCollector::Experiment& raw_experiment);
   void AddVersion(std::string& raw_version);
   void AddServiceKind(cb::BackendKind& service_kind);
   void AddEndpoint(std::string& endpoint);

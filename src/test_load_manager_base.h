@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -263,7 +263,7 @@ class TestLoadManagerBase {
     // so we can hit the corner cases more often
     //
     params.sequence_length = 4;
-    params.max_concurrency = 8;
+    params.concurrency_range = {8, 8, 1};
     params.max_threads = 8;
 
     SUBCASE("Normal") {}
