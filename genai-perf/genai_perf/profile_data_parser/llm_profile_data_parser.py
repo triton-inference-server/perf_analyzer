@@ -87,6 +87,7 @@ class LLMProfileDataParser(ProfileDataParser):
         output_sequence_lengths = []
         chunked_inter_token_latencies = []
 
+        start_time = requests[0]["timestamp"]
         req_cnt = 0
         for request in requests:
             req_timestamp = request["timestamp"]
@@ -96,7 +97,7 @@ class LLMProfileDataParser(ProfileDataParser):
 
             req_cnt += 1
             tok_lat = np.diff(np.array(res_timestamps) - req_timestamp, prepend=0) / 1000000 # in ms
-            print(f"Request {req_cnt}: {tok_lat.tolist()}")
+            print(f"Request {req_cnt} ({(req_timestamp - start_time) / 1000000}): {tok_lat.tolist()}")
     
             self._preprocess_response(res_timestamps, res_outputs)
 
