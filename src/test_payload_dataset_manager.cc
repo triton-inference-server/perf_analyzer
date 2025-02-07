@@ -35,10 +35,10 @@
 
 #include "client_backend/client_backend.h"
 #include "doctest.h"
+#include "inference_load_mode.h"
 #include "mock_data_loader.h"
 #include "model_parser.h"
 #include "session_concurrency/payload_dataset_manager.h"
-#include "session_concurrency_mode.h"
 
 namespace triton::perfanalyzer {
 
@@ -51,11 +51,11 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
     const std::string model_name{""};
     const std::string model_version{""};
     const int32_t batch_size{0};
-    const SessionConcurrencyMode session_concurrency_mode{
-        SessionConcurrencyMode::Enabled};
+    const InferenceLoadMode inference_load_mode{
+        InferenceLoadMode::SessionConcurrency};
 
     model_parser->InitOpenAI(
-        model_name, model_version, batch_size, session_concurrency_mode);
+        model_name, model_version, batch_size, inference_load_mode);
 
     std::string input_data_json{R"(
         {

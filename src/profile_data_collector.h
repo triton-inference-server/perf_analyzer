@@ -1,4 +1,4 @@
-// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -37,40 +37,6 @@
 
 namespace triton { namespace perfanalyzer {
 
-/// Data structure to hold which inference load mode was used for an experiment.
-/// Only one data member will be nonzero, indicating the inference load mode for
-/// a particular experiment.
-struct InferenceLoadMode {
-  uint32_t concurrency;
-  double request_rate;
-
-  InferenceLoadMode()
-  {
-    concurrency = 0;
-    request_rate = 0.0;
-  }
-
-  InferenceLoadMode(uint64_t c, double rr)
-  {
-    concurrency = c;
-    request_rate = rr;
-  }
-
-  bool operator==(const InferenceLoadMode& rhs) const
-  {
-    return (concurrency == rhs.concurrency) &&
-           (request_rate == rhs.request_rate);
-  }
-};
-
-/// Data structure to hold profile export data for an experiment (e.g.
-/// concurrency 4 or request rate 50)
-struct Experiment {
-  InferenceLoadMode mode;
-  std::vector<RequestRecord> requests;
-  std::vector<uint64_t> window_boundaries;
-};
-
 #ifndef DOCTEST_CONFIG_DISABLE
 class NaggyMockProfileDataCollector;
 #endif
@@ -78,6 +44,40 @@ class NaggyMockProfileDataCollector;
 /// Data structure and methods for storing profile export data.
 class ProfileDataCollector {
  public:
+  /// Data structure to hold which inference load mode was used for an
+  /// experiment. Only one data member will be nonzero, indicating the inference
+  /// load mode for a particular experiment.
+  struct InferenceLoadMode {
+    uint32_t concurrency;
+    double request_rate;
+
+    InferenceLoadMode()
+    {
+      concurrency = 0;
+      request_rate = 0.0;
+    }
+
+    InferenceLoadMode(uint64_t c, double rr)
+    {
+      concurrency = c;
+      request_rate = rr;
+    }
+
+    bool operator==(const InferenceLoadMode& rhs) const
+    {
+      return (concurrency == rhs.concurrency) &&
+             (request_rate == rhs.request_rate);
+    }
+  };
+
+  /// Data structure to hold profile export data for an experiment (e.g.
+  /// concurrency 4 or request rate 50)
+  struct Experiment {
+    InferenceLoadMode mode;
+    std::vector<RequestRecord> requests;
+    std::vector<uint64_t> window_boundaries;
+  };
+
   static cb::Error Create(std::shared_ptr<ProfileDataCollector>* collector);
   ~ProfileDataCollector() = default;
 
