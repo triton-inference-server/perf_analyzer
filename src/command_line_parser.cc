@@ -1848,7 +1848,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
     }
   }
 
-  // Overriding the max_threads default for request_rate search
+  // Overriding the max_threads default for concurrency mode
   if (!params_->max_threads_specified &&
       params_->inference_load_mode == InferenceLoadMode::Concurrency) {
     params_->max_threads =
