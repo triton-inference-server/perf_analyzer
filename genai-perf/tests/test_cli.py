@@ -30,7 +30,6 @@ from pathlib import Path
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
-from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,

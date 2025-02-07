@@ -583,6 +583,21 @@ The number of sessions to simulate.
 When this is set to 0, each request is treated as a new session.
 (default: `0`)
 
+##### `--session-concurrency`
+
+The number of concurrent sessions to be simulated. This is the default mode for simulating sessions.
+(default: `1`)
+
+##### `--session-turn-delay-mean`
+
+The mean delay (in milliseconds) between turns in a session.
+(default: `0`)
+
+##### `--session-turn-delay-stddev`
+
+The standard deviation of the delay (in milliseconds) between turns in a session.
+(default: `0`)
+
 ##### `--turns-per-session-mean`
 
 The mean number of turns per session.
@@ -590,24 +605,10 @@ This is only used when --num-sessions is provided.
 (default: `1`)
 
 ##### `--turns-per-session-stddev`
+
 The standard deviation of the number of turns per session.
 This is only used when --turns-per-session-mean is provided.
 (default: `0`)
-
-##### `--session-turn-delay-mean`
-The mean delay (in milliseconds) between turns in a session.
-(default: `1000`)
-
-##### `--session-turn-delay-stddev`
-The standard deviation of the delay (in milliseconds) between turns in a session.
-(default: `200`)
-
-##### `--session-concurrency`
-The number of concurrent sessions to be simulated. This is the default mode for simulating sessions.
-(default: `1`)
-
-##### `--session-rate`
-The rate at which sessions are started.
 
 ### Output Options
 

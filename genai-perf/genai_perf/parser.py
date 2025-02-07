@@ -289,6 +289,14 @@ def _check_session_args(
         if args.session_concurrency > args.num_sessions:
             parser.error("--session-concurrency cannot be greater than --num-sessions.")
 
+    else:
+        if args.concurrency:
+            parser.error(
+                "--session-concurrency can be used only when --num-sessions > 0"
+            )
+        # [TPA-962] Throw an error if session-rate > 0 when session rate is supported in PA
+        # [TPA-963] Throw an error if any of other synthetic multiturn args
+
     return args
 
 
