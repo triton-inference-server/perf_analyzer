@@ -475,15 +475,13 @@ Add a custom header to the requests. Headers must be specified as
 (default: `None`)
 
 ##### `--input-file <path>`
-
-The input file or directory containing the content to use for
-profiling. Each line should be a JSON object with a 'text' or 'image' field
-in JSONL format. Example: {\"text\": \"Your prompt here\"}"
-To use synthetic files for a converter that needs
-multiple files, prefix the path with 'synthetic:', followed by a
-comma-separated list of filenames. The synthetic filenames should not have
-extensions. For example, 'synthetic:queries,passages'.
-(default: `None`)
+The input file or directory for profiling. Each line should be a JSON object
+with a `text` or `image` field in JSONL format. Example:
+`{"text": "Your prompt here"}`. To use synthetic files, prefix with
+`synthetic:` followed by a comma-separated list of filenames without
+extensions (Example: `synthetic:queries,passages`). To use a payload file with
+a fixed schedule workload, prefix with `payload:` followed by the filename
+(Example: `payload:input.jsonl`). (default: `None`)
 
 ##### `--num-dataset-entries <int>`
 
