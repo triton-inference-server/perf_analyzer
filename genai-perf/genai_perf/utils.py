@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -103,7 +103,7 @@ def convert_option_name(name: str) -> str:
     return name.replace("_", "-")
 
 
-def get_enum_names(enum: Type[Enum]) -> List:
+def get_enum_names(enum: Type[Enum]) -> List[str]:
     names = []
     for e in enum:
         names.append(e.name.lower())

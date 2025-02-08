@@ -77,10 +77,10 @@ class TemplateConverter(BaseConverter):
         payload_template = config.extra_inputs.get("payload_template")
         if not payload_template:
             raise GenAIPerfException(
-                f"The template converter requires the "
+                "The template converter requires the "
                 "extra input payload_template, only "
                 "detected the following --extra-inputs: "
-                "{config.extra_inputs.keys}."
+                f"{list(config.extra_inputs.keys())}."
             )
         try:
             template = self.resolve_template(payload_template)

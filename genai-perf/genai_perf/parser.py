@@ -97,7 +97,7 @@ _endpoint_type_map = {
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
     ),
     "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
-    "template": EndpointConfig(None, "template", ic.OutputFormat.TEMPLATE),
+    "template": EndpointConfig(None, "triton", ic.OutputFormat.TEMPLATE),
     "tensorrtllm_engine": EndpointConfig(
         None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
     ),
@@ -436,7 +436,7 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
         if args.service_kind == "openai":
             name += [f"{args.service_kind}-{args.endpoint_type}"]
         elif args.service_kind == "triton":
-            name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
+            name += [f"{args.service_kind}-{args.backend}"]
         elif args.service_kind == "tensorrtllm_engine":
             name += [f"{args.service_kind}"]
         else:
