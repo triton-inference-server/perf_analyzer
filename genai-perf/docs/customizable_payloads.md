@@ -29,13 +29,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # Use Custom Payload Formats
 
 With GenAI-Perf, you can customize how input data is formatted into payloads
-using output templates. This allows you to define how payloads are
+using templates. This allows you to define how payloads are
 structured when sent to an inference server.
 
 These provide less customizability than a
 [customizable frontend](customizable_frontends.md), which is used when more
-endpoint-specific logic is necessary. Output templates are used when
-the only change necessary is specifying a specific payload schema.
+endpoint-specific logic is necessary. Templates are used when
+the only change necessary is specifying a custom payload schema.
 
 ## Table of Contents
 
@@ -60,7 +60,7 @@ genai-perf profile \
   --model MY_MODEL \
   --tokenizer MY_MODEL \
   --num-payloads 2 \
-  --extra-inputs output_template:nv-embedqa
+  --extra-inputs payload_template:nv-embedqa
 ```
 
 #### Result
@@ -106,5 +106,5 @@ genai-perf profile \
   --model MY_MODEL \
   --tokenizer MY_MODEL \
   --num-payloads 2 \
-  --extra-inputs output_template:custom_template.jinja
+  --extra-inputs payload_template:custom_template.jinja
 ```

@@ -74,16 +74,16 @@ class TemplateConverter(BaseConverter):
         return environment.from_string(template_content)
 
     def check_config(self, config: InputsConfig) -> None:
-        output_template = config.extra_inputs.get("output_template")
-        if not output_template:
+        payload_template = config.extra_inputs.get("payload_template")
+        if not payload_template:
             raise GenAIPerfException(
                 f"The template converter requires the "
-                "extra input output_template, only "
+                "extra input payload_template, only "
                 "detected the following --extra-inputs: "
                 "{config.extra_inputs.keys}."
             )
         try:
-            template = self.resolve_template(output_template)
+            template = self.resolve_template(payload_template)
             test_texts = ["test1", "test2"]
             payloads_json = template.render(texts=test_texts)
             payloads = json.loads(payloads_json)
@@ -98,9 +98,9 @@ class TemplateConverter(BaseConverter):
     def convert(
         self, generic_dataset: GenericDataset, config: InputsConfig
     ) -> Dict[Any, Any]:
-        output_template = config.extra_inputs.get("output_template")
-        output_template = cast(str, output_template)
-        template = self.resolve_template(output_template)
+        payload_template = config.extra_inputs.get("payload_template")
+        payload_template = cast(str, payload_template)
+        template = self.resolve_template(payload_template)
 
         request_body: Dict[str, Any] = {"data": []}
 

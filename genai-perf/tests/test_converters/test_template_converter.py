@@ -56,7 +56,7 @@ class TestTemplateConverter:
             config = InputsConfig(
                 output_format=OutputFormat.TEMPLATE,
                 tokenizer=get_empty_tokenizer(),
-                extra_inputs={"output_template": fake_template_path},
+                extra_inputs={"payload_template": fake_template_path},
             )
 
             converter = TemplateConverter()
@@ -72,7 +72,7 @@ class TestTemplateConverter:
         config = InputsConfig(
             output_format=OutputFormat.TEMPLATE,
             tokenizer=get_empty_tokenizer(),
-            extra_inputs={"output_template": fake_template_path},
+            extra_inputs={"payload_template": fake_template_path},
         )
 
         template_converter = TemplateConverter()
@@ -92,7 +92,7 @@ class TestTemplateConverter:
         config = InputsConfig(
             output_format=OutputFormat.TEMPLATE,
             tokenizer=get_empty_tokenizer(),
-            extra_inputs={"output_template": fake_template_path},
+            extra_inputs={"payload_template": fake_template_path},
         )
 
         converter = TemplateConverter()
@@ -104,18 +104,18 @@ class TestTemplateConverter:
             ):
                 converter.check_config(config)
 
-    def test_check_config_missing_output_template(self):
+    def test_check_config_missing_payload_template(self):
         config = InputsConfig(
             output_format=OutputFormat.TEMPLATE,
             tokenizer=get_empty_tokenizer(),
-            extra_inputs={},  # Missing 'output_template'
+            extra_inputs={},  # Missing 'payload_template'
         )
 
         converter = TemplateConverter()
 
         with pytest.raises(
             GenAIPerfException,
-            match="The template converter requires the extra input output_template",
+            match="The template converter requires the extra input payload_template",
         ):
             converter.check_config(config)
 
@@ -123,7 +123,7 @@ class TestTemplateConverter:
         config = InputsConfig(
             output_format=OutputFormat.TEMPLATE,
             tokenizer=get_empty_tokenizer(),
-            extra_inputs={"output_template": "nv-embedqa"},
+            extra_inputs={"payload_template": "nv-embedqa"},
         )
 
         converter = TemplateConverter()
@@ -136,7 +136,7 @@ class TestTemplateConverter:
             config = InputsConfig(
                 output_format=OutputFormat.TEMPLATE,
                 tokenizer=get_empty_tokenizer(),
-                extra_inputs={"output_template": fake_template_path},
+                extra_inputs={"payload_template": fake_template_path},
             )
 
             converter = TemplateConverter()
@@ -155,7 +155,7 @@ class TestTemplateConverter:
             config = InputsConfig(
                 output_format=OutputFormat.TEMPLATE,
                 tokenizer=get_empty_tokenizer(),
-                extra_inputs={"output_template": fake_template_path},
+                extra_inputs={"payload_template": fake_template_path},
             )
 
             converter = TemplateConverter()
@@ -183,7 +183,7 @@ class TestTemplateConverter:
             config = InputsConfig(
                 output_format=OutputFormat.TEMPLATE,
                 tokenizer=get_empty_tokenizer(),
-                extra_inputs={"output_template": fake_template_path},
+                extra_inputs={"payload_template": fake_template_path},
             )
 
             converter = TemplateConverter()
@@ -210,7 +210,7 @@ class TestTemplateConverter:
         config = InputsConfig(
             output_format=OutputFormat.TEMPLATE,
             tokenizer=get_empty_tokenizer(),
-            extra_inputs={"output_template": "nv-embedqa"},
+            extra_inputs={"payload_template": "nv-embedqa"},
         )
         converter = TemplateConverter()
         result = converter.convert(generic_dataset, config)
