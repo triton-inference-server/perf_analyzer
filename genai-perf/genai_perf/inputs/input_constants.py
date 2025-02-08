@@ -54,6 +54,7 @@ class OutputFormat(Enum):
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
+    TEMPLATE = auto()
     TENSORRTLLM_ENGINE = auto()
     TRITON_GENERATE = auto()
 

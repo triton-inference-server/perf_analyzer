@@ -40,12 +40,9 @@ from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-from genai_perf.plots.plot_config_parser import PlotConfigParser
-from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
-from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
@@ -100,6 +97,7 @@ _endpoint_type_map = {
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
     ),
     "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
+    "template": EndpointConfig(None, "template", ic.OutputFormat.TEMPLATE),
     "tensorrtllm_engine": EndpointConfig(
         None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
     ),
@@ -240,6 +238,7 @@ def _check_conditional_args(
         ic.OutputFormat.NVCLIP,
         ic.OutputFormat.OPENAI_EMBEDDINGS,
         ic.OutputFormat.RANKINGS,
+        ic.OutputFormat.TEMPLATE,
     ]:
         if args.generate_plots:
             parser.error(

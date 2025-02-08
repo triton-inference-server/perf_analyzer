@@ -56,7 +56,13 @@ You can use GenAI-Perf to run performance benchmarks on
 - [Multiple LoRA Adapters](docs/lora.md)
 
 You can also use GenAI-Perf to run benchmarks on your
-[custom APIs](docs/customizable_frontends.md).
+custom APIs using either
+[customizable frontends](docs/customizable_frontends.md)
+or
+[customizable payloads](docs/customizable_payloads.md).
+Customizable frontends provide more customizability,
+while customizable payloads allow you to specify
+specific payload schemas using a Jinja2 template.
 
 > [!Note]
 > GenAI-Perf is currently in early release and under rapid development. While we

@@ -34,7 +34,7 @@ from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
-from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.inputs import Inputs, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.profile_data_parser import (
@@ -64,6 +64,11 @@ def generate_inputs(config_options: InputsConfig) -> None:
 
 
 def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParser:
+    if args.output_format == OutputFormat.TEMPLATE:
+        return ProfileDataParser(
+            args.profile_export_file,
+            goodput_constraints=args.goodput,
+        )
     if args.endpoint_type in ["embeddings", "nvclip", "rankings"]:
         return ProfileDataParser(
             args.profile_export_file,
