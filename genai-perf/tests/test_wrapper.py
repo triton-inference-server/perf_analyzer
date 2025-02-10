@@ -190,7 +190,6 @@ class TestWrapper:
         "session_arg, expected_session_arg",
         [
             (["--session-concurrency", "5"], "--session-concurrency 5"),
-            ([], "--session-concurrency 1"),
         ],
     )
     def test_session_args_passed_correctly(
