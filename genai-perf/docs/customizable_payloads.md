@@ -62,6 +62,7 @@ genai-perf profile \
   --model MY_MODEL \
   --tokenizer MY_MODEL \
   --service-kind triton \
+  --endpoint-type template \
   --num-payloads 2 \
   --extra-inputs payload_template:nv-embedqa
 ```
@@ -109,6 +110,7 @@ genai-perf profile \
   --model MY_MODEL \
   --tokenizer MY_MODEL \
   --service-kind triton \
+  --endpoint-type template \
   --num-payloads 2 \
   --extra-inputs payload_template:custom_template.jinja
 ```

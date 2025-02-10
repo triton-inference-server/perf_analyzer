@@ -74,6 +74,12 @@ class TemplateConverter(BaseConverter):
         return environment.from_string(template_content)
 
     def check_config(self, config: InputsConfig) -> None:
+        for key, value in config.extra_inputs.items():
+            if key != "payload_template":
+                raise GenAIPerfException(
+                    "Template only supports the extra input 'payload_template'. "
+                )
+
         payload_template = config.extra_inputs.get("payload_template")
         if not payload_template:
             raise GenAIPerfException(

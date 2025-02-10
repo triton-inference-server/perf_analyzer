@@ -436,7 +436,7 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
         if args.service_kind == "openai":
             name += [f"{args.service_kind}-{args.endpoint_type}"]
         elif args.service_kind == "triton":
-            name += [f"{args.service_kind}-{args.backend}"]
+            name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
         elif args.service_kind == "tensorrtllm_engine":
             name += [f"{args.service_kind}"]
         else:
