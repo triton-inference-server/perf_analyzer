@@ -26,7 +26,6 @@
 
 
 import argparse
-import os
 import sys
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -199,9 +198,10 @@ def _check_conditional_args(
         if endpoint_config.endpoint:
             args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
 
-    if args.service_kind == "triton" and args.endpoint_type == "kserve":
+    if args.service_kind == "triton" and args.endpoint_type in ["kserve", "template"]:
         args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
-        args.output_format = args.backend
+        if args.endpoint_type == "kserve":
+            args.output_format = args.backend
     else:
         if args.backend is not ic.DEFAULT_BACKEND:
             parser.error(
