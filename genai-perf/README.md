@@ -584,8 +584,10 @@ infer per second and latency. (default: `999`)
 ### Session Options
 
 ##### `--session-concurrency`
-The number of concurrent sessions to be simulated. This is the default mode for simulating sessions.
-(default: `1`)
+
+The number of concurrent sessions to be simulated. This option should be
+used when benchmarking multi-turn chat.
+(default: `None`)
 
 ### Output Options
 

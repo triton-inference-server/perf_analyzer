@@ -232,7 +232,7 @@ class TestJsonExporter:
           "output_tokens_stddev": 0,
           "random_seed": 0,
           "request_count": 0,
-          "session_concurrency": 1,
+          "session_concurrency": null,
           "synthetic_input_files": null,
           "synthetic_input_tokens_mean": 550,
           "synthetic_input_tokens_stddev": 0,

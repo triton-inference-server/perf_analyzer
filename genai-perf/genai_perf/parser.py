@@ -273,18 +273,6 @@ def _check_goodput_args(args):
     return args
 
 
-def _check_session_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> argparse.Namespace:
-    """
-    Check if session args are used correctly
-    """
-    if not args.session_concurrency:
-        args.session_concurrency = ic.DEFAULT_SESSION_CONCURRENCY
-
-    return args
-
-
 def _process_sweep_args(args):
     """
     Process the sweep args which can either be a list or
@@ -1136,7 +1124,6 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
-        args = _check_session_args(parser, args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
         args = _infer_prompt_source(args)
