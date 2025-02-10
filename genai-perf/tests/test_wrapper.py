@@ -79,8 +79,6 @@ class TestWrapper:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "triton",
         ] + arg
         monkeypatch.setattr("sys.argv", args)
         args, extra_args = parser.parse_args()

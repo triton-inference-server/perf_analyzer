@@ -132,38 +132,61 @@ class TestTemplateConverter:
     def test_check_config_with_nonexistent_template_file(self):
         fake_template_path = "/nonexistent/path/template.jinja2"
 
-        with patch("os.path.isfile", return_value=False):  # Simulate missing file
-            config = InputsConfig(
-                output_format=OutputFormat.TEMPLATE,
-                tokenizer=get_empty_tokenizer(),
-                extra_inputs={"payload_template": fake_template_path},
-            )
+        config = InputsConfig(
+            output_format=OutputFormat.TEMPLATE,
+            tokenizer=get_empty_tokenizer(),
+            extra_inputs={"payload_template": fake_template_path},
+        )
 
-            converter = TemplateConverter()
+        converter = TemplateConverter()
 
-            with pytest.raises(
-                GenAIPerfException,
-                match=f"Template file not found: {fake_template_path}",
-            ):
+        with pytest.raises(
+            GenAIPerfException,
+            match=f"Template file not found: {fake_template_path}",
+        ):
+            with patch("os.path.isfile", return_value=False):  # Simulate missing file
                 converter.check_config(config)
 
     @patch("builtins.open", side_effect=IOError("File read error"))
     def test_check_config_with_unreadable_template_file(self, mock_open_fn):
         fake_template_path = "/fake/path/template.jinja2"
 
-        with patch("os.path.isfile", return_value=True):  # Simulate file exists
-            config = InputsConfig(
-                output_format=OutputFormat.TEMPLATE,
-                tokenizer=get_empty_tokenizer(),
-                extra_inputs={"payload_template": fake_template_path},
-            )
+        config = InputsConfig(
+            output_format=OutputFormat.TEMPLATE,
+            tokenizer=get_empty_tokenizer(),
+            extra_inputs={"payload_template": fake_template_path},
+        )
 
-            converter = TemplateConverter()
+        converter = TemplateConverter()
 
-            with pytest.raises(
-                GenAIPerfException, match="Error reading template file: File read error"
-            ):
+        with pytest.raises(
+            GenAIPerfException, match="Error reading template file: File read error"
+        ):
+            with patch("os.path.isfile", return_value=True):  # Simulate file exists
                 converter.check_config(config)
+
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='{ "invalid_format": {{ texts|tojson }} }',
+    )
+    def test_check_config_with_invalid_extra_inputs(self, mock_open_fn):
+        config = InputsConfig(
+            output_format=OutputFormat.TEMPLATE,
+            tokenizer=get_empty_tokenizer(),
+            extra_inputs={
+                "invalid_key": "value",
+                "payload_template": "template.jinja2",
+            },
+        )
+
+        converter = TemplateConverter()
+
+        with pytest.raises(
+            GenAIPerfException,
+            match="Template only supports the extra input 'payload_template'",
+        ):
+            converter.check_config(config)
 
     @patch("builtins.open", new_callable=mock_open)
     def test_convert_custom_template(self, mock_open_fn):
