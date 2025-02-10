@@ -120,9 +120,8 @@ class DynamicGrpcInferResult : public InferResult {
 class DynamicGrpcClient {
  public:
   DynamicGrpcClient(
-      const std::string& url, const std::string& proto_file,
-      const std::string& grpc_method, bool verbose, bool use_ssl,
-      const SslOptions& ssl_options);
+      const std::string& url, const std::string& grpc_method, bool verbose,
+      bool use_ssl, const SslOptions& ssl_options);
 
   ~DynamicGrpcClient();
 
@@ -191,7 +190,6 @@ class DynamicGrpcClient {
 
   // Generic gRPC stub for dynamic calls.
   std::unique_ptr<grpc::GenericStub> stub_;
-  const std::string proto_file_;
   const std::string grpc_method_;
 };
 

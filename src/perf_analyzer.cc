@@ -86,7 +86,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
           params_->triton_server_path, params_->model_repository_path,
           params_->extra_verbose, params_->metrics_url,
           params_->input_tensor_format, params_->output_tensor_format,
-          params_->proto_file, params_->grpc_method, &factory),
+          params_->grpc_method, &factory),
       "failed to create client factory");
 
   FAIL_IF_ERR(

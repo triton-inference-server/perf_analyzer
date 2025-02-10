@@ -828,13 +828,6 @@ CLParser::Usage(const std::string& msg)
                    "version 3, while modelB's version is unspecified",
                    18)
             << std::endl;
-  std::cerr << FormatMessage(
-                   " --proto: Path to the protobuf file that defines all the "
-                   "gRPC service and RPC methods. The option is only supported "
-                   "by dynamic gRPC service kind for dynamically parsing the "
-                   "protobuf at runtime.",
-                   18)
-            << std::endl;
   std::cerr
       << FormatMessage(
              " --rpc: A fully-qualified gRPC method name in "
@@ -946,8 +939,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
       {"schedule", required_argument, 0, long_option_idx_base + 64},
       {"session-concurrency", required_argument, 0, long_option_idx_base + 65},
-      {"proto", required_argument, 0, long_option_idx_base + 66},
-      {"rpc", required_argument, 0, long_option_idx_base + 67},
+      {"rpc", required_argument, 0, long_option_idx_base + 66},
       {0, 0, 0, 0}};
 
   // Parse commandline...
@@ -1729,16 +1721,6 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case long_option_idx_base + 66: {
-          std::string proto_file{optarg};
-          if (!IsFile(proto_file)) {
-            Usage(
-                "Failed to parse --proto. The value must be a valid file "
-                "path.");
-          }
-          params_->proto_file = proto_file;
-          break;
-        }
-        case long_option_idx_base + 67: {
           std::string rpc{optarg};
           std::vector<std::string> components = SplitString(rpc, "/");
           if (components.size() != 2) {

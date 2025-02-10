@@ -54,10 +54,9 @@ DynamicGrpcInferResult::RawData(
 //==============================================================================
 //
 DynamicGrpcClient::DynamicGrpcClient(
-    const std::string& url, const std::string& proto_file,
-    const std::string& grpc_method, bool verbose, bool use_ssl,
-    const SslOptions& ssl_options)
-    : verbose_(verbose), proto_file_(proto_file), grpc_method_(grpc_method)
+    const std::string& url, const std::string& grpc_method, bool verbose,
+    bool use_ssl, const SslOptions& ssl_options)
+    : verbose_(verbose), grpc_method_(grpc_method)
 {
   if (verbose) {
     std::cout << "Creating new channel with url: " << url << std::endl;

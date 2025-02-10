@@ -66,9 +66,8 @@ class DynamicGrpcClientBackend : public ClientBackend {
       const std::string& url, const ProtocolType protocol,
       const SslOptionsBase& ssl_options,
       const grpc_compression_algorithm compression_algorithm,
-      std::shared_ptr<Headers> http_headers, const std::string& proto_file,
-      const std::string& grpc_method, const bool verbose,
-      std::unique_ptr<ClientBackend>* client_backend);
+      std::shared_ptr<Headers> http_headers, const std::string& grpc_method,
+      const bool verbose, std::unique_ptr<ClientBackend>* client_backend);
 
   /// See ClientBackend::StreamInfer()
   Error StreamInfer(

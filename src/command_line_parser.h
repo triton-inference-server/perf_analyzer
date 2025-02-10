@@ -166,7 +166,6 @@ struct PerfAnalyzerParameters {
       SessionConcurrencyMode::Disabled};
 
   // Dynamic gRPC options
-  std::string proto_file{""};
   std::string grpc_method{""};  // full gRPC method name
 };
 
