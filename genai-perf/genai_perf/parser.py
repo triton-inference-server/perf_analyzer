@@ -585,6 +585,20 @@ def _add_compare_args(parser):
     )
 
 
+def _add_session_args(parser):
+
+    input_group = parser.add_argument_group("Session")
+    session_load_management_group = input_group.add_mutually_exclusive_group(
+        required=False
+    )
+
+    session_load_management_group.add_argument(
+        "--session-concurrency",
+        type=int,
+        help="The number of concurrent sessions to simulate.",
+    )
+
+
 def _add_endpoint_args(parser):
     endpoint_group = parser.add_argument_group("Endpoint")
 
@@ -1037,6 +1051,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(profile)
     _add_output_args(profile)
     _add_profile_args(profile)
+    _add_session_args(profile)
     _add_tokenizer_args(profile)
     profile.set_defaults(func=profile_handler)
     return profile

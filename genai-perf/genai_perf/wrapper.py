@@ -63,6 +63,13 @@ class Profiler:
         return cmd
 
     @staticmethod
+    def add_session_args(args: Namespace) -> List[str]:
+        cmd = []
+        if args.session_concurrency:
+            cmd += ["--session-concurrency", f"{args.session_concurrency}"]
+        return cmd
+
+    @staticmethod
     def build_cmd(args: Namespace, extra_args: Optional[List[str]] = None) -> List[str]:
         skip_args = [
             "artifact_dir",
@@ -123,6 +130,7 @@ class Profiler:
         ]
         cmd += Profiler.add_protocol_args(args)
         cmd += Profiler.add_inference_load_args(args)
+        cmd += Profiler.add_session_args(args)
 
         for arg, value in vars(args).items():
             if arg in skip_args:
