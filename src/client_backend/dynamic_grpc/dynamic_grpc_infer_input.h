@@ -42,8 +42,7 @@ class DynamicGrpcInferInput : public InferInput {
  public:
   static Error Create(
       InferInput** infer_input, const std::string& name,
-      const std::vector<int64_t>& dims, const std::string& datatype,
-      const bool streaming);
+      const std::vector<int64_t>& dims, const std::string& datatype);
   /// See InferInput::Shape()
   const std::vector<int64_t>& Shape() const override { return shape_; }
   /// See InferInput::AppendRaw()
@@ -56,7 +55,7 @@ class DynamicGrpcInferInput : public InferInput {
  private:
   explicit DynamicGrpcInferInput(
       const std::string& name, const std::vector<int64_t>& dims,
-      const std::string& datatype, const bool streaming);
+      const std::string& datatype);
 
   std::vector<int64_t> shape_;
   size_t byte_size_{0};
@@ -64,8 +63,6 @@ class DynamicGrpcInferInput : public InferInput {
   size_t bufs_idx_, buf_pos_;
   std::vector<const uint8_t*> bufs_;
   std::vector<size_t> buf_byte_sizes_;
-
-  bool streaming_{false};
 };
 
 }  // namespace triton::perfanalyzer::clientbackend::dynamicgrpc

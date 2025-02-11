@@ -31,11 +31,10 @@ namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 Error
 DynamicGrpcInferInput::Create(
     InferInput** infer_input, const std::string& name,
-    const std::vector<int64_t>& dims, const std::string& datatype,
-    const bool streaming)
+    const std::vector<int64_t>& dims, const std::string& datatype)
 {
   DynamicGrpcInferInput* local_infer_input =
-      new DynamicGrpcInferInput(name, dims, datatype, streaming);
+      new DynamicGrpcInferInput(name, dims, datatype);
 
   *infer_input = local_infer_input;
   return Error::Success;
@@ -69,12 +68,6 @@ DynamicGrpcInferInput::PrepareForRequest()
 std::vector<std::vector<char>>
 DynamicGrpcInferInput::GetSerializedMessages()
 {
-  if (!streaming_) {
-    std::cerr << "Cannot get next serialized message for non-streaming RPC."
-              << std::endl;
-    throw PerfAnalyzerException(GENERIC_ERROR);
-  }
-
   std::vector<std::vector<char>> messages;
   std::vector<char> message;
   uint32_t message_size;
@@ -102,9 +95,8 @@ DynamicGrpcInferInput::GetSerializedMessages()
 
 DynamicGrpcInferInput::DynamicGrpcInferInput(
     const std::string& name, const std::vector<int64_t>& dims,
-    const std::string& datatype, const bool streaming)
-    : InferInput(BackendKind::DYNAMIC_GRPC, name, datatype), shape_(dims),
-      streaming_(streaming)
+    const std::string& datatype)
+    : InferInput(BackendKind::DYNAMIC_GRPC, name, datatype), shape_(dims)
 {
 }
 

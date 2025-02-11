@@ -471,8 +471,7 @@ ClientBackend::ClientBackend(const BackendKind kind) : kind_(kind) {}
 Error
 InferInput::Create(
     InferInput** infer_input, const BackendKind kind, const std::string& name,
-    const std::vector<int64_t>& dims, const std::string& datatype,
-    const bool streaming)
+    const std::vector<int64_t>& dims, const std::string& datatype)
 {
   if (kind == TRITON) {
     RETURN_IF_CB_ERROR(tritonremote::TritonInferInput::Create(
@@ -481,7 +480,7 @@ InferInput::Create(
 #ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
   else if (kind == DYNAMIC_GRPC) {
     RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcInferInput::Create(
-        infer_input, name, dims, datatype, streaming));
+        infer_input, name, dims, datatype));
   }
 #endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI

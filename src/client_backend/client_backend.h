@@ -532,8 +532,7 @@ class InferInput {
   /// \return Error object indicating success or failure.
   static Error Create(
       InferInput** infer_input, const BackendKind kind, const std::string& name,
-      const std::vector<int64_t>& dims, const std::string& datatype,
-      const bool streaming);
+      const std::vector<int64_t>& dims, const std::string& datatype);
 
   virtual ~InferInput() = default;
 

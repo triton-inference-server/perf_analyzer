@@ -95,8 +95,8 @@ DynamicGrpcClient::BidiStreamRPC(
 
   for (const auto& message : messages) {
     grpc::Slice slice(message.data(), message.size());
-    grpc::ByteBuffer request_buffer(&slice, 1);
-    bidi_stream_->Write(request_buffer, nullptr);
+    grpc::ByteBuffer write_buffer(&slice, 1);
+    bidi_stream_->Write(write_buffer, nullptr);
     completion_queue_->Next(&tag, &ok);
   }
 
@@ -116,8 +116,8 @@ DynamicGrpcClient::BidiStreamRPC(
       response_timestamps;
 
   while (true) {
-    grpc::ByteBuffer response_buffer;
-    bidi_stream_->Read(&response_buffer, nullptr);
+    grpc::ByteBuffer read_buffer;
+    bidi_stream_->Read(&read_buffer, nullptr);
     bool status = completion_queue_->Next(&tag, &ok);
     response_timestamps.push_back(std::chrono::system_clock::now());
     if (!ok) {

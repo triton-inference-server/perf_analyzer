@@ -165,10 +165,6 @@ class ModelParser {
     return top_level_response_caching_enabled_;
   }
 
-  /// Returns whether we are streaming or not for gRPC protocol.
-  /// \return the truth value of whether we are using streaming API
-  bool Streaming() const { return streaming_; }
-
 /// Only for testing
 #ifndef DOCTEST_CONFIG_DISABLE
   void SetTopLevelResponseCaching(bool enable_top_level_response_caching)
