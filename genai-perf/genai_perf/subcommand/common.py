@@ -209,9 +209,7 @@ def run_perf_analyzer(
                 collector.start()
 
         cmd = perf_analyzer_config.create_command()
-        logger.info(
-            f"Running Perf Analyzer : '{perf_analyzer_config.create_cli_string()}'"
-        )
+        logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
 
         if config.verbose or config.perf_analyzer.verbose:
             subprocess.run(cmd, check=True, stdout=None)  # nosec

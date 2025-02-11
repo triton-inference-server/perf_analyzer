@@ -51,6 +51,9 @@ class GenAIPerfConfig:
 
         # ENDPOINT
         parameters["endpoint"] = config.endpoint.to_json_dict()
+
+        # Remove any fields that have no bearing on the
+        # values of metrics being measured
         del parameters["endpoint"]["server_metrics_urls"]
         del parameters["endpoint"]["url"]
 

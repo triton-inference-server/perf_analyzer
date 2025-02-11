@@ -69,8 +69,16 @@ class BaseConfig:
                 config_dict[k] = self._get_legal_json_value(v)
 
             return config_dict
-        else:
+        elif (
+            isinstance(value, int)
+            or isinstance(value, float)
+            or isinstance(value, str)
+            or isinstance(value, bool)
+            or isinstance(value, list)
+        ):
             return value
+        else:
+            ValueError(f"Value {value} is not a legal JSON value")
 
     def __setattr__(self, name, value):
         # This prevents recursion failure in __init__

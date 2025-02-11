@@ -369,15 +369,6 @@ class PerfAnalyzerConfig:
 
         return cli_args
 
-    def create_cli_string(self) -> str:
-        """
-        Returns the PA command as a string
-        """
-        cli_args = self.create_command()
-
-        cli_string = " ".join(cli_args)
-        return cli_string
-
     def _create_pa_cli_cmd_args(self) -> List[str]:
         cli_args = self._cli_args
         for name, value in self._parameters.items():
