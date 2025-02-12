@@ -15,6 +15,7 @@
 import copy
 from enum import Enum
 from pathlib import PosixPath
+from textwrap import indent
 
 from genai_perf.config.input.config_field import ConfigField
 
@@ -55,6 +56,39 @@ class BaseConfig:
                 config_dict[key] = self._get_legal_json_value(value)
 
         return config_dict
+
+    def create_template(self, header: str, level: int = 1, verbose=False) -> str:
+        indention = "  " * level
+        template = ""
+
+        if header:
+            template = indent(f"{header}:\n", indention)
+
+        for name, field in self._fields.items():
+            if verbose and field.verbose_template_comment:
+                template_comment = field.verbose_template_comment
+            else:
+                template_comment = field.template_comment
+
+            if template_comment:
+                comment_lines = template_comment.split("\n")
+                for comment_line in comment_lines:
+                    template += indent(f"  # {comment_line}\n", indention)
+            if field.add_to_template:
+                template += indent(
+                    f"  {name}: {self._get_legal_json_value(self.__getattr__(name))}\n",
+                    indention,
+                )
+            if verbose and field.verbose_template_comment:
+                template += "\n"
+
+        template += "\n"
+        for name, child in self._children.items():
+            template += child.create_template(
+                header=name, level=level + 1, verbose=verbose
+            )
+
+        return template
 
     def _get_legal_json_value(self, value):
         if isinstance(value, Enum):
