@@ -65,11 +65,6 @@ def init_logging() -> None:
                 "level": "DEBUG",
                 "propagate": False,
             },
-            "genai_perf.wrapper": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
             "genai_perf.plots.plot_config_parser": {
                 "handlers": ["console"],
                 "level": "DEBUG",

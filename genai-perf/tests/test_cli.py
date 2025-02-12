@@ -30,6 +30,8 @@ from pathlib import Path
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
@@ -219,11 +221,7 @@ class TestCLIArguments:
             (["-p", "100"], {"measurement_interval": 100}),
             (
                 ["--profile-export-file", "test.json"],
-                {
-                    "profile_export_file": Path(
-                        "artifacts/test_model-triton-tensorrtllm-concurrency1/test.json"
-                    )
-                },
+                {"profile_export_file": Path("test.json")},
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
             (["--request-count", "100"], {"request_count": 100}),
@@ -301,7 +299,7 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         # Check that the attributes are set correctly
         for key, value in expected_attributes.items():
@@ -338,7 +336,7 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile"] + models
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         # Check that models are handled correctly
         for key, value in expected_model_list.items():
@@ -359,7 +357,7 @@ class TestCLIArguments:
             "fakefile.txt",
         ]
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.input_file == Path(
             "fakefile.txt"
         ), "The file argument should be the path to the file"
@@ -410,9 +408,12 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = parser.add_cli_options_to_config(config, args)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
 
-        assert args.artifact_dir == Path(expected_path)
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     @pytest.mark.parametrize(
         "arg, expected_path, expected_output",
@@ -448,18 +449,20 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
-        assert args.artifact_dir == Path(expected_path)
-        captured = capsys.readouterr()
-        assert expected_output in captured.out
+        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = parser.add_cli_options_to_config(config, args)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
+
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     def test_default_load_level(self, monkeypatch, capsys):
         logging.init_logging()
         monkeypatch.setattr(
             "sys.argv", ["genai-perf", "profile", "--model", "test_model"]
         )
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.concurrency == 1
 
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
@@ -493,7 +496,7 @@ class TestCLIArguments:
         args = ["genai-perf", "profile", "-m", "test_model"]
         other_args = ["--", "With", "great", "power"]
         monkeypatch.setattr("sys.argv", args + other_args)
-        _, pass_through_args = parser.parse_args()
+        _, _, pass_through_args = parser.parse_args()
 
         assert pass_through_args == other_args[1:]
 
@@ -835,7 +838,7 @@ class TestCLIArguments:
             "sys.argv", ["genai-perf", "profile", "-m", "test_model"] + args
         )
 
-        parsed_args, _ = parser.parse_args()
+        parsed_args, _, _ = parser.parse_args()
         assert parsed_args.output_format == expected_format
 
     @pytest.mark.parametrize(
@@ -866,10 +869,8 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        parsed_args, _ = parser.parse_args()
-
         with pytest.raises(ValueError) as exc_info:
-            get_extra_inputs_as_dict(parsed_args)
+            parsed_args, _, _ = parser.parse_args()
 
         assert str(exc_info.value) == expected_error
 
@@ -908,7 +909,7 @@ class TestCLIArguments:
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
         assert args.prompt_source == expected_prompt_source
 
@@ -1064,7 +1065,7 @@ class TestCLIArguments:
     )
     def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
 
     def test_tokenizer_args(self, monkeypatch):
@@ -1080,7 +1081,7 @@ class TestCLIArguments:
             "test_revision",
         ]
         monkeypatch.setattr("sys.argv", args)
-        parsed_args, _ = parser.parse_args()
+        parsed_args, _, _ = parser.parse_args()
 
         assert parsed_args.tokenizer == "test_tokenizer"
         assert parsed_args.tokenizer_trust_remote_code

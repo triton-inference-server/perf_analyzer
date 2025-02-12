@@ -42,41 +42,26 @@ class JsonExporter:
     A class to export the statistics and arg values in a json format.
     """
 
-    def __init__(self, config: ExporterConfig):
+    def __init__(self, config: ExporterConfig) -> None:
         self._stats: Dict = config.stats
         self._telemetry_stats: Dict[str, Dict[str, Union[str, Dict[str, float]]]] = (
             config.telemetry_stats
         )
-        self._args = dict(vars(config.args))
+        self._config = config.config
+        self._args = self._config.to_json_dict()
         self._extra_inputs = config.extra_inputs
-        self._output_dir = config.artifact_dir
+        self._output_dir = config.perf_analyzer_config.get_artifact_directory()
         self._stats_and_args: Dict = {}
-        self._prepare_args_for_export()
         self._merge_stats_and_args()
 
     def export(self) -> None:
-        prefix = os.path.splitext(os.path.basename(self._args["profile_export_file"]))[
-            0
-        ]
+        prefix = os.path.splitext(
+            os.path.basename(self._config.output.profile_export_file)
+        )[0]
         filename = self._output_dir / f"{prefix}_genai_perf.json"
         logger.info(f"Generating {filename}")
         with open(str(filename), "w") as f:
             f.write(json.dumps(self._stats_and_args, indent=2))
-
-    def _prepare_args_for_export(self) -> None:
-        self._args.pop("func", None)
-        self._args.pop("output_format", None)
-        self._args.pop("input_file", None)
-        self._args["profile_export_file"] = str(self._args["profile_export_file"])
-        self._args["artifact_dir"] = str(self._args["artifact_dir"])
-        for k, v in self._args.items():
-            if isinstance(v, Enum):
-                self._args[k] = v.name.lower()
-        self._add_extra_inputs_to_args()
-
-    def _add_extra_inputs_to_args(self) -> None:
-        del self._args["extra_inputs"]
-        self._args.update({"extra_inputs": self._extra_inputs})
 
     def _merge_stats_and_args(self) -> None:
         self._stats_and_args = dict(self._stats)

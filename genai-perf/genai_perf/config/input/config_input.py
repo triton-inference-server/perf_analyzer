@@ -14,6 +14,7 @@
 
 from typing import Any, Dict
 
+import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_defaults import (
     ImageDefaults,
@@ -24,7 +25,10 @@ from genai_perf.config.input.config_defaults import (
     SyntheticTokenDefaults,
 )
 from genai_perf.config.input.config_field import ConfigField
+from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigInput(BaseConfig):
@@ -32,7 +36,7 @@ class ConfigInput(BaseConfig):
     Describes the configuration input options
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.batch_size: Any = ConfigField(default=InputDefaults.BATCH_SIZE)
         self.extra: Any = ConfigField(default=InputDefaults.EXTRA)
@@ -50,6 +54,9 @@ class ConfigInput(BaseConfig):
         self.prefix_prompt = ConfigPrefixPrompt()
         self.request_count = ConfigRequestCount()
 
+    ###########################################################################
+    # Parse Methods
+    ###########################################################################
     def parse(self, input: Dict[str, Any]) -> None:
         for key, value in input.items():
             if key == "batch_size":
@@ -57,7 +64,7 @@ class ConfigInput(BaseConfig):
             elif key == "extra":
                 self.extra = value
             elif key == "goodput":
-                self.goodput = value
+                self._parse_goodput(value)
             elif key == "header":
                 self.header = value
             elif key == "file":
@@ -79,13 +86,60 @@ class ConfigInput(BaseConfig):
             else:
                 raise ValueError(f"User Config: {key} is not a valid input parameter")
 
+    def _parse_goodput(self, goodputs: Dict[str, Any]) -> None:
+        constraints = {}
+        for target_metric, target_value in goodputs.items():
+            if isinstance(target_value, int) or isinstance(target_value, float):
+                if target_value < 0:
+                    raise ValueError(
+                        "User Config: Goodput values must be non-negative ({target_metric}: {target_value})"
+                    )
+
+                constraints[target_metric] = float(target_value)
+            else:
+                raise ValueError(
+                    "User Config: Goodput values must be integers or floats"
+                )
+
+        self.goodput = constraints
+
+    ###########################################################################
+    # Infer Methods
+    ###########################################################################
+    def infer_settings(self) -> None:
+        self._infer_prompt_source()
+        self._infer_synthetic_input_files()
+
+    def _infer_prompt_source(self) -> None:
+        self.prompt_source: Any = ConfigField(
+            default=PromptSource.SYNTHETIC, choices=PromptSource
+        )
+
+        if self.file:
+            if str(self.file).startswith("synthetic:"):
+                self.prompt_source = PromptSource.SYNTHETIC
+            else:
+                self.prompt_source = PromptSource.FILE
+                logger.debug(f"Input source is the following path: {self.file}")
+
+    def _infer_synthetic_input_files(self) -> None:
+        self.synthetic_input_files: Any = ConfigField(default=[])
+
+        if self.file:
+            if str(self.file).startswith("synthetic:"):
+                synthetic_input_files_str = str(self.file).split(":", 1)[1]
+                self.synthetic_input_files = synthetic_input_files_str.split(",")
+                logger.debug(
+                    f"Input source is synthetic data: {self.synthetic_input_files}"
+                )
+
 
 class ConfigImage(BaseConfig):
     """
     Describes the configuration image options
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.batch_size: Any = ConfigField(
             default=ImageDefaults.BATCH_SIZE, bounds={"min": 0}
@@ -129,7 +183,7 @@ class ConfigOutputTokens(BaseConfig):
     Describes the configuration output tokens options
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.mean: Any = ConfigField(
             default=OutputTokenDefaults.MEAN, bounds={"min": 0}
@@ -152,9 +206,26 @@ class ConfigOutputTokens(BaseConfig):
                     f"User Config: {key} is not a valid output_tokens parameter"
                 )
 
+        self._check_output_tokens()
+
+    def _check_output_tokens(self) -> None:
+        if (
+            self.get_field("stddev").is_set_by_user
+            and not self.get_field("mean").is_set_by_user
+        ):
+            raise ValueError("User Config: If stddev is set, mean must also be set")
+
+        if (
+            self.get_field("deterministic").is_set_by_user
+            and not self.get_field("mean").is_set_by_user
+        ):
+            raise ValueError(
+                "User Config: If deterministic is set, mean must also be set"
+            )
+
 
 class ConfigSyntheticTokens(BaseConfig):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.mean: Any = ConfigField(
             default=SyntheticTokenDefaults.MEAN, bounds={"min": 0}
@@ -181,7 +252,7 @@ class ConfigSyntheticTokens(BaseConfig):
 
 
 class ConfigPrefixPrompt(BaseConfig):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.num: Any = ConfigField(default=PrefixPromptDefaults.NUM, bounds={"min": 0})
         self.length: Any = ConfigField(
@@ -201,7 +272,7 @@ class ConfigPrefixPrompt(BaseConfig):
 
 
 class ConfigRequestCount(BaseConfig):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.warmup: Any = ConfigField(
             default=RequestCountDefaults.WARMUP, bounds={"min": 0}

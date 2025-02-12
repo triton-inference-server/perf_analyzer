@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import TensorRTLLMEngineConverter
 from genai_perf.inputs.input_constants import (
@@ -60,16 +61,17 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
+        config = ConfigCommand({"model_names": ["test_model"]})
+        inputs_config = InputsConfig(
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=get_tokenizer(DEFAULT_TOKENIZER),
+            tokenizer=get_tokenizer(config),
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
-        result = trtllm_engine_converter.convert(generic_dataset, config)
+        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
 
         expected_result = {
             "data": [
@@ -96,32 +98,34 @@ class TestTensorRTLLMEngineConverter:
 
     def test_convert_with_chat_template(self):
         generic_dataset = self.create_generic_dataset()
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
-        config = InputsConfig(
+        config = ConfigCommand({"model_names": ["test_model"]})
+        inputs_config = InputsConfig(
             extra_inputs={"apply_chat_template": True},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=tokenizer,
+            tokenizer=get_tokenizer(config),
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
 
-        result = trtllm_engine_converter.convert(generic_dataset, config)
+        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
 
         expected_texts = [
-            config.tokenizer._tokenizer.apply_chat_template(
+            inputs_config.tokenizer._tokenizer.apply_chat_template(
                 [{"role": "user", "content": "text input one"}],
                 tokenize=False,
                 add_special_tokens=False,
             ),
-            config.tokenizer._tokenizer.apply_chat_template(
+            inputs_config.tokenizer._tokenizer.apply_chat_template(
                 [{"role": "user", "content": "text input two"}],
                 tokenize=False,
                 add_special_tokens=False,
             ),
         ]
-        expected_tokenized = [config.tokenizer.encode(text) for text in expected_texts]
+        expected_tokenized = [
+            inputs_config.tokenizer.encode(text) for text in expected_texts
+        ]
 
         assert "data" in result
         assert isinstance(result["data"], list)
@@ -140,19 +144,20 @@ class TestTensorRTLLMEngineConverter:
 
         extra_inputs = {"additional_key": "additional_value"}
 
-        config = InputsConfig(
+        config = ConfigCommand({"model_names": ["test_model"]})
+        inputs_config = InputsConfig(
             extra_inputs=extra_inputs,
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=get_tokenizer(DEFAULT_TOKENIZER),
+            tokenizer=get_tokenizer(config),
             add_stream=True,
             output_tokens_mean=1234,
             output_tokens_deterministic=True,
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
-        result = trtllm_engine_converter.convert(generic_dataset, config)
+        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
 
         expected_result = {
             "data": [

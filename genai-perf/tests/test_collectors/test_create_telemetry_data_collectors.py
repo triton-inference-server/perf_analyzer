@@ -29,6 +29,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.subcommand.common import create_telemetry_data_collectors
 from genai_perf.telemetry_data import TritonTelemetryDataCollector
@@ -61,10 +62,13 @@ class TestCreateTelemetryDataCollector:
         """Test successful creation of a Triton telemetry data collector"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
 
-        mock_args = MockArgs(
-            service_kind="triton", server_metrics_url=server_metrics_url
-        )
-        telemetry_collectors = create_telemetry_data_collectors(mock_args)
+        config = ConfigCommand({})
+        config.endpoint.service_kind = "triton"
+
+        if server_metrics_url:
+            config.endpoint.server_metrics_urls = server_metrics_url
+
+        telemetry_collectors = create_telemetry_data_collectors(config)
 
         assert (
             len(telemetry_collectors) > 0
@@ -102,10 +106,13 @@ class TestCreateTelemetryDataCollector:
         """Test successful creation of multiple Triton telemetry data collectors"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
 
-        mock_args = MockArgs(
-            service_kind="triton", server_metrics_url=server_metrics_urls
-        )
-        telemetry_collectors = create_telemetry_data_collectors(mock_args)
+        config = ConfigCommand({})
+        config.endpoint.service_kind = "triton"
+
+        if server_metrics_urls:
+            config.endpoint.server_metrics_urls = server_metrics_urls
+
+        telemetry_collectors = create_telemetry_data_collectors(config)
 
         assert len(telemetry_collectors) == len(
             expected_urls
@@ -130,10 +137,12 @@ class TestCreateTelemetryDataCollector:
         """Test handling of unreachable Triton metrics URL"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.not_found)
 
-        mock_args = MockArgs(
-            service_kind="triton", server_metrics_url=server_metrics_url
-        )
-        telemetry_collectors = create_telemetry_data_collectors(mock_args)
+        config = ConfigCommand({})
+        config.endpoint.service_kind = "triton"
+        if server_metrics_url:
+            config.endpoint.server_metrics_urls = server_metrics_url
+
+        telemetry_collectors = create_telemetry_data_collectors(config)
 
         assert isinstance(telemetry_collectors, list), "Expected a list return type"
         assert (
@@ -149,10 +158,13 @@ class TestCreateTelemetryDataCollector:
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
         mock_telemetry_collector.return_value = MagicMock()
 
-        mock_args = MockArgs(
-            service_kind="openai", server_metrics_url=[self.test_triton_metrics_url]
-        )
-        telemetry_collectors = create_telemetry_data_collectors(mock_args)
+        config = ConfigCommand({})
+        config.endpoint.service_kind = "openai"
+
+        if self.test_triton_metrics_url:
+            config.endpoint.server_metrics_urls = [self.test_triton_metrics_url]
+
+        telemetry_collectors = create_telemetry_data_collectors(config)
 
         assert isinstance(telemetry_collectors, list), "Expected a list return type"
         assert (

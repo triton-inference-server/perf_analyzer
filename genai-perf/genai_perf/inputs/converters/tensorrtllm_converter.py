@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -80,5 +80,6 @@ class TensorRTLLMConverter(BaseConverter):
             if config.output_tokens_deterministic:
                 payload["min_length"] = [number_of_tokens]
             payload["max_tokens"] = [number_of_tokens]
-        for key, value in config.extra_inputs.items():
-            payload[key] = [value]
+        if config.extra_inputs:
+            for key, value in config.extra_inputs.items():
+                payload[key] = [value]

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,8 +36,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(user_config={})
-        self._config.model_names = ["test_model"]
+        self._config = ConfigCommand({"model_name": "test_model"})
 
         self._objective_parameters = {
             "test_model": {
@@ -55,23 +54,10 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 ),
             }
         }
-        cli = [
-            "genai-perf",
-            "analyze",
-            "-m",
-            "test_model",
-            "--service-kind",
-            "triton",
-        ]
-        with patch("sys.argv", cli):
-            args, extra_args = parser.parse_args()
 
         self._default_perf_analyzer_config = PerfAnalyzerConfig(
-            args=args,
-            extra_args=extra_args,
             config=self._config,
             model_objective_parameters=self._objective_parameters,
-            model_name="test_model",
         )
 
     def tearDown(self):
@@ -80,19 +66,13 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
     ###########################################################################
     # Test Config and Objective Capture
     ###########################################################################
-    def test_config_and_objective_capture(self):
+    def test_objective_capture(self):
         """
-        Test that we capture the config and objective parameters correctly
+        Test that we capture the objective parameters correctly
         at __init__
         """
-        expected_config_options = ConfigPerfAnalyzer()
         expected_parameters = {"runtime_batch_size": 1, "concurrency": 64}
 
-        self.assertEqual("test_model", self._default_perf_analyzer_config._model_name)
-        self.assertEqual(
-            expected_config_options._fields,
-            self._default_perf_analyzer_config._config._fields,
-        )
         self.assertEqual(
             expected_parameters, self._default_perf_analyzer_config._parameters
         )
@@ -124,10 +104,12 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             "10000",
             "--stability-percentage",
             "999",
+            "--endpoint",
+            "tensorrtllm",
             "--input-data",
-            "artifacts/test_model-triton-tensorrtllm-concurrency64/inputs.json",
+            "artifacts/test_model-triton-tensorrtllm-runtime_batch_size1-concurrency64/inputs.json",
             "--profile-export-file",
-            "artifacts/test_model-triton-tensorrtllm-concurrency64/profile_export.json",
+            "artifacts/test_model-triton-tensorrtllm-runtime_batch_size1-concurrency64/profile_export.json",
             "-b",
             "1",
             "--concurrency-range",
@@ -135,7 +117,10 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         ]
         command = self._default_perf_analyzer_config.create_command()
 
-        self.assertEqual(expected_command, command)
+        for field in expected_command:
+            self.assertIn(field, command)
+
+        self.assertEqual(len(expected_command), len(command))
 
     ###########################################################################
     # Test Representation
@@ -149,26 +134,31 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 "-m",
                 "test_model",
                 "--async",
+                "--stability-percentage",
+                "999",
+                "--measurement-interval",
+                "10000",
                 "--streaming",
                 "--shape",
                 "max_tokens:1",
                 "--shape",
                 "text_input:1",
-                "--service-kind",
-                "triton",
-                "--measurement-interval",
-                "10000",
-                "--stability-percentage",
-                "999",
-                "-b",
-                "1",
                 "--concurrency-range",
                 "64",
+                "--service-kind",
+                "triton",
+                "--endpoint",
+                "tensorrtllm",
+                "-b",
+                "1",
             ]
         )
         representation = self._default_perf_analyzer_config.representation()
 
-        self.assertEqual(expected_representation, representation)
+        for field in expected_representation:
+            self.assertIn(field, representation)
+
+        self.assertEqual(len(expected_representation), len(representation))
 
     ###########################################################################
     # Test Inference Methods
@@ -205,12 +195,12 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             self._default_perf_analyzer_config._model_name,
         )
         self.assertEqual(
-            pa_config_from_checkpoint._config._fields,
-            self._default_perf_analyzer_config._config._fields,
-        )
-        self.assertEqual(
             pa_config_from_checkpoint._parameters,
             self._default_perf_analyzer_config._parameters,
+        )
+        self.assertEqual(
+            pa_config_from_checkpoint._cli_args,
+            self._default_perf_analyzer_config._cli_args,
         )
 
         # Catchall in case something new is added

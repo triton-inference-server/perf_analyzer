@@ -24,7 +24,7 @@ class ConfigTokenizer(BaseConfig):
     Describes the configuration tokenizer options
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.name: Any = ConfigField(default=TokenizerDefaults.NAME)
         self.revision: Any = ConfigField(default=TokenizerDefaults.REVISION)
