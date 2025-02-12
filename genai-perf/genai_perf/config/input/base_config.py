@@ -77,6 +77,8 @@ class BaseConfig:
             or isinstance(value, list)
         ):
             return value
+        elif value is None:
+            return ""
         else:
             raise ValueError(f"Value {value} is not a legal JSON value")
 
