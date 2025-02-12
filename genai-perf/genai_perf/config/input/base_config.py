@@ -16,6 +16,7 @@ import copy
 from enum import Enum
 from pathlib import PosixPath
 from textwrap import indent
+from typing import Any, Dict
 
 from genai_perf.config.input.config_field import ConfigField
 
@@ -41,13 +42,16 @@ class BaseConfig:
         # This exists just to make looking up values when debugging easier
         self._values = {}
 
-    def get_field(self, name):
+    ###########################################################################
+    # Top-Level Methods
+    ###########################################################################
+    def get_field(self, name) -> ConfigField:
         if name not in self._fields:
             raise ValueError(f"{name} not found in ConfigFields")
 
         return self._fields[name]
 
-    def to_json_dict(self):
+    def to_json_dict(self) -> Dict[str, Any]:
         config_dict = {}
         for key, value in self._values.items():
             if isinstance(value, BaseConfig):
@@ -57,40 +61,7 @@ class BaseConfig:
 
         return config_dict
 
-    def create_template(self, header: str, level: int = 1, verbose=False) -> str:
-        indention = "  " * level
-        template = ""
-
-        if header:
-            template = indent(f"{header}:\n", indention)
-
-        for name, field in self._fields.items():
-            if verbose and field.verbose_template_comment:
-                template_comment = field.verbose_template_comment
-            else:
-                template_comment = field.template_comment
-
-            if template_comment:
-                comment_lines = template_comment.split("\n")
-                for comment_line in comment_lines:
-                    template += indent(f"  # {comment_line}\n", indention)
-            if field.add_to_template:
-                template += indent(
-                    f"  {name}: {self._get_legal_json_value(self.__getattr__(name))}\n",
-                    indention,
-                )
-            if verbose and field.verbose_template_comment:
-                template += "\n"
-
-        template += "\n"
-        for name, child in self._children.items():
-            template += child.create_template(
-                header=name, level=level + 1, verbose=verbose
-            )
-
-        return template
-
-    def _get_legal_json_value(self, value):
+    def _get_legal_json_value(self, value: Any) -> Any:
         if isinstance(value, Enum):
             return value.name.lower()
         elif isinstance(value, PosixPath):
@@ -116,6 +87,75 @@ class BaseConfig:
         else:
             raise ValueError(f"Value {value} is not a legal JSON value")
 
+    ###########################################################################
+    # Template Creation Methods
+    ###########################################################################
+    def create_template(self, header: str, level: int = 1, verbose=False) -> str:
+        indention = "  " * level
+
+        template = self._add_header_to_template(header, indention)
+        template += self._add_fields_to_template(indention, verbose)
+        template += "\n"
+        template += self._add_children_to_template(level, verbose)
+
+        return template
+
+    def _add_header_to_template(self, header: str, indention: str) -> str:
+        template = ""
+        if header:
+            template = indent(f"{header}:\n", indention)
+        return template
+
+    def _add_fields_to_template(self, indention: str, verbose: bool) -> str:
+        template = ""
+        for name, field in self._fields.items():
+            template_comment = self._get_template_comment(field, verbose)
+            template += self._create_template_from_comment(template_comment, indention)
+            template += self._add_field_to_template(field, name, indention)
+
+            if verbose and field.verbose_template_comment:
+                template += "\n"
+
+        return template
+
+    def _add_children_to_template(self, level: int, verbose: bool) -> str:
+        template = ""
+        for name, child in self._children.items():
+            template += child.create_template(
+                header=name, level=level + 1, verbose=verbose
+            )
+
+        return template
+
+    def _get_template_comment(self, field: ConfigField, verbose: bool) -> str:
+        if verbose and field.verbose_template_comment:
+            return field.verbose_template_comment
+        else:
+            return field.template_comment if field.template_comment else ""
+
+    def _create_template_from_comment(self, comment: str, indention: str) -> str:
+        template = ""
+        if comment:
+            comment_lines = comment.split("\n")
+            for comment_line in comment_lines:
+                template += indent(f"  # {comment_line}\n", indention)
+
+        return template
+
+    def _add_field_to_template(
+        self, field: ConfigField, name: str, indention: str
+    ) -> str:
+        template = ""
+        if field.add_to_template:
+            template = indent(
+                f"  {name}: {self._get_legal_json_value(self.__getattr__(name))}\n",
+                indention,
+            )
+        return template
+
+    ###########################################################################
+    # Dunder Methods
+    ###########################################################################
     def __setattr__(self, name, value):
         # This prevents recursion failure in __init__
         if name == "_fields" or name == "_values" or name == "_children":
