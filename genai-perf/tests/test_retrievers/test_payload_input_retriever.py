@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -63,32 +63,32 @@ class TestPayloadInputRetriever:
         "input_data, expected_prompts, expected_timestamps, expected_optional_data",
         [
             (
-                '{"text": "What is AI?", "timestamp": "123", "session_id": "abc"}\n'
-                '{"text": "How does ML work?", "custom_field": "value"}\n',
+                '{"text": "What is AI?", "timestamp": 123, "session_id": "abc"}\n'
+                '{"text": "How does ML work?", "timestamp": 0, "custom_field": "value"}\n',
                 ["What is AI?", "How does ML work?"],
-                ["123", ""],
+                [123, 0],
                 [{"session_id": "abc"}, {"custom_field": "value"}],
             ),
             (
-                '{"text_input": "Legacy prompt", "timestamp": "456"}\n'
-                '{"text": "New prompt", "session_id": "def"}\n',
+                '{"text_input": "Legacy prompt", "timestamp": 456}\n'
+                '{"text": "New prompt", "timestamp": 432, "session_id": "def"}\n',
                 ["Legacy prompt", "New prompt"],
-                ["456", ""],
+                [456, 432],
                 [{}, {"session_id": "def"}],
             ),
             (
-                '{"text": "What is AI?", "timestamp": "123", "session_id": "abc"}',
+                '{"text": "What is AI?", "timestamp": 123, "session_id": "abc"}',
                 ["What is AI?"],
-                ["123"],
+                [123],
                 [{"session_id": "abc"}],
             ),
             (
-                '{"text_input": "Legacy prompt", "timestamp": "456"}',
+                '{"text_input": "Legacy prompt", "timestamp": 456}',
                 ["Legacy prompt"],
-                ["456"],
+                [456],
                 [{}],
             ),
-            ('{"timestamp": "789"}\n', ["Synthetic prompt"], ["789"], [{}]),
+            ('{"timestamp": 789}\n', ["Synthetic prompt"], [789], [{}]),
         ],
     )
     @patch("builtins.open")
@@ -119,7 +119,7 @@ class TestPayloadInputRetriever:
 
     def test_convert_content_to_data_file(self, retriever):
         prompts = ["Prompt 1", "Prompt 2"]
-        timestamps = ["0", "1"]
+        timestamps = [0, 1]
         optional_data = [{"session_id": "123"}, {"custom_field": "value"}]
 
         file_data = retriever._convert_content_to_data_file(
@@ -128,10 +128,10 @@ class TestPayloadInputRetriever:
 
         assert len(file_data.rows) == 2
         assert file_data.rows[0].texts == ["Prompt 1"]
-        assert file_data.rows[0].timestamp == "0"
+        assert file_data.rows[0].timestamp == 0
         assert file_data.rows[0].optional_data == {"session_id": "123"}
         assert file_data.rows[1].texts == ["Prompt 2"]
-        assert file_data.rows[1].timestamp == "1"
+        assert file_data.rows[1].timestamp == 1
         assert file_data.rows[1].optional_data == {"custom_field": "value"}
 
     @patch.object(PayloadInputRetriever, "_get_input_dataset_from_file")
@@ -140,7 +140,7 @@ class TestPayloadInputRetriever:
             [
                 DataRow(
                     texts=["Test prompt"],
-                    timestamp=["0"],
+                    timestamp=[0],
                     optional_data={"key": "value"},
                 )
             ]

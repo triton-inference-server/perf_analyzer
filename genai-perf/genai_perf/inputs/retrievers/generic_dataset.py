@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,14 +25,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, TypeAlias, Union
+from typing import Any, Dict, List, Optional, TypeAlias, Union
 
 Filename: TypeAlias = str
 TextData: TypeAlias = List[str]
 ImageData: TypeAlias = List[str]
 InputData: TypeAlias = Union[TextData, ImageData]
 OptionalData: TypeAlias = Dict[str, Any]
-Timestamp: TypeAlias = str
+Timestamp: TypeAlias = int
 DataRowDict: TypeAlias = Dict[str, Union[InputData, Timestamp, OptionalData]]
 GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 
@@ -41,7 +41,7 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 class DataRow:
     texts: List[str] = field(default_factory=list)
     images: List[str] = field(default_factory=list)
-    timestamp: str = ""
+    timestamp: Optional[int] = None
     optional_data: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> DataRowDict:

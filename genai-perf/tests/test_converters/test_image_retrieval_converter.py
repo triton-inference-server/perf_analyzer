@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@ class TestImageRetrievalConverter:
                     rows=[
                         DataRow(
                             images=["test_image_1", "test_image_2"],
-                            timestamp="0",
+                            timestamp=0,
                             optional_data=optional_data,
                         )
                     ]
@@ -122,7 +122,7 @@ class TestImageRetrievalConverter:
                             "session_id": "abcd",
                         }
                     ],
-                    "timestamp": ["0"],
+                    "timestamp": [0],
                 },
             ]
         }

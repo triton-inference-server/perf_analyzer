@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -56,7 +56,7 @@ class BaseFileInputRetriever(BaseInputRetriever):
 
     def _get_content_from_input_file(self, filename: Path) -> Union[
         Tuple[List[str], List[str]],
-        Tuple[List[str], List[str], List[Dict[Any, Any]]],
+        Tuple[List[str], List[int], List[Dict[Any, Any]]],
     ]:
         """
         Reads the content from a JSONL file and returns lists of each content type.

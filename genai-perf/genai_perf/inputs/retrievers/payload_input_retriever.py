@@ -89,7 +89,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Tuple[List[str], List[str], List[Dict[Any, Any]]]:
+    ) -> Tuple[List[str], List[int], List[Dict[Any, Any]]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -127,27 +127,47 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                         )
                     prompt = prompt if prompt else prompt_alt
                     prompts.append(prompt.strip() if prompt else prompt)
-                    timestamp = data.get("timestamp", "")
+                    timestamp = self._get_valid_timestamp(data)
                     timestamps.append(timestamp)
                     optional_data = self._check_for_optional_data(data)
                     optional_datas.append(optional_data)
         return prompts, timestamps, optional_datas
 
+    def _get_valid_timestamp(self, data: Dict[str, Any]) -> int:
+        """
+        Retrieves and validates timestamp from input data
+        """
+        timestamp = data.get("timestamp")
+        if timestamp is None:
+            raise ValueError("Each data entry must have a 'timestamp' field.")
+        try:
+            timestamp = int(timestamp)
+        except ValueError:
+            raise ValueError(
+                f"Invalid timestamp: Expecting an integer but received '{timestamp}'."
+            )
+
+        return timestamp
+
     def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """
         Checks if there is any optional data in the file to pass in the payload.
         """
-        optional_data = {
-            k: v
-            for k, v in data.items()
-            if k not in ["text", "text_input", "timestamp", "hash_ids"]
+        excluded_keys = {
+            "text",
+            "text_input",
+            "timestamp",
+            "hash_ids",
+            "input_length",
+            "output_length",
         }
+        optional_data = {k: v for k, v in data.items() if k not in excluded_keys}
         return optional_data
 
     def _convert_content_to_data_file(
         self,
         prompts: List[str],
-        timestamps: List[str],
+        timestamps: List[int],
         optional_datas: List[Dict[Any, Any]] = [{}],
     ) -> FileData:
         """
@@ -157,7 +177,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         ----------
         prompts : List[str]
             The list of prompts to convert.
-        timestamps: str
+        timestamps: int
             The timestamp at which the request should be sent.
         optional_data : Dict
             The optional data included in every payload.

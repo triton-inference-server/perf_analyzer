@@ -258,7 +258,6 @@ ReportServerSideStats(
                 << "compute input " << compute_input_avg_us << " usec + "
                 << "compute infer " << compute_infer_avg_us << " usec + "
                 << "compute output " << compute_output_avg_us << " usec)"
-                << std::endl
                 << std::endl;
     }
     // Response Cache Disabled
@@ -270,7 +269,6 @@ ReportServerSideStats(
                 << "compute input " << compute_input_avg_us << " usec + "
                 << "compute infer " << compute_infer_avg_us << " usec + "
                 << "compute output " << compute_output_avg_us << " usec)"
-                << std::endl
                 << std::endl;
 
       if (cache_hit_avg_us > 0 || cache_miss_avg_us > 0) {

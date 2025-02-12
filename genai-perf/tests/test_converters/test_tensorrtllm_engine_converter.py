@@ -71,12 +71,12 @@ class TestTensorRTLLMEngineConverter:
                     rows=[
                         DataRow(
                             texts=["text input one"],
-                            timestamp="0",
+                            timestamp=0,
                             optional_data=optional_data_1,
                         ),
                         DataRow(
                             texts=["text input two"],
-                            timestamp="2345",
+                            timestamp=2345,
                             optional_data=optional_data_2,
                         ),
                     ],
@@ -253,7 +253,7 @@ class TestTensorRTLLMEngineConverter:
                     "input_lengths": [3],
                     "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                     "session_id": "abcd",
-                    "timestamp": ["0"],
+                    "timestamp": [0],
                 },
                 {
                     "input_ids": {
@@ -265,7 +265,7 @@ class TestTensorRTLLMEngineConverter:
                     "session_id": "dfwe",
                     "input_length": "6755",
                     "output_length": "500",
-                    "timestamp": ["2345"],
+                    "timestamp": [2345],
                 },
             ]
         }

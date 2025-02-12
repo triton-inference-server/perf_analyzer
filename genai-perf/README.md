@@ -481,6 +481,7 @@ Add a custom header to the requests. Headers must be specified as
 (default: `None`)
 
 ##### `--input-file <path>`
+
 The input file or directory for profiling. Each line should be a JSON object
 with a `text` or `image` field in JSONL format. Example:
 `{"text": "Your prompt here"}`. To use synthetic files, prefix with

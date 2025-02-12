@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -69,12 +69,12 @@ class TestOpenAICompletionsConverter:
                     rows=[
                         DataRow(
                             texts=["text input one"],
-                            timestamp="0",
+                            timestamp=0,
                             optional_data=optional_data_1,
                         ),
                         DataRow(
                             texts=["text input two"],
-                            timestamp="2345",
+                            timestamp=2345,
                             optional_data=optional_data_2,
                         ),
                     ],
@@ -310,7 +310,7 @@ class TestOpenAICompletionsConverter:
                             "session_id": "abcd",
                         }
                     ],
-                    "timestamp": ["0"],
+                    "timestamp": [0],
                 },
                 {
                     "payload": [
@@ -322,7 +322,7 @@ class TestOpenAICompletionsConverter:
                             "output_length": "500",
                         }
                     ],
-                    "timestamp": ["2345"],
+                    "timestamp": [2345],
                 },
             ]
         }

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -229,12 +229,12 @@ class TestOpenAIEmbeddingsConverter:
                     rows=[
                         DataRow(
                             texts=["text_1"],
-                            timestamp="0",
+                            timestamp=0,
                             optional_data=optional_data_1,
                         ),
                         DataRow(
                             texts=["text_2"],
-                            timestamp="3047",
+                            timestamp=3047,
                             optional_data=optional_data_2,
                         ),
                     ],
@@ -263,7 +263,7 @@ class TestOpenAIEmbeddingsConverter:
                             "additional_key": "additional_value",
                         }
                     ],
-                    "timestamp": ["0"],
+                    "timestamp": [0],
                 },
                 {
                     "payload": [
@@ -273,7 +273,7 @@ class TestOpenAIEmbeddingsConverter:
                             "session_id": "cdef",
                         }
                     ],
-                    "timestamp": ["3047"],
+                    "timestamp": [3047],
                 },
             ]
         }

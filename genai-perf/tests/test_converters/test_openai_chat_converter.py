@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -65,10 +65,8 @@ class TestOpenAIChatCompletionsConverter:
             return {}
 
         def clean_timestamp(row):
-            timestamp = row.get("timestamp", "")
-            if timestamp:
-                return timestamp
-            return ""
+            timestamp = row.get("timestamp")
+            return timestamp
 
         return GenericDataset(
             files_data={
@@ -327,7 +325,7 @@ class TestOpenAIChatCompletionsConverter:
             [
                 {
                     "text": "text input one",
-                    "timestamp": "0",
+                    "timestamp": 0,
                     "optional_data": optional_data,
                 }
             ]
@@ -360,7 +358,7 @@ class TestOpenAIChatCompletionsConverter:
                             "session_id": "abcd",
                         }
                     ],
-                    "timestamp": ["0"],
+                    "timestamp": [0],
                 },
             ]
         }

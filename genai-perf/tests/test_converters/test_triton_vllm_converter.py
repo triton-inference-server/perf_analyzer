@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -67,12 +67,12 @@ class TestVLLMConverter:
                     rows=[
                         DataRow(
                             texts=["text input one"],
-                            timestamp="0",
+                            timestamp=0,
                             optional_data=optional_data_1,
                         ),
                         DataRow(
                             texts=["text input two"],
-                            timestamp="2345",
+                            timestamp=2345,
                             optional_data=optional_data_2,
                         ),
                     ],
@@ -254,7 +254,7 @@ class TestVLLMConverter:
                     "text_input": ["text input one"],
                     "exclude_input_in_output": [True],
                     "session_id": "abcd",
-                    "timestamp": ["0"],
+                    "timestamp": [0],
                 },
                 {
                     "model": "test_model",
@@ -263,7 +263,7 @@ class TestVLLMConverter:
                     "session_id": "dfwe",
                     "input_length": "6755",
                     "output_length": "500",
-                    "timestamp": ["2345"],
+                    "timestamp": [2345],
                 },
             ]
         }

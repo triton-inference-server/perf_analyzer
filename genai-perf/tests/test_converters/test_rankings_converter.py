@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@ class TestRankingsConverter:
     def create_generic_dataset_payload_parameters(
         queries_data: Optional[List[List[str]]] = None,
         passages_data: Optional[List[List[str]]] = None,
-        timestamps: Optional[List[str]] = None,
+        timestamps: Optional[List[int]] = None,
         optional_data: Optional[List[Dict[Any, Any]]] = None,
     ) -> GenericDataset:
         files_data = {}
@@ -78,7 +78,7 @@ class TestRankingsConverter:
                 rows=[
                     DataRow(
                         texts=passage,
-                        timestamp=timestamps[index] if timestamps else "",
+                        timestamp=timestamps[index] if timestamps else None,
                         optional_data=(
                             optional_data[index]
                             if optional_data and index < len(optional_data)
@@ -367,7 +367,7 @@ class TestRankingsConverter:
         generic_dataset = self.create_generic_dataset_payload_parameters(
             queries_data=[["query 1"], ["query 2"]],
             passages_data=[["passage 1", "passage 2"], ["passage 3", "passage 4"]],
-            timestamps=["0", "2345"],
+            timestamps=[0, 2345],
             optional_data=[optional_data_1, optional_data_2],
         )
 
@@ -396,7 +396,7 @@ class TestRankingsConverter:
                             "session_id": "abcd",
                         }
                     ],
-                    "timestamp": ["0"],
+                    "timestamp": [0],
                 },
                 {
                     "payload": [
@@ -412,7 +412,7 @@ class TestRankingsConverter:
                             "output_length": "500",
                         }
                     ],
-                    "timestamp": ["2345"],
+                    "timestamp": [2345],
                 },
             ]
         }

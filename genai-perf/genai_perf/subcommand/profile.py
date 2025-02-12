@@ -29,6 +29,7 @@ from typing import List, Optional
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
+from genai_perf.inputs import input_constants as ic
 from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
@@ -81,6 +82,9 @@ def _report_output(
     elif args.request_rate:
         infer_mode = "request_rate"
         load_level = f"{args.request_rate}"
+    elif args.prompt_source == ic.PromptSource.PAYLOAD:
+        infer_mode = "request_rate"
+        load_level = "1.0"
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
