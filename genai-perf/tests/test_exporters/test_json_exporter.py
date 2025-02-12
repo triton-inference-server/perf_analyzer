@@ -30,6 +30,8 @@ from typing import Any, Dict, List, Tuple
 
 import genai_perf.parser as parser
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from tests.test_utils import create_default_exporter_config

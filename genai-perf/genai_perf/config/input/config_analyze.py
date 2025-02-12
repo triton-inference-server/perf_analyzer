@@ -29,7 +29,7 @@ class ConfigAnalyze(BaseConfig):
     Describes the configuration for the analyze subcommand
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.sweep_parameters: Any = ConfigField(
             default=AnalyzeDefaults.SWEEP_PARAMETER, choices=all_parameters

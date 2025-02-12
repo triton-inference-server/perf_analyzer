@@ -44,15 +44,15 @@ class ConsoleExporter:
         self._stats = config.stats
         self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
-        self._args = config.args
+        self._config = config.config
 
     def _get_title(self):
         title = "NVIDIA GenAI-Perf | "
-        if self._args.endpoint_type == "embeddings":
+        if self._config.endpoint.type == "embeddings":
             title += "Embeddings Metrics"
-        elif self._args.endpoint_type == "rankings":
+        elif self._config.endpoint.type == "rankings":
             title += "Rankings Metrics"
-        elif self._args.endpoint_type == "image_retrieval":
+        elif self._config.endpoint.type == "image_retrieval":
             title += "Image Retrieval Metrics"
         elif self._args.endpoint_type == "multimodal":
             title += "Multi-Modal Metrics"
@@ -72,7 +72,7 @@ class ConsoleExporter:
 
         console = Console(**kwargs)
         console.print(table)
-        if self._args.verbose:
+        if self._config.verbose:
             telem_utils.export_telemetry_stats_console(
                 self._telemetry_stats, self.STAT_COLUMN_KEYS, console
             )
@@ -95,7 +95,7 @@ class ConsoleExporter:
 
         for metric in self._metrics.system_metrics:
             metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
-            if metric.name == "request_goodput" and not self._args.goodput:
+            if metric.name == "request_goodput" and not self._config.input.goodput:
                 continue
 
             row_values = [metric_str]
@@ -111,7 +111,7 @@ class ConsoleExporter:
 
     # (TMA-1976) Refactor this method as the csv exporter shares identical method.
     def _should_skip(self, metric_name: str) -> bool:
-        if self._args.endpoint_type == "embeddings":
+        if self._config.endpoint.type == "embeddings":
             return False  # skip nothing
 
         # TODO (TMA-1712): need to decide if we need this metric. Remove
@@ -128,6 +128,6 @@ class ConsoleExporter:
             "time_to_first_token",
             "time_to_second_token",
         ]
-        if not self._args.streaming and metric_name in streaming_metrics:
+        if not self._config.endpoint.streaming and metric_name in streaming_metrics:
             return True
         return False

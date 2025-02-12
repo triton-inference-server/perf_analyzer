@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,9 +32,7 @@ class TestCheckpoint(unittest.TestCase):
         self._config = ConfigCommand(user_config={})
         self._config.model_names = ["test_model"]
         self._model_search_parameters = {
-            "test_model": SearchParameters(
-                config=self._config, subcommand=Subcommand.ANALYZE
-            )
+            "test_model": SearchParameters(config=self._config)
         }
 
         self._sweep_obj_gen = SweepObjectiveGenerator(

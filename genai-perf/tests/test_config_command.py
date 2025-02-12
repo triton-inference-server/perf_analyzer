@@ -14,13 +14,18 @@
 
 import unittest
 from copy import deepcopy
+from pathlib import Path
 from unittest.mock import patch
 
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
 from genai_perf.config.input.config_command import ConfigCommand, ConfigInput, Range
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.input_constants import (
+    ModelSelectionStrategy,
+    OutputFormat,
+    PromptSource,
+)
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 
 
@@ -35,6 +40,9 @@ class TestConfigCommand(unittest.TestCase):
     def tearDown(self):
         patch.stopall()
 
+    ###########################################################################
+    # Test Model Name
+    ###########################################################################
     def test_model_name(self):
         """
         Test that a configuration with a model name is parsed correctly
@@ -68,6 +76,9 @@ class TestConfigCommand(unittest.TestCase):
 
         self.assertEqual(config.model_names, ["gpt2_multi"])
 
+    ###########################################################################
+    # Test Analyze Subcommand
+    ###########################################################################
     def test_analyze_subcommand(self):
         """
         Test that the analyze subcommand is parsed correctly
@@ -104,7 +115,10 @@ class TestConfigCommand(unittest.TestCase):
             [100, 120, 140, 160, 180, 200],
         )
 
-    def test_endpoint(self):
+    ###########################################################################
+    # Test Endpoint Configuration
+    ###########################################################################
+    def test_endpoint_config(self):
         """
         Test that the endpoint configuration is parsed correctly
         """
@@ -116,10 +130,10 @@ class TestConfigCommand(unittest.TestCase):
                 model_selection_strategy: random
                 backend: vllm
                 custom: custom_endpoint
-                type: chat
-                service_kind: openai
+                type: kserve
+                service_kind: triton
                 streaming: True
-                server_metrics_url: "test_server_metrics_url"
+                server_metrics_url: "http://test_server_metrics_url:8002/metrics"
                 url: "test_url"
             """)
         # yapf: enable
@@ -132,13 +146,19 @@ class TestConfigCommand(unittest.TestCase):
         )
         self.assertEqual(config.endpoint.backend, OutputFormat.VLLM)
         self.assertEqual(config.endpoint.custom, "custom_endpoint")
-        self.assertEqual(config.endpoint.type, "chat")
-        self.assertEqual(config.endpoint.service_kind, "openai")
+        self.assertEqual(config.endpoint.type, "kserve")
+        self.assertEqual(config.endpoint.service_kind, "triton")
         self.assertEqual(config.endpoint.streaming, True)
-        self.assertEqual(config.endpoint.server_metrics_url, "test_server_metrics_url")
+        self.assertEqual(
+            config.endpoint.server_metrics_urls,
+            ["http://test_server_metrics_url:8002/metrics"],
+        )
         self.assertEqual(config.endpoint.url, "test_url")
 
-    def test_perf_analyzer(self):
+    ###########################################################################
+    # Test Perf Analyzer Config
+    ###########################################################################
+    def test_perf_analyzer_config(self):
         """
         Test that the perf analyzer configuration is parsed correctly
         """
@@ -148,6 +168,7 @@ class TestConfigCommand(unittest.TestCase):
 
             perf_analyzer:
                 path: test_path
+                verbose: True
                 stimulus:
                     concurrency: 64
                 stability_percentage: 500
@@ -160,11 +181,15 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.perf_analyzer.path, "test_path")
+        self.assertEqual(config.perf_analyzer.verbose, True)
         self.assertEqual(config.perf_analyzer.stimulus, {"concurrency": 64})
         self.assertEqual(config.perf_analyzer.stability_percentage, 500)
         self.assertEqual(config.perf_analyzer.measurement_interval, 1000)
 
-    def test_input(self):
+    ###########################################################################
+    # Test Input Config
+    ###########################################################################
+    def test_input_config(self):
         """
         Test that the input configuration is parsed correctly
         """
@@ -177,7 +202,7 @@ class TestConfigCommand(unittest.TestCase):
                 extra:
                     test_extra: 1
                 goodput:
-                    test_goodput : 2
+                    test_goodput: 2
                 header:
                     test_header: 3
                 file:
@@ -236,7 +261,10 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.prefix_prompt.length, 18)
         self.assertEqual(config.input.request_count.warmup, 19)
 
-    def test_output(self):
+    ###########################################################################
+    # Test Output Config
+    ###########################################################################
+    def test_output_config(self):
         """
         Test that the output configuration is parsed correctly
         """
@@ -255,14 +283,22 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.output.artifact_directory, "test_artifact_directory")
         self.assertEqual(
-            config.output.checkpoint_directory, "test_checkpoint_directory"
+            config.output.artifact_directory, Path("test_artifact_directory")
         )
-        self.assertEqual(config.output.profile_export_file, "test_profile_export_file")
+        self.assertEqual(
+            config.output.checkpoint_directory, Path("test_checkpoint_directory")
+        )
+        self.assertEqual(
+            config.output.profile_export_file,
+            Path("test_profile_export_file"),
+        )
         self.assertEqual(config.output.generate_plots, True)
 
-    def test_tokenizer(self):
+    ###########################################################################
+    # Test Tokenizer Config
+    ###########################################################################
+    def test_tokenizer_config(self):
         """
         Test that the tokenizer configuration is parsed correctly
         """
@@ -284,26 +320,9 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.tokenizer.revision, "test_revision")
         self.assertEqual(config.tokenizer.trust_remote_code, True)
 
-    def test_deepcopy_config(self):
-        """
-        Test that the configuration can be deepcopied
-        """
-        # yapf: disable
-        yaml_str = ("""
-            model_name: gpt2
-            """)
-        # yapf: enable
-
-        user_config = yaml.safe_load(yaml_str)
-        config = ConfigCommand(user_config)
-        copied_config = deepcopy(config)
-
-        # Check that the copied object is not the same object
-        self.assertNotEqual(id(config), id(copied_config))
-
-        # Check that the copied object is equal to the original object
-        self.assertEqual(config.model_names, copied_config.model_names)
-
+    ###########################################################################
+    # Test Deepcopy
+    ###########################################################################
     def test_deepcopy_config_input(self):
         """
         Test that the input configuration can be deepcopied
@@ -322,6 +341,180 @@ class TestConfigCommand(unittest.TestCase):
         # Check that the copied object can be modified without affecting the original object
         config_input.batch_size = 32
         self.assertNotEqual(config_input.batch_size, copied_config_input.batch_size)
+
+    ###########################################################################
+    # Test Input Inference Methods
+    ###########################################################################
+    def test_infer_prompt_source_file(self):
+        """
+        Test that the prompt source is inferred correctly for non-synthetic names
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            input:
+              file: "test_file"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.input.prompt_source, PromptSource.FILE)
+
+    def test_infer_prompt_source_synthetic(self):
+        """
+        Test that the prompt source is inferred correctly for synthetic names
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            input:
+              file: "synthetic:test_file"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.input.prompt_source, PromptSource.SYNTHETIC)
+
+    def test_infer_synthetic_input_files(self):
+        """
+        Test that the synthetic input files are inferred correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            input:
+              file: "synthetic:test_file1,test_file2"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(
+            config.input.synthetic_input_files, ["test_file1", "test_file2"]
+        )
+
+    ###########################################################################
+    # Test EndPoint Inference Methods
+    ###########################################################################
+    def test_infer_type_service_kind_triton(self):
+        """
+        Test that the type is inferred correctly for triton service kind
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: triton
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.endpoint.type, "kserve")
+
+    def test_infer_type_service_kind_tensorrtllm_engine(self):
+        """
+        Test that the type is inferred correctly for tensorrtllm_engine service kind
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: tensorrtllm_engine
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.endpoint.type, "tensorrtllm_engine")
+
+    def test_infer_service_kind(self):
+        """
+        Test that the service kind is inferred correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: triton
+                type: generate
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.endpoint.service_kind, "openai")
+
+    def test_infer_output_format_triton(self):
+        """
+        Test that the output format is inferred correctly with service kind of triton
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: triton
+                type: kserve
+                backend: vllm
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.endpoint.output_format, OutputFormat.VLLM)
+
+    def test_infer_output_format_tensorrtllm_engine(self):
+        """
+        Test that the output format is inferred correctly with service kind of tensorrtllm_engine
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: tensorrtllm_engine
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.endpoint.output_format, OutputFormat.TENSORRTLLM_ENGINE)
+
+    def test_infer_custom(self):
+        """
+        Test that the custom endpoint is inferred correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            endpoint:
+                service_kind: openai
+                type: embeddings
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.endpoint.custom, "v1/embeddings")
 
 
 if __name__ == "__main__":

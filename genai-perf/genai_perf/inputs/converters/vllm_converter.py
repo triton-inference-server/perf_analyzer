@@ -81,5 +81,6 @@ class VLLMConverter(BaseConverter):
                 sampling_parameters["min_tokens"] = f"{number_of_tokens}"
             sampling_parameters_str = json.dumps(sampling_parameters)
             payload["sampling_parameters"] = [sampling_parameters_str]
-        for key, value in config.extra_inputs.items():
-            payload[key] = [value]
+        if config.extra_inputs:
+            for key, value in config.extra_inputs.items():
+                payload[key] = [value]

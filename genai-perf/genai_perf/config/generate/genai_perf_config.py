@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,23 +33,48 @@ class GenAIPerfConfig:
         self,
         config: ConfigCommand,
         model_objective_parameters: ModelObjectiveParameters,
-        args: Namespace = Namespace(),
     ):
-        self._args = deepcopy(args)
-
-        self._set_parameters_based_on_objective(model_objective_parameters)
+        self._parameters = self._set_parameters_based_on_config(config)
+        self._parameters |= self._set_parameters_based_on_objective(
+            model_objective_parameters
+        )
 
     ###########################################################################
     # Set Options Methods
     ###########################################################################
+    def _set_parameters_based_on_config(self, config: ConfigCommand) -> Parameters:
+        """
+        Store values set in the config that should be checked when
+        determining if a previously checkpointed run can be used
+        """
+        parameters: Parameters = {}
+
+        # ENDPOINT
+        parameters["endpoint"] = config.endpoint.to_json_dict()
+
+        # Remove any fields that have no bearing on the
+        # values of metrics being measured
+        del parameters["endpoint"]["server_metrics_urls"]
+        del parameters["endpoint"]["url"]
+
+        # INPUT
+        parameters["input"] = config.input.to_json_dict()
+
+        # TOKENIZER
+        parameters["tokenizer"] = config.tokenizer.to_json_dict()
+
+        return parameters
+
     def _set_parameters_based_on_objective(
         self, model_objective_parameters: ModelObjectiveParameters
-    ) -> None:
-        self._parameters: Parameters = {}
+    ) -> Parameters:
+        parameters: Parameters = {}
         for objective in model_objective_parameters.values():
             for name, parameter in objective.items():
                 if parameter.usage == SearchUsage.RUNTIME_GAP:
-                    self._parameters[name] = parameter.get_value_based_on_category()
+                    parameters[name] = parameter.get_value_based_on_category()
+
+        return parameters
 
     ###########################################################################
     # Get Accessor Methods
@@ -59,21 +84,6 @@ class GenAIPerfConfig:
         Returns a dictionary of parameters and their values
         """
         return self._parameters
-
-    def get_obj_args(self) -> Namespace:
-        """
-        Returns args that can be used by the existing CLI based methods in GAP
-        These will include any objectives that are set via parameters
-        """
-        obj_args = deepcopy(self._args)
-        if "input_sequence_length" in self._parameters:
-            obj_args.synthetic_input_tokens_mean = self._parameters[
-                "input_sequence_length"
-            ]
-        if "num_dataset_entries" in self._parameters:
-            obj_args.num_dataset_entries = self._parameters["num_dataset_entries"]
-
-        return obj_args
 
     ###########################################################################
     # Representation Methods
@@ -96,9 +106,6 @@ class GenAIPerfConfig:
         the checkpoint file
         """
         genai_perf_config_dict = deepcopy(self.__dict__)
-
-        # Values set on the CLI and parameters are not kept (they can vary from run to run)
-        del genai_perf_config_dict["_args"]
 
         return genai_perf_config_dict
 

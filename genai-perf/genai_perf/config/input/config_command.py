@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from enum import Enum, auto
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 
+import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_analyze import ConfigAnalyze
 from genai_perf.config.input.config_defaults import (
@@ -28,17 +30,19 @@ from genai_perf.config.input.config_input import ConfigInput
 from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.types import CheckpointObject, ModelName
 
 
 class Subcommand(Enum):
-    COMPARE = auto()
-    PROFILE = auto()
-    ANALYZE = auto()
+    COMPARE = "compare"
+    PROFILE = "profile"
+    ANALYZE = "analyze"
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigCommand(BaseConfig):
@@ -66,7 +70,7 @@ class ConfigCommand(BaseConfig):
     # Top-Level Parsing Methods
     ###########################################################################
     def _parse_yaml(self, user_config: Optional[Dict[str, Any]] = None) -> None:
-        if user_config is None:
+        if not user_config:
             return
 
         for key, value in user_config.items():
@@ -89,6 +93,10 @@ class ConfigCommand(BaseConfig):
                     f"User Config: {key} is not a valid top-level parameter"
                 )
 
+        self._infer_settings()
+        self._check_for_illegal_combinations()
+        self._check_profile_export_file()
+
     def _parse_model_names(self, model_names: str) -> None:
         if type(model_names) is str:
             self.model_names = [model_names]
@@ -96,6 +104,96 @@ class ConfigCommand(BaseConfig):
             self.model_names = [model_names[0] + "_multi"]
         else:
             raise ValueError("User Config: model_names must be a string or list")
+
+    ###########################################################################
+    # Infer Methods
+    ###########################################################################
+    def _infer_settings(self) -> None:
+        self.endpoint.infer_settings(model_name=self.model_names[0])
+        self.input.infer_settings()
+
+    ###########################################################################
+    # Illegal Combination Methods
+    ###########################################################################
+    def _check_for_illegal_combinations(self) -> None:
+        self._check_output_tokens_and_service_kind()
+        self._check_output_format_and_generate_plots()
+
+        self.endpoint.check_for_illegal_combinations()
+
+    def _check_output_tokens_and_service_kind(self) -> None:
+        if self.endpoint.service_kind not in ["triton", "tensorrtllm_engine"]:
+            if self.input.output_tokens.get_field("deterministic").is_set_by_user:
+                raise ValueError(
+                    "User Config: input.output_tokens.deterministic is only supported with Triton or TensorRT-LLM Engine service kinds"
+                )
+
+    def _check_output_format_and_generate_plots(self) -> None:
+        if self.endpoint.output_format in [
+            OutputFormat.IMAGE_RETRIEVAL,
+            OutputFormat.NVCLIP,
+            OutputFormat.OPENAI_EMBEDDINGS,
+            OutputFormat.RANKINGS,
+        ]:
+            if self.output.generate_plots:
+                raise ValueError(
+                    "User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
+                )
+
+    ###########################################################################
+    # Set Path Methods
+    ###########################################################################
+    def _set_artifact_directory(self) -> None:
+        if not self.output.get_field("artifact_directory").is_set_by_user:
+            name = self._preprocess_model_name(self.model_names[0])
+            name += self._process_service_kind()
+            name += self._process_stimulus()
+
+            self.output.artifact_directory = self.output.artifact_directory / Path(
+                "-".join(name)
+            )
+
+    def _check_profile_export_file(self) -> None:
+        if self.output.get_field("profile_export_file").is_set_by_user:
+            if Path(self.output.profile_export_file).parent != Path(""):
+                raise ValueError(
+                    "Please use artifact_directory option to define intermediary paths to "
+                    "the profile_export_file."
+                )
+
+    def _preprocess_model_name(self, model_name: str) -> List[str]:
+        # Preprocess Huggingface model names that include '/' in their model name.
+        if (model_name is not None) and ("/" in model_name):
+            filtered_name = "_".join(model_name.split("/"))
+            logger.info(
+                f"Model name '{model_name}' cannot be used to create artifact "
+                f"directory. Instead, '{filtered_name}' will be used."
+            )
+            return [f"{filtered_name}"]
+        else:
+            return [f"{model_name}"]
+
+    def _process_service_kind(self) -> List[str]:
+        if self.endpoint.service_kind == "openai":
+            return [f"{self.endpoint.service_kind}-{self.endpoint.type}"]
+        elif self.endpoint.service_kind == "triton":
+            return [
+                f"{self.endpoint.service_kind}-{self.endpoint.backend.to_lowercase()}"
+            ]
+        elif self.endpoint.service_kind == "tensorrtllm_engine":
+            return [f"{self.endpoint.service_kind}"]
+        else:
+            raise ValueError(f"Unknown service kind '{self.endpoint.service_kind}'.")
+
+    def _process_stimulus(self) -> List[str]:
+        if "concurrency" in self.perf_analyzer.stimulus:
+            concurrency = self.perf_analyzer.stimulus["concurrency"]
+            return [f"concurrency{concurrency}"]
+        elif "request_rate" in self.perf_analyzer.stimulus:
+            request_rate = self.perf_analyzer.stimulus["request_rate"]
+            return [f"request_rate{request_rate}"]
+        else:
+            return []
 
     ###########################################################################
     # Utility Methods

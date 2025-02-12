@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ class TestRunConfig(unittest.TestCase):
             config=self._config, model_objective_parameters={}
         )
         self._baseline_perf_analyzer_config = PerfAnalyzerConfig(
-            model_name="test_model", config=self._config, model_objective_parameters={}
+            config=self._config, model_objective_parameters={}
         )
 
         self._perf_metrics = create_perf_metrics(throughput=1000, latency=50)
