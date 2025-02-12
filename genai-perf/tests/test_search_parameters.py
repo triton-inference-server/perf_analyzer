@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,9 +31,7 @@ class TestSearchParameters(unittest.TestCase):
         self.config = ConfigCommand(user_config={})
         self.config.model_names = ["test_model"]
 
-        self.search_parameters = SearchParameters(
-            config=self.config, subcommand=Subcommand.ANALYZE
-        )
+        self.search_parameters = SearchParameters(config=self.config)
 
         self.search_parameters._add_search_parameter(
             name="concurrency",
@@ -225,9 +223,7 @@ class TestSearchParameters(unittest.TestCase):
         Test that search parameters are created correctly when calling
         default analyze subcommand
         """
-        search_parameters = SearchParameters(
-            config=self.config, subcommand=Subcommand.ANALYZE
-        )
+        search_parameters = SearchParameters(config=self.config)
 
         concurrency = search_parameters.get_parameter("concurrency")
         self.assertEqual(SearchUsage.RUNTIME_PA, concurrency.usage)
@@ -248,9 +244,7 @@ class TestSearchParameters(unittest.TestCase):
                 max=AnalyzeDefaults.MAX_REQUEST_RATE,
             ),
         }
-        search_parameters = SearchParameters(
-            config=config, subcommand=Subcommand.ANALYZE
-        )
+        search_parameters = SearchParameters(config=config)
 
         num_dataset_entries = search_parameters.get_parameter("num_dataset_entries")
         self.assertEqual(SearchUsage.RUNTIME_GAP, num_dataset_entries.usage)

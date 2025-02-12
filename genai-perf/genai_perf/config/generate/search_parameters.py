@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,18 +40,11 @@ class SearchParameters:
     def __init__(
         self,
         config: ConfigCommand,
-        subcommand: Subcommand,
         is_bls_model: bool = False,
         is_ensemble_model: bool = False,
         is_composing_model: bool = False,
     ):
-        self._subcommand = subcommand
-
-        if subcommand == Subcommand.ANALYZE:
-            self._config = config.analyze
-        else:
-            raise GenAIPerfException(f"Subcommand {subcommand} not supported")
-
+        self._config = config.analyze
         self._supports_model_batch_size = True
 
         self._search_parameters: Dict[str, SearchParameter] = {}

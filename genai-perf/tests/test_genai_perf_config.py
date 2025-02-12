@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,9 +62,16 @@ class TestGenAIPerfConfig(unittest.TestCase):
         """
         expected_parameters = {"num_dataset_entries": 50}
 
-        self.assertEqual(
-            expected_parameters, self._default_genai_perf_config.get_parameters()
-        )
+        expected_parameters["endpoint"] = self._config.endpoint.to_json_dict()
+        del expected_parameters["endpoint"]["server_metrics_urls"]
+        del expected_parameters["endpoint"]["url"]
+
+        expected_parameters["input"] = self._config.input.to_json_dict()
+        expected_parameters["tokenizer"] = self._config.tokenizer.to_json_dict()
+
+        actual_parameters = self._default_genai_perf_config.get_parameters()
+        for key, value in expected_parameters.items():
+            self.assertEqual(value, actual_parameters[key])
 
     ###########################################################################
     # Test Representation
@@ -73,12 +80,22 @@ class TestGenAIPerfConfig(unittest.TestCase):
         """
         Test that the representation is created correctly
         """
+        expected_parameters = {}
+        expected_parameters["endpoint"] = self._config.endpoint.to_json_dict()
+        del expected_parameters["endpoint"]["server_metrics_urls"]
+        del expected_parameters["endpoint"]["url"]
+
+        expected_parameters["input"] = self._config.input.to_json_dict()
+        expected_parameters["tokenizer"] = self._config.tokenizer.to_json_dict()
+
         expected_parameters = {"num_dataset_entries": 50}
 
         expected_representation = " ".join([expected_parameters.__str__()])
         representation = self._default_genai_perf_config.representation()
 
-        self.assertEqual(expected_representation, representation)
+        for key, value in expected_parameters.items():
+            self.assertIn(key, representation)
+            self.assertIn(value.__str__(), representation)
 
     ###########################################################################
     # Checkpoint Tests

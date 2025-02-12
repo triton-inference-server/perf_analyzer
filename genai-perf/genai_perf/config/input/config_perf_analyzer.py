@@ -24,9 +24,10 @@ class ConfigPerfAnalyzer(BaseConfig):
     Describes the configuration for PerfAnalyzer options
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.path: Any = ConfigField(default=PerfAnalyzerDefaults.PATH)
+        self.verbose: Any = ConfigField(default=PerfAnalyzerDefaults.VERBOSE)
         self.stimulus: Any = ConfigField(
             default=PerfAnalyzerDefaults.STIMULUS,
             choices=["concurrency", "request_rate"],
@@ -38,12 +39,13 @@ class ConfigPerfAnalyzer(BaseConfig):
         self.measurement_interval: Any = ConfigField(
             default=PerfAnalyzerDefaults.MEASUREMENT_INTERVAL, bounds={"min": 1}
         )
-        self.skip_args: Any = ConfigField(default=PerfAnalyzerDefaults.SKIP_ARGS)
 
     def parse(self, perf_analyzer: Dict[str, Any]) -> None:
         for key, value in perf_analyzer.items():
             if key == "path":
                 self.path = value
+            elif key == "verbose":
+                self.verbose = value
             elif key == "stimulus":
                 self.stimulus = value
             elif key == "stability_percentage":

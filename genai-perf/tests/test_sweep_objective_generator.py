@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,12 +31,8 @@ class TestSweepObjectiveGenerator(unittest.TestCase):
         self._config.model_names = ["test_modelA", "test_modelB"]
 
         self._model_search_parameters = {
-            "test_modelA": SearchParameters(
-                config=self._config, subcommand=Subcommand.ANALYZE
-            ),
-            "test_modelB": SearchParameters(
-                config=self._config, subcommand=Subcommand.ANALYZE
-            ),
+            "test_modelA": SearchParameters(config=self._config),
+            "test_modelB": SearchParameters(config=self._config),
         }
 
         self._sweep_obj_gen = SweepObjectiveGenerator(

@@ -73,5 +73,6 @@ class TritonGenerateConverter(BaseConverter):
         max_tokens = self._get_max_tokens(config, optional_data)
         if max_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
             payload["max_tokens"] = max_tokens
-        for key, value in config.extra_inputs.items():
-            payload[key] = value
+        if config.extra_inputs:
+            for key, value in config.extra_inputs.items():
+                payload[key] = value

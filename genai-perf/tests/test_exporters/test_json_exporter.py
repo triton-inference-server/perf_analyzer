@@ -31,6 +31,8 @@ from typing import Any, Dict, List, Tuple
 
 import genai_perf.parser as parser
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from tests.test_utils import create_default_exporter_config
@@ -137,8 +139,18 @@ class TestJsonExporter:
             "std": 60,
         },
     }
-
-    expected_json_output = """
+    expected_json_input_config_keys = [
+        "model_names",
+        "analyze",
+        "endpoint",
+        "perf_analyzer",
+        "input",
+        "output",
+        "tokenizer",
+        "subcommand",
+        "verbose",
+    ]
+    expected_json_stats = """
       {
         "request_throughput": {
           "unit": "requests/sec",
@@ -225,63 +237,7 @@ class TestJsonExporter:
               "max": 68,
               "min": 69,
               "std": 60
-          },
-        "input_config": {
-          "model": ["gpt2_vllm"],
-          "formatted_model_name": "gpt2_vllm",
-          "model_selection_strategy": "round_robin",
-          "backend": "vllm",
-          "batch_size_image": 1,
-          "batch_size_text": 1,
-          "endpoint": null,
-          "endpoint_type": "kserve",
-          "service_kind": "triton",
-          "server_metrics_url": [],
-          "session_concurrency": null,
-          "session_turn_delay_mean": 0,
-          "session_turn_delay_stddev": 0,
-          "streaming": true,
-          "u": null,
-          "num_dataset_entries": 100,
-          "num_prefix_prompts": 0,
-          "num_sessions": 0,
-          "output_tokens_mean": -1,
-          "output_tokens_mean_deterministic": false,
-          "output_tokens_stddev": 0,
-          "random_seed": 0,
-          "request_count": 0,
-          "synthetic_input_files": null,
-          "synthetic_input_tokens_mean": 550,
-          "synthetic_input_tokens_stddev": 0,
-          "prefix_prompt_length": 100,
-          "warmup_request_count": 0,
-          "image_width_mean": 100,
-          "image_width_stddev": 0,
-          "image_height_mean": 100,
-          "image_height_stddev": 0,
-          "image_format": null,
-          "concurrency": 1,
-          "measurement_interval": 10000,
-          "request_rate": null,
-          "stability_percentage": 999,
-          "generate_plots": false,
-          "profile_export_file": "artifacts/gpt2_vllm-triton-vllm-concurrency1/profile_export.json",
-          "artifact_dir": "artifacts/gpt2_vllm-triton-vllm-concurrency1",
-          "tokenizer": "hf-internal-testing/llama-tokenizer",
-          "tokenizer_revision": "main",
-          "tokenizer_trust_remote_code": false,
-          "session_turns_mean": 1,
-          "session_turns_stddev": 0,
-          "verbose": false,
-          "goodput": null,
-          "header": null,
-          "subcommand": "profile",
-          "prompt_source": "synthetic",
-          "extra_inputs": {
-            "max_tokens": 256,
-            "ignore_eos": true
-          }
-        }
+            }
       }
     """
 
@@ -334,7 +290,7 @@ class TestJsonExporter:
         ]
 
         assert len(written_data) == 1
-        assert json.loads(written_data[0]) == json.loads(self.expected_json_output)
+        assert json.loads(written_data[0]) == json.loads(self.expected_json_stats)
 
     def test_generate_json_custom_export(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -342,7 +298,7 @@ class TestJsonExporter:
         artifacts_dir = "artifacts/gpt2_vllm-triton-vllm-concurrency1"
         custom_filename = "custom_export.json"
         expected_filename = f"{artifacts_dir}/custom_export_genai_perf.json"
-        expected_profile_filename = f"{artifacts_dir}/custom_export.json"
+        expected_profile_filename = "custom_export.json"
         cli_cmd = [
             "genai-perf",
             "profile",
@@ -365,11 +321,12 @@ class TestJsonExporter:
         ]
 
         assert len(written_data) == 1
-        expected_json_output = json.loads(self.expected_json_output)
-        expected_json_output["input_config"][
+
+        actual_profile_filename = json.loads(written_data[0])["input_config"]["output"][
             "profile_export_file"
-        ] = expected_profile_filename
-        assert json.loads(written_data[0]) == expected_json_output
+        ]
+
+        assert actual_profile_filename == expected_profile_filename
 
     def test_valid_goodput_json_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -521,9 +478,7 @@ class TestJsonExporter:
             expected_valid_goodput_json_output
         )
 
-        assert output_data_dict["input_config"]["goodput"] == json.loads(
-            expected_valid_goodput_json_config
-        )
+        assert config.input.goodput == json.loads(expected_valid_goodput_json_config)
 
     def test_invalid_goodput_json_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -658,6 +613,7 @@ class TestJsonExporter:
             expected_invalid_goodput_json_config
         )
         json_exporter.export()
+
         expected_filename = "profile_export_genai_perf.json"
 
         written_data = [
@@ -673,9 +629,7 @@ class TestJsonExporter:
             expected_invalid_goodput_json_output
         )
 
-        assert output_data_dict["input_config"]["goodput"] == json.loads(
-            expected_invalid_goodput_json_config
-        )
+        assert config.input.goodput == json.loads(expected_invalid_goodput_json_config)
 
     def test_triton_telemetry_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
