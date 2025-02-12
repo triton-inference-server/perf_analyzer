@@ -180,7 +180,7 @@ class ConfigEndPoint(BaseConfig):
         self.infer_output_format(model_name)
 
     def infer_output_format(self, model_name: str) -> None:
-        if self.service_kind == "triton" and self.type == "kserve":
+        if self.service_kind == "triton" and self.type in ["kserve", "template"]:
             self.output_format = self.backend
         elif self.service_kind == "tensorrtllm_engine":
             self.output_format = OutputFormat.TENSORRTLLM_ENGINE
