@@ -95,7 +95,6 @@ class DynamicGrpcClientBackend : public ClientBackend {
   }
 
   std::unique_ptr<DynamicGrpcClient> grpc_client_;
-
   grpc_compression_algorithm compression_algorithm_;
   std::shared_ptr<Headers> http_headers_;
 };

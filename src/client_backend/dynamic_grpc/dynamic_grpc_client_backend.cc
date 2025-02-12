@@ -80,8 +80,8 @@ DynamicGrpcClientBackend::StreamInfer(
 {
   auto raw_input = dynamic_cast<DynamicGrpcInferInput*>(inputs[0]);
   raw_input->PrepareForRequest();
-  RETURN_IF_CB_ERROR(grpc_client_->BidiStreamRPC(
-      result, options, inputs, outputs, compression_algorithm_));
+  RETURN_IF_CB_ERROR(
+      grpc_client_->BidiStreamRPC(result, options, inputs, outputs));
 
   return Error::Success;
 }

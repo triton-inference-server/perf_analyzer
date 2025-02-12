@@ -118,9 +118,6 @@ class InferContext {
   bool HasReceivedFinalResponse() { return has_received_final_response_; }
 
  protected:
-  // Run any necessary pre-request setups before initiating the request
-  void PrepareRequest();
-
   /// A helper function to issue inference request to the server.
   /// \param request_id The unique id to be associated with the request.
   /// \param delayed Whether the request fell behind its scheduled time.

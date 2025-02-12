@@ -136,16 +136,13 @@ class DynamicGrpcClient {
   /// config will be returned as default settings.
   /// \param headers Optional map specifying additional HTTP headers to include
   /// in the metadata of gRPC request.
-  /// \param compression_algorithm The compression algorithm to be used
-  /// by gRPC when sending requests. By default compression is not used.
   /// \return Error object indicating success or failure of the
   /// request.
   Error BidiStreamRPC(
       InferResult** result, const InferOptions& options,
       const std::vector<InferInput*>& inputs,
       const std::vector<const InferRequestedOutput*>& outputs =
-          std::vector<const InferRequestedOutput*>(),
-      grpc_compression_algorithm compression_algorithm = GRPC_COMPRESS_NONE);
+          std::vector<const InferRequestedOutput*>());
 
   /// Starts a grpc bi-directional stream to send streaming inferences.
   /// \param callback The callback function to be invoked on receiving a
@@ -161,7 +158,7 @@ class DynamicGrpcClient {
   /// by gRPC when sending requests. By default compression is not used.
   /// \return Error object indicating success or failure of the request.
   Error StartStream(
-      OnCompleteFn callback, bool enable_stats = true,
+      OnCompleteFn callback = [](InferResult*) {}, bool enable_stats = true,
       const Headers& headers = Headers(),
       grpc_compression_algorithm compression_algorithm = GRPC_COMPRESS_NONE);
 
@@ -187,6 +184,7 @@ class DynamicGrpcClient {
   std::unique_ptr<grpc::ClientContext> grpc_context_;
   std::unique_ptr<grpc::CompletionQueue> completion_queue_;
   bool stream_started_{false};
+  bool writesdone_called_{false};
 
   // Generic gRPC stub for dynamic calls.
   std::unique_ptr<grpc::GenericStub> stub_;

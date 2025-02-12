@@ -76,9 +76,17 @@ Error
 DynamicGrpcClient::BidiStreamRPC(
     InferResult** result, const InferOptions& options,
     const std::vector<InferInput*>& inputs,
-    const std::vector<const InferRequestedOutput*>& outputs,
-    grpc_compression_algorithm compression_algorithm)
+    const std::vector<const InferRequestedOutput*>& outputs)
 {
+  // Dynamic grpc client requires to restart the stream before every new request
+  // because the for each request, the stream is half-closed from the client
+  // side due to calling WritesDone.
+  if (writesdone_called_) {
+    StopStream();
+    StartStream();
+    writesdone_called_ = false;
+  }
+
   auto request = std::make_shared<DynamicGrpcRequest>();
   request->Timer().Reset();
 
@@ -108,6 +116,7 @@ DynamicGrpcClient::BidiStreamRPC(
 
   bidi_stream_->WritesDone(nullptr);
   completion_queue_->Next(&tag, &ok);
+  writesdone_called_ = true;
 
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::SEND_END);
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::RECV_START);
