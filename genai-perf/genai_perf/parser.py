@@ -52,7 +52,7 @@ from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
-from genai_perf.telemetry_data import TelemetryDataCollector
+
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
