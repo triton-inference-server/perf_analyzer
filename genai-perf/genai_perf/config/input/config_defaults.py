@@ -27,6 +27,9 @@ class Range:
     min: int
     max: int
 
+    def __dict__(self):
+        return {"min": self.min, "max": self.max}
+
 
 @dataclass(frozen=True)
 class TopLevelDefaults:
@@ -59,17 +62,17 @@ class EndPointDefaults:
     TYPE = ""
     SERVICE_KIND = "triton"
     STREAMING = False
-    SERVER_METRICS_URL = ""
+    SERVER_METRICS_URL = None
     URL = ""
 
 
 @dataclass(frozen=True)
 class PerfAnalyzerDefaults:
-    PATH = "./perf_analyzer"
+    PATH = "perf_analyzer"
+    VERBOSE = False
     STIMULUS = {"concurrency": 1}
     STABILITY_PERCENTAGE = 999
     MEASUREMENT_INTERVAL = 10000
-    SKIP_ARGS = False
 
 
 @dataclass(frozen=True)

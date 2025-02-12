@@ -96,8 +96,9 @@ class BaseConverter:
         config: InputsConfig,
         optional_data: Dict[Any, Any],
     ) -> None:
-        for key, value in config.extra_inputs.items():
-            payload[key] = value
+        if config.extra_inputs:
+            for key, value in config.extra_inputs.items():
+                payload[key] = value
 
     def _add_payload_optional_data(self, payload: Dict[Any, Any], row: DataRow) -> None:
         for key, value in row.optional_data.items():

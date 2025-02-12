@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import deepcopy
+import copy
+from enum import Enum
+from pathlib import PosixPath
 
 from genai_perf.config.input.config_field import ConfigField
 
@@ -44,6 +46,42 @@ class BaseConfig:
 
         return self._fields[name]
 
+    def to_json_dict(self):
+        config_dict = {}
+        for key, value in self._values.items():
+            if isinstance(value, BaseConfig):
+                config_dict[key] = value.to_json_dict()
+            else:
+                config_dict[key] = self._get_legal_json_value(value)
+
+        return config_dict
+
+    def _get_legal_json_value(self, value):
+        if isinstance(value, Enum):
+            return value.name.lower()
+        elif isinstance(value, PosixPath):
+            return str(value)
+        elif hasattr(value, "__dict__"):
+            return value.__dict__()
+        elif isinstance(value, dict):
+            config_dict = {}
+            for k, v in value.items():
+                config_dict[k] = self._get_legal_json_value(v)
+
+            return config_dict
+        elif (
+            isinstance(value, int)
+            or isinstance(value, float)
+            or isinstance(value, str)
+            or isinstance(value, bool)
+            or isinstance(value, list)
+        ):
+            return value
+        elif value is None:
+            return ""
+        else:
+            raise ValueError(f"Value {value} is not a legal JSON value")
+
     def __setattr__(self, name, value):
         # This prevents recursion failure in __init__
         if name == "_fields" or name == "_values" or name == "_children":
@@ -69,14 +107,35 @@ class BaseConfig:
         elif name in self._children:
             return self._children[name]
         else:
+            if not name in self._fields:
+                raise AttributeError(f"{name} not found in ConfigFields")
+
             if self._fields[name].is_set_by_user:
                 return self._fields[name].value
             else:
                 return self._fields[name].default
 
     def __deepcopy__(self, memo):
-        new_copy = BaseConfig()
-        new_copy._fields = deepcopy(self._fields, memo)
-        new_copy._values = self._values
-        new_copy._children = self._children
+        # new_copy = BaseConfig()
+        cls = self.__class__
+        new_copy = cls.__new__(cls)
+        new_copy.__init__()
+        memo[id(self)] = new_copy
+
+        for key, value in self._fields.items():
+            new_value = copy.deepcopy(value, memo)
+            new_copy.__setattr__(key, new_value)
+
+        for key, value in self._children.items():
+            new_value = copy.deepcopy(value, memo)
+            new_copy.__setattr__(key, new_value)
+
         return new_copy
+
+    def __delitem__(self, key):
+        if key in self._fields:
+            del self._fields[key]
+            del self._values[key]
+        else:
+            del self._children[key]
+        return
