@@ -78,7 +78,7 @@ class BaseConfig:
         ):
             return value
         else:
-            ValueError(f"Value {value} is not a legal JSON value")
+            raise ValueError(f"Value {value} is not a legal JSON value")
 
     def __setattr__(self, name, value):
         # This prevents recursion failure in __init__
