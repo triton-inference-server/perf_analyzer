@@ -212,7 +212,7 @@ TEST_CASE("ModelParser: test Init* functions")
 TEST_CASE("ModelParser: testing the GetInt function")
 {
   int64_t integer_value{0};
-  MockModelParser mmp(cb::BackendKind::TRITON);
+  MockModelParser mmp;
 
   SUBCASE("valid string")
   {
@@ -353,7 +353,7 @@ TEST_CASE(
 
   std::unique_ptr<cb::ClientBackend> backend = std::move(mock_backend);
 
-  MockModelParser mmp(cb::BackendKind::TRITON);
+  MockModelParser mmp;
 
   mmp.DetermineComposingModelMap(input_bls_composing_models, config, backend);
 
@@ -459,7 +459,7 @@ TEST_CASE(
 
   std::unique_ptr<cb::ClientBackend> backend = std::move(mock_backend);
 
-  MockModelParser mmp(cb::BackendKind::TRITON);
+  MockModelParser mmp;
   mmp.composing_models_map_ =
       std::make_shared<ComposingModelMap>(input_composing_model_map);
   mmp.DetermineSchedulerType(config, backend);

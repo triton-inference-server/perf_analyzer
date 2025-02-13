@@ -68,13 +68,13 @@ class ModelParser {
     ENSEMBLE_SEQUENCE
   };
 
-  explicit ModelParser(bool streaming = false)
+  explicit ModelParser()
       : inputs_(std::make_shared<ModelTensorMap>()),
         outputs_(std::make_shared<ModelTensorMap>()),
         composing_models_map_(std::make_shared<ComposingModelMap>()),
         scheduler_type_(NONE), max_batch_size_(0), is_decoupled_(false),
         response_cache_enabled_(false),
-        top_level_response_caching_enabled_(false), streaming_(streaming)
+        top_level_response_caching_enabled_(false)
   {
   }
 
@@ -232,8 +232,6 @@ class ModelParser {
   /// \return cb::Error object indicating success or failure.
   cb::Error GetInt(const rapidjson::Value& value, int64_t* integer_value);
 
-  cb::BackendKind backend_kind_;
-
   std::shared_ptr<ModelTensorMap> inputs_;
   std::shared_ptr<ModelTensorMap> outputs_;
   std::shared_ptr<ComposingModelMap> composing_models_map_;
@@ -244,15 +242,11 @@ class ModelParser {
   size_t max_batch_size_;
   bool response_cache_enabled_;
   bool top_level_response_caching_enabled_;
-  bool streaming_{false};
 
 #ifndef DOCTEST_CONFIG_DISABLE
   friend TestModelParser;
   friend MockModelParser;
   friend InferenceProfiler;
-
- public:
-  ModelParser() = default;
 #endif
 };
 

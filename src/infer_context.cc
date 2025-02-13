@@ -112,7 +112,6 @@ InferContext::SendRequest(
   }
 
   thread_stat_->num_sent_requests_++;
-  inference_started_ = true;
 
   // Parse the request inputs to save in the profile export file
   RequestRecord::RequestInput request_inputs{GetInputs()};

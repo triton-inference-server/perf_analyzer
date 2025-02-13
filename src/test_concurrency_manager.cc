@@ -171,9 +171,9 @@ class TestConcurrencyManager : public TestLoadManagerBase,
     //
     stats = cb::InferStat();
     GetAccumulatedClientStat(&stats);
-    int client_total_requests =
-        stats_->num_async_infer_calls + stats_->num_async_stream_infer_calls +
-        stats_->num_stream_infer_calls + stats_->num_infer_calls;
+    int client_total_requests = stats_->num_async_infer_calls +
+                                stats_->num_async_stream_infer_calls +
+                                stats_->num_infer_calls;
     CHECK(stats.completed_request_count == client_total_requests);
 
     ResetStats();

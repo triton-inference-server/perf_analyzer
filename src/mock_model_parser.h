@@ -32,12 +32,12 @@ namespace triton { namespace perfanalyzer {
 
 class MockModelParser : public ModelParser {
  public:
-  MockModelParser(bool streaming = false) : ModelParser(streaming) {}
+  MockModelParser() : ModelParser() {}
 
   MockModelParser(
       bool is_sequence_model, bool is_decoupled_model,
       size_t max_batch_size = 64)
-      : ModelParser(false)
+      : ModelParser()
   {
     if (is_sequence_model) {
       scheduler_type_ = ModelParser::SEQUENCE;

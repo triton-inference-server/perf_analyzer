@@ -93,7 +93,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
       factory->CreateClientBackend(&backend_),
       "failed to create triton client backend");
 
-  parser_ = std::make_shared<pa::ModelParser>(params_->streaming);
+  parser_ = std::make_shared<pa::ModelParser>();
   if (params_->kind == cb::BackendKind::TRITON ||
       params_->kind == cb::BackendKind::TRITON_C_API) {
     rapidjson::Document model_metadata;

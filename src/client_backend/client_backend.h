@@ -411,12 +411,6 @@ class ClientBackend {
       const std::vector<InferInput*>& inputs,
       const std::vector<const InferRequestedOutput*>& outputs);
 
-  /// Issues a synchronous inference request to the underlying stream.
-  virtual Error StreamInfer(
-      InferResult** result, const InferOptions& options,
-      const std::vector<InferInput*>& inputs,
-      const std::vector<const InferRequestedOutput*>& outputs);
-
   /// Issues an asynchronous inference request to the server.
   virtual Error AsyncInfer(
       OnCompleteFn callback, const InferOptions& options,

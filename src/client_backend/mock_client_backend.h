@@ -143,7 +143,7 @@ class MockInferResult : public InferResult {
 ///
 class MockClientStats {
  public:
-  enum class ReqType { SYNC, SYNC_STREAM, ASYNC, ASYNC_STREAM };
+  enum class ReqType { SYNC, ASYNC, ASYNC_STREAM };
 
   struct SeqStatus {
     // Set of all unique sequence IDs observed in requests
@@ -233,7 +233,6 @@ class MockClientStats {
   };
 
   std::atomic<size_t> num_infer_calls{0};
-  std::atomic<size_t> num_stream_infer_calls{0};
   std::atomic<size_t> num_async_infer_calls{0};
   std::atomic<size_t> num_async_stream_infer_calls{0};
   std::atomic<size_t> num_start_stream_calls{0};
@@ -401,7 +400,6 @@ class MockClientStats {
   {
     std::lock_guard<std::mutex> lock(mtx_);
     num_infer_calls = 0;
-    num_stream_infer_calls = 0;
     num_async_infer_calls = 0;
     num_async_stream_infer_calls = 0;
     num_start_stream_calls = 0;
@@ -422,8 +420,6 @@ class MockClientStats {
   {
     if (type == ReqType::SYNC) {
       num_infer_calls++;
-    } else if (type == ReqType::SYNC_STREAM) {
-      num_stream_infer_calls++;
     } else if (type == ReqType::ASYNC) {
       num_async_infer_calls++;
     } else {
@@ -509,22 +505,6 @@ class NaggyMockClientBackend : public ClientBackend {
   {
     stats_->CaptureRequest(
         MockClientStats::ReqType::SYNC, options, inputs, outputs);
-
-    std::this_thread::sleep_for(stats_->GetNextDelay());
-
-    local_completed_req_count_++;
-    stats_->CaptureRequestEnd(options);
-
-    return stats_->GetNextReturnStatus();
-  }
-
-  Error StreamInfer(
-      InferResult** result, const InferOptions& options,
-      const std::vector<InferInput*>& inputs,
-      const std::vector<const InferRequestedOutput*>& outputs) override
-  {
-    stats_->CaptureRequest(
-        MockClientStats::ReqType::SYNC_STREAM, options, inputs, outputs);
 
     std::this_thread::sleep_for(stats_->GetNextDelay());
 
