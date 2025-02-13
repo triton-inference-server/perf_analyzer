@@ -162,8 +162,7 @@ There are a few functionalities that are missing from C API mode. They are:
 
 > **Note**
 >
-> Dynamic gRPC service kind is under active development and currently it supports
-> bidirectional streaming RPC only at the moment.
+> Dynamic gRPC service kind does not support asynchronous gRPC APIs at the moment.
 
 ### Required steps
 
@@ -173,9 +172,10 @@ a user needs to provide two things:
 2. An input JSON file that specifies how to execute the script.
 
 To start, write a script (for example, `input_stream.py`) that produces a sequence of Protobuf messages.
-In this example, the script serializes each message, prefixes it with a 4-byte length field,
-and writes the result to standard output.
-Ensure you install any necessary dependencies (e.g., the `protobuf` package):
+The script **MUST** follow the following message framing protocol that Perf Analyzer expects:
+
+1. Write the message length as a 4-byte integer (using system byte order)
+2. Write the serialized message itself
 
 ```python
 import sys
@@ -198,6 +198,7 @@ for msg in generate_msgs():
     sys.stdout.buffer.write(serialized)
     sys.stdout.buffer.flush()
 ```
+Ensure you install any necessary dependencies (e.g., the `protobuf` package) to execute the script.
 
 Next, create an input JSON file (for example, `inputs.json`) that instructs Perf Analyzer to run your script.
 Perf Analyzer will execute the command specified and use the output as the stream of Protobuf messages:
@@ -211,14 +212,16 @@ Perf Analyzer will execute the command specified and use the output as the strea
   ]
 }
 ```
-(Note: The "ipc_stream" key holds the command that will be executed to generate the messages.)
+The "ipc_stream" field holds the command that will be executed to generate the messages.
+Perf Analyzer will execute the command specified and read the output as the stream of Protobuf messages.
+These messages will be sent to the gRPC server specified in the `--rpc` argument.
 
 With both the generator script and the JSON configuration in place,
 run Perf Analyzer using the Dynamic gRPC service kind.
 Replace `<URL>`, `<package>`, `<service>`, and `<method>` with the appropriate values for your gRPC service:
 
 ```bash
-perf_analyzer --service-kind=dynamic_grpc -u=<URL> --input-data=inputs.json  --rpc=<package>.<service>/<method> --streaming
+perf_analyzer --service-kind=dynamic_grpc -u=<URL> --input-data=inputs.json  --rpc=<package>.<service>/<method>
 
 #  Successfully read data for 1 stream/streams with 1 step/steps.
 # *** Measurement Settings ***

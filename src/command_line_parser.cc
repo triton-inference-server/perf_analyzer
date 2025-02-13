@@ -1855,6 +1855,10 @@ CLParser::VerifyOptions()
         "Failed to parse -i (protocol). The value should be either HTTP or "
         "gRPC.");
   }
+  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC &&
+                             params_->kind != cb::BackendKind::TRITON_C_API)) {
+    Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
+  }
   if (params_->using_grpc_compression &&
       (params_->protocol != cb::ProtocolType::GRPC)) {
     Usage("Using compression algorithm is only allowed with gRPC protocol.");
@@ -2147,10 +2151,6 @@ CLParser::VerifyOptions()
     Usage(
         "Must specify --collect-metrics when using the --metrics-interval "
         "option.");
-  }
-  if (params_->streaming && (params_->protocol != cb::ProtocolType::GRPC &&
-                             params_->kind != cb::BackendKind::TRITON_C_API)) {
-    Usage("Streaming is only allowed with gRPC protocol and Triton C API.");
   }
 
   if (params_->should_collect_metrics && !params_->metrics_url_specified) {
