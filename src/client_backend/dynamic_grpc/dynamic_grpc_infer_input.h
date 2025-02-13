@@ -49,7 +49,7 @@ class DynamicGrpcInferInput : public InferInput {
   Error AppendRaw(const uint8_t* input, size_t input_byte_size) override;
   /// Resets the heads to start providing data from the beginning.
   Error PrepareForRequest();
-  /// Returns the next message for grpc stream
+  /// Returns the set of messages to be sent to the server
   std::vector<std::vector<char>> GetSerializedMessages();
 
  private:

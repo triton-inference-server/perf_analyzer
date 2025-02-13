@@ -83,12 +83,7 @@ class DynamicGrpcRequest {
 ///
 class DynamicGrpcInferResult : public InferResult {
  public:
-  DynamicGrpcInferResult(
-      bool request_status = false,
-      std::vector<std::chrono::time_point<std::chrono::system_clock>>
-          response_timestamps = {})
-      : request_status_(request_status),
-        response_timestamps_(response_timestamps)
+  DynamicGrpcInferResult(bool request_status) : request_status_(request_status)
   {
   }
 
@@ -99,21 +94,9 @@ class DynamicGrpcInferResult : public InferResult {
   /// See InferResult::RawData()
   Error RawData(
       const std::string& output_name, std::vector<uint8_t>& buf) const override;
-  Error ResponseTimestamps(
-      std::vector<std::chrono::time_point<std::chrono::system_clock>>*
-          response_timestamps) const override
-  {
-    if (response_timestamps == nullptr) {
-      return cb::Error("Failed to store response timestamps.");
-    }
-    *response_timestamps = response_timestamps_;
-    return cb::Error::Success;
-  }
 
  private:
   bool request_status_;
-  std::vector<std::chrono::time_point<std::chrono::system_clock>>
-      response_timestamps_;
 };
 
 //==============================================================================
@@ -144,6 +127,19 @@ class DynamicGrpcClient {
       const std::vector<const InferRequestedOutput*>& outputs =
           std::vector<const InferRequestedOutput*>());
 
+  /// Returns the inference statistics of the client.
+  const InferStat& ClientInferStat() { return infer_stat_; }
+
+ protected:
+  // Update the infer stat with the given timer
+  Error UpdateInferStat(const tc::RequestTimers& timer);
+  // Enables verbose operation in the client.
+  bool verbose_;
+
+  // The inference statistic of the current client
+  InferStat infer_stat_;
+
+ private:
   /// Starts a grpc bi-directional stream to send streaming inferences.
   /// \param callback The callback function to be invoked on receiving a
   /// response at the stream.
@@ -166,19 +162,6 @@ class DynamicGrpcClient {
   /// \return Error object indicating success or failure of the request.
   Error StopStream();
 
-  /// Returns the inference statistics of the client.
-  const InferStat& ClientInferStat() { return infer_stat_; }
-
- protected:
-  // Update the infer stat with the given timer
-  Error UpdateInferStat(const tc::RequestTimers& timer);
-  // Enables verbose operation in the client.
-  bool verbose_;
-
-  // The inference statistic of the current client
-  InferStat infer_stat_;
-
- private:
   // Generic bi-directional stream using dynamic protobuf message.
   std::unique_ptr<grpc::GenericClientAsyncReaderWriter> bidi_stream_;
   std::unique_ptr<grpc::ClientContext> grpc_context_;

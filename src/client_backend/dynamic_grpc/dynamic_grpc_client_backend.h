@@ -69,17 +69,14 @@ class DynamicGrpcClientBackend : public ClientBackend {
       std::shared_ptr<Headers> http_headers, const std::string& grpc_method,
       const bool verbose, std::unique_ptr<ClientBackend>* client_backend);
 
-  /// See ClientBackend::StreamInfer()
-  Error StreamInfer(
+  /// See ClientBackend::Infer()
+  Error Infer(
       cb::InferResult** result, const InferOptions& options,
       const std::vector<InferInput*>& inputs,
       const std::vector<const InferRequestedOutput*>& outputs);
 
   /// See ClientBackend::StartStream()
   Error StartStream(OnCompleteFn callback, bool enable_stats) override;
-
-  /// See ClientBackend::StopStream()
-  Error StopStream() override;
 
   /// See ClientBackend::ClientInferStat()
   Error ClientInferStat(InferStat* infer_stat) override;

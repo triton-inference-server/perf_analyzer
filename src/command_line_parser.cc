@@ -2117,12 +2117,11 @@ CLParser::VerifyOptions()
 
   // Sanity checks for Dynamic gRPC client backend
   if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
-    if (!params_->streaming || params_->async) {
+    if (params_->async) {
       Usage(
-          "Dynamic gRPC client only supports synchronous bidirectional "
-          "streaming RPC at the moment.");
+          "Dynamic gRPC client only supports synchronous RPCs at the moment.");
     }
-    if (params_->streaming && params_->user_data.empty()) {
+    if (params_->user_data.empty()) {
       Usage(
           "Must supply --input-data to provide input data stream for streaming "
           "Dynamic gRPC service.");

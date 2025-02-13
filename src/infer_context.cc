@@ -149,17 +149,10 @@ InferContext::SendRequest(
     cb::InferResult* results = nullptr;
     thread_stat_->idle_timer.Start();
     auto start_time_sync = std::chrono::system_clock::now();
-    if (streaming_) {
-      thread_stat_->status_ = infer_backend_->StreamInfer(
-          &results, *(infer_data_.options_), infer_data_.valid_inputs_,
-          infer_data_.outputs_);
-    } else {
-      thread_stat_->status_ = infer_backend_->Infer(
-          &results, *(infer_data_.options_), infer_data_.valid_inputs_,
-          infer_data_.outputs_);
-    }
+    thread_stat_->status_ = infer_backend_->Infer(
+        &results, *(infer_data_.options_), infer_data_.valid_inputs_,
+        infer_data_.outputs_);
     thread_stat_->idle_timer.Stop();
-
     std::vector<std::chrono::time_point<std::chrono::system_clock>>
         response_timestamps{std::chrono::system_clock::now()};
     RequestRecord::ResponseOutput response_outputs{};
@@ -168,11 +161,6 @@ InferContext::SendRequest(
       if (thread_stat_->status_.IsOk()) {
         response_outputs = GetOutputs(*results);
         thread_stat_->status_ = ValidateOutputs(results);
-
-        // When streaming, use the timestamps collected from client
-        if (streaming_) {
-          results->ResponseTimestamps(&response_timestamps);
-        }
       }
       delete results;
     }

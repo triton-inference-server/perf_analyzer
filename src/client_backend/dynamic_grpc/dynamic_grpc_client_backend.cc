@@ -56,6 +56,7 @@ DynamicGrpcClientBackend::Create(
     return Error(
         "perf_analyzer does not support http protocol with gRPC services.");
   }
+
   std::unique_ptr<DynamicGrpcClientBackend> grpc_client_backend(
       new DynamicGrpcClientBackend(compression_algorithm, http_headers));
 
@@ -68,12 +69,11 @@ DynamicGrpcClientBackend::Create(
       url, grpc_method, verbose, use_ssl, grpc_ssl_options);
 
   *client_backend = std::move(grpc_client_backend);
-
   return Error::Success;
 }
 
 Error
-DynamicGrpcClientBackend::StreamInfer(
+DynamicGrpcClientBackend::Infer(
     cb::InferResult** result, const InferOptions& options,
     const std::vector<InferInput*>& inputs,
     const std::vector<const InferRequestedOutput*>& outputs)
@@ -89,17 +89,9 @@ DynamicGrpcClientBackend::StreamInfer(
 Error
 DynamicGrpcClientBackend::StartStream(OnCompleteFn callback, bool enable_stats)
 {
-  RETURN_IF_CB_ERROR(grpc_client_->StartStream(
-      callback, enable_stats, *http_headers_, compression_algorithm_));
-
-  return Error::Success;
-}
-
-Error
-DynamicGrpcClientBackend::StopStream()
-{
-  RETURN_IF_CB_ERROR(grpc_client_->StopStream());
-  return Error::Success;
+  // DynamicGrpcClient will handle the lifecycle of the grpc stream. This API
+  // does not need to be exposed for InferContext class to call it.
+  return Error("DynamicGrpcClientBackend::StartStream is not supported.");
 }
 
 Error

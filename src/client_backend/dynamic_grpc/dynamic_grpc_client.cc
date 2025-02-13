@@ -63,6 +63,11 @@ DynamicGrpcClient::DynamicGrpcClient(
   }
   auto channel = grpc::CreateChannel(url, grpc::InsecureChannelCredentials());
   stub_ = std::make_unique<grpc::GenericStub>(channel);
+
+  // TODO: Get streaming information so determine if we need to start the
+  // stream. For now, we always start the stream as dynamic gRPC client only
+  // supports bidirectional streaming RPC.
+  StartStream();
 }
 
 DynamicGrpcClient::~DynamicGrpcClient()
@@ -121,16 +126,12 @@ DynamicGrpcClient::BidiStreamRPC(
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::SEND_END);
   request->Timer().CaptureTimestamp(tc::RequestTimers::Kind::RECV_START);
 
-  std::vector<std::chrono::time_point<std::chrono::system_clock>>
-      response_timestamps;
-
   while (true) {
     grpc::ByteBuffer read_buffer;
     bidi_stream_->Read(&read_buffer, nullptr);
     bool status = completion_queue_->Next(&tag, &ok);
-    response_timestamps.push_back(std::chrono::system_clock::now());
     if (!ok) {
-      *result = new DynamicGrpcInferResult(status, response_timestamps);
+      *result = new DynamicGrpcInferResult(status);
       break;
     }
   }
