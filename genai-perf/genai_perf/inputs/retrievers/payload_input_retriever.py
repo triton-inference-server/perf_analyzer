@@ -27,6 +27,7 @@
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
     BaseFileInputRetriever,
 )
@@ -139,11 +140,11 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
         timestamp = data.get("timestamp")
         if timestamp is None:
-            raise ValueError("Each data entry must have a 'timestamp' field.")
+            raise GenAIPerfException("Each data entry must have a 'timestamp' field.")
         try:
             timestamp = int(timestamp)
-        except ValueError:
-            raise ValueError(
+        except Exception:
+            raise GenAIPerfException(
                 f"Invalid timestamp: Expecting an integer but received '{timestamp}'."
             )
 

@@ -82,6 +82,8 @@ def _report_output(
     elif args.request_rate:
         infer_mode = "request_rate"
         load_level = f"{args.request_rate}"
+    # When using fixed schedule mode, infer mode is not set.
+    # Setting to default values to avoid an error.
     elif args.prompt_source == ic.PromptSource.PAYLOAD:
         infer_mode = "request_rate"
         load_level = "1.0"

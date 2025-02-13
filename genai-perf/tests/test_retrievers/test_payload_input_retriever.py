@@ -29,6 +29,7 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -166,3 +167,37 @@ class TestPayloadInputRetriever:
             match="Each data entry must have only one of 'text_input' or 'text' key name.",
         ):
             retriever._get_content_from_input_file(Path("test_input.jsonl"))
+
+    @pytest.mark.parametrize(
+        "mock_data, expected_error",
+        [
+            (
+                {"text": "What is AI?", "session_id": "abc"},
+                "Each data entry must have a 'timestamp' field.",
+            ),
+            (
+                {"text": "What is AI?", "timestamp": "0s", "session_id": "abc"},
+                "Invalid timestamp: Expecting an integer but received '0s'",
+            ),
+        ],
+    )
+    def test_get_valid_timestamp_invalid(self, retriever, mock_data, expected_error):
+        with pytest.raises(GenAIPerfException, match=expected_error):
+            retriever._get_valid_timestamp(mock_data)
+
+    @pytest.mark.parametrize(
+        "mock_data, expected_timestamp",
+        [
+            (
+                {"text": "What is AI?", "timestamp": 0, "session_id": "abc"},
+                0,
+            ),
+            (
+                {"text": "What is AI?", "timestamp": "456", "session_id": "abc"},
+                456,
+            ),
+        ],
+    )
+    def test_get_valid_timestamp_valid(self, retriever, mock_data, expected_timestamp):
+        timestamp = retriever._get_valid_timestamp(mock_data)
+        assert timestamp == expected_timestamp

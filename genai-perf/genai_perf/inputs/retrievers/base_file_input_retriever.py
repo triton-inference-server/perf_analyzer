@@ -26,10 +26,17 @@
 
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import List, Tuple, Union
 
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
-from genai_perf.inputs.retrievers.generic_dataset import FileData, GenericDataset
+from genai_perf.inputs.retrievers.generic_dataset import (
+    FileData,
+    GenericDataset,
+    ImageData,
+    OptionalData,
+    TextData,
+    Timestamp,
+)
 
 
 class BaseFileInputRetriever(BaseInputRetriever):
@@ -55,8 +62,8 @@ class BaseFileInputRetriever(BaseInputRetriever):
             raise FileNotFoundError(f"The file '{filename}' does not exist.")
 
     def _get_content_from_input_file(self, filename: Path) -> Union[
-        Tuple[List[str], List[str]],
-        Tuple[List[str], List[int], List[Dict[Any, Any]]],
+        Tuple[TextData, ImageData],
+        Tuple[TextData, List[Timestamp], List[OptionalData]],
     ]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
