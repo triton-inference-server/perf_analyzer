@@ -30,7 +30,7 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
@@ -1181,40 +1181,20 @@ def parse_args():
         args = refine_args(parser, args)
 
         if args.subcommand == Subcommand.TEMPLATE.value:
-            config = ConfigCommand({})
-            config.verbose = ConfigField(
-                default=False, value=args.verbose, add_to_template=False
-            )
-            config.subcommand = ConfigField(
-                default="profile",
-                value=args.subcommand,
-                required=True,
-                add_to_template=False,
-            )
-            if "-v" in argv:
-                del argv[argv.index("-v")]
-            if "--verbose" in argv:
-                del argv[argv.index("--verbose")]
-
-            filename = argv[2] if len(argv) > 2 else TemplateDefaults.FILENAME
-            config.template_filename = ConfigField(
-                default=TemplateDefaults.FILENAME, value=filename, add_to_template=False
-            )
+            config = _create_template_config(args, argv)
 
             return args, config, None
         else:
+            # For all other subcommands, parse the CLI fully (no config file)
             config = ConfigCommand({"model_name": args.formatted_model_name})
             config = add_cli_options_to_config(config, args)
 
             return args, config, argv[passthrough_index + 1 :]
-    else:
+    else:  # No subcommmand on CLI
         # Assumption is the last argument before the
         # passthrough is the user config file
         user_config = utils.load_yaml(argv[passthrough_index - 1])
         config = ConfigCommand(user_config)
-
-        #
-        # Parse Args
 
         # Set subcommand
         if config.analyze.get_field("sweep_parameters").is_set_by_user:
@@ -1236,6 +1216,33 @@ def parse_args():
         config.verbose = ConfigField(default=False, value=args.verbose)
 
         return args, config, argv[passthrough_index + 1 :]
+
+
+def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
+    config = ConfigCommand({})
+    config.verbose = ConfigField(
+        default=False, value=args.verbose, add_to_template=False
+    )
+    config.subcommand = ConfigField(
+        default="profile",
+        value=args.subcommand,
+        required=True,
+        add_to_template=False,
+    )
+
+    # The template command is: genai-perf template [filename] [-v/--verbose]
+    if "-v" in argv:
+        del argv[argv.index("-v")]
+    if "--verbose" in argv:
+        del argv[argv.index("--verbose")]
+
+    # Assumption is the final argument is the filename (if it exists)
+    filename = argv[2] if len(argv) > 2 else TemplateDefaults.FILENAME
+    config.template_filename = ConfigField(
+        default=TemplateDefaults.FILENAME, value=filename, add_to_template=False
+    )
+
+    return config
 
 
 def subcommand_found(argv) -> bool:
