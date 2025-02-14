@@ -1960,13 +1960,13 @@ TEST_CASE("Testing Command Line Parser")
     }
   }
 
-  SUBCASE("Option : --rpc")
+  SUBCASE("Option : --grpc-method")
   {
     SUBCASE("correct full grpc method name")
     {
       int argc = 5;
       char* argv[argc] = {
-          app_name, "-m", model_name, "--rpc",
+          app_name, "-m", model_name, "--grpc-method",
           "hello.world.ServiceName/MethodName"};
       REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
       CHECK(!parser.UsageCalled());
@@ -1975,7 +1975,7 @@ TEST_CASE("Testing Command Line Parser")
     {
       int argc = 5;
       char* argv[argc] = {
-          app_name, "-m", model_name, "--rpc",
+          app_name, "-m", model_name, "--grpc-method",
           "hello.world/ServiceName/MethodName"};
 
       CHECK_THROWS_WITH_AS(
@@ -1990,7 +1990,7 @@ TEST_CASE("Testing Command Line Parser")
     {
       int argc = 5;
       char* argv[argc] = {
-          app_name, "-m", model_name, "--rpc",
+          app_name, "-m", model_name, "--grpc-method",
           "hello.world.ServiceName.MethodName"};
 
       CHECK_THROWS_WITH_AS(

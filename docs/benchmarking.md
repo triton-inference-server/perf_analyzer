@@ -215,14 +215,14 @@ Next, create an input JSON file (e.g. `inputs.json`) that instructs Perf Analyze
 ```
 The `ipc_stream` field holds the command that will be executed to generate the serialized Protobuf messages
 that will be read by Perf Analyzer (read [Dynamic gRPC Input JSON](./input_data.md#dynamic-grpc) for more details).
-The generated messages will be used to send inference requests to the gRPC service specified in the `--rpc` argument.
+The generated messages will be used to send inference requests to the gRPC service specified in the `--grpc-method` argument.
 
 With both the generator script and the JSON configuration in place,
 run Perf Analyzer using the Dynamic gRPC service kind.
 Replace `<URL>`, `<package>`, `<service>`, and `<method>` with the appropriate values for your gRPC service:
 
 ```bash
-perf_analyzer --service-kind=dynamic_grpc -u=<URL> --input-data=inputs.json  --rpc=<package>.<service>/<method>
+perf_analyzer --service-kind=dynamic_grpc -u=<URL> --input-data=inputs.json  --grpc-method=<package>.<service>/<method>
 
 #  Successfully read data for 1 stream/streams with 1 step/steps.
 # *** Measurement Settings ***

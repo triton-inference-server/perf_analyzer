@@ -188,7 +188,7 @@ CLParser::Usage(const std::string& msg)
   std::cerr << "\t--grpc-compression-algorithm <compression_algorithm>"
             << std::endl;
   std::cerr << "\t--proto" << std::endl;
-  std::cerr << "\t--rpc" << std::endl;
+  std::cerr << "\t--grpc-method" << std::endl;
   std::cerr << "\t--trace-level" << std::endl;
   std::cerr << "\t--trace-rate" << std::endl;
   std::cerr << "\t--trace-count" << std::endl;
@@ -830,7 +830,7 @@ CLParser::Usage(const std::string& msg)
             << std::endl;
   std::cerr
       << FormatMessage(
-             " --rpc: A fully-qualified gRPC method name in "
+             " --grpc-method: A fully-qualified gRPC method name in "
              "'<package>.<service>/<method>' format. The option is only "
              "supported by dynamic gRPC service kind and is used to identify "
              "the RPC to use when sending requests to the server.",
@@ -939,7 +939,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
       {"schedule", required_argument, 0, long_option_idx_base + 64},
       {"session-concurrency", required_argument, 0, long_option_idx_base + 65},
-      {"rpc", required_argument, 0, long_option_idx_base + 66},
+      {"grpc-method", required_argument, 0, long_option_idx_base + 66},
       {0, 0, 0, 0}};
 
   // Parse commandline...

@@ -472,7 +472,7 @@ Only supported when gRPC protocol is being used.
 
 Default is `none`.
 
-#### `--rpc <string>`
+#### `--grpc-method <string>`
 
 Specifies a fully-qualified gRPC method name in `<package>.<service>/<method>` format.
 The option is only supported with `dynamic_grpc` service kind and is used to identify
