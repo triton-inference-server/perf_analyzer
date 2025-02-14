@@ -32,12 +32,12 @@ class ConfigAnalyze(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         # yapf: disable
-        sweep_parameter_template_comment = f"Uncomment the lines below to enable the analyze subcommand\n"
-        sweep_parameter_template_comment += f"For further details see analyze.md\n"
-        sweep_parameter_template_comment += f"sweep_parameters:\n"
-        sweep_parameter_template_comment += f"  concurrency:\n"
-        sweep_parameter_template_comment += f"    start: {AnalyzeDefaults.MIN_CONCURRENCY}\n"
-        sweep_parameter_template_comment += f"    stop: {AnalyzeDefaults.MAX_CONCURRENCY}"
+        sweep_parameter_template_comment = \
+        (f"Uncomment the lines below to enable the analyze subcommand\n"
+         f"For further details see analyze.md sweep_parameters:\n"
+         f"  concurrency:\n"
+         f"    start: {AnalyzeDefaults.MIN_CONCURRENCY}\n"
+         f"    stop: {AnalyzeDefaults.MAX_CONCURRENCY}")
         # yapf: enable
 
         self.sweep_parameters: Any = ConfigField(
