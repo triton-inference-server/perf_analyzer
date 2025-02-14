@@ -65,7 +65,8 @@ class Profiler:
     @staticmethod
     def add_payload_args(args: Namespace) -> List[str]:
         cmd = []
-        cmd += ["--fixed-schedule"]
+        if args.prompt_source == PromptSource.PAYLOAD:
+            cmd += ["--fixed-schedule"]
         return cmd
 
     @staticmethod
