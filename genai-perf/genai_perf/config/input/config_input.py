@@ -350,7 +350,9 @@ class ConfigRequestCount(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.warmup: Any = ConfigField(
-            default=RequestCountDefaults.WARMUP, bounds={"min": 0}
+            default=RequestCountDefaults.WARMUP,
+            bounds={"min": 0},
+            verbose_template_comment="The number of warmup requests to send before benchmarking.",
         )
 
     def parse(self, request_count: Dict[str, Any]) -> None:
