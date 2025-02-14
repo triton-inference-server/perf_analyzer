@@ -47,22 +47,23 @@ maintainers = []
 keywords = []
 requires-python = ">=3.10,<4"
 dependencies = [
-  "tritonclient",
-  "numpy",
-  "pytest",
-  "rich",
-  "transformers",
-  "plotly",
-  "pandas",
-  "kaleido",
-  "statsmodels",
-  "pyarrow",
   "fastparquet",
+  "jinja2",
+  "kaleido",
+  "numpy",
+  "optuna==3.6.1",
+  "pandas",
+  "pillow",
+  "plotly",
+  "pyarrow",
+  "pytest",
   "pytest-mock",
   "pyyaml",
   "responses",
-  "pillow",
-  "optuna==3.6.1",
+  "rich",
+  "statsmodels",
+  "transformers",
+  "tritonclient",
 ]
 
 # CLI Entrypoint

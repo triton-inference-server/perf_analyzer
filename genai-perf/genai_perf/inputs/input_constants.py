@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from enum import Enum, auto
-from typing import Dict
 
 
 class ModelSelectionStrategy(Enum):
@@ -54,6 +53,7 @@ class OutputFormat(Enum):
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
+    TEMPLATE = auto()
     TENSORRTLLM_ENGINE = auto()
     TRITON_GENERATE = auto()
 

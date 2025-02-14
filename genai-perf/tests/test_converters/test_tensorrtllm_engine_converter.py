@@ -24,9 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-from unittest.mock import MagicMock, patch
-
 import pytest
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import TensorRTLLMEngineConverter
@@ -109,30 +106,34 @@ class TestTensorRTLLMEngineConverter:
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
-        # Mock Jinja2 import to prevent ImportError
-        with patch.dict(sys.modules, {"jinja2": MagicMock()}):
-            with patch.object(
-                tokenizer._tokenizer,
-                "apply_chat_template",
-                return_value="formatted chat text",
-            ) as mock_template:
-                with patch.object(
-                    tokenizer, "encode", return_value=[101, 202, 303]
-                ) as mock_encode:
 
-                    result = trtllm_engine_converter.convert(generic_dataset, config)
+        result = trtllm_engine_converter.convert(generic_dataset, config)
 
-                    mock_template.assert_called()
-                    mock_encode.assert_called_with("formatted chat text")
+        expected_texts = [
+            config.tokenizer._tokenizer.apply_chat_template(
+                [{"role": "user", "content": "text input one"}],
+                tokenize=False,
+                add_special_tokens=False,
+            ),
+            config.tokenizer._tokenizer.apply_chat_template(
+                [{"role": "user", "content": "text input two"}],
+                tokenize=False,
+                add_special_tokens=False,
+            ),
+        ]
+        expected_tokenized = [config.tokenizer.encode(text) for text in expected_texts]
 
-                    assert "data" in result
-                    assert isinstance(result["data"], list)
-                    assert len(result["data"]) == 2
+        assert "data" in result
+        assert isinstance(result["data"], list)
+        assert len(result["data"]) == 2
 
-                    for payload in result["data"]:
-                        assert "input_ids" in payload
-                        assert "content" in payload["input_ids"]
-                        assert payload["input_ids"]["content"] == [101, 202, 303]
+        for i, payload in enumerate(result["data"]):
+            assert "input_ids" in payload
+            assert "content" in payload["input_ids"]
+            assert payload["input_ids"]["content"] == expected_tokenized[i], (
+                f"Mismatch in tokenized content for row {i}: "
+                f"Expected {expected_tokenized[i]}, but got {payload['input_ids']['content']}"
+            )
 
     def test_convert_with_request_parameters(self):
         generic_dataset = self.create_generic_dataset()
