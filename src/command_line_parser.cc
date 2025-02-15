@@ -187,7 +187,6 @@ CLParser::Usage(const std::string& msg)
   std::cerr << "\t--streaming" << std::endl;
   std::cerr << "\t--grpc-compression-algorithm <compression_algorithm>"
             << std::endl;
-  std::cerr << "\t--proto" << std::endl;
   std::cerr << "\t--grpc-method" << std::endl;
   std::cerr << "\t--trace-level" << std::endl;
   std::cerr << "\t--trace-rate" << std::endl;
