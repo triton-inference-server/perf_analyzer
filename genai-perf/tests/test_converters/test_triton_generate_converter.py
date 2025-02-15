@@ -180,8 +180,8 @@ class TestTritonGenerateConverter:
             [
                 DataRow(
                     texts=["extra_input_prompt"],
-                    timestamp=0,
                     optional_data=optional_data,
+                    payload_metadata={"timestamp": 0},
                 )
             ]
         )
