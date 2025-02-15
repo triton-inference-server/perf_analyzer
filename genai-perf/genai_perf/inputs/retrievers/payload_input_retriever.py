@@ -25,9 +25,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.inputs.input_constants import (
+    PAYLOAD_METADATA_FIELDS,
+    PAYLOAD_METADATA_INT_FIELDS,
+)
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
     BaseFileInputRetriever,
 )
@@ -83,14 +87,18 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             read from the file.
         """
         self._verify_file(filename)
-        prompts, timestamps, optional_datas = self._get_content_from_input_file(
-            filename
+        prompts, timestamps, optional_datas, payload_metadata_list = (
+            self._get_content_from_input_file(filename)
         )
-        return self._convert_content_to_data_file(prompts, timestamps, optional_datas)
+        return self._convert_content_to_data_file(
+            prompts, timestamps, optional_datas, payload_metadata_list
+        )
 
     def _get_content_from_input_file(
         self, filename: Path
-    ) -> Tuple[List[str], List[int], List[Dict[Any, Any]]]:
+    ) -> Tuple[
+        List[str], List[Optional[int]], List[Dict[Any, Any]], List[Dict[str, Any]]
+    ]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -101,11 +109,12 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
         Returns
         -------
-        Tuple[List[str], Dict, str]
-            A list of prompts, and optional data.
+        Tuple[List[str], List[int], List[Dict[Any, Any]], List[Dict[str, Any]]]
+            The lists of prompts, timestamps, optional data, and payload metadata.
         """
         prompts = []
         optional_datas = []
+        payload_metadata_list = []
         timestamps = []
         with open(filename, mode="r", newline=None) as file:
             for line in file:
@@ -130,17 +139,19 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                     prompts.append(prompt.strip() if prompt else prompt)
                     timestamp = self._get_valid_timestamp(data)
                     timestamps.append(timestamp)
+                    payload_metadata_list.append(self._get_payload_metadata(data))
                     optional_data = self._check_for_optional_data(data)
                     optional_datas.append(optional_data)
-        return prompts, timestamps, optional_datas
+        return prompts, timestamps, optional_datas, payload_metadata_list
 
-    def _get_valid_timestamp(self, data: Dict[str, Any]) -> int:
+    def _get_valid_timestamp(self, data: Dict[str, Any]) -> Optional[int]:
         """
         Retrieves and validates timestamp from input data
         """
         timestamp = data.get("timestamp")
         if timestamp is None:
-            raise GenAIPerfException("Each data entry must have a 'timestamp' field.")
+            return None
+
         try:
             timestamp = int(timestamp)
         except Exception:
@@ -149,6 +160,17 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             )
 
         return timestamp
+
+    def _get_payload_metadata(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Retrieves and payload metadata from input data
+        """
+
+        return {
+            key: (int(data[key]) if key in PAYLOAD_METADATA_INT_FIELDS else data[key])
+            for key in PAYLOAD_METADATA_FIELDS
+            if key in data
+        }
 
     def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """
@@ -168,8 +190,9 @@ class PayloadInputRetriever(BaseFileInputRetriever):
     def _convert_content_to_data_file(
         self,
         prompts: List[str],
-        timestamps: List[int],
+        timestamps: List[Optional[int]],
         optional_datas: List[Dict[Any, Any]] = [{}],
+        payload_metadata_list: List[Dict[str, Any]] = [{}],
     ) -> FileData:
         """
         Converts the content to a DataFile.
@@ -182,6 +205,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             The timestamp at which the request should be sent.
         optional_data : Dict
             The optional data included in every payload.
+        payload_metadata_list : Dict
+            The metadata about the payload.
 
         Returns
         -------
@@ -193,6 +218,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                 texts=[prompt],
                 timestamp=timestamps[index],
                 optional_data=optional_datas[index],
+                payload_metadata=payload_metadata_list[index],
             )
             for index, prompt in enumerate(prompts)
         ]

@@ -32,17 +32,23 @@ TextData: TypeAlias = List[str]
 ImageData: TypeAlias = List[str]
 InputData: TypeAlias = Union[TextData, ImageData]
 OptionalData: TypeAlias = Dict[str, Any]
+PayloadMetadata: TypeAlias = Dict[str, Any]
 Timestamp: TypeAlias = int
-DataRowDict: TypeAlias = Dict[str, Union[InputData, Timestamp, OptionalData]]
+DataRowField: TypeAlias = Union[InputData, Timestamp, OptionalData, PayloadMetadata]
+DataRowDict: TypeAlias = Dict[str, DataRowField]
 GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 
 
 @dataclass
 class DataRow:
-    texts: List[str] = field(default_factory=list)
-    images: List[str] = field(default_factory=list)
-    timestamp: Optional[int] = None
+    texts: TextData = field(default_factory=list)
+    images: ImageData = field(default_factory=list)
+    timestamp: Optional[Timestamp] = None
     optional_data: Dict[str, Any] = field(default_factory=dict)
+    # This field is used to store metadata about the payload,
+    # including timestamp, session_id, and delay.
+    # TODO: Add timestamp to this field.
+    payload_metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> DataRowDict:
         """
@@ -58,6 +64,8 @@ class DataRow:
             datarow_dict["timestamp"] = self.timestamp
         if self.optional_data:
             datarow_dict["optional_data"] = self.optional_data
+        if self.payload_metadata:
+            datarow_dict["payload_metadata"] = self.payload_metadata
         return datarow_dict
 
 
@@ -70,8 +78,8 @@ class FileData:
         Converts the FileData object to a list.
         Output format example for two payloads from a file:
         [
-            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'timestamp': 'timestamp1', 'optional_data': {}},
-            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4'], 'timestamp': 'timestamp2', 'optional_data': {}},
+            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'timestamp': 'timestamp1', 'optional_data': {}, 'payload_metadata': {}},
+            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4'], 'timestamp': 'timestamp2', 'optional_data': {}, 'payload_metadata': {}},
         ]
         """
         return [row.to_dict() for row in self.rows]
@@ -86,8 +94,8 @@ class GenericDataset:
         Converts the entire DataStructure object to a dictionary.
         Output format example for one payload from two files:
         {
-            'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'],  'timestamp': 'timestamp1', 'optional_data': {}}],
-            'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'],  'timestamp': 'timestamp2', 'optional_data': {}}],
+            'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'],  'timestamp': 'timestamp1', 'optional_data': {}, 'payload_metadata': {}],
+            'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'],  'timestamp': 'timestamp2', 'optional_data': {}, 'payload_metadata': {}],
         }
         """
         return {
