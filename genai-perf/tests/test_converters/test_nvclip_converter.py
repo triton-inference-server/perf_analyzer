@@ -169,8 +169,8 @@ class TestNVClipConverter:
                 DataRow(
                     texts=["text1"],
                     images=["image1"],
-                    timestamp=0,
                     optional_data=optional_data,
+                    payload_metadata={"timestamp": 0},
                 ),
             ]
         )

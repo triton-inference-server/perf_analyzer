@@ -64,9 +64,11 @@ class TestOpenAIChatCompletionsConverter:
                 return optional_data
             return {}
 
-        def clean_timestamp(row):
-            timestamp = row.get("timestamp")
-            return timestamp
+        def clean_payload_metadata(row):
+            payload_metadata = row.get("payload_metadata")
+            if isinstance(payload_metadata, Dict):
+                return payload_metadata
+            return {}
 
         return GenericDataset(
             files_data={
@@ -75,8 +77,8 @@ class TestOpenAIChatCompletionsConverter:
                         DataRow(
                             texts=clean_text(row),
                             images=clean_image(row),
-                            timestamp=clean_timestamp(row),
                             optional_data=clean_optional_data(row),
+                            payload_metadata=clean_payload_metadata(row),
                         )
                         for row in rows
                     ],
@@ -327,6 +329,7 @@ class TestOpenAIChatCompletionsConverter:
                     "text": "text input one",
                     "timestamp": 0,
                     "optional_data": optional_data,
+                    "payload_metadata": {"timestamp": 0},
                 }
             ]
         )

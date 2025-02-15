@@ -34,8 +34,8 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     GenericDataset,
     ImageData,
     OptionalData,
+    PayloadMetadata,
     TextData,
-    Timestamp,
 )
 
 
@@ -63,7 +63,11 @@ class BaseFileInputRetriever(BaseInputRetriever):
 
     def _get_content_from_input_file(self, filename: Path) -> Union[
         Tuple[TextData, ImageData],
-        Tuple[TextData, List[Timestamp], List[OptionalData]],
+        Tuple[
+            TextData,
+            List[OptionalData],
+            List[PayloadMetadata],
+        ],
     ]:
         """
         Reads the content from a JSONL file and returns lists of each content type.

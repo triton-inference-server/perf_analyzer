@@ -58,8 +58,8 @@ class TestImageRetrievalConverter:
                     rows=[
                         DataRow(
                             images=["test_image_1", "test_image_2"],
-                            timestamp=0,
                             optional_data=optional_data,
+                            payload_metadata={"timestamp": 0},
                         )
                     ]
                 )
