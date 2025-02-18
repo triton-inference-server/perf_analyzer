@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
@@ -111,28 +111,33 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             for line in file:
                 if line.strip():
                     data = load_json_str(line)
-                    # None if not provided
-                    prompt = data.get("text")
-                    prompt_alt = data.get("text_input")
-                    # Check if only one of the keys is provided
-                    if prompt and prompt_alt:
-                        raise ValueError(
-                            "Each data entry must have only one of 'text_input' or 'text' key name."
-                        )
-                    # If none of the keys are provided, generate a synthetic prompt
-                    if not prompt and not prompt_alt:
-                        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                            self.config.tokenizer,
-                            self.config.prompt_tokens_mean,
-                            self.config.prompt_tokens_stddev,
-                        )
-                    prompt = prompt if prompt else prompt_alt
+                    hash_ids = data.get("hash_ids")
+                    prompt = self._get_prompt(data, hash_ids)
                     prompts.append(prompt.strip() if prompt else prompt)
                     timestamp = self._get_valid_timestamp(data)
                     timestamps.append(timestamp)
                     optional_data = self._check_for_optional_data(data)
                     optional_datas.append(optional_data)
         return prompts, timestamps, optional_datas
+
+    def _get_prompt(self, data: Dict[str, Any], hash_ids: Optional[List[int]]) -> str:
+        prompt = data.get("text")
+        prompt_alt = data.get("text_input")
+        # Check if only one of the keys is provided
+        if prompt and prompt_alt:
+            raise ValueError(
+                "Each data entry must have only one of 'text_input' or 'text' key name."
+            )
+        # If none of the keys are provided, generate a synthetic prompt
+        if not prompt and not prompt_alt:
+            prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                self.config.tokenizer,
+                self.config.prompt_tokens_mean,
+                self.config.prompt_tokens_stddev,
+                hash_ids,
+            )
+            prompt = prompt if prompt else prompt_alt
+        return str(prompt)
 
     def _get_valid_timestamp(self, data: Dict[str, Any]) -> int:
         """
