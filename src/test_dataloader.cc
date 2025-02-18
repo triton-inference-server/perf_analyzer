@@ -304,7 +304,7 @@ TEST_CASE("dataloader: ReadDataFromPipe")
   std::shared_ptr<ModelTensorMap> inputs = std::make_shared<ModelTensorMap>();
   std::shared_ptr<ModelTensorMap> outputs = std::make_shared<ModelTensorMap>();
 
-  ModelTensor input1 = TestDataLoader::CreateTensor("ipc_stream");
+  ModelTensor input1 = TestDataLoader::CreateTensor("message_generator");
   inputs->insert(std::make_pair(input1.name_, input1));
 
   SUBCASE("Read input data from pipe")
@@ -313,7 +313,7 @@ TEST_CASE("dataloader: ReadDataFromPipe")
     std::ofstream out(json_file);
     out << R"({
                  "data": [
-                   { "ipc_stream": "python some_input_stream.py 2>&1 > /dev/null" }
+                   { "message_generator": "python some_input_stream.py 2>&1 > /dev/null" }
                  ]
               })";
     out.close();
@@ -329,9 +329,9 @@ TEST_CASE("dataloader: ReadDataFromPipe")
     std::ofstream out(json_file);
     out << R"({
                  "data": [
-                   { "ipc_stream": "python some_input_stream1.py 2>&1 > /dev/null" },
-                   { "ipc_stream": "python some_input_stream2.py 2>&1 > /dev/null" },
-                   { "ipc_stream": "python some_input_stream3.py 2>&1 > /dev/null" }
+                   { "message_generator": "python some_input_stream1.py 2>&1 > /dev/null" },
+                   { "message_generator": "python some_input_stream2.py 2>&1 > /dev/null" },
+                   { "message_generator": "python some_input_stream3.py 2>&1 > /dev/null" }
                  ]
               })";
     out.close();

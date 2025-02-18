@@ -174,7 +174,7 @@ TEST_CASE("ModelParser: test Init* functions")
   SUBCASE("InitDynamicGrpc")
   {
     status = mmp.InitDynamicGrpc(model_name, model_version, batch_size);
-    expected_input_names.push_back("ipc_stream");
+    expected_input_names.push_back("message_generator");
     expected_output_names.push_back("response");
   }
 

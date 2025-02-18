@@ -264,12 +264,12 @@ Next, create an input JSON file (e.g. `inputs.json`) that instructs Perf Analyze
 {
   "data": [
     {
-      "ipc_stream": "python3 example.py"
+      "message_generator": "python3 example.py"
     }
   ]
 }
 ```
-The `ipc_stream` field holds the command that will be executed to generate the serialized Protobuf messages
+The `message_generator` field holds the command that will be executed to generate the serialized Protobuf messages
 that will be read by Perf Analyzer (read [Dynamic gRPC Input JSON](./input_data.md#dynamic-grpc) for more details).
 The generated messages will be used to send inference requests to the gRPC service specified in the `--grpc-method` argument.
 

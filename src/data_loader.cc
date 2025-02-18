@@ -557,7 +557,7 @@ DataLoader::ReadTensorData(
       const rapidjson::Value& tensor = step[(io.first).c_str()];
       const rapidjson::Value* content;
 
-      if (tensor.IsString() && io.first == "ipc_stream") {
+      if (tensor.IsString() && io.first == "message_generator") {
         ReadDataFromPipe(tensor.GetString(), key_name);
         break;
       }

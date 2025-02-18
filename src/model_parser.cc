@@ -282,8 +282,8 @@ ModelParser::InitDynamicGrpc(
   max_batch_size_ = batch_size;
 
   // Dynamic gRPC will take a single input that specifies a command to execute
-  auto in_it = inputs_->emplace("ipc_stream", ModelTensor()).first;
-  in_it->second.name_ = "ipc_stream";
+  auto in_it = inputs_->emplace("message_generator", ModelTensor()).first;
+  in_it->second.name_ = "message_generator";
   in_it->second.datatype_ = "BYTES";
   in_it->second.shape_.push_back(1);
 
