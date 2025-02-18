@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,6 +47,8 @@ class Checkpoint:
     # Read/Write Methods
     ###########################################################################
     def create_checkpoint_object(self) -> None:
+        os.makedirs(self.config.output.checkpoint_directory, exist_ok=True)
+
         state_dict = {"Results": self.results.create_checkpoint_object()}
 
         checkpoint_file_path = self._create_checkpoint_file_path()

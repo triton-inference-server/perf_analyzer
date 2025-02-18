@@ -16,6 +16,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 
 
 def default_field(obj):
@@ -62,8 +63,8 @@ class EndPointDefaults:
     TYPE = ""
     SERVICE_KIND = "triton"
     STREAMING = False
-    SERVER_METRICS_URL = None
-    URL = ""
+    SERVER_METRICS_URL = ["http://localhost:8002/metrics"]
+    URL = "localhost:8001"
 
 
 @dataclass(frozen=True)
@@ -82,7 +83,7 @@ class ImageDefaults:
     WIDTH_STDDEV = 0
     HEIGHT_MEAN = 100
     HEIGHT_STDDEV = 0
-    FORMAT = None
+    FORMAT = ImageFormat.PNG
 
 
 @dataclass(frozen=True)
@@ -113,10 +114,10 @@ class RequestCountDefaults:
 @dataclass(frozen=True)
 class InputDefaults:
     BATCH_SIZE = 1
-    EXTRA = None
-    GOODPUT = None
-    HEADER = None
-    FILE = None
+    EXTRA = ""
+    GOODPUT = ""
+    HEADER = ""
+    FILE = ""
     NUM_DATASET_ENTRIES = 100
     RANDOM_SEED = 0
 
@@ -124,7 +125,7 @@ class InputDefaults:
 @dataclass(frozen=True)
 class OutputDefaults:
     ARTIFACT_DIRECTORY = "./artifacts"
-    CHECKPOINT_DIRECTORY = "./"
+    CHECKPOINT_DIRECTORY = "./checkpoint"
     PROFILE_EXPORT_FILE = "profile_export.json"
     GENERATE_PLOTS = False
 
@@ -134,3 +135,8 @@ class TokenizerDefaults:
     NAME = "hf-internal-testing/llama-tokenizer"
     REVISION = "main"
     TRUST_REMOTE_CODE = False
+
+
+@dataclass(frozen=True)
+class TemplateDefaults:
+    FILENAME = "genai_perf_config.yaml"

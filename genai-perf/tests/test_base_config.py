@@ -393,6 +393,35 @@ class TestBaseConfig(unittest.TestCase):
         # Check that the dictionary is correct
         self.assertEqual(test_dict["test_field_A"], {"min": 10, "max": 20})
 
+    ###########################################################################
+    # Template Testing
+    ###########################################################################
+    def test_template(self):
+        """
+        Test that a BaseConfig object can be converted to a template
+        """
+
+        test_base_config = BaseConfig()
+        test_base_config.test_field_A = ConfigField(
+            default=1, value=2, template_comment="test comment"
+        )
+        test_base_config.test_field_B = ConfigField(default=3, value=4)
+
+        # Create the template
+        template = test_base_config.create_template(header="test")
+        expected_template = (
+            "  test:\n"
+            + "    # test comment\n"
+            + "    test_field_A: 2\n"
+            + "    test_field_B: 4\n\n"
+        )
+
+        # Check that the template is correct
+        self.assertEqual(
+            template,
+            expected_template,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

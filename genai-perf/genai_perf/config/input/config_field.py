@@ -38,6 +38,7 @@ class ConfigField:
         required: bool = False,
         add_to_template: bool = True,
         template_comment: Optional[str] = None,
+        verbose_template_comment: Optional[str] = None,
         value: Optional[Any] = None,
         bounds: Optional[Dict[str, Any]] = None,
         choices: Optional[Any] = None,
@@ -46,6 +47,7 @@ class ConfigField:
         self.required = required
         self.add_to_template = add_to_template
         self.template_comment = template_comment
+        self.verbose_template_comment = verbose_template_comment
         self.bounds = bounds
         self.choices = choices
         self.is_set_by_user = False

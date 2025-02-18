@@ -26,18 +26,33 @@ class ConfigPerfAnalyzer(BaseConfig):
 
     def __init__(self) -> None:
         super().__init__()
-        self.path: Any = ConfigField(default=PerfAnalyzerDefaults.PATH)
-        self.verbose: Any = ConfigField(default=PerfAnalyzerDefaults.VERBOSE)
+        self.path: Any = ConfigField(
+            default=PerfAnalyzerDefaults.PATH,
+            verbose_template_comment="Path to Perf Analyzer binary",
+        )
+        self.verbose: Any = ConfigField(
+            default=PerfAnalyzerDefaults.VERBOSE,
+            verbose_template_comment="Enables verbose output from Perf Analyzer",
+        )
         self.stimulus: Any = ConfigField(
             default=PerfAnalyzerDefaults.STIMULUS,
             choices=["concurrency", "request_rate"],
+            verbose_template_comment="The type and value of stimulus to benchmark",
         )
         self.stability_percentage: Any = ConfigField(
             default=PerfAnalyzerDefaults.STABILITY_PERCENTAGE,
             bounds={"min": 1, "max": 999},
+            verbose_template_comment="The allowed variation in latency measurements when determining if a result is stable.\
+            \nThe measurement is considered as stable if the ratio of max / min\
+            \nfrom the recent 3 measurements is within (stability percentage)\
+            \nin terms of both infer per second and latency.",
         )
         self.measurement_interval: Any = ConfigField(
-            default=PerfAnalyzerDefaults.MEASUREMENT_INTERVAL, bounds={"min": 1}
+            default=PerfAnalyzerDefaults.MEASUREMENT_INTERVAL,
+            bounds={"min": 1},
+            verbose_template_comment="The time interval used for each measurement in milliseconds.\
+                \nPerf Analyzer will sample a time interval specified and take measurement\
+                \nover the requests completed within that time interval.",
         )
 
     def parse(self, perf_analyzer: Dict[str, Any]) -> None:

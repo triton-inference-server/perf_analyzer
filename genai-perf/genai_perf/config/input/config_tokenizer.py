@@ -26,10 +26,22 @@ class ConfigTokenizer(BaseConfig):
 
     def __init__(self) -> None:
         super().__init__()
-        self.name: Any = ConfigField(default=TokenizerDefaults.NAME)
-        self.revision: Any = ConfigField(default=TokenizerDefaults.REVISION)
+        self.name: Any = ConfigField(
+            default=TokenizerDefaults.NAME,
+            verbose_template_comment="The HuggingFace tokenizer to use to interpret token metrics\
+                \nfrom prompts and responses. The value can be the\
+                \nname of a tokenizer or the filepath of the tokenizer.",
+        )
+        self.revision: Any = ConfigField(
+            default=TokenizerDefaults.REVISION,
+            verbose_template_comment="The specific model version to use.\
+                                             \nIt can be a branch name, tag name, or commit ID.",
+        )
         self.trust_remote_code: Any = ConfigField(
-            default=TokenizerDefaults.TRUST_REMOTE_CODE
+            default=TokenizerDefaults.TRUST_REMOTE_CODE,
+            verbose_template_comment="Allows custom tokenizer to be downloaded and executed.\
+                \nThis carries security risks and should only be used for repositories you trust.\
+                \nThis is only necessary for custom tokenizers stored in HuggingFace Hub.",
         )
 
     def parse(self, tokenizer: Dict[str, Any]) -> None:
