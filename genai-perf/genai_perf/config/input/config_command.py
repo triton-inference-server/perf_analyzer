@@ -38,6 +38,7 @@ class Subcommand(Enum):
     COMPARE = "compare"
     PROFILE = "profile"
     ANALYZE = "analyze"
+    TEMPLATE = "create-template"
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
@@ -54,7 +55,10 @@ class ConfigCommand(BaseConfig):
         super().__init__()
 
         self.model_names: Any = ConfigField(
-            default=TopLevelDefaults.MODEL_NAME, required=True
+            default=TopLevelDefaults.MODEL_NAME,
+            required=True,
+            add_to_template=True,
+            verbose_template_comment="The name of the model(s) to benchmark.",
         )
 
         self.analyze = ConfigAnalyze()
@@ -194,6 +198,12 @@ class ConfigCommand(BaseConfig):
             return [f"request_rate{request_rate}"]
         else:
             return []
+
+    ###########################################################################
+    # Template Creation Methods
+    ###########################################################################
+    def make_template(self) -> str:
+        return self.create_template(header="", level=0, verbose=self.verbose)
 
     ###########################################################################
     # Utility Methods

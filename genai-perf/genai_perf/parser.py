@@ -29,17 +29,18 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
-from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_command import ConfigCommand, Subcommand
 from genai_perf.config.input.config_defaults import (
     AnalyzeDefaults,
     EndPointDefaults,
     PerfAnalyzerDefaults,
+    TemplateDefaults,
 )
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
@@ -49,6 +50,7 @@ from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
+from genai_perf.subcommand.template import template_handler
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
@@ -57,18 +59,6 @@ from . import __version__
 class PathType(Enum):
     FILE = auto()
     DIRECTORY = auto()
-
-    def to_lowercase(self):
-        return self.name.lower()
-
-
-class Subcommand(Enum):
-    PROFILE = auto()
-    COMPARE = auto()
-    ANALYZE = auto()
-
-    def to_lowercase(self):
-        return self.name.lower()
 
 
 logger = logging.getLogger(__name__)
@@ -1170,9 +1160,19 @@ def _add_tokenizer_args(parser):
     )
 
 
+def _parse_template_args(subparsers) -> argparse.ArgumentParser:
+    template = subparsers.add_parser(
+        Subcommand.TEMPLATE.value,
+        description="Subcommand to generate a template YAML file for profiling.",
+    )
+    _add_other_args(template)
+    template.set_defaults(func=template_handler)
+    return template
+
+
 def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
     compare = subparsers.add_parser(
-        Subcommand.COMPARE.to_lowercase(),
+        Subcommand.COMPARE.value,
         description="Subcommand to generate plots that compare multiple profile runs.",
     )
     _add_compare_args(compare)
@@ -1183,7 +1183,7 @@ def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     profile = subparsers.add_parser(
-        Subcommand.PROFILE.to_lowercase(),
+        Subcommand.PROFILE.value,
         description="Subcommand to profile LLMs and Generative AI models.",
     )
     _add_audio_input_args(profile)
@@ -1201,7 +1201,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     analyze = subparsers.add_parser(
-        Subcommand.ANALYZE.to_lowercase(),
+        Subcommand.ANALYZE.value,
         description="Subcommand to analyze LLMs and Generative AI models.",
     )
     _add_analyze_args(analyze)
@@ -1242,6 +1242,7 @@ def init_parsers():
     _ = _parse_compare_args(subparsers)
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
+    _ = _parse_template_args(subparsers)
     subparsers.required = False
 
     return parser
@@ -1260,7 +1261,7 @@ def get_passthrough_args_index(argv: list) -> int:
 def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
-    if args.subcommand == Subcommand.PROFILE.to_lowercase():
+    if args.subcommand == Subcommand.PROFILE.value:
         args = _infer_prompt_source(args)
         _check_payload_input_args(parser, args)
         args = _check_model_args(parser, args)
@@ -1272,7 +1273,7 @@ def refine_args(
         args = _check_goodput_args(args)
         args = _check_session_args(args)
         _print_warnings(args)
-    elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
+    elif args.subcommand == Subcommand.ANALYZE.value:
         args = _infer_prompt_source(args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
@@ -1283,8 +1284,10 @@ def refine_args(
         args = _check_session_args(args)
         args = _process_sweep_args(args)
         _print_warnings(args)
-    elif args.subcommand == Subcommand.COMPARE.to_lowercase():
+    elif args.subcommand == Subcommand.COMPARE.value:
         args = _check_compare_args(parser, args)
+    elif args.subcommand == Subcommand.TEMPLATE.value:
+        pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
 
@@ -1302,7 +1305,6 @@ def add_cli_options_to_config(
 
     # Analyze
     if args.subcommand == "analyze":
-
         config.analyze.sweep_parameters = {}
         if args.sweep_list:
             sweep_parameters = {args.sweep_type: args.sweep_list}
@@ -1414,18 +1416,21 @@ def parse_args():
         args = parser.parse_args(argv[1:passthrough_index])
         args = refine_args(parser, args)
 
-        config = ConfigCommand({"model_name": args.formatted_model_name})
-        config = add_cli_options_to_config(config, args)
+        if args.subcommand == Subcommand.TEMPLATE.value:
+            config = _create_template_config(args, argv)
 
-        return args, config, argv[passthrough_index + 1 :]
-    else:
+            return args, config, None
+        else:
+            # For all other subcommands, parse the CLI fully (no config file)
+            config = ConfigCommand({"model_name": args.formatted_model_name})
+            config = add_cli_options_to_config(config, args)
+
+            return args, config, argv[passthrough_index + 1 :]
+    else:  # No subcommmand on CLI
         # Assumption is the last argument before the
         # passthrough is the user config file
         user_config = utils.load_yaml(argv[passthrough_index - 1])
         config = ConfigCommand(user_config)
-
-        #
-        # Parse Args
 
         # Set subcommand
         if config.analyze.get_field("sweep_parameters").is_set_by_user:
@@ -1449,9 +1454,36 @@ def parse_args():
         return args, config, argv[passthrough_index + 1 :]
 
 
+def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
+    config = ConfigCommand({})
+    config.verbose = ConfigField(
+        default=False, value=args.verbose, add_to_template=False
+    )
+    config.subcommand = ConfigField(
+        default="profile",
+        value=args.subcommand,
+        required=True,
+        add_to_template=False,
+    )
+
+    # The template command is: genai-perf template [filename] [-v/--verbose]
+    if "-v" in argv:
+        del argv[argv.index("-v")]
+    if "--verbose" in argv:
+        del argv[argv.index("--verbose")]
+
+    # Assumption is the final argument is the filename (if it exists)
+    filename = argv[2] if len(argv) > 2 else TemplateDefaults.FILENAME
+    config.template_filename = ConfigField(
+        default=TemplateDefaults.FILENAME, value=filename, add_to_template=False
+    )
+
+    return config
+
+
 def subcommand_found(argv) -> bool:
     for sc in Subcommand:
-        if sc.name.lower() in argv:
+        if sc.value in argv:
             return True
 
     return False
