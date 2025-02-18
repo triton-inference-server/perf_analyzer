@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -212,4 +212,70 @@ class TestOpenAIEmbeddingsConverter:
         result = converter.convert(generic_dataset, config)
 
         expected_result = {"data": []}
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self):
+        optional_data_1 = {
+            "session_id": "abcd",
+            "additional_key": "additional_value",
+        }
+        optional_data_2 = {
+            "session_id": "cdef",
+        }
+
+        generic_dataset = GenericDataset(
+            files_data={
+                "file1": FileData(
+                    rows=[
+                        DataRow(
+                            texts=["text_1"],
+                            timestamp=0,
+                            optional_data=optional_data_1,
+                        ),
+                        DataRow(
+                            texts=["text_2"],
+                            timestamp=3047,
+                            optional_data=optional_data_2,
+                        ),
+                    ],
+                )
+            }
+        )
+
+        config = InputsConfig(
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_EMBEDDINGS,
+            tokenizer=get_empty_tokenizer(),
+        )
+
+        converter = OpenAIEmbeddingsConverter()
+        result = converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "input": ["text_1"],
+                            "model": "test_model",
+                            "session_id": "abcd",
+                            "additional_key": "additional_value",
+                        }
+                    ],
+                    "timestamp": [0],
+                },
+                {
+                    "payload": [
+                        {
+                            "input": ["text_2"],
+                            "model": "test_model",
+                            "session_id": "cdef",
+                        }
+                    ],
+                    "timestamp": [3047],
+                },
+            ]
+        }
+
         assert result == expected_result

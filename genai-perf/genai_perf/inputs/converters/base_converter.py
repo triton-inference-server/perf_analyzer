@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,7 +30,7 @@ from typing import Any, Dict
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 
 
 class BaseConverter:
@@ -70,3 +70,26 @@ class BaseConverter:
     ) -> None:
         for key, value in config.extra_inputs.items():
             payload[key] = value
+
+    def _add_payload_params(self, payload: Dict[Any, Any], optional_data) -> None:
+        for key, value in optional_data.items():
+            payload[key] = value
+
+    def _finalize_payload(
+        self,
+        payload: Dict[Any, Any],
+        config: InputsConfig,
+        row: DataRow,
+        triton_format=False,
+    ) -> Dict[str, Any]:
+        self._add_request_params(payload, config)
+        self._add_payload_params(payload, row.optional_data)
+        record: Dict[str, Any] = {}
+        if not triton_format:
+            record["payload"] = [payload]
+        else:
+            record.update(payload)
+        if row.timestamp is not None:
+            record["timestamp"] = [row.timestamp]
+
+        return record

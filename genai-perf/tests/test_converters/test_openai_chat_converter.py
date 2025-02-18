@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -58,11 +58,26 @@ class TestOpenAIChatCompletionsConverter:
                 return [image]
             return []
 
+        def clean_optional_data(row):
+            optional_data = row.get("optional_data", {})
+            if isinstance(optional_data, Dict):
+                return optional_data
+            return {}
+
+        def clean_timestamp(row):
+            timestamp = row.get("timestamp")
+            return timestamp
+
         return GenericDataset(
             files_data={
                 "file1": FileData(
                     rows=[
-                        DataRow(texts=clean_text(row), images=clean_image(row))
+                        DataRow(
+                            texts=clean_text(row),
+                            images=clean_image(row),
+                            timestamp=clean_timestamp(row),
+                            optional_data=clean_optional_data(row),
+                        )
                         for row in rows
                     ],
                 )
@@ -298,6 +313,52 @@ class TestOpenAIChatCompletionsConverter:
                             "stream": True,
                         }
                     ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self):
+        optional_data = {"session_id": "abcd"}
+        generic_dataset = self.create_generic_dataset(
+            [
+                {
+                    "text": "text input one",
+                    "timestamp": 0,
+                    "optional_data": optional_data,
+                }
+            ]
+        )
+
+        config = InputsConfig(
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
+            tokenizer=get_empty_tokenizer(),
+            add_stream=True,
+        )
+
+        chat_converter = OpenAIChatCompletionsConverter()
+        result = chat_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": "text input one",
+                                }
+                            ],
+                            "model": "test_model",
+                            "stream": True,
+                            "session_id": "abcd",
+                        }
+                    ],
+                    "timestamp": [0],
                 },
             ]
         }

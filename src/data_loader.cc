@@ -513,6 +513,48 @@ DataLoader::ValidateIndexes(int stream_id, int step_id) const
   return cb::Error::Success;
 }
 
+size_t
+DataLoader::GetDatasetSize(const std::vector<std::string>& input_data_paths)
+{
+  size_t dataset_size{0};
+
+  for (const auto& path : input_data_paths) {
+    FILE* fp{std::fopen(path.c_str(), "rb")};
+
+    if (!fp) {
+      throw std::runtime_error("Unable to open JSON file path: '" + path + "'");
+    }
+
+    char buffer[65536];
+
+    rapidjson::FileReadStream stream(fp, buffer, sizeof(buffer));
+
+    rapidjson::Document input_data{};
+
+    input_data.ParseStream(stream);
+
+    fclose(fp);
+
+    if (input_data.HasParseError()) {
+      throw std::runtime_error(
+          "RapidJSON parse error " +
+          std::to_string(input_data.GetParseError()) +
+          ". Review JSON file for formatting errors: '" + path + "'");
+    }
+
+    if (!input_data.IsObject() || input_data.MemberCount() != 1 ||
+        !input_data.HasMember("data") || !input_data["data"].IsArray()) {
+      throw std::runtime_error(
+          "Input data JSON file must contain an object with a single 'data' "
+          "member that is an array. Review JSON file: '" +
+          path + "'");
+    }
+
+    dataset_size += input_data["data"].Size();
+  }
+
+  return dataset_size;
+}
 
 cb::Error
 DataLoader::GetInputShape(

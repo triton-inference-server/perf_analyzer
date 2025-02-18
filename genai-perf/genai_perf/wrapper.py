@@ -30,7 +30,7 @@ from typing import List, Optional
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL
-from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON, PromptSource
 from genai_perf.inputs.inputs import OutputFormat
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
@@ -55,11 +55,18 @@ class Profiler:
 
     @staticmethod
     def add_inference_load_args(args: Namespace) -> List[str]:
-        cmd = []
+        cmd: list[str] = []
         if args.concurrency:
             cmd += ["--concurrency-range", f"{args.concurrency}"]
         elif args.request_rate:
             cmd += ["--request-rate-range", f"{args.request_rate}"]
+        return cmd
+
+    @staticmethod
+    def add_payload_args(args: Namespace) -> List[str]:
+        cmd = []
+        if args.prompt_source == PromptSource.PAYLOAD:
+            cmd += ["--fixed-schedule"]
         return cmd
 
     @staticmethod
@@ -92,6 +99,7 @@ class Profiler:
             "output_tokens_mean",
             "output_tokens_mean_deterministic",
             "output_tokens_stddev",
+            "payload_input_file",
             "prompt_source",
             "random_seed",
             "request_rate",
@@ -111,6 +119,14 @@ class Profiler:
             "tokenizer_revision",
         ]
 
+        if args.prompt_source == PromptSource.PAYLOAD:
+            skip_args += [
+                "measurement_interval",
+                "request_count",
+                "stability_percentage",
+                "warmup_request_count",
+            ]
+
         utils.remove_file(args.profile_export_file)
 
         cmd = [
@@ -121,8 +137,10 @@ class Profiler:
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
-        cmd += Profiler.add_protocol_args(args)
+
         cmd += Profiler.add_inference_load_args(args)
+        cmd += Profiler.add_payload_args(args)
+        cmd += Profiler.add_protocol_args(args)
 
         for arg, value in vars(args).items():
             if arg in skip_args:

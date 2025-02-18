@@ -61,8 +61,10 @@ class TensorRTLLMEngineConverter(BaseConverter):
                     "input_lengths": [len(token_ids)],
                     "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 }
-                self._add_request_params(payload, config)
-                request_body["data"].append(payload)
+
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row, triton_format=True)
+                )
 
         return request_body
 

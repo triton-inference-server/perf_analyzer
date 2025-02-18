@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -79,8 +79,9 @@ class RankingsConverter(BaseConverter):
                     "model": model_name,
                 }
 
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+            request_body["data"].append(
+                self._finalize_payload(payload, config, passage_entry)
+            )
 
         return request_body
 

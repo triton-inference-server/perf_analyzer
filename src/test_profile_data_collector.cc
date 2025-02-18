@@ -1,4 +1,4 @@
-// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -33,9 +33,9 @@ namespace triton { namespace perfanalyzer {
 TEST_CASE("profile_data_collector: FindExperiment")
 {
   MockProfileDataCollector collector{};
-  InferenceLoadMode infer_mode1{10, 20.0};
+  ProfileDataCollector::InferenceLoadMode infer_mode1{10, 20.0};
 
-  std::vector<Experiment>::iterator it;
+  std::vector<ProfileDataCollector::Experiment>::iterator it;
   it = collector.FindExperiment(infer_mode1);
   CHECK(it == collector.experiments_.end());
 
@@ -46,7 +46,7 @@ TEST_CASE("profile_data_collector: FindExperiment")
   CHECK(it != collector.experiments_.end());
   CHECK((*it).mode == infer_mode1);
 
-  InferenceLoadMode infer_mode2{123, 0.0};
+  ProfileDataCollector::InferenceLoadMode infer_mode2{123, 0.0};
   it = collector.FindExperiment(infer_mode2);
   CHECK(it == collector.experiments_.end());
 }
@@ -58,7 +58,7 @@ TEST_CASE("profile_data_collector: AddData")
   using std::chrono::time_point;
 
   MockProfileDataCollector collector{};
-  InferenceLoadMode infer_mode{10, 20.0};
+  ProfileDataCollector::InferenceLoadMode infer_mode{10, 20.0};
 
   // Add RequestRecords
   auto clock_epoch{time_point<system_clock>()};
@@ -180,7 +180,7 @@ TEST_CASE("profile_data_collector: AddData")
 TEST_CASE("profile_data_collector: AddWindow")
 {
   MockProfileDataCollector collector{};
-  InferenceLoadMode infer_mode{10, 20.0};
+  ProfileDataCollector::InferenceLoadMode infer_mode{10, 20.0};
 
   uint64_t window_start1{123};
   uint64_t window_end1{456};

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import pytest
 from genai_perf.inputs.converters import RankingsConverter
@@ -55,6 +55,38 @@ class TestRankingsConverter:
         if passages_data is not None:
             files_data["passages"] = FileData(
                 rows=[DataRow(texts=passage) for passage in passages_data],
+            )
+
+        return GenericDataset(files_data=files_data)
+
+    @staticmethod
+    def create_generic_dataset_payload_parameters(
+        queries_data: Optional[List[List[str]]] = None,
+        passages_data: Optional[List[List[str]]] = None,
+        timestamps: Optional[List[int]] = None,
+        optional_data: Optional[List[Dict[Any, Any]]] = None,
+    ) -> GenericDataset:
+        files_data = {}
+
+        if queries_data is not None:
+            files_data["queries"] = FileData(
+                rows=[DataRow(texts=query) for query in queries_data],
+            )
+
+        if passages_data is not None:
+            files_data["passages"] = FileData(
+                rows=[
+                    DataRow(
+                        texts=passage,
+                        timestamp=timestamps[index] if timestamps else None,
+                        optional_data=(
+                            optional_data[index]
+                            if optional_data and index < len(optional_data)
+                            else {}
+                        ),
+                    )
+                    for index, passage in enumerate(passages_data)
+                ],
             )
 
         return GenericDataset(files_data=files_data)
@@ -322,5 +354,67 @@ class TestRankingsConverter:
         rankings_converter = RankingsConverter()
 
         result = rankings_converter.convert(generic_dataset, config)
+
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self):
+        optional_data_1 = {"session_id": "abcd"}
+        optional_data_2 = {
+            "session_id": "dfwe",
+            "input_length": "6755",
+            "output_length": "500",
+        }
+        generic_dataset = self.create_generic_dataset_payload_parameters(
+            queries_data=[["query 1"], ["query 2"]],
+            passages_data=[["passage 1", "passage 2"], ["passage 3", "passage 4"]],
+            timestamps=[0, 2345],
+            optional_data=[optional_data_1, optional_data_2],
+        )
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.RANKINGS,
+            tokenizer=get_empty_tokenizer(),
+        )
+
+        rankings_converter = RankingsConverter()
+        result = rankings_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "query": {"text": "query 1"},
+                            "passages": [
+                                {"text": "passage 1"},
+                                {"text": "passage 2"},
+                            ],
+                            "model": "test_model",
+                            "session_id": "abcd",
+                        }
+                    ],
+                    "timestamp": [0],
+                },
+                {
+                    "payload": [
+                        {
+                            "query": {"text": "query 2"},
+                            "passages": [
+                                {"text": "passage 3"},
+                                {"text": "passage 4"},
+                            ],
+                            "model": "test_model",
+                            "session_id": "dfwe",
+                            "input_length": "6755",
+                            "output_length": "500",
+                        }
+                    ],
+                    "timestamp": [2345],
+                },
+            ]
+        }
 
         assert result == expected_result

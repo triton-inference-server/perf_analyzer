@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,12 +25,15 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from dataclasses import dataclass, field
-from typing import Dict, List, TypeAlias
+from typing import Any, Dict, List, Optional, TypeAlias, Union
 
 Filename: TypeAlias = str
-TypeOfData: TypeAlias = str
-ListOfData: TypeAlias = List[str]
-DataRowDict: TypeAlias = Dict[TypeOfData, ListOfData]
+TextData: TypeAlias = List[str]
+ImageData: TypeAlias = List[str]
+InputData: TypeAlias = Union[TextData, ImageData]
+OptionalData: TypeAlias = Dict[str, Any]
+Timestamp: TypeAlias = int
+DataRowDict: TypeAlias = Dict[str, Union[InputData, Timestamp, OptionalData]]
 GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 
 
@@ -38,12 +41,24 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 class DataRow:
     texts: List[str] = field(default_factory=list)
     images: List[str] = field(default_factory=list)
+    timestamp: Optional[int] = None
+    optional_data: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> DataRowDict:
         """
         Converts the DataRow object to a dictionary.
         """
-        return {"texts": self.texts, "images": self.images}
+        datarow_dict: DataRowDict = {}
+
+        if self.texts:
+            datarow_dict["texts"] = self.texts
+        if self.images:
+            datarow_dict["images"] = self.images
+        if self.timestamp:
+            datarow_dict["timestamp"] = self.timestamp
+        if self.optional_data:
+            datarow_dict["optional_data"] = self.optional_data
+        return datarow_dict
 
 
 @dataclass
@@ -55,8 +70,8 @@ class FileData:
         Converts the FileData object to a list.
         Output format example for two payloads from a file:
         [
-            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2']},
-            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4']}
+            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'timestamp': 'timestamp1', 'optional_data': {}},
+            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4'], 'timestamp': 'timestamp2', 'optional_data': {}},
         ]
         """
         return [row.to_dict() for row in self.rows]
@@ -71,8 +86,8 @@ class GenericDataset:
         Converts the entire DataStructure object to a dictionary.
         Output format example for one payload from two files:
         {
-            'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}],
-            'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2']}]
+            'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'],  'timestamp': 'timestamp1', 'optional_data': {}}],
+            'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'],  'timestamp': 'timestamp2', 'optional_data': {}}],
         }
         """
         return {

@@ -26,8 +26,8 @@
 
 #include "model_parser.h"
 
+#include "inference_load_mode.h"
 #include "rapidjson/writer.h"
-#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -299,7 +299,7 @@ ModelParser::InitDynamicGrpc(
 cb::Error
 ModelParser::InitOpenAI(
     const std::string& model_name, const std::string& model_version,
-    const int32_t batch_size, SessionConcurrencyMode session_concurrency_mode)
+    const int32_t batch_size, InferenceLoadMode inference_load_mode)
 {
   // OpenAI does not return model metadata hence we can not obtain any
   // parameters.
@@ -319,13 +319,20 @@ ModelParser::InitOpenAI(
   response_output->second.datatype_ = "JSON";
   response_output->second.shape_.push_back(1);
 
+  // OpenAI in fixed schedule mode takes a timestamp input
+  if (inference_load_mode == InferenceLoadMode::FixedSchedule) {
+    auto delay_input = inputs_->emplace("timestamp", ModelTensor()).first;
+    delay_input->second.name_ = "timestamp";
+    delay_input->second.datatype_ = "UINT64";
+    delay_input->second.shape_.push_back(1);
+  }
+
   // OpenAI in session concurrency mode takes an optional delay input
-  if (session_concurrency_mode == SessionConcurrencyMode::Enabled) {
+  if (inference_load_mode == InferenceLoadMode::SessionConcurrency) {
     auto delay_input = inputs_->emplace("delay", ModelTensor()).first;
     delay_input->second.name_ = "delay";
     delay_input->second.datatype_ = "UINT64";
     delay_input->second.shape_.push_back(1);
-    delay_input->second.is_shape_tensor_ = false;
     delay_input->second.is_optional_ = true;
   }
 

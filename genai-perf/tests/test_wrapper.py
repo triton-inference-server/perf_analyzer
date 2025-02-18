@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from pathlib import Path
+
 import pytest
 from genai_perf import parser
 from genai_perf.constants import DEFAULT_GRPC_URL
@@ -183,3 +185,47 @@ class TestWrapper:
                 assert (
                     False
                 ), f"Missing expected header flag: {expected_flag} or value: {expected_value}"
+
+    def test_payload_args_in_cmd(self, monkeypatch, mocker):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:input.jsonl",
+        ]
+        mocker.patch.object(Path, "is_file", return_value=True)
+        mocker.patch("genai_perf.utils.remove_file")
+        monkeypatch.setattr("sys.argv", args)
+        args, extra_args = parser.parse_args()
+        cmd = Profiler.build_cmd(args, extra_args)
+        cmd_string = " ".join(cmd)
+
+        assert "--fixed-schedule" in cmd_string
+
+    def test_payload_skipped_args_not_in_cmd(self, monkeypatch, mocker):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:input.jsonl",
+        ]
+
+        mocker.patch.object(Path, "is_file", return_value=True)
+        mocker.patch("genai_perf.utils.remove_file")
+        monkeypatch.setattr("sys.argv", args)
+        args, extra_args = parser.parse_args()
+
+        cmd = Profiler.build_cmd(args, extra_args)
+        cmd_string = " ".join(cmd)
+
+        for skipped_arg in [
+            "--stability-percentage",
+            "--warmup-request-count",
+            "--request-count",
+            "--measurement-interval",
+        ]:
+            assert skipped_arg not in cmd_string
