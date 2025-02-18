@@ -93,10 +93,6 @@ CLParser::FormatMessage(std::string str, int offset) const
 void
 CLParser::Usage(const std::string& msg)
 {
-  if (!msg.empty()) {
-    std::cerr << "Error: " << msg << std::endl;
-  }
-
   std::cerr << "Usage: " << argv_[0] << " [options]" << std::endl;
   std::cerr << "==== SYNOPSIS ====\n \n";
   std::cerr << "\t--version " << std::endl;
@@ -836,6 +832,10 @@ CLParser::Usage(const std::string& msg)
              "the RPC to use when sending requests to the server.",
              18)
       << std::endl;
+
+  if (!msg.empty()) {
+    std::cerr << "Error: " << msg << std::endl;
+  }
   throw pa::PerfAnalyzerException(GENERIC_ERROR);
 }
 
