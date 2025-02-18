@@ -86,14 +86,14 @@ PerfAnalyzer::CreateAnalyzerObjects()
           params_->triton_server_path, params_->model_repository_path,
           params_->extra_verbose, params_->metrics_url,
           params_->input_tensor_format, params_->output_tensor_format,
-          &factory),
+          params_->grpc_method, &factory),
       "failed to create client factory");
 
   FAIL_IF_ERR(
       factory->CreateClientBackend(&backend_),
       "failed to create triton client backend");
 
-  parser_ = std::make_shared<pa::ModelParser>(params_->kind);
+  parser_ = std::make_shared<pa::ModelParser>();
   if (params_->kind == cb::BackendKind::TRITON ||
       params_->kind == cb::BackendKind::TRITON_C_API) {
     rapidjson::Document model_metadata;
@@ -111,6 +111,11 @@ PerfAnalyzer::CreateAnalyzerObjects()
         parser_->InitTriton(
             model_metadata, model_config, params_->model_version,
             params_->bls_composing_models, params_->input_shapes, backend_),
+        "failed to create model parser");
+  } else if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
+    FAIL_IF_ERR(
+        parser_->InitDynamicGrpc(
+            params_->model_name, params_->model_version, params_->batch_size),
         "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::OPENAI) {
     FAIL_IF_ERR(
@@ -161,7 +166,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
     }
   }
 
-  if (params_->streaming) {
+  if (params_->streaming && params_->kind != cb::BackendKind::DYNAMIC_GRPC) {
     if (params_->forced_sync) {
       std::cerr << "can not use streaming with synchronous API" << std::endl;
       throw pa::PerfAnalyzerException(pa::GENERIC_ERROR);

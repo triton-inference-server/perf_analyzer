@@ -46,7 +46,7 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
 {
   SUBCASE("valid input data")
   {
-    auto model_parser{std::make_shared<ModelParser>(cb::BackendKind::OPENAI)};
+    auto model_parser{std::make_shared<ModelParser>()};
 
     const std::string model_name{""};
     const std::string model_version{""};

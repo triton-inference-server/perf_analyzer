@@ -268,9 +268,71 @@ DataLoader::ParseData(
     }
   }
 
-
   return cb::Error::Success;
 }
+
+cb::Error
+DataLoader::ReadDataFromPipe(
+    const std::string& command, const std::string& key_name)
+{
+  FILE* pipe = popen(command.data(), "r");
+  if (pipe == nullptr) {
+    return cb::Error(
+        "Failed to open pipe with the following process: " + command,
+        pa::GENERIC_ERROR);
+  }
+
+  auto it = input_data_.emplace(key_name, std::vector<char>()).first;
+
+  std::vector<char> size(pa::DEFAULT_STREAM_DATA_SIZE);
+  std::vector<char> buffer;
+
+  while (true) {
+    // Read the length byte
+    uint32_t data_size = ReadDataSizeFromPipe(pipe);
+    if (data_size == 0) {
+      break;
+    }
+
+    // Ensure buffer is large enough
+    if (buffer.size() != data_size) {
+      buffer.resize(data_size);
+    }
+
+    // Read the payload using the length
+    size_t bytes_read = fread(buffer.data(), 1, data_size, pipe);
+    if (bytes_read != data_size) {
+      return cb::Error(
+          "Unmatching number of bytes read from the pipe: expected = " +
+              std::to_string(data_size) +
+              ", bytes read = " + std::to_string(bytes_read),
+          pa::GENERIC_ERROR);
+    }
+
+    // Store data size and data, respectively, into input data
+    std::memcpy(size.data(), &data_size, sizeof(data_size));
+    std::copy(size.begin(), size.end(), std::back_inserter(it->second));
+    std::copy(buffer.begin(), buffer.end(), std::back_inserter(it->second));
+  }
+
+  pclose(pipe);
+  return cb::Error::Success;
+}
+
+uint32_t
+DataLoader::ReadDataSizeFromPipe(FILE* pipe)
+{
+  // Read the size of the data
+  std::vector<char> buf(pa::DEFAULT_STREAM_DATA_SIZE);
+  size_t bytes_read = fread(buf.data(), 1, pa::DEFAULT_STREAM_DATA_SIZE, pipe);
+  if (bytes_read != pa::DEFAULT_STREAM_DATA_SIZE) {
+    return 0;
+  }
+  uint32_t data_size;
+  std::memcpy(&data_size, buf.data(), pa::DEFAULT_STREAM_DATA_SIZE);
+  return data_size;
+}
+
 
 cb::Error
 DataLoader::GenerateData(
@@ -535,8 +597,12 @@ DataLoader::ReadTensorData(
       auto it = tensor_data.emplace(key_name, std::vector<char>()).first;
 
       const rapidjson::Value& tensor = step[(io.first).c_str()];
-
       const rapidjson::Value* content;
+
+      if (tensor.IsString() && io.first == "message_generator") {
+        ReadDataFromPipe(tensor.GetString(), key_name);
+        break;
+      }
 
       // Check if the input data file is malformed
       if (!(tensor.IsArray() || tensor.IsObject())) {
@@ -785,5 +851,4 @@ DataLoader::ValidateParsingMode(const rapidjson::Value& steps)
   }
   return cb::Error::Success;
 }
-
 }}  // namespace triton::perfanalyzer

@@ -144,6 +144,9 @@ struct PerfAnalyzerParameters {
   size_t warmup_request_count{0};
 
   size_t session_concurrency{0};
+
+  // Dynamic gRPC options
+  std::string grpc_method{""};  // full gRPC method name
 };
 
 using PAParamsPtr = std::shared_ptr<PerfAnalyzerParameters>;

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -304,3 +304,63 @@ your application. Use
 (CPU) shared memory or
 [`--shared-memory=cuda`](cli.md#--shared-memorynonesystemcuda) to use CUDA
 shared memory.
+
+## Dynamic gRPC
+
+When using the dynamic gRPC service kind,
+you can configure multiple input data via the `message_generator` field
+that can be used to generate a pool of input data (e.g. Protobuf messages) for the gRPC service.
+The Protobuf messages generated from each command specified in the `message_generator` field
+can be used to send individual inference requests to the gRPC service,
+and Perf Analyzer will cycle through each input data in a round-robin manner
+when sending inference requests,
+which is similar to its default behavior when the `message_generator` field is not specified.
+
+For example, given the following input JSON:
+```json
+{
+  "data": [
+    {
+      "message_generator": "python3 example.py --arg1 value1 --arg2 value2"
+    },
+    {
+      "message_generator": "python3 example.py --arg1 value3 --arg2 value4"
+    }
+  ]
+}
+```
+In this configuration, Perf Analyzer will read the Protobuf messages from each of the two commands specified in the `message_generator` field,
+and create a pool of two separate input data that can be used to send inference requests.
+Each input data can be customized, as in the example above,
+and contain any user-specified Protobuf messages
+(as long as they conform to the gRPC service's expected definition).
+
+### JSON Schema
+
+Here's the JSON schema for the input JSON file when using the dynamic gRPC service kind:
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dynamic gRPC input JSON Schema",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "message_generator": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_generator"
+        ]
+      }
+    }
+  },
+  "required": [
+    "data"
+  ]
+}
+```

@@ -32,6 +32,10 @@
 #include "triton_c_api/triton_c_api_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_C_API
 
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+#include "dynamic_grpc/dynamic_grpc_client_backend.h"
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
+
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
 #include "openai/openai_client_backend.h"
 #endif  // TRITON_ENABLE_PERF_ANALYZER_OPENAI
@@ -97,6 +101,9 @@ BackendKindToString(const BackendKind kind)
     case OPENAI:
       return std::string("OPENAI");
       break;
+    case DYNAMIC_GRPC:
+      return std::string("DYNAMIC_GRPC");
+      break;
     default:
       return std::string("UNKNOWN");
       break;
@@ -131,14 +138,14 @@ ClientBackendFactory::Create(
     const std::string& triton_server_path,
     const std::string& model_repository_path, const bool verbose,
     const std::string& metrics_url, const cb::TensorFormat input_tensor_format,
-    const cb::TensorFormat output_tensor_format,
+    const cb::TensorFormat output_tensor_format, const std::string& grpc_method,
     std::shared_ptr<ClientBackendFactory>* factory)
 {
   factory->reset(new ClientBackendFactory(
       kind, url, endpoint, protocol, ssl_options, trace_options,
       compression_algorithm, http_headers, triton_server_path,
       model_repository_path, verbose, metrics_url, input_tensor_format,
-      output_tensor_format));
+      output_tensor_format, grpc_method));
   return Error::Success;
 }
 
@@ -150,7 +157,7 @@ ClientBackendFactory::CreateClientBackend(
       kind_, url_, endpoint_, protocol_, ssl_options_, trace_options_,
       compression_algorithm_, http_headers_, verbose_, triton_server_path,
       model_repository_path_, metrics_url_, input_tensor_format_,
-      output_tensor_format_, client_backend));
+      output_tensor_format_, grpc_method_, client_backend));
   return Error::Success;
 }
 
@@ -173,7 +180,7 @@ ClientBackend::Create(
     const std::string& triton_server_path,
     const std::string& model_repository_path, const std::string& metrics_url,
     const TensorFormat input_tensor_format,
-    const TensorFormat output_tensor_format,
+    const TensorFormat output_tensor_format, const std::string& grpc_method,
     std::unique_ptr<ClientBackend>* client_backend)
 {
   std::unique_ptr<ClientBackend> local_backend;
@@ -184,6 +191,13 @@ ClientBackend::Create(
         metrics_url, input_tensor_format, output_tensor_format,
         &local_backend));
   }
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+  else if (kind == DYNAMIC_GRPC) {
+    RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcClientBackend::Create(
+        url, protocol, ssl_options, BackendToGrpcType(compression_algorithm),
+        http_headers, grpc_method, verbose, &local_backend));
+  }
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
   else if (kind == OPENAI) {
     RETURN_IF_CB_ERROR(openai::OpenAiClientBackend::Create(
@@ -442,6 +456,12 @@ InferInput::Create(
     RETURN_IF_CB_ERROR(tritonremote::TritonInferInput::Create(
         infer_input, name, dims, datatype));
   }
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+  else if (kind == DYNAMIC_GRPC) {
+    RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcInferInput::Create(
+        infer_input, name, dims, datatype));
+  }
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
   else if (kind == OPENAI) {
     RETURN_IF_CB_ERROR(
@@ -541,6 +561,12 @@ InferRequestedOutput::Create(
     RETURN_IF_CB_ERROR(tritonremote::TritonInferRequestedOutput::Create(
         infer_output, name, class_count, datatype));
   }
+#ifdef TRITON_ENABLE_PERF_ANALYZER_DGRPC
+  else if (kind == DYNAMIC_GRPC) {
+    RETURN_IF_CB_ERROR(dynamicgrpc::DynamicGrpcInferRequestedOutput::Create(
+        infer_output, name, datatype));
+  }
+#endif  // TRITON_ENABLE_PERF_ANALYZER_DGRPC
 #ifdef TRITON_ENABLE_PERF_ANALYZER_OPENAI
   else if (kind == OPENAI) {
     RETURN_IF_CB_ERROR(openai::OpenAiInferRequestedOutput::Create(

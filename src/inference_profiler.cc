@@ -1627,7 +1627,7 @@ cb::Error
 InferenceProfiler::SetTopLevelResponseCaching(
     bool enable_top_level_response_caching)
 {
-  parser_ = std::make_shared<ModelParser>(cb::BackendKind::TRITON);
+  parser_ = std::make_shared<ModelParser>();
   if (parser_ == nullptr) {
     return cb::Error("Failed to initialize ModelParser");
   }

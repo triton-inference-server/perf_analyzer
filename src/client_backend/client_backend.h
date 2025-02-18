@@ -28,6 +28,7 @@
 #include <rapidjson/document.h>
 #include <rapidjson/rapidjson.h>
 
+#include <chrono>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -140,7 +141,8 @@ enum BackendKind {
   TENSORFLOW_SERVING = 1,
   TORCHSERVE = 2,
   TRITON_C_API = 3,
-  OPENAI = 4
+  OPENAI = 4,
+  DYNAMIC_GRPC = 5
 };
 std::string BackendKindToString(const BackendKind kind);
 
@@ -305,7 +307,7 @@ class ClientBackendFactory {
       const std::string& triton_server_path,
       const std::string& model_repository_path, const bool verbose,
       const std::string& metrics_url, const TensorFormat input_tensor_format,
-      const TensorFormat output_tensor_format,
+      const TensorFormat output_tensor_format, const std::string& grpc_method,
       std::shared_ptr<ClientBackendFactory>* factory);
 
   const BackendKind& Kind();
@@ -325,14 +327,14 @@ class ClientBackendFactory {
       const std::string& triton_server_path,
       const std::string& model_repository_path, const bool verbose,
       const std::string& metrics_url, const TensorFormat input_tensor_format,
-      const TensorFormat output_tensor_format)
+      const TensorFormat output_tensor_format, const std::string& grpc_method)
       : kind_(kind), url_(url), endpoint_(endpoint), protocol_(protocol),
         ssl_options_(ssl_options), trace_options_(trace_options),
         compression_algorithm_(compression_algorithm),
         http_headers_(http_headers), triton_server_path(triton_server_path),
         model_repository_path_(model_repository_path), verbose_(verbose),
         metrics_url_(metrics_url), input_tensor_format_(input_tensor_format),
-        output_tensor_format_(output_tensor_format)
+        output_tensor_format_(output_tensor_format), grpc_method_(grpc_method)
   {
   }
 
@@ -350,6 +352,7 @@ class ClientBackendFactory {
   const std::string metrics_url_{""};
   const TensorFormat input_tensor_format_{TensorFormat::UNKNOWN};
   const TensorFormat output_tensor_format_{TensorFormat::UNKNOWN};
+  const std::string grpc_method_;
 
 
 #ifndef DOCTEST_CONFIG_DISABLE
@@ -378,7 +381,7 @@ class ClientBackend {
       std::shared_ptr<Headers> http_headers, const bool verbose,
       const std::string& library_directory, const std::string& model_repository,
       const std::string& metrics_url, const TensorFormat input_tensor_format,
-      const TensorFormat output_tensor_format,
+      const TensorFormat output_tensor_format, const std::string& grpc_method,
       std::unique_ptr<ClientBackend>* client_backend);
 
   /// Destructor for the client backend object
@@ -673,6 +676,15 @@ class InferResult {
   virtual Error IsNullResponse(bool* is_null_response) const
   {
     return Error("InferResult::IsNullResponse() not implemented");
+  };
+
+  /// Returns the response timestamps of the streaming request.
+  /// \return Error object indicating the success or failure.
+  virtual Error ResponseTimestamps(
+      std::vector<std::chrono::time_point<std::chrono::system_clock>>*
+          response_timestamps) const
+  {
+    return Error("InferResult::ResponseTimestamps() not implemented");
   };
 };
 

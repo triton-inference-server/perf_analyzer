@@ -1,4 +1,4 @@
-// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -23,33 +23,46 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #pragma once
 
-#include <cstdint>
 #include <string>
 
-#define STRINGIFY_(x) #x
-#define STRINGIFY(x) STRINGIFY_(x)
-namespace triton { namespace perfanalyzer {
+#include "../../perf_utils.h"
+#include "../client_backend.h"
 
-const std::string SHA{STRINGIFY(GIT_SHA)};
-const std::string VERSION{STRINGIFY(PERF_ANALYZER_VERSION)};
 
-constexpr static const uint32_t SUCCESS = 0;
+namespace triton::perfanalyzer::clientbackend::dynamicgrpc {
 
-constexpr static const uint32_t STABILITY_ERROR = 2;
-constexpr static const uint32_t OPTION_ERROR = 3;
+//==============================================================
+/// DynamicGrpcInferInput instance holds the information regarding
+/// model input tensors and their corresponding generated data.
+///
+class DynamicGrpcInferInput : public InferInput {
+ public:
+  static Error Create(
+      InferInput** infer_input, const std::string& name,
+      const std::vector<int64_t>& dims, const std::string& datatype);
+  /// See InferInput::Shape()
+  const std::vector<int64_t>& Shape() const override { return shape_; }
+  /// See InferInput::AppendRaw()
+  Error AppendRaw(const uint8_t* input, size_t input_byte_size) override;
+  /// Resets the heads to start providing data from the beginning.
+  Error PrepareForRequest();
+  /// Returns the set of messages to be sent to the server
+  std::vector<std::vector<char>> GetSerializedMessages();
 
-constexpr static const uint32_t GENERIC_ERROR = 99;
-constexpr static const size_t DEFAULT_MAX_THREADS = 16;
+ private:
+  explicit DynamicGrpcInferInput(
+      const std::string& name, const std::vector<int64_t>& dims,
+      const std::string& datatype);
 
-/// Size of the data being read from stream (e.g. pipe) when reading input data
-/// from user-provided data stream. Defaults to 4 bytes.
-constexpr uint32_t DEFAULT_STREAM_DATA_SIZE = 4;
+  std::vector<int64_t> shape_;
+  size_t byte_size_{0};
 
-const double DELAY_PCT_THRESHOLD{1.0};
+  size_t bufs_idx_, buf_pos_;
+  std::vector<const uint8_t*> bufs_;
+  std::vector<size_t> buf_byte_sizes_;
+};
 
-/// Different measurement modes possible.
-enum MeasurementMode { TIME_WINDOWS = 0, COUNT_WINDOWS = 1 };
-
-}}  // namespace triton::perfanalyzer
+}  // namespace triton::perfanalyzer::clientbackend::dynamicgrpc

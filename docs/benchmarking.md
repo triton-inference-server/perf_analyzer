@@ -99,13 +99,13 @@ be of interest to users who are using Triton via C API within their application.
 Specifically, this feature is useful to benchmark a bare minimum Triton without
 additional overheads from HTTP/gRPC communication.
 
-## Prerequisite
+### Prerequisite
 
 Pull the Triton SDK and the Triton Server container images on target machine.
 Since you will need access to the `tritonserver` install, it might be easier if
 you copy the `perf_analyzer` binary to the Inference Server container.
 
-## Required parameters
+### Required parameters
 
 Use the [`--help`](cli.md#--help) option to see a complete list of supported
 command line arguments. By default, Perf Analyzer expects the Triton instance to
@@ -149,13 +149,159 @@ Inferences/Second vs. Client Average Batch Latency
 Concurrency: 1, throughput: 19.6095 infer/sec, latency 50951 usec
 ```
 
-## Non-supported functionalities
+### Non-supported functionalities
 
 There are a few functionalities that are missing from C API mode. They are:
 
 1. Async mode ([`--async`](cli.md#--async))
 2. For additional known non-working cases, please refer to
    [qa/L0_perf_analyzer_capi/test.sh](https://github.com/triton-inference-server/server/blob/main/qa/L0_perf_analyzer_capi/test.sh#L239-L277)
+
+
+# Benchmarking gRPC service via Dynamic gRPC
+
+> **Note**
+>
+> Dynamic gRPC service kind does not support asynchronous gRPC APIs at the moment.
+
+### Setting up mock gRPC service
+
+Before getting into the details of how to run Perf Analyzer via Dynamic gRPC service kind,
+let's setup a mock gRPC service that we can use to test the Dynamic gRPC service kind.
+Follow the steps below from a separate terminal session:
+```bash
+# Define simple gRPC service
+cat <<EOF > simple.proto
+syntax = "proto3";
+
+package v1;
+
+service Simple {
+  // Simple bidirectional streaming RPC that echoes request message
+  rpc Echo(stream Request) returns (stream Response) {}
+}
+
+message Request {
+  string message = 1;
+}
+
+message Response {
+  string message = 1;
+}
+EOF
+
+# compile protobuf and generate gRPC stubs
+pip install grpcio-tools
+python -m grpc_tools.protoc --proto_path=. \
+	--python_out=. --grpc_python_out=. \
+	simple.proto
+
+# run gRPC server
+cat <<EOF > simple_server.py
+from concurrent import futures
+import grpc
+import simple_pb2
+import simple_pb2_grpc
+
+class SimpleServicer(simple_pb2_grpc.SimpleServicer):
+
+    def Echo(self, request_iterator, context):
+        for request in request_iterator:
+            print(f"Received: {request.message}")
+            yield simple_pb2.Response(message=request.message)
+
+if __name__ == "__main__":
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    simple_pb2_grpc.add_SimpleServicer_to_server(SimpleServicer(), server)
+    server.add_insecure_port(f"[::]:8001")
+    server.start()
+
+    print(f"Started gRPC service at 127.0.0.1:8001")
+    server.wait_for_termination()
+EOF
+
+python simple_server.py
+# Output: Started gRPC service at 127.0.0.1:8001
+```
+
+Now coming back to running Perf Analyzer via Dynamic gRPC service kind,
+the user needs to provide two things to Perf Analyzer:
+1. A script that generates a serialized Protobuf messages following the
+   [Message Framing Protocol](#message-framing-protocol).
+2. An input JSON file that specifies how to execute the script.
+
+### Message Framing Protocol
+
+When writing the script that generates serialized Protobuf messages,
+the script **MUST** write the bytes to the file stream in the following protocol that Perf Analyzer expects:
+1. Message Length: A 4-byte integer (using system byte order) representing the length of the following message
+2. Message Content: The serialized Protobuf message itself
+
+The Python example below (e.g. `example.py`) produces a sequence of Protobuf messages following the message framing protocol:
+```python
+import sys
+import simple_pb2
+
+# Generate and yield your protobuf messages here.
+def generate_msgs():
+    for i in range(10):
+        yield simple_pb2.Request(message=f"Message-{i}")
+
+for msg in generate_msgs():
+    serialized = msg.SerializeToString()
+    # Write the message length as 4-byte integer (using system byte order)
+    sys.stdout.buffer.write(len(serialized).to_bytes(4, byteorder=sys.byteorder))
+    # Write the serialized message itself
+    sys.stdout.buffer.write(serialized)
+    sys.stdout.buffer.flush()
+```
+Ensure you install any necessary dependencies (e.g., the `protobuf` package) to execute the script.
+
+### Input JSON file
+
+Next, create an input JSON file (e.g. `inputs.json`) that instructs Perf Analyzer to run your script.
+```json
+{
+  "data": [
+    {
+      "message_generator": "python3 example.py"
+    }
+  ]
+}
+```
+The `message_generator` field holds the command that will be executed to generate the serialized Protobuf messages
+that will be read by Perf Analyzer (read [Dynamic gRPC Input JSON](./input_data.md#dynamic-grpc) for more details).
+The generated messages will be used to send inference requests to the gRPC service specified in the `--grpc-method` argument.
+
+With both the generator script and the JSON configuration in place,
+run Perf Analyzer using the Dynamic gRPC service kind.
+Replace `<URL>`, `<package>`, `<service>`, and `<method>` with the appropriate values for your gRPC service:
+
+```bash
+perf_analyzer --service-kind=dynamic_grpc -u=localhost:8001 --input-data=inputs.json  --grpc-method=v1.Simple/Echo
+
+#  Successfully read data for 1 stream/streams with 1 step/steps.
+# *** Measurement Settings ***
+#   Service Kind: DYNAMIC_GRPC
+#   Using "time_windows" mode for stabilization
+#   Stabilizing using average latency and throughput
+#   Measurement window: 5000 msec
+#   Using synchronous calls for inference
+#
+# Request concurrency: 1
+#   Client:
+#     Request count: 7390
+#     Throughput: 407.866 infer/sec
+#     Avg latency: 2417 usec (standard deviation 559 usec)
+#     p50 latency: 2251 usec
+#     p90 latency: 3283 usec
+#     p95 latency: 3893 usec
+#     p99 latency: 4172 usec
+#     Avg gRPC time: 2133 usec ((un)marshal request/response 2132 usec + response wait 1 usec)
+# Inferences/Second vs. Client Average Batch Latency
+# Concurrency: 1, throughput: 407.866 infer/sec, latency 2417 usec
+```
+
 
 # Benchmarking TensorFlow Serving
 
