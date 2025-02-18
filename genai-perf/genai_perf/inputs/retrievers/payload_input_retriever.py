@@ -136,7 +136,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                 self.config.prompt_tokens_stddev,
                 hash_ids,
             )
-            prompt = prompt if prompt else prompt_alt
+        prompt = prompt if prompt else prompt_alt
         return str(prompt)
 
     def _get_valid_timestamp(self, data: Dict[str, Any]) -> int:
