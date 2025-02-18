@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,44 +24,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
-import sys
-import traceback
-
-import genai_perf.logging as logging
-from genai_perf import parser
-from genai_perf.config.input.config_command import Subcommand
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.exceptions import GenAIPerfException
 
 
-# Separate function that can raise exceptions used for testing
-# to assert correct errors and messages.
-def run():
-    # TMA-1900: refactor CLI handler
-    logging.init_logging()
-    args, config, extra_args = parser.parse_args()
-    if config.subcommand == Subcommand.COMPARE.value:
-        args.func(config)
-    elif config.subcommand == Subcommand.ANALYZE.value:
-        args.func(config, extra_args)
-    elif config.subcommand == Subcommand.TEMPLATE.value:
-        args.func(config)
-    else:  # profile
-        args.func(config, extra_args)
+def template_handler(config: ConfigCommand) -> None:
+    """
+    Handles `template` subcommand workflow
+    """
+    template = config.make_template()
 
-
-def main():
-    # Interactive use will catch exceptions and log formatted errors rather than
-    # tracebacks.
     try:
-        run()
-    except Exception as e:
-        traceback.print_exc()
-        logger = logging.getLogger(__name__)
-        logger.error(e)
-        return 1
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+        with open(config.template_filename, "x") as file:
+            file.write(template)
+    except FileExistsError:
+        raise GenAIPerfException(
+            f"File '{config.template_filename}' already exists. "
+            "Please specify a different filename."
+        )

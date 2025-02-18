@@ -38,15 +38,51 @@ class ConfigInput(BaseConfig):
 
     def __init__(self) -> None:
         super().__init__()
-        self.batch_size: Any = ConfigField(default=InputDefaults.BATCH_SIZE)
-        self.extra: Any = ConfigField(default=InputDefaults.EXTRA)
-        self.goodput: Any = ConfigField(default=InputDefaults.GOODPUT)
-        self.header: Any = ConfigField(default=InputDefaults.HEADER)
-        self.file: Any = ConfigField(default=InputDefaults.FILE)
-        self.num_dataset_entries: Any = ConfigField(
-            default=InputDefaults.NUM_DATASET_ENTRIES
+        self.batch_size: Any = ConfigField(
+            default=InputDefaults.BATCH_SIZE,
+            verbose_template_comment="The batch size of text requests GenAI-Perf should send.\
+            \nThis is currently supported with the embeddings and rankings endpoint types",
         )
-        self.random_seed: Any = ConfigField(default=InputDefaults.RANDOM_SEED)
+        self.extra: Any = ConfigField(
+            default=InputDefaults.EXTRA,
+            verbose_template_comment="Provide additional inputs to include with every request.\
+                \nInputs should be in an 'input_name:value' format.",
+        )
+        self.goodput: Any = ConfigField(
+            default=InputDefaults.GOODPUT,
+            verbose_template_comment="An option to provide constraints in order to compute goodput.\
+                \nSpecify goodput constraints as 'key:value' pairs,\
+                \nwhere the key is a valid metric name, and the value is a number representing\
+                \neither milliseconds or a throughput value per second.\
+                \nFor example:\
+                \n  request_latency:300\
+                \n  output_token_throughput_per_request:600",
+        )
+        self.header: Any = ConfigField(
+            default=InputDefaults.HEADER,
+            verbose_template_comment="Adds a custom header to the requests.\
+                \nHeaders must be specified as 'Header:Value' pairs.",
+        )
+        self.file: Any = ConfigField(
+            default=InputDefaults.FILE,
+            verbose_template_comment="The file or directory containing the content to use for profiling.\
+                \nExample:\
+                \n  text: \"Your prompt here\"\
+                \n\nTo use synthetic files for a converter that needs multiple files,\
+                \nprefix the path with 'synthetic:' followed by a comma-separated list of file names.\
+                \nThe synthetic filenames should not have extensions.\
+                \nExample:\
+                \n  synthetic: queries,passages",
+        )
+        self.num_dataset_entries: Any = ConfigField(
+            default=InputDefaults.NUM_DATASET_ENTRIES,
+            verbose_template_comment="The number of unique payloads to sample from.\
+                \nThese will be reused until benchmarking is complete.",
+        )
+        self.random_seed: Any = ConfigField(
+            default=InputDefaults.RANDOM_SEED,
+            verbose_template_comment="The seed used to generate random values.",
+        )
 
         self.image = ConfigImage()
         self.output_tokens = ConfigOutputTokens()
@@ -64,7 +100,8 @@ class ConfigInput(BaseConfig):
             elif key == "extra":
                 self.extra = value
             elif key == "goodput":
-                self._parse_goodput(value)
+                if value:
+                    self._parse_goodput(value)
             elif key == "header":
                 self.header = value
             elif key == "file":
@@ -142,22 +179,35 @@ class ConfigImage(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.batch_size: Any = ConfigField(
-            default=ImageDefaults.BATCH_SIZE, bounds={"min": 0}
+            default=ImageDefaults.BATCH_SIZE,
+            bounds={"min": 0},
+            verbose_template_comment="The image batch size of the requests GenAI-Perf should send.\
+                \nThis is currently supported with the image retrieval endpoint type.",
         )
         self.width_mean: Any = ConfigField(
-            default=ImageDefaults.WIDTH_MEAN, bounds={"min": 0}
+            default=ImageDefaults.WIDTH_MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean width of the images when generating synthetic image data.",
         )
         self.width_stddev: Any = ConfigField(
-            default=ImageDefaults.WIDTH_STDDEV, bounds={"min": 0}
+            default=ImageDefaults.WIDTH_STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of width of images when generating synthetic image data.",
         )
         self.height_mean: Any = ConfigField(
-            default=ImageDefaults.HEIGHT_MEAN, bounds={"min": 0}
+            default=ImageDefaults.HEIGHT_MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean height of images when generating synthetic image data.",
         )
         self.height_stddev: Any = ConfigField(
-            default=ImageDefaults.HEIGHT_STDDEV, bounds={"min": 0}
+            default=ImageDefaults.HEIGHT_STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of height of images when generating synthetic image data.",
         )
         self.format: Any = ConfigField(
-            default=ImageDefaults.FORMAT, choices=ImageFormat
+            default=ImageDefaults.FORMAT,
+            choices=ImageFormat,
+            verbose_template_comment="The compression format of the images.",
         )
 
     def parse(self, image: Dict[str, Any]) -> None:
@@ -173,7 +223,8 @@ class ConfigImage(BaseConfig):
             elif key == "height_stddev":
                 self.height_stddev = value
             elif key == "format":
-                self.format = ImageFormat(value.upper())
+                if value:
+                    self.format = ImageFormat(value.upper())
             else:
                 raise ValueError(f"User Config: {key} is not a valid image parameter")
 
@@ -186,11 +237,20 @@ class ConfigOutputTokens(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.mean: Any = ConfigField(
-            default=OutputTokenDefaults.MEAN, bounds={"min": 0}
+            default=OutputTokenDefaults.MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean number of tokens in each output.",
         )
-        self.deterministic: Any = ConfigField(default=OutputTokenDefaults.DETERMINISTIC)
+        self.deterministic: Any = ConfigField(
+            default=OutputTokenDefaults.DETERMINISTIC,
+            verbose_template_comment="This can be set to improve the precision of the mean by setting the\
+            \nminimum number of tokens equal to the requested number of tokens.\
+            \nThis is currently supported with the Triton service-kind.",
+        )
         self.stddev: Any = ConfigField(
-            default=OutputTokenDefaults.STDDEV, bounds={"min": 0}
+            default=OutputTokenDefaults.STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of the number of tokens in each output.",
         )
 
     def parse(self, output_tokens: Dict[str, Any]) -> None:
@@ -228,10 +288,14 @@ class ConfigSyntheticTokens(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.mean: Any = ConfigField(
-            default=SyntheticTokenDefaults.MEAN, bounds={"min": 0}
+            default=SyntheticTokenDefaults.MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean of number of tokens in the generated prompts when using synthetic data.",
         )
         self.stddev: Any = ConfigField(
-            default=SyntheticTokenDefaults.STDDEV, bounds={"min": 0}
+            default=SyntheticTokenDefaults.STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of number of tokens in the generated prompts when using synthetic data.",
         )
 
     def parse(self, synthetic_tokens: Dict[str, Any]) -> None:
@@ -254,9 +318,20 @@ class ConfigSyntheticTokens(BaseConfig):
 class ConfigPrefixPrompt(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
-        self.num: Any = ConfigField(default=PrefixPromptDefaults.NUM, bounds={"min": 0})
+        self.num: Any = ConfigField(
+            default=PrefixPromptDefaults.NUM,
+            bounds={"min": 0},
+            verbose_template_comment="The number of prefix prompts to select from.\
+            \nIf this value is not zero, these are prompts that are prepended to input prompts.\
+            \nThis is useful for benchmarking models that use a K-V cache.",
+        )
         self.length: Any = ConfigField(
-            default=PrefixPromptDefaults.LENGTH, bounds={"min": 0}
+            default=PrefixPromptDefaults.LENGTH,
+            bounds={"min": 0},
+            verbose_template_comment='The number of tokens in each prefix prompt.\
+            \nThis is only used if "num" is greater than zero.\
+            \nNote that due to the prefix and user prompts being concatenated,\
+            \nthe number of tokens in the final prompt may be off by one.',
         )
 
     def parse(self, prefix_prompt: Dict[str, Any]) -> None:
@@ -275,7 +350,9 @@ class ConfigRequestCount(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.warmup: Any = ConfigField(
-            default=RequestCountDefaults.WARMUP, bounds={"min": 0}
+            default=RequestCountDefaults.WARMUP,
+            bounds={"min": 0},
+            verbose_template_comment="The number of warmup requests to send before benchmarking.",
         )
 
     def parse(self, request_count: Dict[str, Any]) -> None:
