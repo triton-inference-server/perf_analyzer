@@ -945,6 +945,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
   // Parse commandline...
   bool using_deprecated_concurrency{false};
   int opt;
+  opterr = 0;
   while ((opt = getopt_long(
               argc, argv, "vdazc:u:m:x:b:t:p:i:H:l:r:s:f:", long_options,
               NULL)) != -1) {
@@ -1836,7 +1837,17 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->filename = optarg;
           break;
         case '?':
-          Usage();
+          if (optopt) {
+            Usage(
+                "Error: Invalid short option: '-" +
+                std::string(1, static_cast<char>(optopt)) + "'");
+          } else if (optind > 1 && argv[optind - 1][0] == '-') {
+            Usage(
+                "Error: Invalid long option: '" +
+                std::string{argv[optind - 1]} + "'");
+          } else {
+            Usage("Error: Unknown command-line argument.");
+          }
           break;
       }
     }
