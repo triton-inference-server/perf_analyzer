@@ -24,29 +24,63 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import PromptSource
-from genai_perf.inputs.inputs_config import InputsConfig
+
+from pathlib import Path
+from typing import List, Tuple, Union
+
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
-from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
-from genai_perf.inputs.retrievers.payload_input_retriever import PayloadInputRetriever
-from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
+from genai_perf.inputs.retrievers.generic_dataset import (
+    FileData,
+    GenericDataset,
+    ImageData,
+    OptionalData,
+    TextData,
+    Timestamp,
+)
 
 
-class InputRetrieverFactory:
+class BaseFileInputRetriever(BaseInputRetriever):
     """
-    Factory class to create the input retriever to get the input data
-    based on the input source.
+    A base input retriever class that defines file input methods.
     """
 
-    @staticmethod
-    def create(config: InputsConfig) -> BaseInputRetriever:
-        retrievers = {
-            PromptSource.SYNTHETIC: SyntheticDataRetriever,
-            PromptSource.FILE: FileInputRetriever,
-            PromptSource.PAYLOAD: PayloadInputRetriever,
-        }
-        input_type = config.input_type
-        if input_type not in retrievers:
-            raise GenAIPerfException(f"Input source '{input_type}' is not recognized.")
-        return retrievers[input_type](config)
+    def _verify_file(self, filename: Path) -> None:
+        """
+        Verifies that the file exists.
+
+        Args
+        ----------
+        filename : Path
+            The file path to verify.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the file does not exist.
+        """
+        if not filename.exists():
+            raise FileNotFoundError(f"The file '{filename}' does not exist.")
+
+    def _get_content_from_input_file(self, filename: Path) -> Union[
+        Tuple[TextData, ImageData],
+        Tuple[TextData, List[Timestamp], List[OptionalData]],
+    ]:
+        """
+        Reads the content from a JSONL file and returns lists of each content type.
+
+        """
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+    def _get_input_dataset_from_file(self, filename: Path) -> FileData:
+        """
+        Retrieves the dataset from a specific JSONL file.
+
+        """
+
+        raise NotImplementedError("This method should be implemented by subclasses.")
+
+    def retrieve_data(self) -> GenericDataset:
+        """
+        Retrieves the dataset from a file or directory.
+        """
+        raise NotImplementedError("This method should be implemented by subclasses.")

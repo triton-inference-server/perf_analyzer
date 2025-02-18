@@ -177,6 +177,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
         input_filename=args.input_file,
+        payload_input_filename=args.payload_input_file,
         synthetic_input_filenames=args.synthetic_input_files,
         starting_index=DEFAULT_STARTING_INDEX,
         length=args.num_dataset_entries,

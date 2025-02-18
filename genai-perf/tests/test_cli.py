@@ -462,6 +462,22 @@ class TestCLIArguments:
         args, _ = parser.parse_args()
         assert args.concurrency == 1
 
+    def test_load_manager_args_with_payload(self, monkeypatch, mocker):
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "genai-perf",
+                "profile",
+                "--model",
+                "test_model",
+                "--input-file",
+                "payload:test",
+            ],
+        )
+        mocker.patch.object(Path, "is_file", return_value=True)
+        args, _ = parser.parse_args()
+        assert args.concurrency is None
+
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
         monkeypatch.setattr(
             "sys.argv",
@@ -892,25 +908,69 @@ class TestCLIArguments:
         assert str(exc_info.value) == expected_error
 
     @pytest.mark.parametrize(
-        "args, expected_prompt_source",
+        "args, expected_prompt_source, expected_input_file",
         [
-            ([], PromptSource.SYNTHETIC),
-            (["--input-file", "prompt.txt"], PromptSource.FILE),
+            ([], PromptSource.SYNTHETIC, None),
+            (["--input-file", "prompt.txt"], PromptSource.FILE, None),
             (
                 ["--input-file", "prompt.txt", "--synthetic-input-tokens-mean", "10"],
                 PromptSource.FILE,
+                None,
+            ),
+            (
+                ["--input-file", "payload:test.jsonl"],
+                PromptSource.PAYLOAD,
+                Path("test.jsonl"),
+            ),
+            (
+                ["--input-file", "synthetic:test.jsonl"],
+                PromptSource.SYNTHETIC,
+                None,
             ),
         ],
     )
-    def test_inferred_prompt_source(
-        self, monkeypatch, mocker, args, expected_prompt_source
+    def test_inferred_prompt_source_valid(
+        self,
+        monkeypatch,
+        mocker,
+        args,
+        expected_prompt_source,
+        expected_input_file,
     ):
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        parsed_args, _ = parser.parse_args()
+        assert parsed_args.prompt_source == expected_prompt_source
+        assert parsed_args.payload_input_file == expected_input_file
 
-        assert args.prompt_source == expected_prompt_source
+    @pytest.mark.parametrize(
+        "args",
+        [
+            (["--input-file", "payload:"]),
+            (["--input-file", "payload:input"]),
+        ],
+    )
+    def test_inferred_prompt_source_invalid_payload_input(
+        self,
+        monkeypatch,
+        mocker,
+        args,
+    ):
+        mocker.patch.object(Path, "is_file", return_value=False)
+        combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(ValueError):
+            parser.parse_args()
+
+    def test_inferred_prompt_source_invalid_input(self, monkeypatch, mocker):
+        file_arg = ["--input-file", "invalid_input"]
+        mocker.patch.object(Path, "is_file", return_value=False)
+        mocker.patch.object(Path, "is_dir", return_value=False)
+        combined_args = ["genai-perf", "profile", "--model", "test_model"] + file_arg
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(SystemExit):
+            parser.parse_args()
 
     @pytest.mark.parametrize(
         "args",
@@ -931,6 +991,62 @@ class TestCLIArguments:
 
         with pytest.raises(SystemExit) as excinfo:
             parser.parse_args()
+
+    @pytest.mark.parametrize(
+        "args , expected_error_message",
+        [
+            (
+                ["--concurrency", "10"],
+                "--concurrency cannot be used with payload input.",
+            ),
+            (
+                ["--request-rate", "5"],
+                "--request-rate cannot be used with payload input.",
+            ),
+            (
+                ["--request-count", "3"],
+                "--request-count cannot be used with payload input.",
+            ),
+            (
+                ["--warmup-request-count", "7"],
+                "--warmup-request-count cannot be used with payload input.",
+            ),
+        ],
+    )
+    def test_check_payload_input_args_invalid_args(
+        self, monkeypatch, mocker, capsys, args, expected_error_message
+    ):
+        combined_args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:test.jsonl",
+        ] + args
+
+        mocker.patch.object(Path, "is_file", return_value=True)
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(SystemExit):
+            parser.parse_args()
+        captured = capsys.readouterr()
+        assert expected_error_message in captured.err
+
+    def test_check_payload_input_args_valid(self, monkeypatch, mocker):
+        valid_args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:test.jsonl",
+        ]
+        mocker.patch.object(Path, "is_file", return_value=True)
+        monkeypatch.setattr("sys.argv", valid_args)
+        try:
+            parser.parse_args()
+        except SystemExit:
+            pytest.fail("Unexpected error in test")
 
     # ================================================
     # COMPARE SUBCOMMAND

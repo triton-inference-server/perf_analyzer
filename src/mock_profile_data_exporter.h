@@ -1,4 +1,4 @@
-// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -38,7 +38,8 @@ class NaggyMockProfileDataExporter : public ProfileDataExporter {
         *this, ConvertToJson(testing::_, testing::_, testing::_, testing::_))
         .WillByDefault(
             [this](
-                const std::vector<Experiment>& raw_experiments,
+                const std::vector<ProfileDataCollector::Experiment>&
+                    raw_experiments,
                 std::string& raw_version, cb::BackendKind& service_kind,
                 std::string& endpoint) -> void {
               return this->ProfileDataExporter::ConvertToJson(
@@ -54,7 +55,8 @@ class NaggyMockProfileDataExporter : public ProfileDataExporter {
         .WillByDefault(
             [this](
                 rapidjson::Value& entry, rapidjson::Value& experiment,
-                const Experiment& raw_experiment) -> void {
+                const ProfileDataCollector::Experiment& raw_experiment)
+                -> void {
               this->ProfileDataExporter::AddExperiment(
                   entry, experiment, raw_experiment);
             });
@@ -84,12 +86,14 @@ class NaggyMockProfileDataExporter : public ProfileDataExporter {
 
   MOCK_METHOD(
       void, ConvertToJson,
-      (const std::vector<Experiment>&, std::string&, cb::BackendKind&,
-       std::string&),
+      (const std::vector<ProfileDataCollector::Experiment>&, std::string&,
+       cb::BackendKind&, std::string&),
       (override));
   MOCK_METHOD(
       void, AddExperiment,
-      (rapidjson::Value&, rapidjson::Value&, const Experiment&), (override));
+      (rapidjson::Value&, rapidjson::Value&,
+       const ProfileDataCollector::Experiment&),
+      (override));
   MOCK_METHOD(
       void, AddDataToJSON,
       (rapidjson::Value&, const std::vector<uint8_t>&, const std::string&));

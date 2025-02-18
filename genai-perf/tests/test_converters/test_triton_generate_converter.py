@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -168,6 +168,41 @@ class TestTritonGenerateConverter:
                             "max_tokens": 95,
                         }
                     ]
+                }
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self):
+        optional_data = {"session_id": "abcd"}
+        generic_dataset = self.create_generic_dataset(
+            [
+                DataRow(
+                    texts=["extra_input_prompt"],
+                    timestamp=0,
+                    optional_data=optional_data,
+                )
+            ]
+        )
+
+        config = InputsConfig(
+            tokenizer=get_empty_tokenizer(),
+        )
+
+        converter = TritonGenerateConverter()
+        result = converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "text_input": ["extra_input_prompt"],
+                            "session_id": "abcd",
+                        }
+                    ],
+                    "timestamp": [0],
                 }
             ]
         }

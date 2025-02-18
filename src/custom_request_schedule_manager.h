@@ -1,4 +1,4 @@
-// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -88,10 +88,17 @@ class CustomRequestScheduleManager : public RequestRateManager {
   /// \param schedule The vector containing the schedule for requests
   /// \return A vector of RateSchedulePtr_t representing the worker schedules
   std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
-      const std::vector<float>& schedule);
+      const std::vector<std::chrono::milliseconds>& schedule);
 
   /// The vector containing the schedule for requests
-  std::vector<float> schedule_;
+  std::vector<std::chrono::milliseconds> schedule_{};
+
+ private:
+  void InitManagerFinalize() override;
+
+  std::vector<std::chrono::milliseconds> GetScheduleFromDataset() const;
+
+  std::chrono::milliseconds GetTimestamp(size_t dataset_index) const;
 };
 
 }  // namespace triton::perfanalyzer

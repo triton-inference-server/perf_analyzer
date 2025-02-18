@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -50,6 +50,33 @@ class TestOpenAICompletionsConverter:
                     rows=[
                         DataRow(texts=["text input one"]),
                         DataRow(texts=["text input two"]),
+                    ],
+                )
+            }
+        )
+
+    @staticmethod
+    def create_generic_dataset_with_payload_parameters() -> GenericDataset:
+        optional_data_1 = {"session_id": "abcd"}
+        optional_data_2 = {
+            "session_id": "dfwe",
+            "input_length": "6755",
+            "output_length": "500",
+        }
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    rows=[
+                        DataRow(
+                            texts=["text input one"],
+                            timestamp=0,
+                            optional_data=optional_data_1,
+                        ),
+                        DataRow(
+                            texts=["text input two"],
+                            timestamp=2345,
+                            optional_data=optional_data_2,
+                        ),
                     ],
                 )
             }
@@ -253,6 +280,49 @@ class TestOpenAICompletionsConverter:
                             "model": "model_b",
                         }
                     ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
+    def test_convert_with_payload_parameters(self):
+        generic_dataset = self.create_generic_dataset_with_payload_parameters()
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.OPENAI_COMPLETIONS,
+            tokenizer=get_empty_tokenizer(),
+        )
+
+        completions_converter = OpenAICompletionsConverter()
+        result = completions_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input one"],
+                            "model": "test_model",
+                            "session_id": "abcd",
+                        }
+                    ],
+                    "timestamp": [0],
+                },
+                {
+                    "payload": [
+                        {
+                            "prompt": ["text input two"],
+                            "model": "test_model",
+                            "session_id": "dfwe",
+                            "input_length": "6755",
+                            "output_length": "500",
+                        }
+                    ],
+                    "timestamp": [2345],
                 },
             ]
         }
