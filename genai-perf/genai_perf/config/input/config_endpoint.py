@@ -32,24 +32,46 @@ class ConfigEndPoint(BaseConfig):
         self.model_selection_strategy: Any = ConfigField(
             default=EndPointDefaults.MODEL_SELECTION_STRATEGY,
             choices=ModelSelectionStrategy,
+            verbose_template_comment="When multiple model are specified, this is how a specific model should be assigned to a prompt.\
+            \nround_robin: nth prompt in the list gets assigned to n-mod len(models).\
+            \nrandom: assignment is uniformly random",
         )
         self.backend: Any = ConfigField(
-            default=EndPointDefaults.BACKEND, choices=OutputFormat
+            default=EndPointDefaults.BACKEND,
+            choices=OutputFormat,
+            verbose_template_comment="When using the \"triton\" service-kind, this is the backend of the model.\
+                \nFor the TENSORRT-LLM backend,you currently must set 'exclude_input_in_output' to true\
+                \nin the model config to not echo the input tokens",
         )
-        self.custom: Any = ConfigField(default=EndPointDefaults.CUSTOM)
+
+        self.custom: Any = ConfigField(
+            default=EndPointDefaults.CUSTOM,
+            verbose_template_comment="Set a custom endpoint that differs from the OpenAI defaults.",
+        )
         self.type: Any = ConfigField(
             default=EndPointDefaults.TYPE,
             choices=list(endpoint_type_map.keys()),
+            verbose_template_comment="The type to send requests to on the server.",
         )
         self.service_kind: Any = ConfigField(
             default=EndPointDefaults.SERVICE_KIND,
             choices=["triton", "openai", "tensorrtllm_engine"],
+            verbose_template_comment='The kind of service Perf Analyzer will generate load for.\
+                \nIn order to use "openai", you must specify an api via the "type" field',
         )
-        self.streaming: Any = ConfigField(default=EndPointDefaults.STREAMING)
+        self.streaming: Any = ConfigField(
+            default=EndPointDefaults.STREAMING,
+            verbose_template_comment="An option to enable the use of the streaming API.",
+        )
         self.server_metrics_urls: Any = ConfigField(
-            default=EndPointDefaults.SERVER_METRICS_URL
+            default=EndPointDefaults.SERVER_METRICS_URL,
+            verbose_template_comment='The list of Triton server metrics URLs.\
+                \nThese are used for Telemetry metric reporting with the "triton" service-kind.',
         )
-        self.url: Any = ConfigField(default=EndPointDefaults.URL)
+        self.url: Any = ConfigField(
+            default=EndPointDefaults.URL,
+            verbose_template_comment="URL of the endpoint to target for benchmarking.",
+        )
 
     def parse(self, endpoint: Dict[str, Any]) -> None:
         for key, value in endpoint.items():
