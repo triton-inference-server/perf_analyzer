@@ -448,6 +448,12 @@ An option to enable the use of the streaming API. (default: `False`)
 
 URL of the endpoint to target for benchmarking. (default: `None`)
 
+##### `--grpc-method <str>`
+
+A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
+The option is only supported by dynamic gRPC service kind and is required to
+identify the RPC to use when sending requests to the server. (default: `None`)
+
 ### Input Options
 
 ##### `-b <int>`
@@ -554,12 +560,6 @@ being concatenated, the number of tokens in the final prompt may be off by one.
 ##### `--num-warmup-requests <int>`
 
 The number of warmup requests to send before benchmarking. (default: `0`)
-
-##### `--grpc-method <str>`
-
-A fully-qualified gRPC method name in `<package>.<service>/<method>` format
-that is used to create a channel to the gRPC server.
-This is only used with the `dynamic_grpc` service-kind. (default: `None`)
 
 ### Profiling Options
 
