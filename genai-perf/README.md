@@ -555,6 +555,12 @@ being concatenated, the number of tokens in the final prompt may be off by one.
 
 The number of warmup requests to send before benchmarking. (default: `0`)
 
+##### `--grpc-method <str>`
+
+A fully-qualified gRPC method name in `<package>.<service>/<method>` format
+that is used to create a channel to the gRPC server.
+This is only used with the `dynamic_grpc` service-kind. (default: `None`)
+
 ### Profiling Options
 
 ##### `--concurrency <int>`

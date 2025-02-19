@@ -191,8 +191,12 @@ def _check_conditional_args(
             parser.error(
                 "The --endpoint-type option is required when using the 'openai' service-kind."
             )
-    elif args.service_kind in "dynamic_grpc":
+    elif args.service_kind == "dynamic_grpc":
         args.endpoint_type = "dynamic_grpc"
+        if args.grpc_method is None:
+            parser.error(
+                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind."
+            )
     elif args.service_kind == "triton" and args.endpoint_type is None:
         args.endpoint_type = "kserve"
     elif args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
@@ -910,12 +914,12 @@ def _add_input_args(parser):
     )
 
     input_group.add_argument(
-        "--rpc",
+        "--grpc-method",
         type=str,
         required=False,
         help="A fully-qualified gRPC method name in "
         "'<package>.<service>/<method>' format. The option is only "
-        "supported by dynamic gRPC service kind and is used to identify "
+        "supported by dynamic gRPC service kind and is required to identify "
         "the RPC to use when sending requests to the server.",
     )
 

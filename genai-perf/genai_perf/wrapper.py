@@ -39,8 +39,9 @@ logger = logging.getLogger(__name__)
 class Profiler:
     @staticmethod
     def add_protocol_args(args: Namespace) -> List[str]:
-        cmd = []
-        if args.service_kind in ["dynamic_grpc", "triton"]:
+        cmd = ["--async", "-m", f"{args.formatted_model_name}"]  # default
+
+        if args.service_kind == "triton":
             cmd += ["-i", "grpc", "--streaming"]
             if args.u is None:  # url
                 cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
@@ -48,6 +49,10 @@ class Profiler:
                 cmd += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif args.service_kind == "openai":
             cmd += ["-i", "http"]
+        elif args.service_kind == "dynamic_grpc":
+            cmd.clear()  # dynamic grpc doesn't support default args
+            if args.u is None:  # url
+                cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
         return cmd
 
     @staticmethod
@@ -132,10 +137,6 @@ class Profiler:
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
-
-        if args.service_kind != "dynamic_grpc":
-            extra_base_args = ["--async", "-m", f"{args.formatted_model_name}"]
-            cmd.extend(extra_base_args)
 
         cmd += Profiler.add_inference_load_args(args)
         cmd += Profiler.add_payload_args(args)

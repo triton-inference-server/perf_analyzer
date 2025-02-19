@@ -52,7 +52,7 @@ class DynamicGRPCConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                payload = {"ipc_stream": row.texts[0]}
+                payload = {"message_generator": row.texts[0]}
                 self._add_request_params(payload, config)
                 request_body["data"].append(payload)
 

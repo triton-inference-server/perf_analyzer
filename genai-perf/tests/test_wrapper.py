@@ -98,13 +98,15 @@ class TestWrapper:
             "test_model",
             "--service-kind",
             "dynamic_grpc",
+            "--grpc-method",
+            "package.name.v1.ServiceName/MethodName",
         ]
         monkeypatch.setattr("sys.argv", args)
         args, extra_args = parser.parse_args()
         cmd = Profiler.build_cmd(args, extra_args)
         cmd_string = " ".join(cmd)
 
-        assert cmd_string.count(" -i grpc") == 1
+        assert "--grpc-method" in cmd_string
         assert "--async" not in cmd_string
         assert "-m test_model" not in cmd_string
 

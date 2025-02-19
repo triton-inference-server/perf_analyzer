@@ -73,7 +73,7 @@ class JsonExporter:
             "output_format",
             "input_file",
             "payload_input_file",
-            "rpc",
+            "grpc_method",
         ]
         self._exclude_args(args_to_exclude)
         self._args["profile_export_file"] = str(self._args["profile_export_file"])

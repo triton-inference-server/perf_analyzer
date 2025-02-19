@@ -72,8 +72,8 @@ def test_convert(converter, sample_dataset, valid_config):
 
     expected_result = {
         "data": [
-            {"ipc_stream": "first input"},
-            {"ipc_stream": "second input"},
+            {"message_generator": "first input"},
+            {"message_generator": "second input"},
         ]
     }
 
@@ -94,8 +94,8 @@ def test_convert_with_extra_inputs(converter, sample_dataset, valid_config, mock
 
     expected_result = {
         "data": [
-            {"ipc_stream": "first input", "extra_key": "extra_value"},
-            {"ipc_stream": "second input", "extra_key": "extra_value"},
+            {"message_generator": "first input", "extra_key": "extra_value"},
+            {"message_generator": "second input", "extra_key": "extra_value"},
         ]
     }
     assert result == expected_result
@@ -109,7 +109,7 @@ def test_convert_varied_inputs(converter, valid_config, input_texts):
 
     result = converter.convert(dataset, valid_config)
 
-    expected_result = {"data": [{"ipc_stream": text} for text in input_texts]}
+    expected_result = {"data": [{"message_generator": text} for text in input_texts]}
 
     assert result == expected_result
 
@@ -126,10 +126,10 @@ def test_convert_large_dataset(converter, valid_config):
 
     assert len(result["data"]) == 1000, "Large dataset should generate 1000 entries."
     assert result["data"][0] == {
-        "ipc_stream": "text 0"
+        "message_generator": "text 0"
     }, "First entry does not match expected."
     assert result["data"][-1] == {
-        "ipc_stream": "text 999"
+        "message_generator": "text 999"
     }, "Last entry does not match expected."
 
 

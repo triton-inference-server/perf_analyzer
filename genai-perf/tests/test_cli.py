@@ -228,8 +228,8 @@ class TestCLIArguments:
             (["--random-seed", "8"], {"random_seed": 8}),
             (["--request-count", "100"], {"request_count": 100}),
             (
-                ["--rpc", "nvidia.maxine.audio2face2d.v1.Audio2Face2DService/Animate"],
-                {"rpc": "nvidia.maxine.audio2face2d.v1.Audio2Face2DService/Animate"},
+                ["--grpc-method", "package.name.v1.ServiceName/MethodName"],
+                {"grpc_method": "package.name.v1.ServiceName/MethodName"},
             ),
             (["--num-requests", "100"], {"request_count": 100}),
             (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
@@ -237,8 +237,17 @@ class TestCLIArguments:
             (["--request-rate", "9.0"], {"request_rate": 9.0}),
             (["-s", "99.5"], {"stability_percentage": 99.5}),
             (
-                ["--service-kind", "dynamic_grpc"],
-                {"service_kind": "dynamic_grpc", "endpoint_type": "dynamic_grpc"},
+                [
+                    "--service-kind",
+                    "dynamic_grpc",
+                    "--grpc-method",
+                    "package.name.v1.ServiceName/MethodName",
+                ],
+                {
+                    "service_kind": "dynamic_grpc",
+                    "endpoint_type": "dynamic_grpc",
+                    "grpc_method": "package.name.v1.ServiceName/MethodName",
+                },
             ),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
             (
@@ -567,6 +576,17 @@ class TestCLIArguments:
                     "custom/address",
                 ],
                 "The --endpoint-type option is required when using the 'openai' service-kind.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "dynamic_grpc",
+                ],
+                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind.",
             ),
             (
                 [
