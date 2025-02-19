@@ -131,7 +131,6 @@ class Profiler:
 
         utils.remove_file(args.profile_export_file)
 
-        # TODO: Temp, remove below change
         cmd = [
             f"build/install/bin/perf_analyzer",
             f"--input-data",
