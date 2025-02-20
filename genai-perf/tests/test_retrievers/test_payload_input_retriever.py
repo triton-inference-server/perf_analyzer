@@ -61,35 +61,35 @@ class TestPayloadInputRetriever:
         return PayloadInputRetriever(mock_config)
 
     @pytest.mark.parametrize(
-        "input_data, expected_prompts, expected_timestamps, expected_optional_data",
+        "input_data, expected_prompts, expected_payload_metadata, expected_optional_data",
         [
             (
                 '{"text": "What is AI?", "timestamp": 123, "session_id": "abc"}\n'
                 '{"text": "How does ML work?", "timestamp": 0, "custom_field": "value"}\n',
                 ["What is AI?", "How does ML work?"],
-                [123, 0],
+                [{"timestamp": 123}, {"timestamp": 0}],
                 [{"session_id": "abc"}, {"custom_field": "value"}],
             ),
             (
                 '{"text_input": "Legacy prompt", "timestamp": 456}\n'
                 '{"text": "New prompt", "timestamp": 432, "session_id": "def"}\n',
                 ["Legacy prompt", "New prompt"],
-                [456, 432],
+                [{"timestamp": 456}, {"timestamp": 432}],
                 [{}, {"session_id": "def"}],
             ),
             (
                 '{"text": "What is AI?", "timestamp": 123, "session_id": "abc"}',
                 ["What is AI?"],
-                [123],
+                [{"timestamp": 123}],
                 [{"session_id": "abc"}],
             ),
             (
                 '{"text_input": "Legacy prompt", "timestamp": 456}',
                 ["Legacy prompt"],
-                [456],
+                [{"timestamp": 456}],
                 [{}],
             ),
-            ('{"timestamp": 789}\n', ["Synthetic prompt"], [789], [{}]),
+            ('{"timestamp": 789}\n', ["Synthetic prompt"], [{"timestamp": 789}], [{}]),
         ],
     )
     @patch("builtins.open")
@@ -101,18 +101,18 @@ class TestPayloadInputRetriever:
         retriever,
         input_data,
         expected_prompts,
-        expected_timestamps,
+        expected_payload_metadata,
         expected_optional_data,
     ):
         mock_file.return_value = io.StringIO(input_data)
         mock_synthetic_prompt.return_value = "Synthetic prompt"
 
-        prompts, timestamps, optional_data = retriever._get_content_from_input_file(
-            Path("test_input.jsonl")
+        prompts, optional_data, payload_metadata = (
+            retriever._get_content_from_input_file(Path("test_input.jsonl"))
         )
 
         assert prompts == expected_prompts
-        assert timestamps == expected_timestamps
+        assert payload_metadata == expected_payload_metadata
         assert optional_data == expected_optional_data
 
         if "text" not in input_data and "text_input" not in input_data:
@@ -120,19 +120,23 @@ class TestPayloadInputRetriever:
 
     def test_convert_content_to_data_file(self, retriever):
         prompts = ["Prompt 1", "Prompt 2"]
-        timestamps = [0, 1]
         optional_data = [{"session_id": "123"}, {"custom_field": "value"}]
+        payload_metadata = [{"timestamp": 1}, {"timestamp": 2}]
 
         file_data = retriever._convert_content_to_data_file(
-            prompts, timestamps, optional_data
+            prompts, optional_data, payload_metadata
         )
 
         assert len(file_data.rows) == 2
         assert file_data.rows[0].texts == ["Prompt 1"]
-        assert file_data.rows[0].timestamp == 0
+        assert file_data.rows[0].payload_metadata
+        assert file_data.rows[0].payload_metadata.get("timestamp")
+        assert file_data.rows[0].payload_metadata.get("timestamp") == 1
         assert file_data.rows[0].optional_data == {"session_id": "123"}
         assert file_data.rows[1].texts == ["Prompt 2"]
-        assert file_data.rows[1].timestamp == 1
+        assert file_data.rows[1].payload_metadata
+        assert file_data.rows[1].payload_metadata.get("timestamp")
+        assert file_data.rows[1].payload_metadata.get("timestamp") == 2
         assert file_data.rows[1].optional_data == {"custom_field": "value"}
 
     @patch.object(PayloadInputRetriever, "_get_input_dataset_from_file")
@@ -141,8 +145,8 @@ class TestPayloadInputRetriever:
             [
                 DataRow(
                     texts=["Test prompt"],
-                    timestamp=[0],
                     optional_data={"key": "value"},
+                    payload_metadata={"timestamp": 0},
                 )
             ]
         )
@@ -167,37 +171,3 @@ class TestPayloadInputRetriever:
             match="Each data entry must have only one of 'text_input' or 'text' key name.",
         ):
             retriever._get_content_from_input_file(Path("test_input.jsonl"))
-
-    @pytest.mark.parametrize(
-        "mock_data, expected_error",
-        [
-            (
-                {"text": "What is AI?", "session_id": "abc"},
-                "Each data entry must have a 'timestamp' field.",
-            ),
-            (
-                {"text": "What is AI?", "timestamp": "0s", "session_id": "abc"},
-                "Invalid timestamp: Expecting an integer but received '0s'",
-            ),
-        ],
-    )
-    def test_get_valid_timestamp_invalid(self, retriever, mock_data, expected_error):
-        with pytest.raises(GenAIPerfException, match=expected_error):
-            retriever._get_valid_timestamp(mock_data)
-
-    @pytest.mark.parametrize(
-        "mock_data, expected_timestamp",
-        [
-            (
-                {"text": "What is AI?", "timestamp": 0, "session_id": "abc"},
-                0,
-            ),
-            (
-                {"text": "What is AI?", "timestamp": "456", "session_id": "abc"},
-                456,
-            ),
-        ],
-    )
-    def test_get_valid_timestamp_valid(self, retriever, mock_data, expected_timestamp):
-        timestamp = retriever._get_valid_timestamp(mock_data)
-        assert timestamp == expected_timestamp

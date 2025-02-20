@@ -69,13 +69,13 @@ class TestOpenAICompletionsConverter:
                     rows=[
                         DataRow(
                             texts=["text input one"],
-                            timestamp=0,
                             optional_data=optional_data_1,
+                            payload_metadata={"timestamp": 0},
                         ),
                         DataRow(
                             texts=["text input two"],
-                            timestamp=2345,
                             optional_data=optional_data_2,
+                            payload_metadata={"timestamp": 2345},
                         ),
                     ],
                 )
