@@ -71,6 +71,8 @@ RequestHandler::SendRequestAndWaitForResponse(
 {
   auto payload{payload_dataset_manager_->GetPayload(dataset_index)};
 
+  PayloadJsonUtils::RemoveSessionID(payload);
+
   PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history);
 
   auto response_promise{std::make_shared<std::promise<void>>()};
