@@ -41,3 +41,4 @@ class ExporterConfig:
     extra_inputs: Dict[str, Any]
     artifact_dir: Path
     telemetry_stats: Dict[str, Any] = field(default_factory=dict)
+    session_stats: Dict[str, Any] = field(default_factory=dict)
