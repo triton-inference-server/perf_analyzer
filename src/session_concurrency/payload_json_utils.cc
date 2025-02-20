@@ -57,6 +57,25 @@ PayloadJsonUtils::GetSessionID(const std::string& payload)
 }
 
 void
+PayloadJsonUtils::RemoveSessionID(std::string& payload)
+{
+  auto payload_document{GetPayloadDocument(payload)};
+
+  if (!payload_document.IsObject() ||
+      !payload_document.HasMember("session_id") ||
+      !payload_document["session_id"].IsString()) {
+    throw std::runtime_error(
+        "Request body must be an object and it must have a 'session_id' "
+        "field that is a string. Request body:\n\n" +
+        RapidJsonUtils::Serialize(payload_document) + "\n\n\n");
+  }
+
+  payload_document.RemoveMember("session_id");
+
+  payload = GetSerializedPayload(payload_document);
+}
+
+void
 PayloadJsonUtils::UpdateHistoryAndAddToPayload(
     std::string& payload, rapidjson::Document& chat_history)
 {
