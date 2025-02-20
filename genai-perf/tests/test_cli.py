@@ -227,11 +227,28 @@ class TestCLIArguments:
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
             (["--request-count", "100"], {"request_count": 100}),
+            (
+                ["--grpc-method", "package.name.v1.ServiceName/MethodName"],
+                {"grpc_method": "package.name.v1.ServiceName/MethodName"},
+            ),
             (["--num-requests", "100"], {"request_count": 100}),
             (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
             (["--num-warmup-requests", "100"], {"warmup_request_count": 100}),
             (["--request-rate", "9.0"], {"request_rate": 9.0}),
             (["-s", "99.5"], {"stability_percentage": 99.5}),
+            (
+                [
+                    "--service-kind",
+                    "dynamic_grpc",
+                    "--grpc-method",
+                    "package.name.v1.ServiceName/MethodName",
+                ],
+                {
+                    "service_kind": "dynamic_grpc",
+                    "endpoint_type": "dynamic_grpc",
+                    "grpc_method": "package.name.v1.ServiceName/MethodName",
+                },
+            ),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
             (
                 ["--service-kind", "tensorrtllm_engine"],
@@ -566,6 +583,17 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--service-kind",
+                    "dynamic_grpc",
+                ],
+                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
                     "--output-tokens-stddev",
                     "5",
                 ],
@@ -795,6 +823,17 @@ class TestCLIArguments:
                     "vllm",
                 ],
                 "Invalid endpoint-type 'kserve' for service-kind 'openai'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "unknown_service",
+                ],
+                "--service-kind: invalid choice: 'unknown_service'",
             ),
         ],
     )

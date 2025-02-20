@@ -32,9 +32,6 @@ import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON, PromptSource
 from genai_perf.inputs.inputs import OutputFormat
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +39,8 @@ logger = logging.getLogger(__name__)
 class Profiler:
     @staticmethod
     def add_protocol_args(args: Namespace) -> List[str]:
-        cmd = []
+        cmd = ["--async", "-m", f"{args.formatted_model_name}"]  # default
+
         if args.service_kind == "triton":
             cmd += ["-i", "grpc", "--streaming"]
             if args.u is None:  # url
@@ -51,6 +49,10 @@ class Profiler:
                 cmd += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif args.service_kind == "openai":
             cmd += ["-i", "http"]
+        elif args.service_kind == "dynamic_grpc":
+            cmd.clear()  # dynamic grpc doesn't support default args
+            if args.u is None:  # url
+                cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
         return cmd
 
     @staticmethod
@@ -131,9 +133,6 @@ class Profiler:
 
         cmd = [
             f"perf_analyzer",
-            f"-m",
-            f"{args.formatted_model_name}",
-            f"--async",
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]

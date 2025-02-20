@@ -448,6 +448,12 @@ An option to enable the use of the streaming API. (default: `False`)
 
 URL of the endpoint to target for benchmarking. (default: `None`)
 
+##### `--grpc-method <str>`
+
+A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
+The option is only supported by dynamic gRPC service kind and is required to
+identify the RPC to use when sending requests to the server. (default: `None`)
+
 ### Input Options
 
 ##### `-b <int>`

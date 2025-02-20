@@ -90,6 +90,26 @@ class TestWrapper:
         expected_pattern = f"--profile-export-file {expected_filepath}"
         assert expected_pattern in cmd_string
 
+    def test_service_dynamic_grpc(self, monkeypatch):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--service-kind",
+            "dynamic_grpc",
+            "--grpc-method",
+            "package.name.v1.ServiceName/MethodName",
+        ]
+        monkeypatch.setattr("sys.argv", args)
+        args, extra_args = parser.parse_args()
+        cmd = Profiler.build_cmd(args, extra_args)
+        cmd_string = " ".join(cmd)
+
+        assert "--grpc-method" in cmd_string
+        assert "--async" not in cmd_string
+        assert "-m test_model" not in cmd_string
+
     @pytest.mark.parametrize(
         "arg",
         [

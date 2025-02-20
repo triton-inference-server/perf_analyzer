@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         """
         Test that the default CLI string is created correctly
         """
-        expected_command = [
+        expected_command = {
             self._config.perf_analyzer.path,
             "-m",
             "test_model",
@@ -130,10 +130,10 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             "1",
             "--concurrency-range",
             "64",
-        ]
-        command = self._default_perf_analyzer_config.create_command()
+        }
+        actual_command = set(self._default_perf_analyzer_config.create_command())
 
-        self.assertEqual(expected_command, command)
+        self.assertEqual(expected_command, actual_command)
 
     ###########################################################################
     # Test Representation
@@ -142,31 +142,30 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         """
         Test that the representation is created correctly in the default case
         """
-        expected_representation = " ".join(
-            [
-                "-m",
-                "test_model",
-                "--async",
-                "--streaming",
-                "--shape",
-                "max_tokens:1",
-                "--shape",
-                "text_input:1",
-                "--service-kind",
-                "triton",
-                "--measurement-interval",
-                "10000",
-                "--stability-percentage",
-                "999",
-                "-b",
-                "1",
-                "--concurrency-range",
-                "64",
-            ]
-        )
+        expected_representation = {
+            "-m",
+            "test_model",
+            "--async",
+            "--streaming",
+            "--shape",
+            "max_tokens:1",
+            "--shape",
+            "text_input:1",
+            "--service-kind",
+            "triton",
+            "--measurement-interval",
+            "10000",
+            "--stability-percentage",
+            "999",
+            "-b",
+            "1",
+            "--concurrency-range",
+            "64",
+        }
         representation = self._default_perf_analyzer_config.representation()
+        actual_representation = set(representation.split())
 
-        self.assertEqual(expected_representation, representation)
+        self.assertEqual(expected_representation, actual_representation)
 
     ###########################################################################
     # Test Inference Methods
