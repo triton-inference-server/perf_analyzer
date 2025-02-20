@@ -312,7 +312,7 @@ class TestJsonExporter:
             artifact_dir=args.artifact_dir,
         )
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args == json.loads(self.expected_json_output)
+        assert json_exporter._export_data == json.loads(self.expected_json_output)
         json_exporter.export()
         expected_filename = "profile_export_genai_perf.json"
         written_data = [
@@ -501,10 +501,10 @@ class TestJsonExporter:
             artifact_dir=args.artifact_dir,
         )
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["request_goodput"] == json.loads(
+        assert json_exporter._export_data["request_goodput"] == json.loads(
             expected_valid_goodput_json_output
         )
-        assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
+        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
             expected_valid_goodput_json_config
         )
 
@@ -659,11 +659,11 @@ class TestJsonExporter:
             artifact_dir=args.artifact_dir,
         )
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["request_goodput"] == json.loads(
+        assert json_exporter._export_data["request_goodput"] == json.loads(
             expected_invalid_goodput_json_output
         )
-        print(json_exporter._stats_and_args["input_config"]["goodput"])
-        assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
+        print(json_exporter._export_data["input_config"]["goodput"])
+        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
             expected_invalid_goodput_json_config
         )
         json_exporter.export()
@@ -846,7 +846,7 @@ class TestJsonExporter:
             artifact_dir=args.artifact_dir,
         )
         json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["telemetry_stats"] == json.loads(
+        assert json_exporter._export_data["telemetry_stats"] == json.loads(
             expected_telemetry_json_output
         )
 

@@ -61,6 +61,7 @@ class ProfileDataParser:
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._goodput_constraints = goodput_constraints
+        self._session_statistics: Dict[str, Statistics] = {}
         logger.info("Loading response data from '%s'", str(filename))
         data = load_json(filename)
         self._get_profile_metadata(data)
@@ -186,6 +187,10 @@ class ProfileDataParser:
         if (infer_mode, load_level) not in self._profile_results:
             raise KeyError(f"Profile with {infer_mode}={load_level} does not exist.")
         return self._profile_results[(infer_mode, load_level)]
+
+    def get_session_statistics(self) -> Dict[str, Statistics]:
+        """Return session statistics."""
+        return self._session_statistics
 
     def get_profile_load_info(self) -> List[Tuple[str, str]]:
         """Return available (infer_mode, load_level) tuple keys."""

@@ -27,11 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from collections import defaultdict
-from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
-import pandas as pd
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.metrics import Metrics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
