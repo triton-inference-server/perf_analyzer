@@ -35,6 +35,8 @@ class PayloadJsonUtils {
  public:
   static std::string GetSessionID(const std::string& payload);
 
+  static void RemoveSessionID(std::string& payload);
+
   static void UpdateHistoryAndAddToPayload(
       std::string& payload, rapidjson::Document& chat_history);
 
