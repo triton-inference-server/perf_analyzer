@@ -333,7 +333,7 @@ class LLMProfileDataParser(ProfileDataParser):
         elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
             input_text = payload["messages"][0]["content"]
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
-            input_text = payload["prompt"]
+            input_text = " ".join(payload["prompt"])
         elif self._response_format == ResponseFormat.OPENAI_VISION:
             content = payload["messages"][0]["content"]
             input_text = " ".join(c["text"] for c in content if c["type"] == "text")
