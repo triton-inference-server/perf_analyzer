@@ -163,10 +163,10 @@ class LLMProfileDataParser(ProfileDataParser):
 
                 # inter token latencies
                 if total_output_token > 1:
-                    inter_token_latency = (req_latency_ns - ttft) / (
-                        total_output_token - 1
+                    inter_token_latency = round(
+                        (req_latency_ns - ttft) / (total_output_token - 1)
                     )
-                    inter_token_latencies.append(round(inter_token_latency))
+                    inter_token_latencies.append(inter_token_latency)
 
                 # The new ITL calculation above loses all token-level ITL information
                 # and as a result breaks ITL vs token position visualization. Keep

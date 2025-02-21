@@ -842,3 +842,82 @@ class TestJsonExporter:
         assert output_data_dict["telemetry_stats"] == json.loads(
             expected_telemetry_json_output
         )
+
+    def test_generate_json_session_stats(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+    ) -> None:
+        session_stats = {
+            "session-id-123": {
+                "some_metric_1": {
+                    "unit": "count",
+                    "avg": 123,
+                },
+                "some_metric_2": {
+                    "unit": "ms",
+                    "avg": 456,
+                },
+            },
+            "session-id-456": {
+                "some_metric_1": {
+                    "unit": "requests/sec",
+                    "avg": 789,
+                },
+                "some_metric_2": {
+                    "unit": "ms",
+                    "avg": 1011,
+                },
+            },
+        }
+
+        expected_session_stats_json_output = """
+            {
+                "session-id-123": {
+                    "some_metric_1": {
+                        "unit": "count",
+                        "avg": 123
+                    },
+                    "some_metric_2": {
+                        "unit": "ms",
+                        "avg": 456
+                    }
+                },
+                "session-id-456": {
+                    "some_metric_1": {
+                        "unit": "requests/sec",
+                        "avg": 789
+                    },
+                    "some_metric_2": {
+                        "unit": "ms",
+                        "avg": 1011
+                    }
+                }
+            }
+        """
+
+        cli_cmd = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+        ]
+        json_exporter = self.create_json_exporter(
+            monkeypatch, cli_cmd, self.stats, session_stats=session_stats
+        )
+        json_exporter.export()
+        expected_filename = "profile_export_genai_perf.json"
+        written_data = [
+            data
+            for filename, data in mock_read_write
+            if os.path.basename(filename) == expected_filename
+        ]
+        assert len(written_data) == 1
+
+        actual_session_stats = json.loads(written_data[0])
+        expected_session_stats = json.loads(expected_session_stats_json_output)
+
+        assert "sessions" in actual_session_stats
+        assert actual_session_stats["sessions"] == expected_session_stats
