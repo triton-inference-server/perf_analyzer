@@ -26,7 +26,7 @@
 
 
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Any, Dict, Tuple, Union
 
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from genai_perf.inputs.retrievers.generic_dataset import (

@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import (
@@ -87,6 +87,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             read from the file.
         """
         self._verify_file(filename)
+        data_dict = self._get_content_from_input_file(filename)
+        return self._convert_content_to_data_file(data_dict)
         prompts, optional_data_list, payload_metadata_list = (
             self._get_content_from_input_file(filename)
         )
@@ -157,7 +159,19 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
     def _get_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """
-        Checks if there is any optional data in the file to pass in the payload.
+        Extracts optional data from the input data. If "output_length" is present,
+        it is explicitly renamed to "max_tokens".
+
+        Parameters
+        ----------
+        data : Dict[str, Any]
+            The dictionary containing input data.
+
+        Returns
+        -------
+        Dict[Any, Any]
+            A dictionary containing extracted optional data,
+            with "output_length" renamed to "max_tokens" if present.
         """
         excluded_keys = {
             "text",
@@ -168,6 +182,9 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         }
         excluded_keys.update(PAYLOAD_METADATA_FIELDS)
         optional_data = {k: v for k, v in data.items() if k not in excluded_keys}
+        if max_tokens is not None:
+            optional_data["max_tokens"] = max_tokens
+
         return optional_data
 
     def _convert_content_to_data_file(
@@ -193,13 +210,17 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         FileData
             The DataFile containing the converted data.
         """
+        prompt_list = data_dict["prompts"]
+        timestamp_list = data_dict["timestamps"]
+        optional_data_list = data_dict["optional_datas"]
+
         data_rows: List[DataRow] = [
             DataRow(
                 texts=[prompt],
                 optional_data=optional_data_list[index],
                 payload_metadata=payload_metadata_list[index],
             )
-            for index, prompt in enumerate(prompts)
+            for index, prompt in enumerate(prompt_list)
         ]
 
         return FileData(data_rows)
