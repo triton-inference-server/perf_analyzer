@@ -211,19 +211,6 @@ class LLMProfileDataParser(ProfileDataParser):
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        # (per-session) request & output token throughput
-        for metric in self._session_metrics.values():
-            init_t = min(metric["req_timestamps"])
-            last_t = max(metric["last_res_timestamps"])
-            session_latency = (last_t - init_t) / 1e9  # to seconds
-            num_requests = len(metric["req_timestamps"])
-            num_tokens = sum(metric["output_sequence_lengths"])
-            metric["request_throughputs"].append(num_requests / session_latency)
-            metric["output_token_throughputs"].append(num_tokens / session_latency)
-            # clean up
-            del metric["req_timestamps"]
-            del metric["last_res_timestamps"]
-
         llm_metrics = LLMMetrics(
             request_throughputs,
             request_latencies,
@@ -237,11 +224,27 @@ class LLMProfileDataParser(ProfileDataParser):
             chunked_inter_token_latencies,
         )
 
+        self._postprocess_session_metrics()
+
         if self._goodput_constraints:
             goodput_val = self._calculate_goodput(benchmark_duration, llm_metrics)
             llm_metrics.request_goodputs = goodput_val
 
         return llm_metrics
+
+    def _postprocess_session_metrics(self) -> None:
+        """Postprocess session metrics to calculate request & output token throughput."""
+        for metric in self._session_metrics.values():
+            init_t = min(metric["req_timestamps"])
+            last_t = max(metric["last_res_timestamps"])
+            session_latency = (last_t - init_t) / 1e9  # to seconds
+            num_requests = len(metric["req_timestamps"])
+            num_tokens = sum(metric["output_sequence_lengths"])
+            metric["request_throughputs"].append(num_requests / session_latency)
+            metric["output_token_throughputs"].append(num_tokens / session_latency)
+            # clean up
+            del metric["req_timestamps"]
+            del metric["last_res_timestamps"]
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""
