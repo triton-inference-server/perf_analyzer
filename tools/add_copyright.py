@@ -252,6 +252,11 @@ def rst(path):
     update_or_add_header(path, prefix_lines(LICENSE_TEXT, ".. "))
 
 
+@register(any_of(path_contains("templates")))
+def genai_perf_templates(path):
+    update_or_add_header(path, "<!--\n" + prefix_lines(LICENSE_TEXT, "# ") + "\n-->")
+
+
 def add_copyrights(paths):
     for path in paths:
         for match, handler in FILE_TYPE_HANDLERS.items():

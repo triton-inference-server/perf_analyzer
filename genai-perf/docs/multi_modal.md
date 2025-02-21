@@ -98,7 +98,7 @@ After you create the file, you can run GenAI-Perf using the following command:
 ```bash
 genai-perf profile \
     -m llava-hf/llava-v1.6-mistral-7b-hf \
-    --tokenizer -m llava-hf/llava-v1.6-mistral-7b-hf \
+    --tokenizer llava-hf/llava-v1.6-mistral-7b-hf \
     --service-kind openai \
     --endpoint-type vision \
     --input-file input.jsonl \
