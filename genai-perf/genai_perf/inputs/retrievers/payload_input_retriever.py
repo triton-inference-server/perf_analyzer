@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
@@ -83,14 +83,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             read from the file.
         """
         self._verify_file(filename)
-        prompts, timestamps, optional_datas = self._get_content_from_input_file(
-            filename
-        )
-        return self._convert_content_to_data_file(prompts, timestamps, optional_datas)
+        data_dict = self._get_content_from_input_file(filename)
+        return self._convert_content_to_data_file(data_dict)
 
-    def _get_content_from_input_file(
-        self, filename: Path
-    ) -> Tuple[List[str], List[int], List[Dict[Any, Any]]]:
+    def _get_content_from_input_file(self, filename: Path) -> Dict[str, Any]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -101,8 +97,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
         Returns
         -------
-        Tuple[List[str], Dict, str]
-            A list of prompts, and optional data.
+        A dictionary containing extracted data:
+            - "prompts": List[str] - Extracted prompt texts
+            - "timestamps": List[int] - Corresponding timestamps
+            - "optional_datas": List[Dict[Any, Any]] - Any optional data
         """
         prompts = []
         optional_datas = []
@@ -111,16 +109,43 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             for line in file:
                 if line.strip():
                     data = load_json_str(line)
-                    hash_ids = data.get("hash_ids")
-                    prompt = self._get_prompt(data, hash_ids)
+                    prompt = self._get_prompt(data)
                     prompts.append(prompt.strip() if prompt else prompt)
                     timestamp = self._get_valid_timestamp(data)
                     timestamps.append(timestamp)
                     optional_data = self._check_for_optional_data(data)
                     optional_datas.append(optional_data)
-        return prompts, timestamps, optional_datas
+        return {
+            "prompts": prompts,
+            "timestamps": timestamps,
+            "optional_datas": optional_datas,
+        }
 
-    def _get_prompt(self, data: Dict[str, Any], hash_ids: Optional[List[int]]) -> str:
+    def _get_prompt(self, data: Dict[str, Any]) -> str:
+        """
+        Extracts or generates a prompt from the input data.
+
+        Parameters
+        ----------
+        data : Dict[str, Any]
+            The dictionary containing input data.
+
+        Returns
+        -------
+        str
+            The extracted or generated prompt.
+
+        Raises
+        ------
+        ValueError
+            If both "text" and "text_input" fields are present.
+        """
+        input_length = data.get("input_length")
+        prompt_tokens_mean = (
+            input_length if input_length else self.config.prompt_tokens_mean
+        )
+        prompt_tokens_stddev = 0 if input_length else self.config.prompt_tokens_stddev
+        hash_ids = data.get("hash_ids", None)
         prompt = data.get("text")
         prompt_alt = data.get("text_input")
         # Check if only one of the keys is provided
@@ -132,8 +157,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         if not prompt and not prompt_alt:
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
                 self.config.tokenizer,
-                self.config.prompt_tokens_mean,
-                self.config.prompt_tokens_stddev,
+                prompt_tokens_mean,
+                prompt_tokens_stddev,
                 hash_ids,
             )
         prompt = prompt if prompt else prompt_alt
@@ -141,7 +166,22 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
     def _get_valid_timestamp(self, data: Dict[str, Any]) -> int:
         """
-        Retrieves and validates timestamp from input data
+        Extracts and validates the timestamp field from the input data.
+
+        Parameters
+        ----------
+        data : Dict[str, Any]
+            The dictionary containing input data.
+
+        Returns
+        -------
+        int
+            The validated timestamp.
+
+        Raises
+        ------
+        GenAIPerfException
+            If the "timestamp" field is missing or not an integer.
         """
         timestamp = data.get("timestamp")
         if timestamp is None:
@@ -157,7 +197,19 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
     def _check_for_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """
-        Checks if there is any optional data in the file to pass in the payload.
+        Extracts optional data from the input data. If "output_length" is present,
+        it is explicitly renamed to "max_tokens".
+
+        Parameters
+        ----------
+        data : Dict[str, Any]
+            The dictionary containing input data.
+
+        Returns
+        -------
+        Dict[Any, Any]
+            A dictionary containing extracted optional data,
+            with "output_length" renamed to "max_tokens" if present.
         """
         excluded_keys = {
             "text",
@@ -167,39 +219,40 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             "input_length",
             "output_length",
         }
+
+        max_tokens = data.get("output_length")
         optional_data = {k: v for k, v in data.items() if k not in excluded_keys}
+        if max_tokens is not None:
+            optional_data["max_tokens"] = max_tokens
+
         return optional_data
 
-    def _convert_content_to_data_file(
-        self,
-        prompts: List[str],
-        timestamps: List[int],
-        optional_datas: List[Dict[Any, Any]] = [{}],
-    ) -> FileData:
+    def _convert_content_to_data_file(self, data_dict: Dict[str, Any]) -> FileData:
         """
         Converts the content to a DataFile.
 
         Args
         ----------
-        prompts : List[str]
-            The list of prompts to convert.
-        timestamps: int
-            The timestamp at which the request should be sent.
-        optional_data : Dict
-            The optional data included in every payload.
+        data_dict : Dict[str, Any]
+            A dictionary containing extracted lists of prompts, timestamps,
+            and optional metadata.
 
         Returns
         -------
         FileData
             The DataFile containing the converted data.
         """
+        prompt_list = data_dict["prompts"]
+        timestamp_list = data_dict["timestamps"]
+        optional_data_list = data_dict["optional_datas"]
+
         data_rows: List[DataRow] = [
             DataRow(
                 texts=[prompt],
-                timestamp=timestamps[index],
-                optional_data=optional_datas[index],
+                timestamp=timestamp_list[index],
+                optional_data=optional_data_list[index],
             )
-            for index, prompt in enumerate(prompts)
+            for index, prompt in enumerate(prompt_list)
         ]
 
         return FileData(data_rows)
