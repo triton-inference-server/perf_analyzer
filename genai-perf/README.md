@@ -97,7 +97,7 @@ pip install genai-perf
 Pull the latest release using the following command:
 
 ```bash
-export RELEASE="24.12"
+export RELEASE="25.01"
 
 docker run -it --net=host --gpus=all  nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -137,7 +137,7 @@ docker run -ti \
     --shm-size=1g --ulimit memlock=-1 \
     -v /tmp:/tmp \
     -v ${HOME}/.cache/huggingface:/root/.cache/huggingface \
-    nvcr.io/nvidia/tritonserver:24.12-trtllm-python-py3
+    nvcr.io/nvidia/tritonserver:25.01-trtllm-python-py3
 
 # Install the Triton CLI
 pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
@@ -555,6 +555,31 @@ The number of tokens in each prefix prompt. This value is only used if
 --num-prefix-prompts is positive. Note that due to the prefix and user prompts
 being concatenated, the number of tokens in the final prompt may be off by one.
 (default: `100`)
+
+##### `--image-width-mean <int>`
+
+The mean width of images when generating synthetic image data.
+(default: `100`)
+
+##### `--image-width-stddev <int>`
+
+The standard deviation of width of images when generating synthetic image data.
+(default: `0`)
+
+##### `--image-height-mean <int>`
+
+The mean height of images when generating synthetic image data.
+(default: `100`)
+
+##### `--image-height-stddev <int>`
+
+The standard deviation of height of images when generating synthetic image data.
+(default: `0`)
+
+##### `--image-format <str>`
+
+The compression format of the images. If format is not selected,
+format of generated image is selected at random.
 
 ##### `--warmup-request-count <int>`
 ##### `--num-warmup-requests <int>`
