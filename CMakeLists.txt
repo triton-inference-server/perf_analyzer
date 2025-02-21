@@ -38,11 +38,11 @@ set(PERF_ANALYZER_VERSION ${TRITON_VERSION} CACHE STRING "Build Version for Perf
 # Perf Analyzer Options
 #
 option(TRITON_PACKAGE_PERF_ANALYZER "Include Perf Analyzer in python client pip wheel" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_DGRPC "Enable Dynamic gRPC support for Performance Analyzer" ON)
 option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_DGRPC "Enable Dynamic gRPC support for Performance Analyzer" OFF)
 
 #
 # Client Options
