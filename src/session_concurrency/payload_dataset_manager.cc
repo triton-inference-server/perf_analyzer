@@ -130,9 +130,23 @@ PayloadDatasetManager::CreateSessionIdToPayloadsMap() const
 std::string
 PayloadDatasetManager::GetSessionID(size_t dataset_index) const
 {
-  const auto payload{GetPayload(dataset_index)};
+  TensorData session_id_tensor_data{};
 
-  return PayloadJsonUtils::GetSessionID(payload);
+  const auto error{data_loader_->GetInputData(
+      (*parser_->Inputs())["session_id"], 0, dataset_index,
+      session_id_tensor_data)};
+
+  if (!error.IsOk()) {
+    throw std::runtime_error(error.Message());
+  }
+
+  const uint8_t* session_id_buffer{session_id_tensor_data.data_ptr};
+  const size_t session_id_byte_size{session_id_tensor_data.batch1_size};
+
+  const std::string session_id(
+      reinterpret_cast<const char*>(session_id_buffer), session_id_byte_size);
+
+  return session_id;
 }
 
 }  // namespace triton::perfanalyzer
