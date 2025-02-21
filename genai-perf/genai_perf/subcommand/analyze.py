@@ -231,6 +231,7 @@ class Analyze:
                 )
                 data_parser = calculate_metrics(obj_args, tokenizer)
                 perf_stats = data_parser.get_statistics(infer_mode, load_level)
+                session_stats = data_parser.get_session_statistics()
                 perf_metrics = perf_stats.create_records()
 
                 #
@@ -249,7 +250,7 @@ class Analyze:
                 #
                 # Create output CSV in artifact directory
                 OutputReporter(
-                    perf_stats, merged_telemetry_stats, obj_args
+                    perf_stats, merged_telemetry_stats, obj_args, session_stats
                 ).report_output()
 
                 #

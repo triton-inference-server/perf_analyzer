@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List, Union
+from typing import Dict, List, Union
 
 from genai_perf.metrics.metrics import MetricMetadata, Metrics
 
@@ -99,6 +99,25 @@ class LLMMetrics(Metrics):
         )
         self._base_names["output_sequence_lengths"] = "output_sequence_length"
         self._base_names["input_sequence_lengths"] = "input_sequence_length"
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, List[float | int]]) -> "LLMMetrics":
+        """Create LLMMetrics from a dictionary, converting types as needed."""
+        return cls(
+            request_throughputs=[float(x) for x in data["request_throughputs"]],
+            request_latencies=[int(x) for x in data["request_latencies"]],
+            time_to_first_tokens=[int(x) for x in data["time_to_first_tokens"]],
+            time_to_second_tokens=[int(x) for x in data["time_to_second_tokens"]],
+            inter_token_latencies=[int(x) for x in data["inter_token_latencies"]],
+            output_token_throughputs=[
+                float(x) for x in data["output_token_throughputs"]
+            ],
+            output_token_throughputs_per_request=[
+                float(x) for x in data["output_token_throughputs_per_request"]
+            ],
+            output_sequence_lengths=[int(x) for x in data["output_sequence_lengths"]],
+            input_sequence_lengths=[int(x) for x in data["input_sequence_lengths"]],
+        )
 
     @property
     def request_metrics(self) -> List[MetricMetadata]:
