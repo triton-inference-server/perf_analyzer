@@ -31,11 +31,11 @@ project(perf-analyzer LANGUAGES C CXX)
 #
 # Perf Analyzer Options
 #
+option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_DGRPC "Enable Dynamic gRPC support for Performance Analyzer" ON)
 option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_DGRPC "Enable Dynamic gRPC support for Performance Analyzer" OFF)
 
 #
 # Feature Options
