@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,23 +27,24 @@ import os
 from argparse import Namespace
 from pathlib import Path
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.constants import DEFAULT_COMPARE_DIR
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 
 
-def compare_handler(args: Namespace) -> None:
+def compare_handler(config: ConfigCommand) -> None:
     """
     Handles `compare` subcommand workflow
     """
-    if args.files:
+    if config.compare.files:
         _create_compare_dir()
         output_dir = Path(f"{DEFAULT_COMPARE_DIR}")
-        PlotConfigParser.create_init_yaml_config(args.files, output_dir)
-        args.config = output_dir / "config.yaml"
+        PlotConfigParser.create_init_yaml_config(config.compare.files, output_dir)
+        config.compare.plot_config = output_dir / "config.yaml"
 
-    config_parser = PlotConfigParser(args.config)
-    plot_configs = config_parser.generate_configs(args.tokenizer)
+    config_parser = PlotConfigParser(config.compare.plot_config)
+    plot_configs = config_parser.generate_configs(config)
     plot_manager = PlotManager(plot_configs)
     plot_manager.generate_plots()
 

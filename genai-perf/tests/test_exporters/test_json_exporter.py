@@ -134,6 +134,7 @@ class TestJsonExporter:
         "tokenizer",
         "subcommand",
         "verbose",
+        "compare",
     ]
     expected_json_stats = """
       {

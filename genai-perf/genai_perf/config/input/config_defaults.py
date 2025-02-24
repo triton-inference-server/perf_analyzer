@@ -140,3 +140,9 @@ class TokenizerDefaults:
 @dataclass(frozen=True)
 class TemplateDefaults:
     FILENAME = "genai_perf_config.yaml"
+
+
+@dataclass(frozen=True)
+class CompareDefaults:
+    PLOT_CONFIG = ""
+    FILES = None

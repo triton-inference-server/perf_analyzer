@@ -1149,6 +1149,11 @@ def add_cli_options_to_config(
     config.tokenizer.revision = args.tokenizer_revision
     config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
 
+    # Compare
+    if args.subcommand == "compare":
+        config.compare.plot_config = args.config
+        config.compare.files = args.files
+
     return config
 
 
@@ -1199,6 +1204,11 @@ def parse_args():
         # Set subcommand
         if config.analyze.get_field("sweep_parameters").is_set_by_user:
             config_args = ["analyze"]
+        elif (
+            config.compare.get_field("plot_config").is_set_by_user
+            or config.compare.get_field("files").is_set_by_user
+        ):
+            config_args = ["compare"]
         else:
             config_args = ["profile"]
 
