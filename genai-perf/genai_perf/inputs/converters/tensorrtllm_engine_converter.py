@@ -68,7 +68,9 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         return request_body
 
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+    def _add_request_params(
+        self, payload: Dict, config: InputsConfig, optional_data: Dict[str, Any]
+    ) -> None:
         if config.add_stream:
             payload["streaming"] = [True]
         if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:

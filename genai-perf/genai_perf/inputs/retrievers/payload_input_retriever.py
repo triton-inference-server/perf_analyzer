@@ -182,6 +182,9 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         }
         excluded_keys.update(PAYLOAD_METADATA_FIELDS)
         optional_data = {k: v for k, v in data.items() if k not in excluded_keys}
+        max_tokens = data.get("output_length")
+        if max_tokens:
+            optional_data["max_tokens"] = max_tokens
 
         return optional_data
 

@@ -94,7 +94,9 @@ class RankingsConverter(BaseConverter):
             return True
         return False
 
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+    def _add_request_params(
+        self, payload: Dict, config: InputsConfig, optional_data: Dict[str, Any]
+    ) -> None:
         for key, value in config.extra_inputs.items():
             if not (key == "rankings" and value == "tei"):
                 payload[key] = value
