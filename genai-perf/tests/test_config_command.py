@@ -516,6 +516,27 @@ class TestConfigCommand(unittest.TestCase):
 
         self.assertEqual(config.endpoint.custom, "v1/embeddings")
 
+    ###########################################################################
+    # Test Compare Illegal Combination Methods
+    ###########################################################################
+    def test_compare_illegal_both(self):
+        """
+        Test that the compare raises an error when both plot_config and files are set
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            compare:
+                plot_config: "test_plot_config"
+                files: "test_files"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        with self.assertRaises(ValueError):
+            config = ConfigCommand(user_config)
+
 
 if __name__ == "__main__":
     unittest.main()

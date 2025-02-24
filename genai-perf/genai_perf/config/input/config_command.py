@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
 import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_analyze import ConfigAnalyze
+from genai_perf.config.input.config_compare import ConfigCompare
 from genai_perf.config.input.config_defaults import (
     AnalyzeDefaults,
     Range,
@@ -67,6 +68,7 @@ class ConfigCommand(BaseConfig):
         self.input = ConfigInput()
         self.output = ConfigOutput()
         self.tokenizer = ConfigTokenizer()
+        self.compare = ConfigCompare()
 
         self._parse_yaml(user_config)
 
@@ -92,6 +94,8 @@ class ConfigCommand(BaseConfig):
                 self.output.parse(value)
             elif key == "tokenizer":
                 self.tokenizer.parse(value)
+            elif key == "compare":
+                self.compare.parse(value)
             else:
                 raise ValueError(
                     f"User Config: {key} is not a valid top-level parameter"
@@ -124,6 +128,7 @@ class ConfigCommand(BaseConfig):
         self._check_output_format_and_generate_plots()
 
         self.endpoint.check_for_illegal_combinations()
+        self.compare.check_for_illegal_combinations()
 
     def _check_output_tokens_and_service_kind(self) -> None:
         if self.endpoint.service_kind not in ["triton", "tensorrtllm_engine"]:
