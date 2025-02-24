@@ -58,7 +58,13 @@ class OpenAICompletionsConverter(BaseConverter):
     def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
         if config.add_stream:
             payload["stream"] = True
-        if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+        # TODO Should we error out in parser if output token mean is set with the payload input file?
+        if (
+            config.output_tokens_mean == DEFAULT_OUTPUT_TOKENS_MEAN
+            and config.max_tokens_list
+        ):
+            payload["max_tokens"] = config.max_tokens_list.pop(0)
+        elif config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             payload["max_tokens"] = int(
                 sample_bounded_normal(
                     mean=config.output_tokens_mean,
