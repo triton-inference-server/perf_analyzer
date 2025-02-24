@@ -535,7 +535,7 @@ class TestConfigCommand(unittest.TestCase):
 
         user_config = yaml.safe_load(yaml_str)
         with self.assertRaises(ValueError):
-            config = ConfigCommand(user_config)
+            ConfigCommand(user_config)
 
 
 if __name__ == "__main__":
