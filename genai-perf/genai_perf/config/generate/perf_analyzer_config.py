@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -137,7 +137,6 @@ class PerfAnalyzerConfig:
         if not hasattr(self._args, "subcommand"):
             return
 
-        self._cli_args += self._add_required_args(args)
         self._cli_args += Profiler.add_protocol_args(args)
         self._cli_args += Profiler.add_inference_load_args(args)
         self._cli_args += self._add_misc_args(args)
@@ -249,15 +248,6 @@ class PerfAnalyzerConfig:
             stimulus = [f"batch_size{runtime_batch_size}"]
 
         return stimulus
-
-    def _add_required_args(self, args: Namespace) -> List[str]:
-        required_args = [
-            f"-m",
-            f"{args.formatted_model_name}",
-            f"--async",
-        ]
-
-        return required_args
 
     def _add_misc_args(self, args: Namespace) -> List[str]:
         misc_args = []

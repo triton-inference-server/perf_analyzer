@@ -68,7 +68,13 @@ class JsonExporter:
             self._args.pop(arg, None)
 
     def _prepare_args_for_export(self) -> None:
-        args_to_exclude = ["func", "output_format", "input_file", "payload_input_file"]
+        args_to_exclude = [
+            "func",
+            "output_format",
+            "input_file",
+            "payload_input_file",
+            "grpc_method",
+        ]
         self._exclude_args(args_to_exclude)
         self._args["profile_export_file"] = str(self._args["profile_export_file"])
         self._args["artifact_dir"] = str(self._args["artifact_dir"])
