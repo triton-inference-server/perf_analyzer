@@ -558,22 +558,22 @@ being concatenated, the number of tokens in the final prompt may be off by one.
 
 ##### `--image-width-mean <int>`
 
-The mean width of images when generating synthetic image data.
+The mean width of images in pixels when generating synthetic image data.
 (default: `100`)
 
 ##### `--image-width-stddev <int>`
 
-The standard deviation of width of images when generating synthetic image data.
+The standard deviation of width of images in pixels when generating synthetic image data.
 (default: `0`)
 
 ##### `--image-height-mean <int>`
 
-The mean height of images when generating synthetic image data.
+The mean height of images in pixels when generating synthetic image data.
 (default: `100`)
 
 ##### `--image-height-stddev <int>`
 
-The standard deviation of height of images when generating synthetic image data.
+The standard deviation of height of images in pixels when generating synthetic image data.
 (default: `0`)
 
 ##### `--image-format <str>`
