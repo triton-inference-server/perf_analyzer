@@ -155,7 +155,12 @@ triton start
 Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-genai-perf profile -m gpt2 --service-kind triton --backend tensorrtllm --streaming
+genai-perf profile \
+  -m gpt2 \
+  --tokenizer gpt2 \
+  --service-kind triton \
+  --backend tensorrtllm \
+  --streaming
 ```
 
 Example output:
@@ -203,6 +208,7 @@ by passing the `--generate-plots` option when running the benchmark:
 ```bash
 genai-perf profile \
   -m gpt2 \
+  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --streaming \
@@ -482,14 +488,13 @@ Add a custom header to the requests. Headers must be specified as
 
 ##### `--input-file <path>`
 
-The input file or directory containing the content to use for
-profiling. Each line should be a JSON object with a 'text' or 'image' field
-in JSONL format. Example: {\"text\": \"Your prompt here\"}"
-To use synthetic files for a converter that needs
-multiple files, prefix the path with 'synthetic:', followed by a
-comma-separated list of filenames. The synthetic filenames should not have
-extensions. For example, 'synthetic:queries,passages'.
-(default: `None`)
+The input file or directory for profiling. Each line should be a JSON object
+with a `text` or `image` field in JSONL format. Example:
+`{"text": "Your prompt here"}`. To use synthetic files, prefix with
+`synthetic:` followed by a comma-separated list of filenames without
+extensions (Example: `synthetic:queries,passages`). To use a payload file with
+a fixed schedule workload, prefix with `payload:` followed by the filename
+(Example: `payload:input.jsonl`). (default: `None`)
 
 ##### `--num-dataset-entries <int>`
 
@@ -550,6 +555,31 @@ The number of tokens in each prefix prompt. This value is only used if
 --num-prefix-prompts is positive. Note that due to the prefix and user prompts
 being concatenated, the number of tokens in the final prompt may be off by one.
 (default: `100`)
+
+##### `--image-width-mean <int>`
+
+The mean width of images in pixels when generating synthetic image data.
+(default: `100`)
+
+##### `--image-width-stddev <int>`
+
+The standard deviation of width of images in pixels when generating synthetic image data.
+(default: `0`)
+
+##### `--image-height-mean <int>`
+
+The mean height of images in pixels when generating synthetic image data.
+(default: `100`)
+
+##### `--image-height-stddev <int>`
+
+The standard deviation of height of images in pixels when generating synthetic image data.
+(default: `0`)
+
+##### `--image-format <str>`
+
+The compression format of the images. If format is not selected,
+format of generated image is selected at random.
 
 ##### `--warmup-request-count <int>`
 ##### `--num-warmup-requests <int>`
