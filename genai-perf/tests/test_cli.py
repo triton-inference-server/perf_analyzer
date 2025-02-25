@@ -26,6 +26,7 @@
 
 import argparse
 from pathlib import Path
+from unittest.mock import patch
 
 import genai_perf.logging as logging
 import pytest
@@ -1086,6 +1087,27 @@ class TestCLIArguments:
             parser.parse_args()
         except SystemExit:
             pytest.fail("Unexpected error in test")
+
+    def test_print_warnings_payload(self, monkeypatch, mocker):
+        expected_warning_message = "--output-tokens-mean is incompatible with output_length in the payload input file. output-tokens-mean will be ignored in favour of per payload settings"
+
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:test.jsonl",
+            "--output-tokens-mean",
+            "50",
+        ]
+        logging.init_logging()
+        logger = logging.getLogger("genai_perf.parser")
+        mocker.patch.object(Path, "is_file", return_value=True)
+        monkeypatch.setattr("sys.argv", args)
+        with patch.object(logger, "warning") as mock_logger:
+            parser.parse_args()
+        mock_logger.assert_any_call(expected_warning_message)
 
     # ================================================
     # COMPARE SUBCOMMAND
