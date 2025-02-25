@@ -1689,10 +1689,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
                 "<name:value:type>.");
           }
 
-          std::for_each(values.begin(), values.end(), ToLowerCase);
           std::string name{values[0]};
           std::string value{values[1]};
           std::string type{values[2]};
+          ToLowerCase(type);  // to string-match the type
 
           cb::RequestParameter param;
           param.name = name;
