@@ -74,6 +74,7 @@ def create_default_exporter_config(
     extra_inputs: Optional[Dict[str, Any]] = None,
     artifact_dir: Optional[Path] = None,
     telemetry_stats: Dict[str, Any] = {},
+    session_stats: Dict[str, Any] = {},
 ) -> ExporterConfig:
     return ExporterConfig(
         stats=stats or {},
@@ -82,6 +83,7 @@ def create_default_exporter_config(
         extra_inputs=extra_inputs or {},
         artifact_dir=artifact_dir or Path("."),
         telemetry_stats=telemetry_stats,
+        session_stats=session_stats,
     )
 
 
