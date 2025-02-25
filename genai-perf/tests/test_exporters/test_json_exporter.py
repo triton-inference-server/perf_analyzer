@@ -223,6 +223,7 @@ class TestJsonExporter:
           "endpoint_type": "kserve",
           "service_kind": "triton",
           "server_metrics_url": [],
+          "session_concurrency": null,
           "streaming": true,
           "u": null,
           "num_dataset_entries": 100,

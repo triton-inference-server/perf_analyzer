@@ -67,7 +67,10 @@ class Profiler:
     @staticmethod
     def add_payload_args(args: Namespace) -> List[str]:
         cmd = []
-        if args.prompt_source == PromptSource.PAYLOAD:
+        if (
+            args.prompt_source == PromptSource.PAYLOAD
+            and args.session_concurrency is None
+        ):
             cmd += ["--fixed-schedule"]
         return cmd
 
