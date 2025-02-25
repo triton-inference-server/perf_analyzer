@@ -132,22 +132,40 @@ class SyntheticPromptGenerator:
     def _generate_prompt_with_token_reuse(
         cls,
         tokenizer: Tokenizer,
-        prompt_tokens_mean: int,
+        num_tokens: int,
         prompt_hash_list: list,
         block_size: int,
     ) -> str:
-        if prompt_hash_list is not None:
-            final_prompt = []
-            size_to_use = block_size
-            for index, hash_index in enumerate(prompt_hash_list):
-                if index == len(prompt_hash_list) - 1:
-                    size_to_use = prompt_tokens_mean - (index * block_size)
-                if hash_index not in cls._cache:
-                    prompt = cls._generate_prompt(tokenizer, size_to_use)
-                    cls._cache[hash_index] = prompt
+        """
+        Generate a prompt containing exactly `num_tokens` by reusing previously generated prompts
+        stored in `_cache`. Each hash index in `prompt_hash_list` corresponds to a block of
+        `block_size` tokens. If a hash index is found in `_cache`, its stored prompt is reused.
+        Otherwise, a new prompt is generated using `_generate_prompt()` and stored in `_cache`.
 
-                final_prompt.append(cls._cache[hash_index])
-            prompt = " ".join(final_prompt)
+        Args:
+            tokenizer : Tokenizer
+                The tokenizer used to generate prompts.
+            num_tokens : int
+                The number of tokens required in the prompt.
+            prompt_hash_list : List[int]
+                A list of hash indices used for token reuse.
+            block_size : int
+                The number of tokens allocated per hash block (default 512).
+
+        Returns:
+            str: A synthetic prompt as a string.
+        """
+        final_prompt = []
+        size_to_use = block_size
+        for index, hash_index in enumerate(prompt_hash_list):
+            if index == len(prompt_hash_list) - 1:
+                size_to_use = num_tokens - (index * block_size)
+            if hash_index not in cls._cache:
+                prompt = cls._generate_prompt(tokenizer, size_to_use)
+                cls._cache[hash_index] = prompt
+
+            final_prompt.append(cls._cache[hash_index])
+        prompt = " ".join(final_prompt)
 
         return prompt
 

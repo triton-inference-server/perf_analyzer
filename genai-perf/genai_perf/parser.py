@@ -426,11 +426,14 @@ def _print_warnings(args: argparse.Namespace) -> None:
             "Custom tokenizer code can be executed. "
             "This should only be used with repositories you trust."
         )
-    if args.prompt_source == ic.PromptSource.PAYLOAD and args.output_tokens_mean:
+    if (
+        args.prompt_source == ic.PromptSource.PAYLOAD
+        and args.output_tokens_mean != ic.DEFAULT_OUTPUT_TOKENS_MEAN
+    ):
         logger.warning(
             "--output-tokens-mean is incompatible with output_length"
             " in the payload input file. output-tokens-mean"
-            " will be ignored in favour of per payload settings"
+            " will be ignored in favour of per payload settings."
         )
 
 

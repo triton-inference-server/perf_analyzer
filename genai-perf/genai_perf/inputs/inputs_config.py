@@ -106,7 +106,6 @@ class InputsConfig:
     # Number of entries to gather
     length: int = DEFAULT_LENGTH
 
-    max_tokens_list: List[int] = field(default_factory=list)
     # The model name
     model_name: List[str] = field(default_factory=list)
 

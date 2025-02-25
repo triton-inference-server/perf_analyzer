@@ -1089,7 +1089,11 @@ class TestCLIArguments:
             pytest.fail("Unexpected error in test")
 
     def test_print_warnings_payload(self, monkeypatch, mocker):
-        expected_warning_message = "--output-tokens-mean is incompatible with output_length in the payload input file. output-tokens-mean will be ignored in favour of per payload settings"
+        expected_warning_message = (
+            "--output-tokens-mean is incompatible with output_length"
+            " in the payload input file. output-tokens-mean"
+            " will be ignored in favour of per payload settings."
+        )
 
         args = [
             "genai-perf",

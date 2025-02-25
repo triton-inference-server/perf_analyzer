@@ -72,11 +72,14 @@ class BaseConverter:
     def _get_max_tokens(
         self, config: InputsConfig, optional_data: Dict[str, Any]
     ) -> int:
-        if (
-            config.output_tokens_mean == DEFAULT_OUTPUT_TOKENS_MEAN
-            and "max_tokens" in optional_data
-        ):
-            return config.max_tokens_list.pop(0)
+        """
+        Return the `max_tokens` value to be added in the payload.
+        If `max_tokens` is present in `optional_data`, that value is used.
+        Otherwise, `max_tokens` is sampled from a bounded normal
+        distribution with a minimum value of 1.
+        """
+        if "max_tokens" in optional_data:
+            return optional_data["max_tokens"]
         elif config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             return int(
                 sample_bounded_normal(
