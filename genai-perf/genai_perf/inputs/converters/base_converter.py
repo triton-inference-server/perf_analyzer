@@ -80,15 +80,13 @@ class BaseConverter:
         """
         if "max_tokens" in optional_data:
             return optional_data["max_tokens"]
-        elif config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
-            return int(
-                sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
-                    lower=1,  # output token must be >= 1
-                )
+        return int(
+            sample_bounded_normal(
+                mean=config.output_tokens_mean,
+                stddev=config.output_tokens_stddev,
+                lower=1,  # output token must be >= 1
             )
-        return DEFAULT_OUTPUT_TOKENS_MEAN
+        )
 
     def _add_request_params(
         self,
