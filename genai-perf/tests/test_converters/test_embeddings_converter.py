@@ -229,13 +229,13 @@ class TestOpenAIEmbeddingsConverter:
                     rows=[
                         DataRow(
                             texts=["text_1"],
-                            timestamp=0,
                             optional_data=optional_data_1,
+                            payload_metadata={"timestamp": 0},
                         ),
                         DataRow(
                             texts=["text_2"],
-                            timestamp=3047,
                             optional_data=optional_data_2,
+                            payload_metadata={"timestamp": 3047},
                         ),
                     ],
                 )
