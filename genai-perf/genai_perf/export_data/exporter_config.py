@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,62 +25,19 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+import argparse as args
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict
+
 from genai_perf.metrics import Metrics
 
 
+@dataclass
 class ExporterConfig:
-    def __init__(self):
-        self._stats = None
-        self._telemetry_stats = None
-        self._metrics = None
-        self._args = None
-        self._extra_inputs = None
-        self._artifact_dir = None
-
-    @property
-    def stats(self):
-        return self._stats
-
-    @stats.setter
-    def stats(self, stats_value):
-        self._stats = stats_value
-
-    @property
-    def telemetry_stats(self):
-        return self._telemetry_stats
-
-    @telemetry_stats.setter
-    def telemetry_stats(self, stats_value):
-        self._telemetry_stats = stats_value
-
-    @property
-    def metrics(self):
-        return self._metrics
-
-    @metrics.setter
-    def metrics(self, metrics: Metrics):
-        self._metrics = metrics
-
-    @property
-    def args(self):
-        return self._args
-
-    @args.setter
-    def args(self, args_value):
-        self._args = args_value
-
-    @property
-    def extra_inputs(self):
-        return self._extra_inputs
-
-    @extra_inputs.setter
-    def extra_inputs(self, extra_inputs_value):
-        self._extra_inputs = extra_inputs_value
-
-    @property
-    def artifact_dir(self):
-        return self._artifact_dir
-
-    @artifact_dir.setter
-    def artifact_dir(self, artifact_dir_value):
-        self._artifact_dir = artifact_dir_value
+    stats: Dict[Any, Any]
+    metrics: Metrics
+    args: args.Namespace
+    extra_inputs: Dict[str, Any]
+    artifact_dir: Path
+    telemetry_stats: Dict[str, Any] = field(default_factory=dict)

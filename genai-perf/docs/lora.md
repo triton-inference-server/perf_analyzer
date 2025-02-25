@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -90,7 +90,7 @@ docker run -it --net=host --rm --gpus=all \
 Run GenAI-Perf from the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="24.10"
+export RELEASE="25.01"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -149,7 +149,7 @@ docker run \
 Run GenAI-Perf from the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="24.10"
+export RELEASE="25.01"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 
@@ -207,7 +207,7 @@ docker run \
 Run GenAI-Perf from the Triton Inference Server SDK container:
 
 ```bash
-export RELEASE="24.10"
+export RELEASE="25.01"
 
 docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-sdk
 

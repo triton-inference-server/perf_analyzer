@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,19 +31,23 @@ from typing import Dict, List, Tuple, cast
 from genai_perf import utils
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
-from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
+from genai_perf.inputs.retrievers.base_file_input_retriever import (
+    BaseFileInputRetriever,
+)
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
+    SyntheticPromptGenerator,
+)
 from genai_perf.utils import load_json_str
 from PIL import Image
 
 
-class FileInputRetriever(BaseInputRetriever):
+class FileInputRetriever(BaseFileInputRetriever):
     """
     A input retriever class that handles input data provided by the user through
     file and directories.
@@ -115,24 +119,7 @@ class FileInputRetriever(BaseInputRetriever):
         """
         self._verify_file(filename)
         prompts, images = self._get_content_from_input_file(filename)
-        return self._convert_content_to_data_file(prompts, images, filename)
-
-    def _verify_file(self, filename: Path) -> None:
-        """
-        Verifies that the file exists.
-
-        Args
-        ----------
-        filename : Path
-            The file path to verify.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the file does not exist.
-        """
-        if not filename.exists():
-            raise FileNotFoundError(f"The file '{filename}' does not exist.")
+        return self._convert_content_to_data_file(prompts, filename, images)
 
     def _get_content_from_input_file(
         self, filename: Path
@@ -152,6 +139,15 @@ class FileInputRetriever(BaseInputRetriever):
         """
         prompts = []
         images = []
+
+        use_prefix_prompts = self.config.num_prefix_prompts > 0
+        if use_prefix_prompts:
+            SyntheticPromptGenerator.create_prefix_prompts_pool(
+                self.config.tokenizer,
+                self.config.num_prefix_prompts,
+                self.config.prefix_prompt_length,
+            )
+
         with open(filename, mode="r", newline=None) as file:
             for line in file:
                 if line.strip():
@@ -164,7 +160,13 @@ class FileInputRetriever(BaseInputRetriever):
                             "Each data entry must have only one of 'text_input' or 'text' key name."
                         )
                     prompt = prompt if prompt else prompt_alt
-                    prompts.append(prompt.strip() if prompt else prompt)
+                    if use_prefix_prompts:
+                        prefix_prompt = (
+                            SyntheticPromptGenerator.get_random_prefix_prompt()
+                        )
+                        prompt = f"{prefix_prompt} {prompt}"
+                    if prompt is not None:
+                        prompts.append(prompt.strip())
                     image = data.get("image")
                     if image is not None:
                         image = self._encode_image(image.strip())
@@ -206,7 +208,7 @@ class FileInputRetriever(BaseInputRetriever):
         return payload
 
     def _convert_content_to_data_file(
-        self, prompts: List[str], images: List[str], filename: Path
+        self, prompts: List[str], filename: Path, images: List[str] = []
     ) -> FileData:
         """
         Converts the content to a DataFile.
@@ -240,7 +242,7 @@ class FileInputRetriever(BaseInputRetriever):
                 self.config.batch_size_image > DEFAULT_BATCH_SIZE
                 or self.config.batch_size_text > DEFAULT_BATCH_SIZE
             ):
-                for _ in range(self.config.num_prompts):
+                for _ in range(self.config.num_dataset_entries):
                     sampled_texts = random.sample(prompts, self.config.batch_size_text)
                     sampled_images = random.sample(images, self.config.batch_size_image)
                     data_rows.append(
@@ -255,7 +257,7 @@ class FileInputRetriever(BaseInputRetriever):
                     "Batch size for texts cannot be larger than the number of available texts"
                 )
             if self.config.batch_size_text > DEFAULT_BATCH_SIZE:
-                for _ in range(self.config.num_prompts):
+                for _ in range(self.config.num_dataset_entries):
                     sampled_texts = random.sample(prompts, self.config.batch_size_text)
                     data_rows.append(DataRow(texts=sampled_texts, images=[]))
             else:
@@ -268,7 +270,7 @@ class FileInputRetriever(BaseInputRetriever):
                 )
 
             if self.config.batch_size_image > DEFAULT_BATCH_SIZE:
-                for _ in range(self.config.num_prompts):
+                for _ in range(self.config.num_dataset_entries):
                     sampled_images = random.sample(images, self.config.batch_size_image)
                     data_rows.append(DataRow(texts=[], images=sampled_images))
             else:

@@ -111,18 +111,7 @@ NOTE: The rows in the CSV file are sorted in an increasing order of throughput
 (Inferences/Second).
 
 You can import the CSV file into a spreadsheet to help visualize the latency vs
-inferences/second tradeoff as well as see some components of the latency. Follow
-these steps:
-
-- Open
-  [this spreadsheet](https://docs.google.com/spreadsheets/d/1S8h0bWBBElHUoLd2SOvQPzZzRiQ55xjyqodm_9ireiw)
-- Make a copy from the File menu "Make a copy..."
-- Open the copy
-- Select the A1 cell on the "Raw Data" tab
-- From the File menu select "Import..."
-- Select "Upload" and upload the file
-- Select "Replace data at selected cell" and then select the "Import data"
-  button
+inferences/second tradeoff as well as see some components of the latency.
 
 ## Server-side Prometheus metrics
 

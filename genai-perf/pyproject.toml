@@ -39,6 +39,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: Unix",
 ]
 authors = []
@@ -46,21 +47,23 @@ maintainers = []
 keywords = []
 requires-python = ">=3.10,<4"
 dependencies = [
-  "tritonclient",
-  "numpy<2",
-  "pytest",
-  "rich",
-  "transformers",
-  "plotly",
-  "pandas",
-  "kaleido",
-  "statsmodels",
-  "pyarrow",
   "fastparquet",
+  "jinja2",
+  "kaleido",
+  "numpy",
+  "optuna==3.6.1",
+  "pandas",
+  "pillow",
+  "plotly",
+  "pyarrow",
+  "pytest",
   "pytest-mock",
   "pyyaml",
   "responses",
-  "pillow",
+  "rich",
+  "statsmodels",
+  "transformers",
+  "tritonclient",
 ]
 
 # CLI Entrypoint

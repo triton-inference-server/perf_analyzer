@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -268,9 +268,71 @@ DataLoader::ParseData(
     }
   }
 
-
   return cb::Error::Success;
 }
+
+cb::Error
+DataLoader::ReadDataFromPipe(
+    const std::string& command, const std::string& key_name)
+{
+  FILE* pipe = popen(command.data(), "r");
+  if (pipe == nullptr) {
+    return cb::Error(
+        "Failed to open pipe with the following process: " + command,
+        pa::GENERIC_ERROR);
+  }
+
+  auto it = input_data_.emplace(key_name, std::vector<char>()).first;
+
+  std::vector<char> size(pa::DEFAULT_STREAM_DATA_SIZE);
+  std::vector<char> buffer;
+
+  while (true) {
+    // Read the length byte
+    uint32_t data_size = ReadDataSizeFromPipe(pipe);
+    if (data_size == 0) {
+      break;
+    }
+
+    // Ensure buffer is large enough
+    if (buffer.size() != data_size) {
+      buffer.resize(data_size);
+    }
+
+    // Read the payload using the length
+    size_t bytes_read = fread(buffer.data(), 1, data_size, pipe);
+    if (bytes_read != data_size) {
+      return cb::Error(
+          "Unmatching number of bytes read from the pipe: expected = " +
+              std::to_string(data_size) +
+              ", bytes read = " + std::to_string(bytes_read),
+          pa::GENERIC_ERROR);
+    }
+
+    // Store data size and data, respectively, into input data
+    std::memcpy(size.data(), &data_size, sizeof(data_size));
+    std::copy(size.begin(), size.end(), std::back_inserter(it->second));
+    std::copy(buffer.begin(), buffer.end(), std::back_inserter(it->second));
+  }
+
+  pclose(pipe);
+  return cb::Error::Success;
+}
+
+uint32_t
+DataLoader::ReadDataSizeFromPipe(FILE* pipe)
+{
+  // Read the size of the data
+  std::vector<char> buf(pa::DEFAULT_STREAM_DATA_SIZE);
+  size_t bytes_read = fread(buf.data(), 1, pa::DEFAULT_STREAM_DATA_SIZE, pipe);
+  if (bytes_read != pa::DEFAULT_STREAM_DATA_SIZE) {
+    return 0;
+  }
+  uint32_t data_size;
+  std::memcpy(&data_size, buf.data(), pa::DEFAULT_STREAM_DATA_SIZE);
+  return data_size;
+}
+
 
 cb::Error
 DataLoader::GenerateData(
@@ -354,7 +416,7 @@ DataLoader::GenerateData(
 cb::Error
 DataLoader::GetInputData(
     const ModelTensor& input, const int stream_id, const int step_id,
-    TensorData& data)
+    TensorData& data) const
 {
   data.data_ptr = nullptr;
   data.batch1_size = 0;
@@ -371,7 +433,7 @@ DataLoader::GetInputData(
     // Get the data and the corresponding byte-size
     auto it = input_data_.find(key_name);
     if (it != input_data_.end()) {
-      std::vector<char>* data_vec = &it->second;
+      const std::vector<char>* data_vec = &it->second;
       data.is_valid = true;
       data.batch1_size = data_vec->size();
       data.data_ptr = (const uint8_t*)data_vec->data();
@@ -432,7 +494,7 @@ DataLoader::GetOutputData(
 }
 
 cb::Error
-DataLoader::ValidateIndexes(int stream_id, int step_id)
+DataLoader::ValidateIndexes(int stream_id, int step_id) const
 {
   if (stream_id < 0 || stream_id >= (int)data_stream_cnt_) {
     return cb::Error(
@@ -451,6 +513,48 @@ DataLoader::ValidateIndexes(int stream_id, int step_id)
   return cb::Error::Success;
 }
 
+size_t
+DataLoader::GetDatasetSize(const std::vector<std::string>& input_data_paths)
+{
+  size_t dataset_size{0};
+
+  for (const auto& path : input_data_paths) {
+    FILE* fp{std::fopen(path.c_str(), "rb")};
+
+    if (!fp) {
+      throw std::runtime_error("Unable to open JSON file path: '" + path + "'");
+    }
+
+    char buffer[65536];
+
+    rapidjson::FileReadStream stream(fp, buffer, sizeof(buffer));
+
+    rapidjson::Document input_data{};
+
+    input_data.ParseStream(stream);
+
+    fclose(fp);
+
+    if (input_data.HasParseError()) {
+      throw std::runtime_error(
+          "RapidJSON parse error " +
+          std::to_string(input_data.GetParseError()) +
+          ". Review JSON file for formatting errors: '" + path + "'");
+    }
+
+    if (!input_data.IsObject() || input_data.MemberCount() != 1 ||
+        !input_data.HasMember("data") || !input_data["data"].IsArray()) {
+      throw std::runtime_error(
+          "Input data JSON file must contain an object with a single 'data' "
+          "member that is an array. Review JSON file: '" +
+          path + "'");
+    }
+
+    dataset_size += input_data["data"].Size();
+  }
+
+  return dataset_size;
+}
 
 cb::Error
 DataLoader::GetInputShape(
@@ -493,8 +597,12 @@ DataLoader::ReadTensorData(
       auto it = tensor_data.emplace(key_name, std::vector<char>()).first;
 
       const rapidjson::Value& tensor = step[(io.first).c_str()];
-
       const rapidjson::Value* content;
+
+      if (tensor.IsString() && io.first == "message_generator") {
+        ReadDataFromPipe(tensor.GetString(), key_name);
+        break;
+      }
 
       // Check if the input data file is malformed
       if (!(tensor.IsArray() || tensor.IsObject())) {
@@ -743,5 +851,4 @@ DataLoader::ValidateParsingMode(const rapidjson::Value& steps)
   }
   return cb::Error::Success;
 }
-
 }}  // namespace triton::perfanalyzer

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
@@ -52,7 +52,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = config.tokenizer.encode(row.texts[0])
+                token_ids = self._encode_tokens(row.texts[0], config)
                 payload = {
                     "input_ids": {
                         "content": token_ids,
@@ -61,8 +61,10 @@ class TensorRTLLMEngineConverter(BaseConverter):
                     "input_lengths": [len(token_ids)],
                     "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                 }
-                self._add_request_params(payload, config)
-                request_body["data"].append(payload)
+
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row, triton_format=True)
+                )
 
         return request_body
 
@@ -82,4 +84,34 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 payload["min_length"] = [num_tokens]
 
         for key, value in config.extra_inputs.items():
-            payload[key] = [value]
+            if key == "set_end_id":
+                payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
+            elif key == "apply_chat_template":
+                pass
+            else:
+                payload[key] = [value]
+
+    def _encode_tokens(self, prompt: str, config: InputsConfig) -> List[int]:
+        if "apply_chat_template" in config.extra_inputs:
+            token_ids = self._encode_with_chat_template(prompt, config)
+        else:
+            token_ids = config.tokenizer.encode(prompt, add_special_tokens=False)
+        return token_ids
+
+    def _encode_with_chat_template(
+        self, prompt: str, config: InputsConfig
+    ) -> List[int]:
+        """
+        Apply the default TRT-LLM engine chat template to the prompt
+        """
+        import jinja2
+
+        default_template = self._construct_default_template(prompt)
+        return config.tokenizer.encode(
+            config.tokenizer._tokenizer.apply_chat_template(
+                default_template, tokenize=False, add_special_tokens=False
+            )
+        )
+
+    def _construct_default_template(self, prompt: str) -> List[Dict[str, str]]:
+        return [{"role": "user", "content": prompt}]

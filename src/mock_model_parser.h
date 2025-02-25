@@ -1,4 +1,4 @@
-// Copyright 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -32,12 +32,12 @@ namespace triton { namespace perfanalyzer {
 
 class MockModelParser : public ModelParser {
  public:
-  MockModelParser() : ModelParser(clientbackend::BackendKind::TRITON) {}
+  MockModelParser() : ModelParser() {}
 
   MockModelParser(
       bool is_sequence_model, bool is_decoupled_model,
       size_t max_batch_size = 64)
-      : ModelParser(clientbackend::BackendKind::TRITON)
+      : ModelParser()
   {
     if (is_sequence_model) {
       scheduler_type_ = ModelParser::SEQUENCE;

@@ -1,4 +1,4 @@
-// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -30,7 +30,8 @@ namespace triton::perfanalyzer {
 
 cb::Error
 CustomRequestScheduleManager::Create(
-    const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+    const PerfAnalyzerParameters& params,
+    const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory,
     std::unique_ptr<LoadManager>* manager)
 {
@@ -43,79 +44,107 @@ CustomRequestScheduleManager::Create(
 }
 
 CustomRequestScheduleManager::CustomRequestScheduleManager(
-    const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+    const PerfAnalyzerParameters& params,
+    const std::shared_ptr<ModelParser>& parser,
     const std::shared_ptr<cb::ClientBackendFactory>& factory)
     : RequestRateManager(
-          params->async, params->streaming, Distribution::CUSTOM,
-          params->batch_size, params->measurement_window_ms, params->max_trials,
-          params->max_threads, params->num_of_sequences,
-          params->shared_memory_type, params->output_shm_size,
-          params->serial_sequences, parser, factory,
-          params->request_parameters),
-      schedule_(params->schedule)
+          params.async, params.streaming, Distribution::CUSTOM,
+          params.batch_size, params.measurement_window_ms, params.max_trials,
+          params.max_threads, params.num_of_sequences,
+          params.shared_memory_type, params.output_shm_size,
+          params.serial_sequences, parser, factory, params.request_parameters)
 {
+  max_threads_ = std::min(max_threads_, params.request_count);
 }
 
 cb::Error
-CustomRequestScheduleManager::PerformWarmup(
-    double request_rate, size_t warmup_request_count)
-{
-  if (warmup_request_count == 0) {
-    return cb::Error::Success;
-  }
-  RETURN_IF_ERROR(ChangeRequestRate(request_rate, warmup_request_count));
-  WaitForWarmupAndCleanup();
-  return cb::Error::Success;
-}
-
-cb::Error
-CustomRequestScheduleManager::ChangeRequestRate(
-    const double request_rate, const size_t request_count)
+CustomRequestScheduleManager::InitCustomSchedule(const size_t request_count)
 {
   PauseWorkers();
   ConfigureThreads(request_count);
-  GenerateSchedule(request_rate, schedule_);
+  GenerateSchedule();
   ResumeWorkers();
 
   return cb::Error::Success;
 }
 
 void
-CustomRequestScheduleManager::GenerateSchedule(
-    const double request_rate, const std::vector<float>& schedule)
+CustomRequestScheduleManager::GenerateSchedule()
 {
-  std::vector<float> scaled_schedule;
-  scaled_schedule.reserve(schedule.size());
-  if (schedule.size() > 0) {
-    for (const auto& value : schedule) {
-      scaled_schedule.push_back(value / static_cast<float>(request_rate));
-    }
-  }
-  auto worker_schedules = CreateWorkerSchedules(schedule);
+  auto worker_schedules = CreateWorkerSchedules(schedule_);
   GiveSchedulesToWorkers(worker_schedules);
 }
 
 std::vector<RateSchedulePtr_t>
 CustomRequestScheduleManager::CreateWorkerSchedules(
-    const std::vector<float>& schedule)
+    const std::vector<std::chrono::milliseconds>& schedule)
 {
   std::vector<RateSchedulePtr_t> worker_schedules =
       CreateEmptyWorkerSchedules();
   std::vector<size_t> thread_ids{CalculateThreadIds()};
-  std::chrono::nanoseconds next_timestamp(0);
   size_t thread_id_index = 0;
   size_t worker_index = 0;
 
-  for (const float& val : schedule) {
-    next_timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::duration<float>(val));
+  for (const auto& timestamp : schedule) {
+    const auto timestamp_ns{
+        std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp)};
     worker_index = thread_ids[thread_id_index];
     thread_id_index = ++thread_id_index % thread_ids.size();
-    worker_schedules[worker_index]->intervals.emplace_back(next_timestamp);
+    worker_schedules[worker_index]->intervals.push_back(timestamp_ns);
   }
   SetScheduleDurations(worker_schedules);
 
   return worker_schedules;
+}
+
+void
+CustomRequestScheduleManager::InitManagerFinalize()
+{
+  schedule_ = GetScheduleFromDataset();
+  parser_->Inputs()->erase("timestamp");
+}
+
+std::vector<std::chrono::milliseconds>
+CustomRequestScheduleManager::GetScheduleFromDataset() const
+{
+  std::vector<std::chrono::milliseconds> schedule{};
+
+  if (data_loader_->GetDataStreamsCount() != 1) {
+    throw std::runtime_error(
+        "Expected input data JSON to have one stream. Fixed schedule mode "
+        "must have an input data JSON with a single flat array for the "
+        "\"data\" field with one element per request payload.");
+  }
+
+  const size_t dataset_size{data_loader_->GetTotalSteps(0)};
+
+  for (size_t dataset_index{0}; dataset_index < dataset_size; ++dataset_index) {
+    const auto timestamp{GetTimestamp(dataset_index)};
+    schedule.push_back(timestamp);
+  }
+
+  std::sort(schedule.begin(), schedule.end());
+
+  return schedule;
+}
+
+std::chrono::milliseconds
+CustomRequestScheduleManager::GetTimestamp(size_t dataset_index) const
+{
+  TensorData timestamp_tensor_data{};
+
+  const auto error{data_loader_->GetInputData(
+      (*parser_->Inputs())["timestamp"], 0, dataset_index,
+      timestamp_tensor_data)};
+
+  if (!error.IsOk()) {
+    throw std::runtime_error(error.Message());
+  }
+
+  const uint64_t timestamp_ms{
+      *reinterpret_cast<const uint64_t*>(timestamp_tensor_data.data_ptr)};
+
+  return std::chrono::milliseconds(timestamp_ms);
 }
 
 }  // namespace triton::perfanalyzer

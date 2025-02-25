@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -72,17 +72,16 @@ class RankingsConverter(BaseConverter):
                 passages = passage_entry.texts
                 payload = {"query": query, "texts": passages}
             else:
-                passages = [
-                    {"text_input": p} for p in passage_entry.texts if p is not None
-                ]
+                passages = [{"text": p} for p in passage_entry.texts if p is not None]
                 payload = {
-                    "query": query,
+                    "query": {"text": query},
                     "passages": passages,
                     "model": model_name,
                 }
 
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+            request_body["data"].append(
+                self._finalize_payload(payload, config, passage_entry)
+            )
 
         return request_body
 

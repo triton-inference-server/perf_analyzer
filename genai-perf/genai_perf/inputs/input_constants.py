@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from enum import Enum, auto
-from typing import Dict
 
 
 class ModelSelectionStrategy(Enum):
@@ -36,6 +35,7 @@ class ModelSelectionStrategy(Enum):
 class PromptSource(Enum):
     SYNTHETIC = auto()
     FILE = auto()
+    PAYLOAD = auto()
 
 
 class OutputFormat(Enum):
@@ -48,13 +48,16 @@ class OutputFormat(Enum):
     # Other output formats
     ################################################################
     IMAGE_RETRIEVAL = auto()
+    DYANMIC_GRPC = auto()
     NVCLIP = auto()
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
+    TEMPLATE = auto()
     TENSORRTLLM_ENGINE = auto()
+    TRITON_GENERATE = auto()
 
     def to_lowercase(self):
         return self.name.lower()
@@ -65,12 +68,15 @@ class OutputFormat(Enum):
 ###########################
 DEFAULT_INPUT_DATA_JSON = "inputs.json"
 DEFAULT_RANDOM_SEED = 0
+DEFAULT_REQUEST_COUNT = 0
 DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
-
+DEFAULT_WARMUP_REQUEST_COUNT = 0
+DEFAULT_BACKEND = "tensorrtllm"
 
 ###########################
 # Default Prompt Parameters
 ###########################
+DEFAULT_CORPUS_FILE = "shakespeare.txt"
 DEFAULT_STARTING_INDEX = 0
 MINIMUM_STARTING_INDEX = 0
 DEFAULT_LENGTH = 100
@@ -81,7 +87,9 @@ DEFAULT_PROMPT_TOKENS_MEAN = 550
 DEFAULT_PROMPT_TOKENS_STDDEV = 0
 DEFAULT_OUTPUT_TOKENS_MEAN = -1
 DEFAULT_OUTPUT_TOKENS_STDDEV = 0
-DEFAULT_NUM_PROMPTS = 100
+DEFAULT_NUM_DATASET_ENTRIES = 100
+DEFAULT_NUM_PREFIX_PROMPTS = 0
+DEFAULT_PREFIX_PROMPT_LENGTH = 100
 
 ###########################
 # Default Image Parameters

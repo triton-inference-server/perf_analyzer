@@ -40,6 +40,7 @@ namespace triton { namespace perfanalyzer {
 class NaggyMockRequestRateWorker;
 class TestRequestRateManager;
 class TestCustomLoadManager;
+class TestCustomRequestScheduleManager;
 #endif
 
 /// Worker thread for RequestRateManager
@@ -118,6 +119,7 @@ class RequestRateWorker : public LoadWorker, public IScheduler {
   friend NaggyMockRequestRateWorker;
   friend TestCustomLoadManager;
   friend TestRequestRateManager;
+  friend TestCustomRequestScheduleManager;
 
 #endif
 };

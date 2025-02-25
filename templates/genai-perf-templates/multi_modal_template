@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -54,6 +54,7 @@ the parameters provide by the user through CLI.
 ```bash
 genai-perf profile \
     -m llava-hf/llava-v1.6-mistral-7b-hf \
+    --tokenizer llava-hf/llava-v1.6-mistral-7b-hf \
     --service-kind openai \
     --endpoint-type vision \
     --image-width-mean 512 \
@@ -97,6 +98,7 @@ After you create the file, you can run GenAI-Perf using the following command:
 ```bash
 genai-perf profile \
     -m llava-hf/llava-v1.6-mistral-7b-hf \
+    --tokenizer llava-hf/llava-v1.6-mistral-7b-hf \
     --service-kind openai \
     --endpoint-type vision \
     --input-file input.jsonl \

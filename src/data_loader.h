@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -45,12 +45,12 @@ class DataLoader {
   DataLoader(size_t batch_size);
 
   /// Returns the total number of data streams available.
-  size_t GetDataStreamsCount() { return data_stream_cnt_; }
+  size_t GetDataStreamsCount() const { return data_stream_cnt_; }
 
   /// Returns the total data steps supported for a requested data stream
   /// id.
   /// \param stream_id The target stream id
-  virtual size_t GetTotalSteps(size_t stream_id)
+  virtual size_t GetTotalSteps(size_t stream_id) const
   {
     if (stream_id < data_stream_cnt_) {
       return step_num_[stream_id];
@@ -113,7 +113,7 @@ class DataLoader {
   /// Returns error object indicating status
   cb::Error GetInputData(
       const ModelTensor& input, const int stream_id, const int step_id,
-      TensorData& data);
+      TensorData& data) const;
 
   /// Helper function to get the shape values to the input
   /// \param input The target model input tensor
@@ -138,7 +138,10 @@ class DataLoader {
       TensorData& data);
 
   /// Return an error if the stream index or step index are invalid
-  cb::Error ValidateIndexes(int stream_index, int step_index);
+  cb::Error ValidateIndexes(int stream_index, int step_index) const;
+
+  static size_t GetDatasetSize(
+      const std::vector<std::string>& input_data_paths);
 
  protected:
   /// Parses the input and output data from the json document
@@ -150,6 +153,20 @@ class DataLoader {
       const rapidjson::Document& json,
       const std::shared_ptr<ModelTensorMap>& inputs,
       const std::shared_ptr<ModelTensorMap>& outputs);
+
+  /// Reads the input data stream from the user process through pipe.
+  /// \param command The command to execute and launch a process from which to
+  /// read the data from
+  /// \param key_name The string name to map the data read from pipe
+  /// Returns error object indicating status
+  virtual cb::Error ReadDataFromPipe(
+      const std::string& command, const std::string& key_name);
+
+  /// Helper function to read 4 bytes that represents the size of the data to
+  /// read from the pipe
+  /// \param pipe The stream to read from Returns the message
+  /// size of 4 bytes.
+  uint32_t ReadDataSizeFromPipe(FILE* pipe);
 
  private:
   /// Reads the data from file specified by path into vector of characters

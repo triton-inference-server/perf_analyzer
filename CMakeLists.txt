@@ -1,4 +1,4 @@
-# Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,8 +28,8 @@ cmake_minimum_required(VERSION 3.18)
 
 project(perf_analyzer LANGUAGES C CXX)
 
-# Use C++17 standard as Triton's minimum required.
-set(TRITON_MIN_CXX_STANDARD 17 CACHE STRING "The minimum C++ standard which features are requested to build this target.")
+# Use C++20 standard as Triton's minimum required.
+set(TRITON_MIN_CXX_STANDARD 20 CACHE STRING "The minimum C++ standard which features are requested to build this target.")
 
 set(TRITON_VERSION "0.0.0" CACHE STRING "Version for the clients")
 set(PERF_ANALYZER_VERSION ${TRITON_VERSION} CACHE STRING "Build Version for Perf Analyzer")
@@ -38,10 +38,11 @@ set(PERF_ANALYZER_VERSION ${TRITON_VERSION} CACHE STRING "Build Version for Perf
 # Perf Analyzer Options
 #
 option(TRITON_PACKAGE_PERF_ANALYZER "Include Perf Analyzer in python client pip wheel" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" ON)
+option(TRITON_ENABLE_PERF_ANALYZER_DGRPC "Enable Dynamic gRPC support for Performance Analyzer" ON)
 option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
-option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
 
 #
 # Client Options
@@ -129,6 +130,7 @@ ExternalProject_Add(
       -DTRITON_ENABLE_PERF_ANALYZER_TFS:BOOL=${TRITON_ENABLE_PERF_ANALYZER_TFS}
       -DTRITON_ENABLE_PERF_ANALYZER_TS:BOOL=${TRITON_ENABLE_PERF_ANALYZER_TS}
       -DTRITON_ENABLE_PERF_ANALYZER_OPENAI:BOOL=${TRITON_ENABLE_PERF_ANALYZER_OPENAI}
+      -DTRITON_ENABLE_PERF_ANALYZER_DGRPC:BOOL=${TRITON_ENABLE_PERF_ANALYZER_DGRPC}
       -DTRITON_MIN_CXX_STANDARD:STRING=${TRITON_MIN_CXX_STANDARD}
       -DTRITON_THIRD_PARTY_INSTALL_PREFIX:STRING=${TRITON_THIRD_PARTY_INSTALL_PREFIX}
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -62,7 +62,9 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 payload = self._create_payload(index, row, config)
-                request_body["data"].append({"payload": [payload]})
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row)
+                )
 
         return request_body
 
@@ -82,7 +84,6 @@ class OpenAIChatCompletionsConverter(BaseConverter):
             ],
         }
 
-        self._add_request_params(payload, config)
         return payload
 
     def _retrieve_content(

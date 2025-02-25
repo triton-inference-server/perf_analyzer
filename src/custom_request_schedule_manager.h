@@ -1,4 +1,4 @@
-// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -55,25 +55,15 @@ class CustomRequestScheduleManager : public RequestRateManager {
   /// object
   ///
   static cb::Error Create(
-      const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+      const PerfAnalyzerParameters& params,
+      const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager);
 
-  /// Performs warmup for benchmarking by sending a fixed number of requests
-  /// according to the specified request rate
-  /// \param request_rate The rate at which requests must be issued to the
-  /// server \param warmup_request_count The number of warmup requests to send
+  /// Initializes the load manager with the provided schedule
+  /// \param request_count The number of requests to generate when profiling.
   /// \return cb::Error object indicating success or failure
-  cb::Error PerformWarmup(
-      double request_rate, size_t warmup_request_count) override;
-
-  /// Adjusts the rate of issuing requests to be the same as 'request_rate'
-  /// \param request_rate The rate at which requests must be issued to the
-  /// server \param request_count The number of requests to generate when
-  /// profiling \return cb::Error object indicating success or failure
-  cb::Error ChangeRequestRate(
-      const double request_rate, const size_t request_count) override;
-
+  cb::Error InitCustomSchedule(const size_t request_count);
 
  protected:
   /// Constructor for CustomRequestScheduleManager
@@ -86,24 +76,29 @@ class CustomRequestScheduleManager : public RequestRateManager {
   /// object
   ///
   CustomRequestScheduleManager(
-      const pa::PAParamsPtr& params, const std::shared_ptr<ModelParser>& parser,
+      const PerfAnalyzerParameters& params,
+      const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory);
 
-  /// Generates and updates the request schedule as per the given request rate
-  /// and schedule \param request_rate The request rate to use for new schedule
-  /// \param schedule The vector containing the schedule for requests
-  void GenerateSchedule(
-      const double request_rate, const std::vector<float>& schedule);
+  /// Generates and updates the request schedule as per the given schedule
+  void GenerateSchedule();
 
   /// Creates worker schedules based on the provided schedule
   /// \param duration The maximum duration for the schedule
   /// \param schedule The vector containing the schedule for requests
   /// \return A vector of RateSchedulePtr_t representing the worker schedules
   std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
-      const std::vector<float>& schedule);
+      const std::vector<std::chrono::milliseconds>& schedule);
 
   /// The vector containing the schedule for requests
-  std::vector<float> schedule_;
+  std::vector<std::chrono::milliseconds> schedule_{};
+
+ private:
+  void InitManagerFinalize() override;
+
+  std::vector<std::chrono::milliseconds> GetScheduleFromDataset() const;
+
+  std::chrono::milliseconds GetTimestamp(size_t dataset_index) const;
 };
 
 }  // namespace triton::perfanalyzer

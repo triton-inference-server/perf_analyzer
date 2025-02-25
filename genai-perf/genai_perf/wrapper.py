@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,18 +24,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import subprocess  # nosec
 from argparse import Namespace
 from typing import List, Optional
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.constants import DEFAULT_GRPC_URL
-from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON, PromptSource
 from genai_perf.inputs.inputs import OutputFormat
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +39,8 @@ logger = logging.getLogger(__name__)
 class Profiler:
     @staticmethod
     def add_protocol_args(args: Namespace) -> List[str]:
-        cmd = []
+        cmd = ["--async", "-m", f"{args.formatted_model_name}"]  # default
+
         if args.service_kind == "triton":
             cmd += ["-i", "grpc", "--streaming"]
             if args.u is None:  # url
@@ -52,15 +49,26 @@ class Profiler:
                 cmd += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif args.service_kind == "openai":
             cmd += ["-i", "http"]
+        elif args.service_kind == "dynamic_grpc":
+            cmd.clear()  # dynamic grpc doesn't support default args
+            if args.u is None:  # url
+                cmd += ["-u", f"{DEFAULT_GRPC_URL}"]
         return cmd
 
     @staticmethod
     def add_inference_load_args(args: Namespace) -> List[str]:
-        cmd = []
+        cmd: list[str] = []
         if args.concurrency:
             cmd += ["--concurrency-range", f"{args.concurrency}"]
         elif args.request_rate:
             cmd += ["--request-rate-range", f"{args.request_rate}"]
+        return cmd
+
+    @staticmethod
+    def add_payload_args(args: Namespace) -> List[str]:
+        cmd = []
+        if args.prompt_source == PromptSource.PAYLOAD:
+            cmd += ["--fixed-schedule"]
         return cmd
 
     @staticmethod
@@ -87,11 +95,13 @@ class Profiler:
             "input_format",
             "model",
             "model_selection_strategy",
-            "num_prompts",
+            "num_dataset_entries",
+            "num_prefix_prompts",
             "output_format",
             "output_tokens_mean",
             "output_tokens_mean_deterministic",
             "output_tokens_stddev",
+            "payload_input_file",
             "prompt_source",
             "random_seed",
             "request_rate",
@@ -105,23 +115,31 @@ class Profiler:
             "synthetic_input_files",
             "synthetic_input_tokens_mean",
             "synthetic_input_tokens_stddev",
+            "prefix_prompt_length",
             "tokenizer",
             "tokenizer_trust_remote_code",
             "tokenizer_revision",
         ]
 
+        if args.prompt_source == PromptSource.PAYLOAD:
+            skip_args += [
+                "measurement_interval",
+                "request_count",
+                "stability_percentage",
+                "warmup_request_count",
+            ]
+
         utils.remove_file(args.profile_export_file)
 
         cmd = [
             f"perf_analyzer",
-            f"-m",
-            f"{args.formatted_model_name}",
-            f"--async",
             f"--input-data",
             f"{args.artifact_dir / DEFAULT_INPUT_DATA_JSON}",
         ]
-        cmd += Profiler.add_protocol_args(args)
+
         cmd += Profiler.add_inference_load_args(args)
+        cmd += Profiler.add_payload_args(args)
+        cmd += Profiler.add_protocol_args(args)
 
         for arg, value in vars(args).items():
             if arg in skip_args:
@@ -139,6 +157,9 @@ class Profiler:
             # against tensorrtllm engine.
             elif arg == "service_kind" and value == "tensorrtllm_engine":
                 cmd += ["--service-kind", "triton_c_api", "--streaming"]
+            elif arg == "header":
+                for header in value:
+                    cmd += ["-H", header]
             else:
                 if len(arg) == 1:
                     cmd += [f"-{arg}", f"{value}"]
@@ -150,22 +171,3 @@ class Profiler:
             for arg in extra_args:
                 cmd += [f"{arg}"]
         return cmd
-
-    @staticmethod
-    def run(
-        args: Namespace,
-        extra_args: Optional[List[str]],
-        telemetry_data_collector: Optional[TelemetryDataCollector] = None,
-    ) -> None:
-        try:
-            if telemetry_data_collector is not None:
-                telemetry_data_collector.start()
-            cmd = Profiler.build_cmd(args, extra_args)
-            logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
-            if args and args.verbose:
-                subprocess.run(cmd, check=True, stdout=None)  # nosec
-            else:
-                subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
-        finally:
-            if telemetry_data_collector is not None:
-                telemetry_data_collector.stop()

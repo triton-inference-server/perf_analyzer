@@ -1,4 +1,4 @@
-// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -291,6 +291,50 @@ TEST_CASE("dataloader: ReadDataFromJSON")
               })";
     out.close();
 
+    cb::Error status = dataloader.ReadDataFromJSON(inputs, outputs, json_file);
+    std::filesystem::remove(json_file);
+    CHECK(status.Message().empty());
+    CHECK(status.IsOk());
+  }
+}
+
+TEST_CASE("dataloader: ReadDataFromPipe")
+{
+  DataLoader dataloader;
+  std::shared_ptr<ModelTensorMap> inputs = std::make_shared<ModelTensorMap>();
+  std::shared_ptr<ModelTensorMap> outputs = std::make_shared<ModelTensorMap>();
+
+  ModelTensor input1 = TestDataLoader::CreateTensor("message_generator");
+  inputs->insert(std::make_pair(input1.name_, input1));
+
+  SUBCASE("Read input data from pipe")
+  {
+    std::string json_file = "valid_pipe_stream.json";
+    std::ofstream out(json_file);
+    out << R"({
+                 "data": [
+                   { "message_generator": "python some_input_stream.py 2>&1 > /dev/null" }
+                 ]
+              })";
+    out.close();
+    cb::Error status = dataloader.ReadDataFromJSON(inputs, outputs, json_file);
+    std::filesystem::remove(json_file);
+    CHECK(status.Message().empty());
+    CHECK(status.IsOk());
+  }
+
+  SUBCASE("Read multiple input data from streams")
+  {
+    std::string json_file = "valid_multiple_pipe_stream.json";
+    std::ofstream out(json_file);
+    out << R"({
+                 "data": [
+                   { "message_generator": "python some_input_stream1.py 2>&1 > /dev/null" },
+                   { "message_generator": "python some_input_stream2.py 2>&1 > /dev/null" },
+                   { "message_generator": "python some_input_stream3.py 2>&1 > /dev/null" }
+                 ]
+              })";
+    out.close();
     cb::Error status = dataloader.ReadDataFromJSON(inputs, outputs, json_file);
     std::filesystem::remove(json_file);
     CHECK(status.Message().empty());

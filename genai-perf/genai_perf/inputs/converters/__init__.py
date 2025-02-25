@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,24 +24,30 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from .dynamic_grpc_converter import DynamicGRPCConverter
 from .image_retrieval_converter import ImageRetrievalConverter
 from .nvclip_converter import NVClipConverter
 from .openai_chat_completions_converter import OpenAIChatCompletionsConverter
 from .openai_completions_converter import OpenAICompletionsConverter
 from .openai_embeddings_converter import OpenAIEmbeddingsConverter
 from .rankings_converter import RankingsConverter
+from .template_converter import TemplateConverter
 from .tensorrtllm_converter import TensorRTLLMConverter
 from .tensorrtllm_engine_converter import TensorRTLLMEngineConverter
+from .triton_generate_converter import TritonGenerateConverter
 from .vllm_converter import VLLMConverter
 
 __all__ = [
+    "DynamicGRPCConverter",
     "ImageRetrievalConverter",
     "NVClipConverter",
     "OpenAIChatCompletionsConverter",
     "OpenAICompletionsConverter",
     "OpenAIEmbeddingsConverter",
     "RankingsConverter",
+    "TemplateConverter",
     "TensorRTLLMConverter",
     "TensorRTLLMEngineConverter",
     "VLLMConverter",
+    "TritonGenerateConverter",
 ]

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@ from genai_perf.inputs.input_constants import (
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.parser import PathType
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
 class TestCLIArguments:
@@ -185,12 +186,20 @@ class TestCLIArguments:
                     ]
                 },
             ),
+            (["-H", "header_name:value"], {"header": ["header_name:value"]}),
+            (["--header", "header_name:value"], {"header": ["header_name:value"]}),
+            (
+                ["--header", "header_name:value", "--header", "header_name_2:value_2"],
+                {"header": ["header_name:value", "header_name_2:value_2"]},
+            ),
             (["--measurement-interval", "100"], {"measurement_interval": 100}),
             (
                 ["--model-selection-strategy", "random"],
                 {"model_selection_strategy": ModelSelectionStrategy.RANDOM},
             ),
-            (["--num-prompts", "101"], {"num_prompts": 101}),
+            (["--num-dataset-entries", "101"], {"num_dataset_entries": 101}),
+            (["--num-prompts", "101"], {"num_dataset_entries": 101}),
+            (["--num-prefix-prompts", "101"], {"num_prefix_prompts": 101}),
             (
                 ["--output-tokens-mean", "6"],
                 {"output_tokens_mean": 6},
@@ -217,8 +226,29 @@ class TestCLIArguments:
                 },
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
+            (["--request-count", "100"], {"request_count": 100}),
+            (
+                ["--grpc-method", "package.name.v1.ServiceName/MethodName"],
+                {"grpc_method": "package.name.v1.ServiceName/MethodName"},
+            ),
+            (["--num-requests", "100"], {"request_count": 100}),
+            (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
+            (["--num-warmup-requests", "100"], {"warmup_request_count": 100}),
             (["--request-rate", "9.0"], {"request_rate": 9.0}),
             (["-s", "99.5"], {"stability_percentage": 99.5}),
+            (
+                [
+                    "--service-kind",
+                    "dynamic_grpc",
+                    "--grpc-method",
+                    "package.name.v1.ServiceName/MethodName",
+                ],
+                {
+                    "service_kind": "dynamic_grpc",
+                    "endpoint_type": "dynamic_grpc",
+                    "grpc_method": "package.name.v1.ServiceName/MethodName",
+                },
+            ),
             (["--service-kind", "triton"], {"service_kind": "triton"}),
             (
                 ["--service-kind", "tensorrtllm_engine"],
@@ -241,6 +271,10 @@ class TestCLIArguments:
             (
                 ["--synthetic-input-tokens-stddev", "7"],
                 {"synthetic_input_tokens_stddev": 7},
+            ),
+            (
+                ["--prefix-prompt-length", "6"],
+                {"prefix_prompt_length": 6},
             ),
             (
                 ["--image-width-mean", "123"],
@@ -445,6 +479,22 @@ class TestCLIArguments:
         args, _ = parser.parse_args()
         assert args.concurrency == 1
 
+    def test_load_manager_args_with_payload(self, monkeypatch, mocker):
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "genai-perf",
+                "profile",
+                "--model",
+                "test_model",
+                "--input-file",
+                "payload:test",
+            ],
+        )
+        mocker.patch.object(Path, "is_file", return_value=True)
+        args, _ = parser.parse_args()
+        assert args.concurrency is None
+
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
         monkeypatch.setattr(
             "sys.argv",
@@ -526,6 +576,17 @@ class TestCLIArguments:
                     "custom/address",
                 ],
                 "The --endpoint-type option is required when using the 'openai' service-kind.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "dynamic_grpc",
+                ],
+                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind.",
             ),
             (
                 [
@@ -620,17 +681,14 @@ class TestCLIArguments:
                 [
                     "genai-perf",
                     "profile",
-                    "--model",
+                    "-m",
                     "test_model",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
-                    "invalid_url",
+                    "ftp://invalid.com:8002/metrics",
                 ],
-                "The URL passed for --server-metrics-url is invalid. "
-                "It must use 'http' or 'https', have a valid domain and port, "
-                "and contain '/metrics' in the path. The expected structure is: "
-                "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>",
+                "Invalid scheme 'ftp' in URL: ftp://invalid.com:8002/metrics. Use 'http' or 'https'.",
             ),
             (
                 [
@@ -638,7 +696,59 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--num-prompts",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "http:///metrics",
+                ],
+                "Invalid domain in URL: http:///metrics. Use a valid hostname or 'localhost'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "http://valid.com:8002/invalidpath",
+                ],
+                "Invalid URL path '/invalidpath' in http://valid.com:8002/invalidpath. The path must include '/metrics'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "http://valid.com/metrics",
+                ],
+                "Port missing in URL: http://valid.com/metrics. A port number is required (e.g., ':8002').",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-url",
+                    "invalid_url",
+                ],
+                "Invalid scheme '' in URL: invalid_url. Use 'http' or 'https'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--num-dataset-entries",
                     "0",
                 ],
                 "The value must be greater than zero.",
@@ -649,10 +759,81 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--num-prompts",
+                    "--num-dataset-entries",
                     "not_number",
                 ],
                 "The value must be an integer.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'rankings' for service-kind 'triton'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "tensorrtllm_engine",
+                    "--endpoint-type",
+                    "rankings",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'rankings' for service-kind 'tensorrtllm_engine'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "openai",
+                    "--endpoint-type",
+                    "kserve",
+                    "--backend",
+                    "vllm",
+                ],
+                "Invalid endpoint-type 'kserve' for service-kind 'openai'.",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--service-kind",
+                    "unknown_service",
+                ],
+                "--service-kind: invalid choice: 'unknown_service'",
             ),
         ],
     )
@@ -717,19 +898,18 @@ class TestCLIArguments:
         [
             (
                 ["--extra-inputs", "hi:"],
-                "Input name or value is empty in --extra-inputs: hi:\nExpected input format: 'input_name:value'",
+                "Input name or value is empty in --extra-inputs: hi:\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", ":a"],
-                "Input name or value is empty in --extra-inputs: :a\nExpected input format: 'input_name:value'",
+                "Input name or value is empty in --extra-inputs: :a\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", ":a:"],
-                "Invalid input format for --extra-inputs: :a:\nExpected input format: 'input_name:value'",
-            ),
-            (
-                ["--extra-inputs", "unknown"],
-                "Invalid input format for --extra-inputs: unknown\nExpected input format: 'input_name:value'",
+                "Invalid input format for --extra-inputs: :a:\n"
+                "Expected input format: 'input_name' or 'input_name:value'",
             ),
             (
                 ["--extra-inputs", "test_key:5", "--extra-inputs", "test_key:6"],
@@ -737,14 +917,14 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_repeated_extra_arg_warning(self, monkeypatch, args, expected_error):
+    def test_get_extra_inputs_as_dict_warning(self, monkeypatch, args, expected_error):
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 
         parsed_args, _ = parser.parse_args()
 
         with pytest.raises(ValueError) as exc_info:
-            parser.get_extra_inputs_as_dict(parsed_args)
+            get_extra_inputs_as_dict(parsed_args)
 
         assert str(exc_info.value) == expected_error
 
@@ -767,25 +947,69 @@ class TestCLIArguments:
         assert str(exc_info.value) == expected_error
 
     @pytest.mark.parametrize(
-        "args, expected_prompt_source",
+        "args, expected_prompt_source, expected_input_file",
         [
-            ([], PromptSource.SYNTHETIC),
-            (["--input-file", "prompt.txt"], PromptSource.FILE),
+            ([], PromptSource.SYNTHETIC, None),
+            (["--input-file", "prompt.txt"], PromptSource.FILE, None),
             (
                 ["--input-file", "prompt.txt", "--synthetic-input-tokens-mean", "10"],
                 PromptSource.FILE,
+                None,
+            ),
+            (
+                ["--input-file", "payload:test.jsonl"],
+                PromptSource.PAYLOAD,
+                Path("test.jsonl"),
+            ),
+            (
+                ["--input-file", "synthetic:test.jsonl"],
+                PromptSource.SYNTHETIC,
+                None,
             ),
         ],
     )
-    def test_inferred_prompt_source(
-        self, monkeypatch, mocker, args, expected_prompt_source
+    def test_inferred_prompt_source_valid(
+        self,
+        monkeypatch,
+        mocker,
+        args,
+        expected_prompt_source,
+        expected_input_file,
     ):
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        parsed_args, _ = parser.parse_args()
+        assert parsed_args.prompt_source == expected_prompt_source
+        assert parsed_args.payload_input_file == expected_input_file
 
-        assert args.prompt_source == expected_prompt_source
+    @pytest.mark.parametrize(
+        "args",
+        [
+            (["--input-file", "payload:"]),
+            (["--input-file", "payload:input"]),
+        ],
+    )
+    def test_inferred_prompt_source_invalid_payload_input(
+        self,
+        monkeypatch,
+        mocker,
+        args,
+    ):
+        mocker.patch.object(Path, "is_file", return_value=False)
+        combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(ValueError):
+            parser.parse_args()
+
+    def test_inferred_prompt_source_invalid_input(self, monkeypatch, mocker):
+        file_arg = ["--input-file", "invalid_input"]
+        mocker.patch.object(Path, "is_file", return_value=False)
+        mocker.patch.object(Path, "is_dir", return_value=False)
+        combined_args = ["genai-perf", "profile", "--model", "test_model"] + file_arg
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(SystemExit):
+            parser.parse_args()
 
     @pytest.mark.parametrize(
         "args",
@@ -806,6 +1030,62 @@ class TestCLIArguments:
 
         with pytest.raises(SystemExit) as excinfo:
             parser.parse_args()
+
+    @pytest.mark.parametrize(
+        "args , expected_error_message",
+        [
+            (
+                ["--concurrency", "10"],
+                "--concurrency cannot be used with payload input.",
+            ),
+            (
+                ["--request-rate", "5"],
+                "--request-rate cannot be used with payload input.",
+            ),
+            (
+                ["--request-count", "3"],
+                "--request-count cannot be used with payload input.",
+            ),
+            (
+                ["--warmup-request-count", "7"],
+                "--warmup-request-count cannot be used with payload input.",
+            ),
+        ],
+    )
+    def test_check_payload_input_args_invalid_args(
+        self, monkeypatch, mocker, capsys, args, expected_error_message
+    ):
+        combined_args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:test.jsonl",
+        ] + args
+
+        mocker.patch.object(Path, "is_file", return_value=True)
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(SystemExit):
+            parser.parse_args()
+        captured = capsys.readouterr()
+        assert expected_error_message in captured.err
+
+    def test_check_payload_input_args_valid(self, monkeypatch, mocker):
+        valid_args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:test.jsonl",
+        ]
+        mocker.patch.object(Path, "is_file", return_value=True)
+        monkeypatch.setattr("sys.argv", valid_args)
+        try:
+            parser.parse_args()
+        except SystemExit:
+            pytest.fail("Unexpected error in test")
 
     # ================================================
     # COMPARE SUBCOMMAND
@@ -865,6 +1145,7 @@ class TestCLIArguments:
         "extra_inputs_list, expected_dict",
         [
             (["test_key:test_value"], {"test_key": "test_value"}),
+            (["test_key"], {"test_key": None}),
             (
                 ["test_key:1", "another_test_key:2"],
                 {"test_key": 1, "another_test_key": 2},
@@ -887,7 +1168,7 @@ class TestCLIArguments:
     def test_get_extra_inputs_as_dict(self, extra_inputs_list, expected_dict):
         namespace = argparse.Namespace()
         namespace.extra_inputs = extra_inputs_list
-        actual_dict = parser.get_extra_inputs_as_dict(namespace)
+        actual_dict = get_extra_inputs_as_dict(namespace)
         assert actual_dict == expected_dict
 
     test_triton_metrics_url = "http://tritonmetrics.com:8002/metrics"
@@ -907,7 +1188,20 @@ class TestCLIArguments:
                     "--server-metrics-url",
                     test_triton_metrics_url,
                 ],
-                test_triton_metrics_url,
+                [test_triton_metrics_url],
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "--model",
+                    "test_model",
+                    "--service-kind",
+                    "triton",
+                    "--server-metrics-urls",
+                    test_triton_metrics_url,
+                ],
+                [test_triton_metrics_url],
             ),
             # server-metrics-url is not specified
             (
@@ -919,7 +1213,7 @@ class TestCLIArguments:
                     "--service-kind",
                     "triton",
                 ],
-                None,
+                [],
             ),
         ],
     )
@@ -927,3 +1221,22 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", args_list)
         args, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
+
+    def test_tokenizer_args(self, monkeypatch):
+        args = [
+            "genai-perf",
+            "profile",
+            "--model",
+            "test_model",
+            "--tokenizer",
+            "test_tokenizer",
+            "--tokenizer-trust-remote-code",
+            "--tokenizer-revision",
+            "test_revision",
+        ]
+        monkeypatch.setattr("sys.argv", args)
+        parsed_args, _ = parser.parse_args()
+
+        assert parsed_args.tokenizer == "test_tokenizer"
+        assert parsed_args.tokenizer_trust_remote_code
+        assert parsed_args.tokenizer_revision == "test_revision"

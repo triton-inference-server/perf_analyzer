@@ -1,4 +1,4 @@
-// Copyright 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -41,6 +41,11 @@
 
 #include "c_api_infer_results.h"
 #include "scoped_defer.h"
+
+#ifdef TRITON_ENABLE_GPU
+#include "../../cuda_runtime_library_manager.h"
+#endif  // TRITON_ENABLE_GPU
+
 
 namespace triton { namespace perfanalyzer { namespace clientbackend {
 namespace tritoncapi {
@@ -1043,22 +1048,27 @@ TritonLoader::GetOutputs(
 
     std::string data_type{datatype};
     std::vector<uint8_t> data_copy;
-    // The first 4 bytes of BYTES data is a 32-bit integer to indicate the size
-    // of the rest of the data (which we already know based on byte_size). It
-    // should be ignored here, as it isn't part of the actual response
-    if (data_type == "BYTES" && byte_size >= 4) {
-      data_copy.reserve(byte_size - 4);
-      std::copy(
-          static_cast<const uint8_t*>(base) + 4,
-          static_cast<const uint8_t*>(base) + byte_size,
-          std::back_inserter(data_copy));
-    } else {
-      data_copy.reserve(byte_size);
+
+    if (memory_type == TRITONSERVER_MEMORY_CPU ||
+        memory_type == TRITONSERVER_MEMORY_CPU_PINNED) {
       std::copy(
           static_cast<const uint8_t*>(base),
           static_cast<const uint8_t*>(base) + byte_size,
           std::back_inserter(data_copy));
     }
+#ifdef TRITON_ENABLE_GPU
+    else {
+      CUDARuntimeLibraryManager cuda_manager;
+      CUDARuntimeLibraryManager::cudaError_t cuda_err = cuda_manager.cudaMemcpy(
+          data_copy.data(), base, byte_size,
+          CUDARuntimeLibraryManager::cudaMemcpyKind::cudaMemcpyDeviceToHost);
+      if (cuda_err != cudaSuccess) {
+        return Error(
+            "CUDA memory copy failed: " +
+            std::string(cuda_manager.cudaGetErrorString(cuda_err)));
+      }
+    }
+#endif  // TRITON_ENABLE_GPU
 
     outputs.emplace(
         name,
@@ -1394,7 +1404,6 @@ TritonLoader::~TritonLoader()
   ClearHandles();
 }
 
-#ifdef TRITON_ENABLE_GPU
 Error
 TritonLoader::RegisterCudaMemory(
     const std::string& name, void* handle, const size_t byte_size)
@@ -1403,7 +1412,6 @@ TritonLoader::RegisterCudaMemory(
       name, handle, byte_size, 0 /* device id */));
   return Error::Success;
 }
-#endif  // TRITON_ENABLE_GPU
 
 Error
 TritonLoader::RegisterSystemMemory(
