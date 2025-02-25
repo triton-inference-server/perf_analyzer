@@ -71,9 +71,13 @@ class BaseConverter:
         for key, value in config.extra_inputs.items():
             payload[key] = value
 
-    def _add_payload_params(self, payload: Dict[Any, Any], optional_data) -> None:
-        for key, value in optional_data.items():
+    def _add_payload_optional_data(self, payload: Dict[Any, Any], row: DataRow) -> None:
+        for key, value in row.optional_data.items():
             payload[key] = value
+
+    def _add_payload_metadata(self, record: Dict[str, Any], row: DataRow) -> None:
+        for key, value in row.payload_metadata.items():
+            record[key] = [value]
 
     def _finalize_payload(
         self,
@@ -83,13 +87,12 @@ class BaseConverter:
         triton_format=False,
     ) -> Dict[str, Any]:
         self._add_request_params(payload, config)
-        self._add_payload_params(payload, row.optional_data)
+        self._add_payload_optional_data(payload, row)
         record: Dict[str, Any] = {}
         if not triton_format:
             record["payload"] = [payload]
         else:
             record.update(payload)
-        if row.timestamp is not None:
-            record["timestamp"] = [row.timestamp]
+        self._add_payload_metadata(record, row)
 
         return record

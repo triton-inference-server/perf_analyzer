@@ -386,7 +386,11 @@ class Analyze:
             or args.sweep_type == "num_dataset_entries"
             or args.sweep_type == "batch_size"
         ):
-            if args.concurrency:
+            if args.session_concurrency:
+                # [TPA-985] Profile export file should have a session concurrency mode
+                infer_mode = "request_rate"
+                load_level = "0.0"
+            elif args.concurrency:
                 infer_mode = "concurrency"
                 load_level = f"{args.concurrency}"
             elif args.request_rate:
