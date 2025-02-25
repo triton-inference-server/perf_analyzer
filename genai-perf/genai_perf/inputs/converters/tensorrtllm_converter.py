@@ -69,7 +69,7 @@ class TensorRTLLMConverter(BaseConverter):
         return request_body
 
     def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[str, Any]
+        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
     ) -> None:
         if config.add_stream:
             payload["stream"] = [True]

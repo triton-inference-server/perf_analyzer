@@ -70,7 +70,7 @@ class BaseConverter:
             )
 
     def _get_max_tokens(
-        self, config: InputsConfig, optional_data: Dict[str, Any]
+        self, config: InputsConfig, optional_data: Dict[Any, Any]
     ) -> int:
         """
         Return the `max_tokens` value to be added in the payload.
@@ -94,7 +94,7 @@ class BaseConverter:
         self,
         payload: Dict[Any, Any],
         config: InputsConfig,
-        optional_data: Dict[str, Any],
+        optional_data: Dict[Any, Any],
     ) -> None:
         for key, value in config.extra_inputs.items():
             payload[key] = value
@@ -115,7 +115,7 @@ class BaseConverter:
         triton_format=False,
     ) -> Dict[str, Any]:
         self._add_request_params(payload, config, row.optional_data)
-        self._add_payload_params(payload, row.optional_data)
+        self._add_payload_optional_data(payload, row)
         record: Dict[str, Any] = {}
         if not triton_format:
             record["payload"] = [payload]

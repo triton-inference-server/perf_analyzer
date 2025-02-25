@@ -89,16 +89,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         self._verify_file(filename)
         data_dict = self._get_content_from_input_file(filename)
         return self._convert_content_to_data_file(data_dict)
-        prompts, optional_data_list, payload_metadata_list = (
-            self._get_content_from_input_file(filename)
-        )
-        return self._convert_content_to_data_file(
-            prompts, optional_data_list, payload_metadata_list
-        )
 
-    def _get_content_from_input_file(
-        self, filename: Path
-    ) -> Tuple[List[str], List[Dict[Any, Any]], List[Dict[str, Any]]]:
+    def _get_content_from_input_file(self, filename: Path) -> Dict[str, Any]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
@@ -109,8 +101,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
         Returns
         -------
-        Tuple[List[str], List[Dict[Any, Any]], List[Dict[str, Any]]]
-            The lists of prompts, optional data, and payload metadata.
+        A dictionary containing extracted data:
+            - "prompts": List[str] - Extracted prompts
+            - "payload_metadata_list": List[Dict[str, Any]] - Corresponding payload metadata list
+            - "optional_data_list": List[Dict[Any, Any]] - Optional data list
         """
         prompts = []
         optional_data_list = []
@@ -119,22 +113,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             for line in file:
                 if line.strip():
                     data = load_json_str(line)
-                    # None if not provided
-                    prompt = data.get("text")
-                    prompt_alt = data.get("text_input")
-                    # Check if only one of the keys is provided
-                    if prompt and prompt_alt:
-                        raise ValueError(
-                            "Each data entry must have only one of 'text_input' or 'text' key name."
-                        )
-                    # If none of the keys are provided, generate a synthetic prompt
-                    if not prompt and not prompt_alt:
-                        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                            self.config.tokenizer,
-                            self.config.prompt_tokens_mean,
-                            self.config.prompt_tokens_stddev,
-                        )
-                    prompt = prompt if prompt else prompt_alt
+                    prompt = self._get_prompt(data)
                     prompts.append(prompt.strip() if prompt else prompt)
                     try:
                         payload_metadata_list.append(self._get_payload_metadata(data))
@@ -144,7 +123,54 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                         )
                     optional_data = self._get_optional_data(data)
                     optional_data_list.append(optional_data)
-        return prompts, optional_data_list, payload_metadata_list
+        return {
+            "prompts": prompts,
+            "payload_metadata_list": payload_metadata_list,
+            "optional_data_list": optional_data_list,
+        }
+
+    def _get_prompt(self, data: Dict[str, Any]) -> str:
+        """
+        Extracts or generates a prompt from the input data.
+
+        Parameters
+        ----------
+        data : Dict[str, Any]
+            The dictionary containing input data.
+
+        Returns
+        -------
+        str
+            The extracted or generated prompt.
+
+        Raises
+        ------
+        ValueError
+            If both "text" and "text_input" fields are present.
+        """
+        input_length = data.get("input_length")
+        prompt_tokens_mean = (
+            input_length if input_length else self.config.prompt_tokens_mean
+        )
+        prompt_tokens_stddev = 0 if input_length else self.config.prompt_tokens_stddev
+        hash_ids = data.get("hash_ids", None)
+        prompt = data.get("text")
+        prompt_alt = data.get("text_input")
+        # Check if only one of the keys is provided
+        if prompt and prompt_alt:
+            raise ValueError(
+                "Each data entry must have only one of 'text_input' or 'text' key name."
+            )
+        # If none of the keys are provided, generate a synthetic prompt
+        if not prompt and not prompt_alt:
+            prompt = SyntheticPromptGenerator.create_synthetic_prompt(
+                self.config.tokenizer,
+                prompt_tokens_mean,
+                prompt_tokens_stddev,
+                hash_ids,
+            )
+        prompt = prompt if prompt else prompt_alt
+        return str(prompt)
 
     def _get_payload_metadata(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -190,21 +216,15 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
     def _convert_content_to_data_file(
         self,
-        prompts: List[str],
-        optional_data_list: List[Dict[Any, Any]] = [{}],
-        payload_metadata_list: List[Dict[str, Any]] = [{}],
+        data_dict: Dict[str, Any],
     ) -> FileData:
         """
         Converts the content to a DataFile.
 
         Args
-        ----------
-        prompts : List[str]
-            The list of prompts to convert.
-        optional_data : Dict
-            The optional data included in every payload.
-        payload_metadata_list : Dict
-            The metadata about the payload.
+        data_dict : Dict[str, Any]
+            A dictionary containing extracted lists of prompts, payload metadata,
+            and optional data.
 
         Returns
         -------
@@ -212,8 +232,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             The DataFile containing the converted data.
         """
         prompt_list = data_dict["prompts"]
-        timestamp_list = data_dict["timestamps"]
-        optional_data_list = data_dict["optional_datas"]
+        payload_metadata_list = data_dict["payload_metadata_list"]
+        optional_data_list = data_dict["optional_data_list"]
 
         data_rows: List[DataRow] = [
             DataRow(

@@ -33,8 +33,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
     ImageData,
-    OptionalData,
-    PayloadMetadata,
     TextData,
 )
 
@@ -61,14 +59,9 @@ class BaseFileInputRetriever(BaseInputRetriever):
         if not filename.exists():
             raise FileNotFoundError(f"The file '{filename}' does not exist.")
 
-    def _get_content_from_input_file(self, filename: Path) -> Union[
-        Tuple[TextData, ImageData],
-        Tuple[
-            TextData,
-            List[OptionalData],
-            List[PayloadMetadata],
-        ],
-    ]:
+    def _get_content_from_input_file(
+        self, filename: Path
+    ) -> Union[Tuple[TextData, ImageData], Dict[str, Any]]:
         """
         Reads the content from a JSONL file and returns lists of each content type.
 
