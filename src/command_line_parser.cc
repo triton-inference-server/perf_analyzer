@@ -1837,16 +1837,23 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->filename = optarg;
           break;
         case '?':
-          if (optopt) {
-            Usage(
-                "Error: Invalid short option: '-" +
-                std::string(1, static_cast<char>(optopt)) + "'");
-          } else if (optind > 1 && argv[optind - 1][0] == '-') {
-            Usage(
-                "Error: Invalid long option: '" +
-                std::string{argv[optind - 1]} + "'");
+          std::string arg = (optind > 1) ? std::string(argv[optind - 1]) : "";
+
+          if (optopt && isprint(optopt)) {
+            throw PerfAnalyzerException(
+                "Error: Invalid short option '-" +
+                    std::string(1, static_cast<char>(optopt)) + "'",
+                GENERIC_ERROR);
+          } else if (arg.rfind("--", 0) == 0 && optopt == 0) {
+            throw PerfAnalyzerException(
+                "Error: Invalid long option '" + arg + "'", GENERIC_ERROR);
+          } else if (
+              optarg == nullptr && optind > 1 && argv[optind - 1][0] == '-') {
+            throw PerfAnalyzerException(
+                "Error: Missing value for option '" + arg + "'", GENERIC_ERROR);
           } else {
-            Usage("Error: Unknown command-line argument.");
+            throw PerfAnalyzerException(
+                "Error: Unknown command-line argument.", GENERIC_ERROR);
           }
           break;
       }
