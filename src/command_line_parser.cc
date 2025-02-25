@@ -1837,20 +1837,28 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->filename = optarg;
           break;
         case '?':
-          std::string arg = (optind > 1) ? std::string(argv[optind - 1]) : "";
+          std::string last_arg =
+              (optind > 1) ? std::string(argv[optind - 1]) : "";
 
-          if (optopt && isprint(optopt)) {
+          bool is_invalid_short_option = optopt && isprint(optopt);
+          bool is_invalid_long_option =
+              last_arg.rfind("--", 0) == 0 && optopt == 0;
+          bool is_missing_value =
+              (optarg == nullptr && optind > 1 && last_arg[0] == '-');
+
+          if (is_invalid_short_option) {
+            char invalid_char = static_cast<char>(optopt);
             throw PerfAnalyzerException(
                 "Error: Invalid short option '-" +
-                    std::string(1, static_cast<char>(optopt)) + "'",
+                    std::string(1, invalid_char) + "'",
                 GENERIC_ERROR);
-          } else if (arg.rfind("--", 0) == 0 && optopt == 0) {
+          } else if (is_invalid_long_option) {
             throw PerfAnalyzerException(
-                "Error: Invalid long option '" + arg + "'", GENERIC_ERROR);
-          } else if (
-              optarg == nullptr && optind > 1 && argv[optind - 1][0] == '-') {
+                "Error: Invalid long option '" + last_arg + "'", GENERIC_ERROR);
+          } else if (is_missing_value) {
             throw PerfAnalyzerException(
-                "Error: Missing value for option '" + arg + "'", GENERIC_ERROR);
+                "Error: Missing value for option '" + last_arg + "'",
+                GENERIC_ERROR);
           } else {
             throw PerfAnalyzerException(
                 "Error: Unknown command-line argument.", GENERIC_ERROR);
