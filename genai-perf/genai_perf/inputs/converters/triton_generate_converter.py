@@ -65,16 +65,13 @@ class TritonGenerateConverter(BaseConverter):
 
         return request_body
 
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+    def _add_request_params(
+        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+    ) -> None:
         if config.add_stream:
             payload["stream"] = True
-        if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
-            payload["max_tokens"] = int(
-                sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
-                    lower=1,  # output token must be >= 1
-                )
-            )
+        max_tokens = self._get_max_tokens(config, optional_data)
+        if max_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
+            payload["max_tokens"] = max_tokens
         for key, value in config.extra_inputs.items():
             payload[key] = value

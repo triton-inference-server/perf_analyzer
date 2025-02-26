@@ -152,7 +152,7 @@ class TestTritonGenerateConverter:
             return 95
 
         monkeypatch.setattr(
-            "genai_perf.inputs.converters.triton_generate_converter.sample_bounded_normal",
+            "genai_perf.inputs.converters.base_converter.sample_bounded_normal",
             mock_sample_bounded_normal,
         )
 

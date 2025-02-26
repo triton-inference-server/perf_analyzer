@@ -61,7 +61,7 @@ class TestPayloadInputRetriever:
         return PayloadInputRetriever(mock_config)
 
     @pytest.mark.parametrize(
-        "input_data, expected_prompts, expected_payload_metadata, expected_optional_data",
+        "input_data, expected_prompts, expected_payload_metadata_list, expected_optional_data_list",
         [
             (
                 '{"text": "What is AI?", "timestamp": 123, "session_id": "abc"}\n'
@@ -101,31 +101,32 @@ class TestPayloadInputRetriever:
         retriever,
         input_data,
         expected_prompts,
-        expected_payload_metadata,
-        expected_optional_data,
+        expected_payload_metadata_list,
+        expected_optional_data_list,
     ):
         mock_file.return_value = io.StringIO(input_data)
         mock_synthetic_prompt.return_value = "Synthetic prompt"
 
-        prompts, optional_data, payload_metadata = (
-            retriever._get_content_from_input_file(Path("test_input.jsonl"))
-        )
+        data_dict = retriever._get_content_from_input_file(Path("test_input.jsonl"))
 
-        assert prompts == expected_prompts
-        assert payload_metadata == expected_payload_metadata
-        assert optional_data == expected_optional_data
+        assert data_dict["prompts"] == expected_prompts
+        assert data_dict["payload_metadata_list"] == expected_payload_metadata_list
+        assert data_dict["optional_data_list"] == expected_optional_data_list
 
         if "text" not in input_data and "text_input" not in input_data:
             mock_synthetic_prompt.assert_called_once()
 
     def test_convert_content_to_data_file(self, retriever):
         prompts = ["Prompt 1", "Prompt 2"]
-        optional_data = [{"session_id": "123"}, {"custom_field": "value"}]
-        payload_metadata = [{"timestamp": 1}, {"timestamp": 2}]
+        optional_data_list = [{"session_id": "123"}, {"custom_field": "value"}]
+        payload_metadata_list = [{"timestamp": 1}, {"timestamp": 2}]
+        data_dict = {
+            "prompts": prompts,
+            "payload_metadata_list": payload_metadata_list,
+            "optional_data_list": optional_data_list,
+        }
 
-        file_data = retriever._convert_content_to_data_file(
-            prompts, optional_data, payload_metadata
-        )
+        file_data = retriever._convert_content_to_data_file(data_dict)
 
         assert len(file_data.rows) == 2
         assert file_data.rows[0].texts == ["Prompt 1"]
