@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from argparse import Namespace
+from typing import Dict
 
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
@@ -42,12 +43,18 @@ class OutputReporter:
         stats: Statistics,
         telemetry_stats: TelemetryStatistics,
         args: Namespace,
+        session_stats: Dict[str, Statistics],
     ):
         self.args = args
         self.stats = stats
         self.telemetry_stats = telemetry_stats
+        self.session_stats = session_stats
+
+        # scale the data to be in milliseconds
         self.stats.scale_data()
         self.telemetry_stats.scale_data()
+        for stat in self.session_stats.values():
+            stat.scale_data()
 
     def report_output(self) -> None:
         factory = DataExporterFactory()
@@ -61,6 +68,7 @@ class OutputReporter:
         assert isinstance(self.stats.metrics, Metrics)
         extra_inputs = get_extra_inputs_as_dict(self.args)
         telemetry_stats = self.telemetry_stats.stats_dict
+        session_stats = {k: v.stats_dict for k, v in self.session_stats.items()}
         config = ExporterConfig(
             self.stats.stats_dict,
             self.stats.metrics,
@@ -68,6 +76,7 @@ class OutputReporter:
             extra_inputs,
             self.args.artifact_dir,
             telemetry_stats,
+            session_stats,
         )
 
         return config
