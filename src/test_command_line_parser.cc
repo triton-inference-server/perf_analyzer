@@ -235,8 +235,12 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
     int argc = 4;                                                            \
     char* argv[argc] = {app_name, "-m", model_name, option_name};            \
                                                                              \
+    std::string expected_msg =                                               \
+        ("Error: Missing value for option '" + std::string(option_name) +    \
+         "'");                                                               \
     CHECK_THROWS_WITH_AS(                                                    \
-        act = parser.Parse(argc, argv), "", PerfAnalyzerException);          \
+        act = parser.Parse(argc, argv), expected_msg.c_str(),                \
+        PerfAnalyzerException);                                              \
                                                                              \
     check_params = false;                                                    \
   }
@@ -481,12 +485,12 @@ CheckInvalidRange(
     char* argv[argc];
     std::copy(args.begin(), args.end(), argv);
 
-    // BUG (TMA-1307): Usage message does not contain error. Error statement
-    // "option '--concurrency-range' requires an argument" written directly
-    // to std::out
-    //
+    std::string expected_msg =
+        ("Error: Missing value for option '" + std::string(option_name) + "'");
+
     CHECK_THROWS_WITH_AS(
-        act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+        act = parser.Parse(argc, argv), expected_msg.c_str(),
+        PerfAnalyzerException);
 
     check_params = false;
   }
@@ -523,6 +527,30 @@ TEST_CASE("Testing Command Line Parser")
     CHECK_THROWS_WITH_AS(
         act = parser.Parse(argc, argv), expected_msg.c_str(),
         PerfAnalyzerException);
+
+    check_params = false;
+  }
+
+  SUBCASE("Invalid Short Option")
+  {
+    int argc = 2;
+    char* argv[argc] = {app_name, "-x"};
+
+    CHECK_THROWS_WITH_AS(
+        act = parser.Parse(argc, argv), "Error: Invalid short option '-x'",
+        PerfAnalyzerException);
+
+    check_params = false;
+  }
+
+  SUBCASE("Invalid Long Option")
+  {
+    int argc = 2;
+    char* argv[argc] = {app_name, "--invalid-option"};
+
+    CHECK_THROWS_WITH_AS(
+        act = parser.Parse(argc, argv),
+        "Error: Invalid long option '--invalid-option'", PerfAnalyzerException);
 
     check_params = false;
   }
@@ -613,14 +641,11 @@ TEST_CASE("Testing Command Line Parser")
       int argc = 4;
       char* argv[argc] = {app_name, "-m", model_name, "--max-threads"};
 
-      // NOTE: Empty message is not helpful
-      //
       CHECK_THROWS_WITH_AS(
-          act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--max-threads'",
+          PerfAnalyzerException);
 
-      // BUG: Dumping string "option '--max-threads' requires an argument"
-      // directly to std::out, instead of through usage()
-      //
       check_params = false;
     }
 
@@ -629,14 +654,11 @@ TEST_CASE("Testing Command Line Parser")
       int argc = 4;
       char* argv[argc] = {app_name, "-m", model_name, "--max-threads", "bad"};
 
-      // NOTE: Empty message is not helpful
-      //
       CHECK_THROWS_WITH_AS(
-          act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--max-threads'",
+          PerfAnalyzerException);
 
-      // BUG: Dumping string "option '--max-threads' requires an argument"
-      // directly to std::out, instead of through usage()
-      //
       check_params = false;
     }
   }
@@ -1500,7 +1522,9 @@ TEST_CASE("Testing Command Line Parser")
       char* argv[argc] = {app_name, "-m", model_name, "--stability-percentage"};
 
       CHECK_THROWS_WITH_AS(
-          act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--stability-percentage'",
+          PerfAnalyzerException);
 
       check_params = false;
     }
