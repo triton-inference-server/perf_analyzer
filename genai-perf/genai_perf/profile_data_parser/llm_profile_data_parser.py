@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from genai_perf.constants import EMPTY_RESPONSE_TOKEN
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.logging import logging
 from genai_perf.metrics import LLMMetrics, Metrics
 from genai_perf.profile_data_parser.profile_data_parser import (
@@ -39,7 +40,12 @@ from genai_perf.profile_data_parser.profile_data_parser import (
     ResponseFormat,
 )
 from genai_perf.tokenizer import Tokenizer
-from genai_perf.utils import load_json_str, remove_sse_prefix
+from genai_perf.utils import (
+    load_json_str,
+    not_data_sse_field,
+    remove_sse_prefix,
+    sse_error_occurred,
+)
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -200,47 +206,59 @@ class LLMProfileDataParser(ProfileDataParser):
         if self._service_kind == "openai":
             # Sometimes streamed chunks are returned in a splintered fashion.
             # This forces a merge with the previous chunk if error detected.
-            if len(res_outputs) > 1:
-                for i in reversed(range(len(res_outputs))):
-                    response = res_outputs[i]["response"]
-                    if not response.startswith("data: "):
-                        first_data = response.find("data: ")
-                        if first_data == -1:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"] + response.strip()
-                            )
-                            res_outputs[i]["response"] = ""
-                        else:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"]
-                                + response[0:first_data].strip()
-                            )
-                            res_outputs[i]["response"] = response[first_data:].strip()
+            for i in reversed(range(1, len(res_outputs))):
+                response = res_outputs[i]["response"]
+
+                # skip non-data events
+                if not_data_sse_field(response):
+                    continue
+
+                if not response.startswith("data: "):
+                    prefix_idx = response.find("data: ")
+                    if "data: " not in res_outputs[i - 1]["response"]:
+                        raise GenAIPerfException(
+                            "Detected a splintered SSE response but the "
+                            "previous response does not contain proper SSE "
+                            "prefix to continue the fix."
+                        )
+
+                    # When 'data: ' prefix is not found in the current
+                    # response, append it with the previous response
+                    # (assuming that the prev response contains it).
+                    if prefix_idx == -1:
+                        res_outputs[i - 1]["response"] += response
+                        res_outputs[i]["response"] = ""
+                    else:
+                        res_outputs[i - 1]["response"] += response[0:prefix_idx]
+                        res_outputs[i]["response"] = response[prefix_idx:]
+
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
-                response = res_outputs[i]["response"]
-                responses = response.strip().split("\n\n")
-                if len(responses) > 1:
-                    merged_response = load_json_str(remove_sse_prefix(responses[0]))
-                    if (self._response_format != ResponseFormat.TRITON_GENERATE) and (
-                        merged_response["choices"][0]["delta"].get("content", None)
-                        is None
-                    ):
-                        merged_response["choices"][0]["delta"]["content"] = ""
-                    elif (self._response_format == ResponseFormat.TRITON_GENERATE) and (
-                        "text_output" not in merged_response
-                    ):
-                        merged_response["text_output"] = ""
+                responses = res_outputs[i]["response"].strip().split("\n\n")
 
-                for r in responses[1:]:
+                # Check if any error event occurred.
+                for r in responses:
+                    if sse_error_occurred(r):
+                        raise GenAIPerfException(
+                            f"Detected an error event in the SSE response: {r}"
+                        )
+
+                if len(responses) > 1:
+                    data = load_json_str(remove_sse_prefix(responses[0]))
                     if self._response_format == ResponseFormat.TRITON_GENERATE:
-                        text = self._extract_generate_text_output(r)
-                        merged_response["text_output"] += text
+                        merged_text = "".join(
+                            [self._extract_generate_text_output(r) for r in responses]
+                        )
+                        data["text_output"] = merged_text
                     else:
-                        text = self._extract_openai_text_output(r)
-                        merged_response["choices"][0]["delta"]["content"] += text
-                    res_outputs[i] = {"response": json.dumps(merged_response)}
+                        merged_text = "".join(
+                            [self._extract_openai_text_output(r) for r in responses]
+                        )
+                        data["choices"][0]["delta"]["content"] = merged_text
+                    res_outputs[i] = {"response": json.dumps(data)}
+                elif self._is_empty_response(responses[0]):
+                    res_outputs[i]["response"] = ""
 
             # Remove responses without any content
             indices_to_remove = []
@@ -339,6 +357,9 @@ class LLMProfileDataParser(ProfileDataParser):
         return [out[1:] for out in encodings.data["input_ids"]]
 
     def _extract_generate_text_output(self, response: str) -> str:
+        if not response or not_data_sse_field(response):
+            return ""
+
         response = remove_sse_prefix(response)
         if response == "":
             return response
@@ -347,6 +368,11 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _extract_openai_text_output(self, response: str) -> str:
         """Extracts text/content of the OpenAI response object."""
+        # (TODO) TPA-829: Add more proper SSE event stream support
+        # Check for empty, comment, or event SSE response
+        if not response or not_data_sse_field(response):
+            return ""
+
         response = remove_sse_prefix(response)
 
         if response == "[DONE]":
