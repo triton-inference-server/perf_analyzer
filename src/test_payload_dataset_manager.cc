@@ -134,7 +134,66 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
   }
 }
 
-TEST_CASE("PayloadDatasetManager::GetDelayForPayload")
+TEST_CASE("PayloadDatasetManager::GetSessionID")
+{
+  const std::string name{"session_id"};
+  const std::string datatype{"BYTES"};
+  const std::vector<int64_t> shape{{1}};
+  const bool is_shape_tensor{false};
+  const bool is_optional{false};
+
+  const ModelTensor session_id_model_tensor{
+      name, datatype, shape, is_shape_tensor, is_optional};
+
+  auto model_parser{std::make_shared<ModelParser>()};
+
+  (*model_parser->Inputs())[name] = session_id_model_tensor;
+
+  SUBCASE("valid session ID")
+  {
+    const std::string input_data_json{R"(
+        {
+          "data": [
+            {
+              "session_id": ["my_session_id"]
+            }
+          ]
+        }
+        )"};
+
+    auto data_loader{std::make_shared<MockDataLoader>()};
+
+    const auto error{data_loader->ReadDataFromJSON(
+        model_parser->Inputs(), model_parser->Outputs(), input_data_json)};
+
+    REQUIRE(error.IsOk());
+
+    const PayloadDatasetManager payload_dataset_manager(
+        data_loader, model_parser);
+
+    const size_t dataset_index{0};
+
+    const auto session_id{payload_dataset_manager.GetSessionID(dataset_index)};
+
+    CHECK(session_id == "my_session_id");
+  }
+
+  SUBCASE("missing session ID")
+  {
+    auto data_loader{std::make_shared<MockDataLoader>()};
+
+    const PayloadDatasetManager payload_dataset_manager(
+        data_loader, model_parser);
+
+    const size_t dataset_index{0};
+
+    CHECK_THROWS_WITH_AS(
+        payload_dataset_manager.GetSessionID(dataset_index),
+        "unable to find data for input 'session_id'.", std::runtime_error);
+  }
+}
+
+TEST_CASE("PayloadDatasetManager::GetDelay")
 {
   const std::string name{"delay"};
   const std::string datatype{"UINT64"};
@@ -152,14 +211,14 @@ TEST_CASE("PayloadDatasetManager::GetDelayForPayload")
   SUBCASE("valid delay")
   {
     const std::string input_data_json{R"(
-      {
-        "data": [
-          {
-            "delay": [1000]
-          }
-        ]
-      }
-      )"};
+        {
+          "data": [
+            {
+              "delay": [1000]
+            }
+          ]
+        }
+        )"};
 
     auto data_loader{std::make_shared<MockDataLoader>()};
 
@@ -173,16 +232,16 @@ TEST_CASE("PayloadDatasetManager::GetDelayForPayload")
 
     const size_t dataset_index{0};
 
-    const auto delay{payload_dataset_manager.GetDelayForPayload(dataset_index)};
+    const auto delay{payload_dataset_manager.GetDelay(dataset_index)};
 
-    CHECK(delay == std::chrono::milliseconds(1000));
+    CHECK(*delay == std::chrono::milliseconds(1000));
   }
 
   SUBCASE("missing delay")
   {
     const std::string input_data_json{R"(
-      {"data": [{}]}
-      )"};
+        {"data": [{}]}
+        )"};
 
     auto data_loader{std::make_shared<MockDataLoader>()};
 
@@ -196,9 +255,9 @@ TEST_CASE("PayloadDatasetManager::GetDelayForPayload")
 
     const size_t dataset_index{0};
 
-    CHECK_THROWS_WITH_AS(
-        payload_dataset_manager.GetDelayForPayload(dataset_index),
-        "Missing 'delay' input for payload with index 0", std::runtime_error);
+    const auto delay{payload_dataset_manager.GetDelay(dataset_index)};
+
+    CHECK(!delay);
   }
 }
 
@@ -217,31 +276,48 @@ TEST_CASE("PayloadDatasetManager::GetPayload")
 
   (*model_parser->Inputs())[name] = payload_model_tensor;
 
-  const std::string input_data_json{R"(
-      {
-        "data": [
-          {
-            "payload": [{}]
-          }
-        ]
-      }
-      )"};
+  SUBCASE("valid payload")
+  {
+    const std::string input_data_json{R"(
+        {
+          "data": [
+            {
+              "payload": [{}]
+            }
+          ]
+        }
+        )"};
 
-  auto data_loader{std::make_shared<MockDataLoader>()};
+    auto data_loader{std::make_shared<MockDataLoader>()};
 
-  const auto error{data_loader->ReadDataFromJSON(
-      model_parser->Inputs(), model_parser->Outputs(), input_data_json)};
+    const auto error{data_loader->ReadDataFromJSON(
+        model_parser->Inputs(), model_parser->Outputs(), input_data_json)};
 
-  REQUIRE(error.IsOk());
+    REQUIRE(error.IsOk());
 
-  const PayloadDatasetManager payload_dataset_manager(
-      data_loader, model_parser);
+    const PayloadDatasetManager payload_dataset_manager(
+        data_loader, model_parser);
 
-  const size_t dataset_index{0};
+    const size_t dataset_index{0};
 
-  const auto payload{payload_dataset_manager.GetPayload(dataset_index)};
+    const auto payload{payload_dataset_manager.GetPayload(dataset_index)};
 
-  CHECK(payload == "{}");
+    CHECK(payload == "{}");
+  }
+
+  SUBCASE("missing payload")
+  {
+    auto data_loader{std::make_shared<MockDataLoader>()};
+
+    const PayloadDatasetManager payload_dataset_manager(
+        data_loader, model_parser);
+
+    const size_t dataset_index{0};
+
+    CHECK_THROWS_WITH_AS(
+        payload_dataset_manager.GetPayload(dataset_index),
+        "unable to find data for input 'payload'.", std::runtime_error);
+  }
 }
 
 }  // namespace triton::perfanalyzer

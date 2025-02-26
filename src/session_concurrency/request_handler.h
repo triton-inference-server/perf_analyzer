@@ -28,6 +28,7 @@
 #include <rapidjson/document.h>
 #include <stddef.h>
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <future>
@@ -54,6 +55,22 @@ class RequestHandler {
       RequestRecord& request_record);
 
  private:
+  void RecordRequestInputs(
+      const std::string& payload, size_t dataset_index,
+      RequestRecord::RequestInput& request_inputs) const;
+
+  void RecordPayloadInput(
+      const std::string& payload,
+      RequestRecord::RequestInput& request_inputs) const;
+
+  void RecordSessionIDInput(
+      const std::string& session_id,
+      RequestRecord::RequestInput& request_inputs) const;
+
+  void RecordDelayInput(
+      const std::chrono::milliseconds delay,
+      RequestRecord::RequestInput& request_inputs) const;
+
   void SendRequest(
       const std::string& payload,
       std::shared_ptr<std::promise<void>>&& response_promise,
@@ -82,14 +99,6 @@ class RequestHandler {
 
   const std::vector<cb::InferInput*> PrepareInputs(
       const std::string& payload) const;
-
-  void RecordRequest(
-      const std::vector<cb::InferInput*> inputs,
-      RequestRecord& request_record) const;
-
-  void RecordRequestInputs(
-      const std::vector<cb::InferInput*> inputs,
-      RequestRecord::RequestInput& request_inputs) const;
 
   void WaitForResponse(std::future<void>&& response_future) const;
 
