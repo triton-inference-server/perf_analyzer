@@ -72,6 +72,8 @@ DEFAULT_REQUEST_COUNT = 0
 DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
 DEFAULT_WARMUP_REQUEST_COUNT = 0
 DEFAULT_BACKEND = "tensorrtllm"
+PAYLOAD_METADATA_FIELDS = ["timestamp", "delay"]
+PAYLOAD_METADATA_INT_FIELDS = ["timestamp", "delay"]
 
 ###########################
 # Default Prompt Parameters

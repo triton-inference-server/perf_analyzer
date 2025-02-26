@@ -1044,6 +1044,17 @@ def _add_profile_args(parser):
     )
 
 
+def _add_session_args(parser):
+    session_group = parser.add_argument_group("Session")
+
+    session_group.add_argument(
+        "--session-concurrency",
+        type=int,
+        required=False,
+        help="The number of concurrenct sessions to benchmark.",
+    )
+
+
 def _add_tokenizer_args(parser):
     tokenizer_group = parser.add_argument_group("Tokenizer")
 
@@ -1097,6 +1108,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(profile)
     _add_output_args(profile)
     _add_profile_args(profile)
+    _add_session_args(profile)
     _add_tokenizer_args(profile)
     profile.set_defaults(func=profile_handler)
     return profile
