@@ -62,10 +62,6 @@ def not_data_sse_field(msg: str) -> bool:
     return msg.startswith((":", "event:", "id:", "retry:"))
 
 
-def is_sse_field(msg: str) -> bool:
-    return msg.startswith((":", "data:", "event:", "id:", "retry:"))
-
-
 def sse_error_occurred(msg: str) -> bool:
     return msg.startswith("event:") and "error" in msg.lower()
 

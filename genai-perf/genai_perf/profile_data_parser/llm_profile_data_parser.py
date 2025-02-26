@@ -41,7 +41,6 @@ from genai_perf.profile_data_parser.profile_data_parser import (
 )
 from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import (
-    is_sse_field,
     load_json_str,
     not_data_sse_field,
     remove_sse_prefix,
