@@ -334,6 +334,11 @@ ModelParser::InitOpenAI(
     delay_input->second.datatype_ = "UINT64";
     delay_input->second.shape_.push_back(1);
     delay_input->second.is_optional_ = true;
+
+    auto session_id_input = inputs_->emplace("session_id", ModelTensor()).first;
+    session_id_input->second.name_ = "session_id";
+    session_id_input->second.datatype_ = "BYTES";
+    session_id_input->second.shape_.push_back(1);
   }
 
   return cb::Error::Success;

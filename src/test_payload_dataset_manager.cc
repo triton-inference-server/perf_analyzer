@@ -26,6 +26,7 @@
 
 #include <stddef.h>
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <set>
@@ -35,7 +36,6 @@
 
 #include "client_backend/client_backend.h"
 #include "doctest.h"
-#include "inference_load_mode.h"
 #include "mock_data_loader.h"
 #include "model_parser.h"
 #include "session_concurrency/payload_dataset_manager.h"
@@ -46,43 +46,33 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
 {
   SUBCASE("valid input data")
   {
+    const std::string name{"session_id"};
+    const std::string datatype{"BYTES"};
+    const std::vector<int64_t> shape{{1}};
+    const bool is_shape_tensor{false};
+    const bool is_optional{false};
+
+    const ModelTensor session_id_model_tensor{
+        name, datatype, shape, is_shape_tensor, is_optional};
+
     auto model_parser{std::make_shared<ModelParser>()};
 
-    const std::string model_name{""};
-    const std::string model_version{""};
-    const int32_t batch_size{0};
-    const InferenceLoadMode inference_load_mode{
-        InferenceLoadMode::SessionConcurrency};
+    (*model_parser->Inputs())[name] = session_id_model_tensor;
 
-    model_parser->InitOpenAI(
-        model_name, model_version, batch_size, inference_load_mode);
-
-    std::string input_data_json{R"(
+    const std::string input_data_json{R"(
         {
           "data": [
             {
-              "payload": [{
-                  "messages": [{"role": "my_role_1", "content": "my_content_1"}],
-                  "session_id": "my_session_id_1"
-                }]
+              "session_id": ["my_session_id_1"]
             },
             {
-              "payload": [{
-                  "messages": [{"role": "my_role_3", "content": "my_content_3"}],
-                  "session_id": "my_session_id_2"
-                }]
+              "session_id": ["my_session_id_2"]
             },
             {
-              "payload": [{
-                  "messages": [{"role": "my_role_2", "content": "my_content_2"}],
-                  "session_id": "my_session_id_1"
-                }]
+              "session_id": ["my_session_id_1"]
             },
             {
-              "payload": [{
-                  "messages": [{"role": "my_role_4", "content": "my_content_4"}],
-                  "session_id": "my_session_id_2"
-                }]
+              "session_id": ["my_session_id_2"]
             }
           ]
         }
@@ -90,10 +80,13 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
 
     auto data_loader{std::make_shared<MockDataLoader>()};
 
-    data_loader->ReadDataFromJSON(
-        model_parser->Inputs(), model_parser->Outputs(), input_data_json);
+    const auto error{data_loader->ReadDataFromJSON(
+        model_parser->Inputs(), model_parser->Outputs(), input_data_json)};
 
-    PayloadDatasetManager payload_dataset_manager(data_loader, model_parser);
+    REQUIRE(error.IsOk());
+
+    const PayloadDatasetManager payload_dataset_manager(
+        data_loader, model_parser);
 
     const auto all_session_payloads{
         payload_dataset_manager.GroupPayloadsBySession()};
@@ -102,14 +95,14 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
     CHECK(all_session_payloads[0].size() == 2);
     CHECK(all_session_payloads[1].size() == 2);
 
-    std::set<size_t> session_set_1(
+    const std::set<size_t> session_set_1(
         all_session_payloads[0].begin(), all_session_payloads[0].end());
-    std::set<size_t> session_set_2(
+    const std::set<size_t> session_set_2(
         all_session_payloads[1].begin(), all_session_payloads[1].end());
 
-    std::set<std::set<size_t>> session_sets{session_set_1, session_set_2};
+    const std::set<std::set<size_t>> session_sets{session_set_1, session_set_2};
 
-    std::set<std::set<size_t>> expected_session_sets{{0, 2}, {1, 3}};
+    const std::set<std::set<size_t>> expected_session_sets{{0, 2}, {1, 3}};
 
     CHECK(session_sets == expected_session_sets);
   }
@@ -120,13 +113,17 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
 
     const std::shared_ptr<ModelTensorMap> inputs{};
     const std::shared_ptr<ModelTensorMap> outputs{};
-    std::string input_data_json{R"(
+
+    const std::string input_data_json{R"(
         {"data": [[],[]]}
         )"};
 
-    data_loader->ReadDataFromJSON(inputs, outputs, input_data_json);
+    const auto error{
+        data_loader->ReadDataFromJSON(inputs, outputs, input_data_json)};
 
-    PayloadDatasetManager payload_dataset_manager(data_loader, nullptr);
+    REQUIRE(error.IsOk());
+
+    const PayloadDatasetManager payload_dataset_manager(data_loader, nullptr);
 
     CHECK_THROWS_WITH_AS(
         payload_dataset_manager.GroupPayloadsBySession(),
@@ -135,6 +132,116 @@ TEST_CASE("PayloadDatasetManager::GroupPayloadsBySession")
         "\"data\" field with one element per request payload.",
         std::runtime_error);
   }
+}
+
+TEST_CASE("PayloadDatasetManager::GetDelayForPayload")
+{
+  const std::string name{"delay"};
+  const std::string datatype{"UINT64"};
+  const std::vector<int64_t> shape{{1}};
+  const bool is_shape_tensor{false};
+  const bool is_optional{true};
+
+  const ModelTensor delay_model_tensor{
+      name, datatype, shape, is_shape_tensor, is_optional};
+
+  auto model_parser{std::make_shared<ModelParser>()};
+
+  (*model_parser->Inputs())[name] = delay_model_tensor;
+
+  SUBCASE("valid delay")
+  {
+    const std::string input_data_json{R"(
+      {
+        "data": [
+          {
+            "delay": [1000]
+          }
+        ]
+      }
+      )"};
+
+    auto data_loader{std::make_shared<MockDataLoader>()};
+
+    const auto error{data_loader->ReadDataFromJSON(
+        model_parser->Inputs(), model_parser->Outputs(), input_data_json)};
+
+    REQUIRE(error.IsOk());
+
+    const PayloadDatasetManager payload_dataset_manager(
+        data_loader, model_parser);
+
+    const size_t dataset_index{0};
+
+    const auto delay{payload_dataset_manager.GetDelayForPayload(dataset_index)};
+
+    CHECK(delay == std::chrono::milliseconds(1000));
+  }
+
+  SUBCASE("missing delay")
+  {
+    const std::string input_data_json{R"(
+      {"data": [{}]}
+      )"};
+
+    auto data_loader{std::make_shared<MockDataLoader>()};
+
+    const auto error{data_loader->ReadDataFromJSON(
+        model_parser->Inputs(), model_parser->Outputs(), input_data_json)};
+
+    REQUIRE(error.IsOk());
+
+    const PayloadDatasetManager payload_dataset_manager(
+        data_loader, model_parser);
+
+    const size_t dataset_index{0};
+
+    CHECK_THROWS_WITH_AS(
+        payload_dataset_manager.GetDelayForPayload(dataset_index),
+        "Missing 'delay' input for payload with index 0", std::runtime_error);
+  }
+}
+
+TEST_CASE("PayloadDatasetManager::GetPayload")
+{
+  const std::string name{"payload"};
+  const std::string datatype{"JSON"};
+  const std::vector<int64_t> shape{{1}};
+  const bool is_shape_tensor{false};
+  const bool is_optional{false};
+
+  const ModelTensor payload_model_tensor{
+      name, datatype, shape, is_shape_tensor, is_optional};
+
+  auto model_parser{std::make_shared<ModelParser>()};
+
+  (*model_parser->Inputs())[name] = payload_model_tensor;
+
+  const std::string input_data_json{R"(
+      {
+        "data": [
+          {
+            "payload": [{}]
+          }
+        ]
+      }
+      )"};
+
+  auto data_loader{std::make_shared<MockDataLoader>()};
+
+  const auto error{data_loader->ReadDataFromJSON(
+      model_parser->Inputs(), model_parser->Outputs(), input_data_json)};
+
+  REQUIRE(error.IsOk());
+
+  const PayloadDatasetManager payload_dataset_manager(
+      data_loader, model_parser);
+
+  const size_t dataset_index{0};
+
+  const auto payload{payload_dataset_manager.GetPayload(dataset_index)};
+
+  CHECK(payload == "{}");
 }
 
 }  // namespace triton::perfanalyzer

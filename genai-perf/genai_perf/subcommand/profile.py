@@ -90,7 +90,7 @@ def _report_output(
     # Setting to default values to avoid an error.
     elif args.prompt_source == ic.PromptSource.PAYLOAD:
         infer_mode = "request_rate"
-        load_level = "1.0"
+        load_level = "0.0"
     else:
         raise GenAIPerfException("No valid infer mode specified")
 

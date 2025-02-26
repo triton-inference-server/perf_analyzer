@@ -1413,8 +1413,12 @@ InferenceProfiler::CollectData(
     PerfStatus& summary, uint64_t window_start_ns, uint64_t window_end_ns,
     std::vector<RequestRecord>&& request_records)
 {
-  ProfileDataCollector::InferenceLoadMode id{
-      summary.concurrency, summary.request_rate};
+  ProfileDataCollector::InferenceLoadMode id{};
+  if (dynamic_cast<CustomRequestScheduleManager*>(manager_.get())) {
+    id = {0, 0.0};
+  } else {
+    id = {summary.concurrency, summary.request_rate};
+  }
   collector_->AddWindow(id, window_start_ns, window_end_ns);
   collector_->AddData(id, std::move(request_records));
 }
