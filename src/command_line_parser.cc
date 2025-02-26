@@ -1842,7 +1842,7 @@ CLParser::ParseCommandLine(int argc, char** argv)
 
           bool is_invalid_short_option = optopt && isprint(optopt);
           bool is_invalid_long_option =
-              last_arg.rfind("--", 0) == 0 && optopt == 0;
+              last_arg.starts_with("--") && optopt == 0;
           bool is_missing_value =
               (optarg == nullptr && optind > 1 && last_arg[0] == '-');
 
