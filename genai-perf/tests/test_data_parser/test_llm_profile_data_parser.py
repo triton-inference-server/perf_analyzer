@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@ from typing import cast
 from unittest.mock import patch
 
 import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
@@ -929,17 +930,25 @@ class TestLLMProfileDataParser:
     )
     def test_unfinished_responses(self, mock_json) -> None:
         """Check if it handles unfinished responses."""
-        res_timestamps = [0, 1, 2]
+        res_timestamps = [0, 1, 2, 3, 4]
         res_outputs = [
+            # response 0 and 1 are single SSE response split into two.
             {
-                "response": 'data: {"id":"8ae835f2ecbb67f3-SJC","object":"chat.completion.chunk","created":1722875835,"choices":[{"index":0,"text"'
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"de'
             },
             {
-                "response": ':" writing","logprobs":null,"finish_reason":null,"seed":null,"delta":{"token_id":4477,"role":"assistant","content":" writing","tool_calls":null}}],"model":"meta-llama/Llama-3-8b-chat-hf","usage":null}'
+                "response": 'lta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
+            },
+            # response 2 and 3 are two separate SSE responses overlapping some parts.
+            {
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"de'
+            },
+            {
+                "response": 'lta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\ndata: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
             },
             {"response": "data: [DONE]\n\n"},
         ]
-        expected_response = 'data: {"id":"8ae835f2ecbb67f3-SJC","object":"chat.completion.chunk","created":1722875835,"choices":[{"index":0,"text":" writing","logprobs":null,"finish_reason":null,"seed":null,"delta":{"token_id":4477,"role":"assistant","content":" writing","tool_calls":null}}],"model":"meta-llama/Llama-3-8b-chat-hf","usage":null}'
+        expected_response = 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
 
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
         pd = LLMProfileDataParser(
@@ -949,6 +958,100 @@ class TestLLMProfileDataParser:
 
         pd._preprocess_response(res_timestamps, res_outputs)
         assert res_outputs[0]["response"] == expected_response
+        assert res_outputs[1]["response"] == expected_response
+        assert res_outputs[2]["response"] == expected_response
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=openai_profile_data,
+    )
+    def test_handle_non_data_sse_fields(self, mock_json) -> None:
+        """Check if the parser can handle SSE comments or event field."""
+        res_outputs = [
+            {
+                "response": ":\n\n",
+            },
+            {
+                "response": ":\n\n",
+            },
+            {
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n'
+            },
+            {
+                "response": ":\n\n",
+            },
+            {
+                "response": ":\n\n",
+            },
+            {
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
+            },
+            {
+                "response": "event: some description\n\n",
+            },
+            {"response": "data: [DONE]\n\n"},
+        ]
+        res_timestamps = [i for i in range(len(res_outputs))]
+
+        expected_responses = [
+            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n',
+            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
+        ]
+
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        pd._preprocess_response(res_timestamps, res_outputs)
+
+        assert len(res_outputs) == 2 and len(res_timestamps) == 2
+        assert res_outputs[0]["response"] == expected_responses[0]
+        assert res_outputs[1]["response"] == expected_responses[1]
+
+    @pytest.mark.parametrize(
+        "res_outputs",
+        [
+            [
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n'
+                },
+                {"response": "event: error: some error occurred.\n\n"},
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
+                },
+                {"response": "data: [DONE]\n\n"},
+            ],
+            [
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\nevent: error: some error occurred.\n\n'
+                },
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
+                },
+                {"response": "data: [DONE]\n\n"},
+            ],
+        ],
+    )
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=openai_profile_data,
+    )
+    def test_handle_sse_error(self, mock_json, res_outputs) -> None:
+        """Check if the parser can handle SSE error field."""
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        with pytest.raises(GenAIPerfException) as excinfo:
+            res_timestamps = [i for i in range(len(res_outputs))]
+            pd._preprocess_response(res_timestamps, res_outputs)
+
+        expected_error_msg = "Detected an error event in the SSE response: event: error: some error occurred."
+        assert str(excinfo.value) == expected_error_msg
 
     @patch(
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
@@ -974,3 +1077,190 @@ class TestLLMProfileDataParser:
 
         pd._preprocess_response(res_timestamps, res_outputs)
         assert res_outputs[0]["response"] == expected_response
+
+    ###############################
+    # SESSION METRICS
+    ###############################
+    session_profile_data = {
+        "service_kind": "openai",
+        "endpoint": "v1/chat/completions",
+        "experiments": [
+            {
+                "experiment": {
+                    "mode": "concurrency",
+                    "value": 10,
+                },
+                "requests": [
+                    # ---------------- session 1 ----------------
+                    {
+                        "timestamp": 1,
+                        "request_inputs": {
+                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs"}],"session_id":"session-id-123"}',
+                        },
+                        "response_timestamps": [3, 5, 8],
+                        "response_outputs": [
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"I"}}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" like"}}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" dogs"}}]}\n\n'
+                            },
+                        ],
+                    },
+                    {
+                        "timestamp": 14,
+                        "request_inputs": {
+                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs"}],"session_id":"session-id-123"}',
+                        },
+                        "response_timestamps": [16, 18],
+                        "response_outputs": [
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" world"}}]}\n\n'
+                            },
+                        ],
+                    },
+                    # -------------------------------------------
+                    # ---------------- session 2 ----------------
+                    {
+                        "timestamp": 2,
+                        "request_inputs": {
+                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs too"}],"session_id":"session-id-456"}',
+                        },
+                        "response_timestamps": [4, 7, 10],
+                        "response_outputs": [
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"I"}}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" like"}}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" dogs"}}]}\n\n'
+                            },
+                        ],
+                    },
+                    {
+                        "timestamp": 13,
+                        "request_inputs": {
+                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs too"}],"session_id":"session-id-456"}',
+                        },
+                        "response_timestamps": [15, 16, 17],
+                        "response_outputs": [
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"I"}}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" like"}}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" dogs"}}]}\n\n'
+                            },
+                        ],
+                    },
+                    # -------------------------------------------
+                ],
+            },
+        ],
+    }
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=session_profile_data,
+    )
+    @pytest.mark.parametrize(
+        "infer_mode, load_level, expected_session1_metrics, expected_session2_metrics",
+        [
+            (
+                "concurrency",
+                "10",
+                {
+                    "request_latencies": [7, 4],
+                    "request_throughputs": [2 / ns_to_sec(17)],
+                    "time_to_first_tokens": [2, 2],
+                    "time_to_second_tokens": [2, 2],
+                    "inter_token_latencies": [2, 2],
+                    "output_token_throughputs_per_request": [
+                        3 / ns_to_sec(7),
+                        1 / ns_to_sec(2),
+                    ],
+                    "output_token_throughputs": [5 / ns_to_sec(17)],
+                    "output_sequence_lengths": [3, 2],
+                    "input_sequence_lengths": [3, 3],
+                },
+                {
+                    "request_latencies": [8, 4],
+                    "request_throughputs": [2 / ns_to_sec(15)],
+                    "time_to_first_tokens": [2, 2],
+                    "time_to_second_tokens": [3, 1],
+                    "inter_token_latencies": [3, 1],
+                    "output_token_throughputs_per_request": [
+                        3 / ns_to_sec(8),
+                        3 / ns_to_sec(4),
+                    ],
+                    "output_token_throughputs": [6 / ns_to_sec(15)],
+                    "output_sequence_lengths": [3, 3],
+                    "input_sequence_lengths": [4, 4],
+                },
+            ),
+        ],
+    )
+    def test_session_metrics(
+        self,
+        mock_json,
+        infer_mode,
+        load_level,
+        expected_session1_metrics,
+        expected_session2_metrics,
+    ) -> None:
+        """Check if it handles session metrics.
+
+        Metrics
+        * request_latencies
+            - session 1: [8 - 1, 18 - 14] = [7, 4]
+            - session 2: [10 - 2, 17 - 13] = [8, 4]
+        * request_throughputs
+            - session 1: [2/(18 - 1)] = [2/17]
+            - session 2: [2/(17 - 2)] = [2/15]
+        * time to first tokens
+            - session 1: [3 - 1, 16 - 14] = [2, 2]
+            - session 2: [4 - 2, 15 - 13] = [2, 2]
+        * time to second tokens
+            - session 1: [5 - 3, 18 - 16] = [2, 2]
+            - session 2: [7 - 4, 16 - 15] = [3, 1]
+        * inter token latencies
+            - session 1: [((8 - 1) - 2)/(3 - 1), ((18 - 14) - 2)/(2 - 1)]
+                          : [2.5, 2]
+                          : [2, 2]  # rounded
+            - session 2: [((10 - 2) - 2)/(3 - 1), ((17 - 13) - 2)/(3 - 1)]
+                          : [3, 1]
+        * output token throughputs per request
+            - session 1: [3/(8 - 1), 2/(18 - 14)] = [3/7, 1/2]
+            - session 2: [3/(10 - 2), 3/(17 - 13)] = [3/8, 3/4]
+        * output token throughputs
+            - session 1: [(3 + 2)/(18 - 1)] = [5/17]
+            - session 2: [(3 + 3)/(17 - 2)] = [6/15]
+        * output sequence lengths
+            - session 1: [3, 2]
+            - session 2: [3, 3]
+        * input sequence lengths
+            - session 1: [3, 3]
+            - session 2: [4, 4]
+        """
+
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("session_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        session_metrics = pd._session_metrics
+        assert "session-id-123" in session_metrics
+        assert "session-id-456" in session_metrics
+        assert session_metrics["session-id-123"] == expected_session1_metrics
+        assert session_metrics["session-id-456"] == expected_session2_metrics

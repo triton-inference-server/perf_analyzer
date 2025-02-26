@@ -27,17 +27,31 @@
 import json
 import os
 from io import StringIO
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import genai_perf.parser as parser
 import pytest
-from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from tests.test_utils import create_default_exporter_config
 
 
 class TestJsonExporter:
+
+    def create_json_exporter(
+        self, monkeypatch, cli_cmd: List[str], stats: Dict[str, Any], **kwargs
+    ) -> JsonExporter:
+        monkeypatch.setattr("sys.argv", cli_cmd)
+        args, _ = parser.parse_args()
+        config = create_default_exporter_config(
+            stats=stats,
+            args=args,
+            extra_inputs=get_extra_inputs_as_dict(args),
+            artifact_dir=args.artifact_dir,
+            **kwargs,
+        )
+        return JsonExporter(config)
+
     stats = {
         "request_throughput": {"unit": "requests/sec", "avg": "7"},
         "request_latency": {
@@ -304,16 +318,8 @@ class TestJsonExporter:
             "--extra-inputs",
             "ignore_eos:true",
         ]
-        monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
-            stats=self.stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
-        )
-        json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args == json.loads(self.expected_json_output)
+        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, self.stats)
+        assert json_exporter._export_data == json.loads(self.expected_json_output)
         json_exporter.export()
         expected_filename = "profile_export_genai_perf.json"
         written_data = [
@@ -347,15 +353,7 @@ class TestJsonExporter:
             "--profile-export-file",
             custom_filename,
         ]
-        monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
-            stats=self.stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
-        )
-        json_exporter = JsonExporter(config)
+        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, self.stats)
         json_exporter.export()
         written_data = [
             data for filename, data in mock_read_write if filename == expected_filename
@@ -493,19 +491,13 @@ class TestJsonExporter:
             "inter_token_latency:2.0",
             "output_token_throughput_per_request:650.0",
         ]
-        monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
-            stats=valid_goodput_stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+        json_exporter = self.create_json_exporter(
+            monkeypatch, cli_cmd, valid_goodput_stats
         )
-        json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["request_goodput"] == json.loads(
+        assert json_exporter._export_data["request_goodput"] == json.loads(
             expected_valid_goodput_json_output
         )
-        assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
+        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
             expected_valid_goodput_json_config
         )
 
@@ -651,20 +643,13 @@ class TestJsonExporter:
             "inter_token_latencies:2.0",
             "output_token_throughputs_per_requesdt:650.0",
         ]
-        monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
-            stats=invalid_goodput_stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+        json_exporter = self.create_json_exporter(
+            monkeypatch, cli_cmd, invalid_goodput_stats
         )
-        json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["request_goodput"] == json.loads(
+        assert json_exporter._export_data["request_goodput"] == json.loads(
             expected_invalid_goodput_json_output
         )
-        print(json_exporter._stats_and_args["input_config"]["goodput"])
-        assert json_exporter._stats_and_args["input_config"]["goodput"] == json.loads(
+        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
             expected_invalid_goodput_json_config
         )
         json_exporter.export()
@@ -837,17 +822,10 @@ class TestJsonExporter:
             "http://tritonmetrics:8002/metrics",
         ]
 
-        monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
-            stats=self.stats,
-            telemetry_stats=telemetry_stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+        json_exporter = self.create_json_exporter(
+            monkeypatch, cli_cmd, self.stats, telemetry_stats=telemetry_stats
         )
-        json_exporter = JsonExporter(config)
-        assert json_exporter._stats_and_args["telemetry_stats"] == json.loads(
+        assert json_exporter._export_data["telemetry_stats"] == json.loads(
             expected_telemetry_json_output
         )
 
@@ -865,3 +843,82 @@ class TestJsonExporter:
         assert output_data_dict["telemetry_stats"] == json.loads(
             expected_telemetry_json_output
         )
+
+    def test_generate_json_session_stats(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+    ) -> None:
+        session_stats = {
+            "session-id-123": {
+                "some_metric_1": {
+                    "unit": "count",
+                    "avg": 123,
+                },
+                "some_metric_2": {
+                    "unit": "ms",
+                    "avg": 456,
+                },
+            },
+            "session-id-456": {
+                "some_metric_1": {
+                    "unit": "requests/sec",
+                    "avg": 789,
+                },
+                "some_metric_2": {
+                    "unit": "ms",
+                    "avg": 1011,
+                },
+            },
+        }
+
+        expected_session_stats_json_output = """
+            {
+                "session-id-123": {
+                    "some_metric_1": {
+                        "unit": "count",
+                        "avg": 123
+                    },
+                    "some_metric_2": {
+                        "unit": "ms",
+                        "avg": 456
+                    }
+                },
+                "session-id-456": {
+                    "some_metric_1": {
+                        "unit": "requests/sec",
+                        "avg": 789
+                    },
+                    "some_metric_2": {
+                        "unit": "ms",
+                        "avg": 1011
+                    }
+                }
+            }
+        """
+
+        cli_cmd = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--service-kind",
+            "openai",
+            "--endpoint-type",
+            "chat",
+        ]
+        json_exporter = self.create_json_exporter(
+            monkeypatch, cli_cmd, self.stats, session_stats=session_stats
+        )
+        json_exporter.export()
+        expected_filename = "profile_export_genai_perf.json"
+        written_data = [
+            data
+            for filename, data in mock_read_write
+            if os.path.basename(filename) == expected_filename
+        ]
+        assert len(written_data) == 1
+
+        actual_session_stats = json.loads(written_data[0])
+        expected_session_stats = json.loads(expected_session_stats_json_output)
+
+        assert "sessions" in actual_session_stats
+        assert actual_session_stats["sessions"] == expected_session_stats

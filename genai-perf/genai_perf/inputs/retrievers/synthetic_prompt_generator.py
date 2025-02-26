@@ -16,7 +16,7 @@ import os
 import pathlib
 import random
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from typing import Dict, List, Optional
 
 from genai_perf.inputs.input_constants import DEFAULT_CORPUS_FILE
 from genai_perf.logging import logging
@@ -30,6 +30,7 @@ class SyntheticPromptGenerator:
     _corpus_length = 0
     _prefix_prompts: List[str] = []
     logger = logging.getLogger(__name__)
+    _cache: Dict[int, str] = {}
 
     @classmethod
     def create_synthetic_prompt(
@@ -37,6 +38,8 @@ class SyntheticPromptGenerator:
         tokenizer: Tokenizer,
         prompt_tokens_mean: int = 550,
         prompt_tokens_stddev: int = 250,
+        hash_ids: Optional[List[int]] = None,
+        block_size: int = 512,
     ) -> str:
         """
         Generate a synthetic prompt with a specific number of tokens.
@@ -51,6 +54,11 @@ class SyntheticPromptGenerator:
         """
         if cls._tokenized_corpus is None:
             cls._initialize_corpus(tokenizer)
+
+        if hash_ids:
+            return cls._generate_prompt_with_token_reuse(
+                tokenizer, prompt_tokens_mean, hash_ids, block_size
+            )
 
         num_prompt_tokens = max(
             1, int(random.gauss(prompt_tokens_mean, prompt_tokens_stddev))
@@ -119,6 +127,47 @@ class SyntheticPromptGenerator:
             prompt_tokens += cls._tokenized_corpus[: end_idx - cls._corpus_length]
 
         return tokenizer.decode(prompt_tokens)
+
+    @classmethod
+    def _generate_prompt_with_token_reuse(
+        cls,
+        tokenizer: Tokenizer,
+        num_tokens: int,
+        prompt_hash_list: list,
+        block_size: int,
+    ) -> str:
+        """
+        Generate a prompt containing exactly `num_tokens` by reusing previously generated prompts
+        stored in `_cache`. Each hash index in `prompt_hash_list` corresponds to a block of
+        `block_size` tokens. If a hash index is found in `_cache`, its stored prompt is reused.
+        Otherwise, a new prompt is generated using `_generate_prompt()` and stored in `_cache`.
+
+        Args:
+            tokenizer : Tokenizer
+                The tokenizer used to generate prompts.
+            num_tokens : int
+                The number of tokens required in the prompt.
+            prompt_hash_list : List[int]
+                A list of hash indices used for token reuse.
+            block_size : int
+                The number of tokens allocated per hash block (default 512).
+
+        Returns:
+            str: A synthetic prompt as a string.
+        """
+        final_prompt = []
+        size_to_use = block_size
+        for index, hash_index in enumerate(prompt_hash_list):
+            if index == len(prompt_hash_list) - 1:
+                size_to_use = num_tokens - (index * block_size)
+            if hash_index not in cls._cache:
+                prompt = cls._generate_prompt(tokenizer, size_to_use)
+                cls._cache[hash_index] = prompt
+
+            final_prompt.append(cls._cache[hash_index])
+        prompt = " ".join(final_prompt)
+
+        return prompt
 
     @classmethod
     def create_prefix_prompts_pool(

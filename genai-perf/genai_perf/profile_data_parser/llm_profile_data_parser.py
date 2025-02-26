@@ -27,22 +27,31 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from collections import defaultdict
 from itertools import tee
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TypeAlias
 
 from genai_perf.constants import EMPTY_RESPONSE_TOKEN
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.logging import logging
-from genai_perf.metrics import LLMMetrics, Metrics
+from genai_perf.metrics import LLMMetrics, Statistics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
     ResponseFormat,
 )
 from genai_perf.tokenizer import Tokenizer
-from genai_perf.utils import load_json_str, remove_sse_prefix
+from genai_perf.utils import (
+    load_json_str,
+    not_data_sse_field,
+    remove_sse_prefix,
+    sse_error_occurred,
+)
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+SessionMetrics: TypeAlias = Dict[str, Dict[str, List[float | int]]]
 
 
 class LLMProfileDataParser(ProfileDataParser):
@@ -77,9 +86,29 @@ class LLMProfileDataParser(ProfileDataParser):
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._tokenizer = tokenizer
+        self._session_metrics: SessionMetrics = defaultdict(lambda: defaultdict(list))
         super().__init__(filename, goodput_constraints)
 
-    def _parse_requests(self, requests: dict) -> Metrics:
+    def _parse_profile_data(self, data: dict) -> None:
+        """Parse through the entire profile data to collect statistics."""
+        self._profile_results = {}
+        for experiment in data["experiments"]:
+            infer_mode = experiment["experiment"]["mode"]
+            load_level = experiment["experiment"]["value"]
+            requests = experiment["requests"]
+
+            llm_metrics = self._parse_requests(requests)
+
+            # aggregate and calculate statistics
+            statistics = Statistics(llm_metrics)
+            self._profile_results[(infer_mode, str(load_level))] = statistics
+
+            # calculate per-session statistics
+            for session_id, session_metric in self._session_metrics.items():
+                metrics = LLMMetrics.from_dict(session_metric)
+                self._session_statistics[session_id] = Statistics(metrics)
+
+    def _parse_requests(self, requests: dict) -> LLMMetrics:
         """Parse each requests in profile export data to extract key metrics."""
         min_req_timestamp, max_res_timestamp = float("inf"), 0
         request_latencies = []
@@ -126,7 +155,7 @@ class LLMProfileDataParser(ProfileDataParser):
                     time_to_second_tokens.append(ttst)
 
                 # number of input tokens
-                input_seq_len = self._get_input_token_count(req_inputs)
+                input_seq_len, session_id = self._get_input_token_count(req_inputs)
                 input_sequence_lengths.append(input_seq_len)
 
                 # output token throughput per request
@@ -140,10 +169,10 @@ class LLMProfileDataParser(ProfileDataParser):
 
                 # inter token latencies
                 if total_output_token > 1:
-                    inter_token_latency = (req_latency_ns - ttft) / (
-                        total_output_token - 1
+                    inter_token_latency = round(
+                        (req_latency_ns - ttft) / (total_output_token - 1)
                     )
-                    inter_token_latencies.append(round(inter_token_latency))
+                    inter_token_latencies.append(inter_token_latency)
 
                 # The new ITL calculation above loses all token-level ITL information
                 # and as a result breaks ITL vs token position visualization. Keep
@@ -161,6 +190,26 @@ class LLMProfileDataParser(ProfileDataParser):
                     chunked_inter_token_latency.append(round((t2 - t1) / num_token))
                 chunked_inter_token_latencies.append(chunked_inter_token_latency)
 
+                # (per-session) calculate llm metrics
+                if session_id:
+                    session_metric = self._session_metrics[session_id]
+                    session_metric["request_latencies"].append(req_latency_ns)
+                    session_metric["time_to_first_tokens"].append(ttft)
+                    if len(res_timestamps) > 1:
+                        session_metric["time_to_second_tokens"].append(ttst)
+                    if total_output_token > 1:
+                        session_metric["inter_token_latencies"].append(
+                            inter_token_latency
+                        )
+                    session_metric["output_token_throughputs_per_request"].append(
+                        total_output_token / req_latency_s
+                    )
+                    session_metric["input_sequence_lengths"].append(input_seq_len)
+                    session_metric["output_sequence_lengths"].append(total_output_token)
+                    # collect request and last response timestamps each session
+                    session_metric["req_timestamps"].append(req_timestamp)
+                    session_metric["last_res_timestamps"].append(res_timestamps[-1])
+
                 pbar.update(1)
 
         # request & output token throughput
@@ -168,7 +217,7 @@ class LLMProfileDataParser(ProfileDataParser):
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        llm_metric = LLMMetrics(
+        llm_metrics = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -181,11 +230,27 @@ class LLMProfileDataParser(ProfileDataParser):
             chunked_inter_token_latencies,
         )
 
-        if self._goodput_constraints:
-            goodput_val = self._calculate_goodput(benchmark_duration, llm_metric)
-            llm_metric.request_goodputs = goodput_val
+        self._postprocess_session_metrics()
 
-        return llm_metric
+        if self._goodput_constraints:
+            goodput_val = self._calculate_goodput(benchmark_duration, llm_metrics)
+            llm_metrics.request_goodputs = goodput_val
+
+        return llm_metrics
+
+    def _postprocess_session_metrics(self) -> None:
+        """Postprocess session metrics to calculate request & output token throughput."""
+        for metric in self._session_metrics.values():
+            init_t = min(metric["req_timestamps"])
+            last_t = max(metric["last_res_timestamps"])
+            session_latency = (last_t - init_t) / 1e9  # to seconds
+            num_requests = len(metric["req_timestamps"])
+            num_tokens = sum(metric["output_sequence_lengths"])
+            metric["request_throughputs"].append(num_requests / session_latency)
+            metric["output_token_throughputs"].append(num_tokens / session_latency)
+            # clean up
+            del metric["req_timestamps"]
+            del metric["last_res_timestamps"]
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""
@@ -200,47 +265,59 @@ class LLMProfileDataParser(ProfileDataParser):
         if self._service_kind == "openai":
             # Sometimes streamed chunks are returned in a splintered fashion.
             # This forces a merge with the previous chunk if error detected.
-            if len(res_outputs) > 1:
-                for i in reversed(range(len(res_outputs))):
-                    response = res_outputs[i]["response"]
-                    if not response.startswith("data: "):
-                        first_data = response.find("data: ")
-                        if first_data == -1:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"] + response.strip()
-                            )
-                            res_outputs[i]["response"] = ""
-                        else:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"]
-                                + response[0:first_data].strip()
-                            )
-                            res_outputs[i]["response"] = response[first_data:].strip()
+            for i in reversed(range(1, len(res_outputs))):
+                response = res_outputs[i]["response"]
+
+                # skip non-data events
+                if not_data_sse_field(response):
+                    continue
+
+                if not response.startswith("data: "):
+                    prefix_idx = response.find("data: ")
+                    if "data: " not in res_outputs[i - 1]["response"]:
+                        raise GenAIPerfException(
+                            "Detected a splintered SSE response but the "
+                            "previous response does not contain proper SSE "
+                            "prefix to continue the fix."
+                        )
+
+                    # When 'data: ' prefix is not found in the current
+                    # response, append it with the previous response
+                    # (assuming that the prev response contains it).
+                    if prefix_idx == -1:
+                        res_outputs[i - 1]["response"] += response
+                        res_outputs[i]["response"] = ""
+                    else:
+                        res_outputs[i - 1]["response"] += response[0:prefix_idx]
+                        res_outputs[i]["response"] = response[prefix_idx:]
+
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
-                response = res_outputs[i]["response"]
-                responses = response.strip().split("\n\n")
-                if len(responses) > 1:
-                    merged_response = load_json_str(remove_sse_prefix(responses[0]))
-                    if (self._response_format != ResponseFormat.TRITON_GENERATE) and (
-                        merged_response["choices"][0]["delta"].get("content", None)
-                        is None
-                    ):
-                        merged_response["choices"][0]["delta"]["content"] = ""
-                    elif (self._response_format == ResponseFormat.TRITON_GENERATE) and (
-                        "text_output" not in merged_response
-                    ):
-                        merged_response["text_output"] = ""
+                responses = res_outputs[i]["response"].strip().split("\n\n")
 
-                for r in responses[1:]:
+                # Check if any error event occurred.
+                for r in responses:
+                    if sse_error_occurred(r):
+                        raise GenAIPerfException(
+                            f"Detected an error event in the SSE response: {r}"
+                        )
+
+                if len(responses) > 1:
+                    data = load_json_str(remove_sse_prefix(responses[0]))
                     if self._response_format == ResponseFormat.TRITON_GENERATE:
-                        text = self._extract_generate_text_output(r)
-                        merged_response["text_output"] += text
+                        merged_text = "".join(
+                            [self._extract_generate_text_output(r) for r in responses]
+                        )
+                        data["text_output"] = merged_text
                     else:
-                        text = self._extract_openai_text_output(r)
-                        merged_response["choices"][0]["delta"]["content"] += text
-                    res_outputs[i] = {"response": json.dumps(merged_response)}
+                        merged_text = "".join(
+                            [self._extract_openai_text_output(r) for r in responses]
+                        )
+                        data["choices"][0]["delta"]["content"] = merged_text
+                    res_outputs[i] = {"response": json.dumps(data)}
+                elif self._is_empty_response(responses[0]):
+                    res_outputs[i]["response"] = ""
 
             # Remove responses without any content
             indices_to_remove = []
@@ -252,33 +329,38 @@ class LLMProfileDataParser(ProfileDataParser):
                 res_timestamps.pop(index)
                 res_outputs.pop(index)
 
-    def _get_input_token_count(self, req_inputs: dict) -> int:
+    def _get_input_token_count(self, req_inputs: dict) -> Tuple[int, str]:
         """Deserialize the request input and return tokenized inputs."""
         if self._service_kind == "triton":
             input_text = req_inputs["text_input"]
+            session_id = req_inputs.get("session_id", "")
         elif self._service_kind == "triton_c_api":
-            return len(req_inputs["input_ids"])  # no tokenizer required
+            session_id = req_inputs.get("session_id", "")
+            return len(req_inputs["input_ids"]), session_id  # no tokenizer required
         elif self._service_kind == "openai":
-            input_text = self._get_input_text(req_inputs)
+            input_text, session_id = self._get_input_payload(req_inputs)
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
-        return len(self._tokenizer.encode(input_text))
+        token_count = len(self._tokenizer.encode(input_text))
+        return token_count, session_id
 
-    def _get_input_text(self, req_inputs: dict) -> str:
-        """Tokenize the request input texts."""
+    def _get_input_payload(self, req_inputs: dict) -> Tuple[str, str]:
+        """Deserialize the request input payload."""
         payload = load_json_str(req_inputs["payload"])
+        session_id = payload.get("session_id", "")
         if self._response_format == ResponseFormat.TRITON_GENERATE:
-            return " ".join(payload["text_input"])
+            input_text = " ".join(payload["text_input"])
         elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
-            return payload["messages"][0]["content"]
+            input_text = payload["messages"][0]["content"]
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
-            return " ".join(payload["prompt"])
+            input_text = " ".join(payload["prompt"])
         elif self._response_format == ResponseFormat.OPENAI_VISION:
             content = payload["messages"][0]["content"]
-            return " ".join(c["text"] for c in content if c["type"] == "text")
+            input_text = " ".join(c["text"] for c in content if c["type"] == "text")
         else:
             raise ValueError("Failed to parse request input in profile export file.")
+        return input_text, session_id
 
     def _get_output_token_counts(
         self, res_outputs: List[Dict]
@@ -339,6 +421,9 @@ class LLMProfileDataParser(ProfileDataParser):
         return [out[1:] for out in encodings.data["input_ids"]]
 
     def _extract_generate_text_output(self, response: str) -> str:
+        if not response or not_data_sse_field(response):
+            return ""
+
         response = remove_sse_prefix(response)
         if response == "":
             return response
@@ -347,6 +432,11 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _extract_openai_text_output(self, response: str) -> str:
         """Extracts text/content of the OpenAI response object."""
+        # (TODO) TPA-829: Add more proper SSE event stream support
+        # Check for empty, comment, or event SSE response
+        if not response or not_data_sse_field(response):
+            return ""
+
         response = remove_sse_prefix(response)
 
         if response == "[DONE]":
