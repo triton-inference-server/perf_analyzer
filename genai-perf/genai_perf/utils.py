@@ -56,6 +56,20 @@ def encode_image(img: Image, format: str):
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
+def not_data_sse_field(msg: str) -> bool:
+    # (TODO) TPA-829: Add more proper SSE event stream support
+    # Check for empty, comment, or event SSE response
+    return msg.startswith((":", "event:", "id:", "retry:"))
+
+
+def is_sse_field(msg: str) -> bool:
+    return msg.startswith((":", "data:", "event:", "id:", "retry:"))
+
+
+def sse_error_occurred(msg: str) -> bool:
+    return msg.startswith("event:") and "error" in msg.lower()
+
+
 def remove_sse_prefix(msg: str) -> str:
     prefix = "data:"
     if msg.startswith(prefix):

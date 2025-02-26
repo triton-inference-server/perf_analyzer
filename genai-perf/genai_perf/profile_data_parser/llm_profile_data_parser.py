@@ -40,7 +40,13 @@ from genai_perf.profile_data_parser.profile_data_parser import (
     ResponseFormat,
 )
 from genai_perf.tokenizer import Tokenizer
-from genai_perf.utils import load_json_str, remove_sse_prefix
+from genai_perf.utils import (
+    is_sse_field,
+    load_json_str,
+    not_data_sse_field,
+    remove_sse_prefix,
+    sse_error_occurred,
+)
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -203,6 +209,11 @@ class LLMProfileDataParser(ProfileDataParser):
             # This forces a merge with the previous chunk if error detected.
             for i in reversed(range(1, len(res_outputs))):
                 response = res_outputs[i]["response"]
+
+                # skip non-data events
+                if not_data_sse_field(response):
+                    continue
+
                 if not response.startswith("data: "):
                     prefix_idx = response.find("data: ")
                     if "data: " not in res_outputs[i - 1]["response"]:
@@ -226,6 +237,14 @@ class LLMProfileDataParser(ProfileDataParser):
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
                 responses = res_outputs[i]["response"].strip().split("\n\n")
+
+                # Check if any error event occurred.
+                for r in responses:
+                    if sse_error_occurred(r):
+                        raise GenAIPerfException(
+                            f"Detected an error event in the SSE response: {r}"
+                        )
+
                 if len(responses) > 1:
                     data = load_json_str(remove_sse_prefix(responses[0]))
                     if self._response_format == ResponseFormat.TRITON_GENERATE:
@@ -339,6 +358,9 @@ class LLMProfileDataParser(ProfileDataParser):
         return [out[1:] for out in encodings.data["input_ids"]]
 
     def _extract_generate_text_output(self, response: str) -> str:
+        if not response or not_data_sse_field(response):
+            return ""
+
         response = remove_sse_prefix(response)
         if response == "":
             return response
@@ -349,7 +371,7 @@ class LLMProfileDataParser(ProfileDataParser):
         """Extracts text/content of the OpenAI response object."""
         # (TODO) TPA-829: Add more proper SSE event stream support
         # Check for empty, comment, or event SSE response
-        if not response or any(response.startswith(p) for p in [":", "event:"]):
+        if not response or not_data_sse_field(response):
             return ""
 
         response = remove_sse_prefix(response)

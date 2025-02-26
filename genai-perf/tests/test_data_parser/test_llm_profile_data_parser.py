@@ -29,6 +29,7 @@ from typing import cast
 from unittest.mock import patch
 
 import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
@@ -932,14 +933,18 @@ class TestLLMProfileDataParser:
         res_timestamps = [0, 1, 2, 3, 4]
         res_outputs = [
             # response 0 and 1 are single SSE response split into two.
-            {"response": 'data: {"object":"chat.completion.chunk","choices":[{"index"'},
             {
-                "response": ':0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"de'
+            },
+            {
+                "response": 'lta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
             },
             # response 2 and 3 are two separate SSE responses overlapping some parts.
-            {"response": 'data: {"object":"chat.completion.chunk","choices":[{"index"'},
             {
-                "response": ':0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\ndata: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
+                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"de'
+            },
+            {
+                "response": 'lta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\ndata: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
             },
             {"response": "data: [DONE]\n\n"},
         ]
@@ -962,13 +967,18 @@ class TestLLMProfileDataParser:
     )
     def test_handle_non_data_sse_fields(self, mock_json) -> None:
         """Check if the parser can handle SSE comments or event field."""
-        res_timestamps = [0, 1, 2, 3, 4, 5]
         res_outputs = [
             {
                 "response": ":\n\n",
             },
             {
+                "response": ":\n\n",
+            },
+            {
                 "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n'
+            },
+            {
+                "response": ":\n\n",
             },
             {
                 "response": ":\n\n",
@@ -981,9 +991,11 @@ class TestLLMProfileDataParser:
             },
             {"response": "data: [DONE]\n\n"},
         ]
+        res_timestamps = [i for i in range(len(res_outputs))]
+
         expected_responses = [
-            '{"object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"token_id": 4477, "role": "assistant", "content": "Hello "}}], "model": "meta-llama"}',
-            '{"object": "chat.completion.chunk", "choices": [{"index": 0, "delta": {"token_id": 4477, "role": "assistant", "content": "world!"}}], "model": "meta-llama"}',
+            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n',
+            'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
         ]
 
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
@@ -997,6 +1009,49 @@ class TestLLMProfileDataParser:
         assert len(res_outputs) == 2 and len(res_timestamps) == 2
         assert res_outputs[0]["response"] == expected_responses[0]
         assert res_outputs[1]["response"] == expected_responses[1]
+
+    @pytest.mark.parametrize(
+        "res_outputs",
+        [
+            [
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\n'
+                },
+                {"response": "event: error: some error occurred.\n\n"},
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
+                },
+                {"response": "data: [DONE]\n\n"},
+            ],
+            [
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"Hello "}}],"model":"meta-llama"}\n\nevent: error: some error occurred.\n\n'
+                },
+                {
+                    "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n'
+                },
+                {"response": "data: [DONE]\n\n"},
+            ],
+        ],
+    )
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=openai_profile_data,
+    )
+    def test_handle_sse_error(self, mock_json, res_outputs) -> None:
+        """Check if the parser can handle SSE error field."""
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        with pytest.raises(GenAIPerfException) as excinfo:
+            res_timestamps = [i for i in range(len(res_outputs))]
+            pd._preprocess_response(res_timestamps, res_outputs)
+
+        expected_error_msg = "Detected an error event in the SSE response: event: error: some error occurred."
+        assert str(excinfo.value) == expected_error_msg
 
     @patch(
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
