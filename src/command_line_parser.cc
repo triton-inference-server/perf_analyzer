@@ -1837,16 +1837,31 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->filename = optarg;
           break;
         case '?':
-          if (optopt) {
-            Usage(
-                "Error: Invalid short option: '-" +
-                std::string(1, static_cast<char>(optopt)) + "'");
-          } else if (optind > 1 && argv[optind - 1][0] == '-') {
-            Usage(
-                "Error: Invalid long option: '" +
-                std::string{argv[optind - 1]} + "'");
+          std::string last_arg =
+              (optind > 1) ? std::string(argv[optind - 1]) : "";
+
+          bool is_invalid_short_option = optopt && isprint(optopt);
+          bool is_invalid_long_option =
+              last_arg.starts_with("--") && optopt == 0;
+          bool is_missing_value =
+              (optarg == nullptr && optind > 1 && last_arg[0] == '-');
+
+          if (is_invalid_short_option) {
+            char invalid_char = static_cast<char>(optopt);
+            throw PerfAnalyzerException(
+                "Error: Invalid short option '-" +
+                    std::string(1, invalid_char) + "'",
+                GENERIC_ERROR);
+          } else if (is_invalid_long_option) {
+            throw PerfAnalyzerException(
+                "Error: Invalid long option '" + last_arg + "'", GENERIC_ERROR);
+          } else if (is_missing_value) {
+            throw PerfAnalyzerException(
+                "Error: Missing value for option '" + last_arg + "'",
+                GENERIC_ERROR);
           } else {
-            Usage("Error: Unknown command-line argument.");
+            throw PerfAnalyzerException(
+                "Error: Unknown command-line argument.", GENERIC_ERROR);
           }
           break;
       }

@@ -28,8 +28,8 @@
 #include <stddef.h>
 
 #include <chrono>
-#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -47,7 +47,9 @@ class PayloadDatasetManager {
 
   std::vector<std::vector<size_t>> GroupPayloadsBySession() const;
 
-  std::chrono::milliseconds GetDelayForPayload(size_t dataset_index) const;
+  std::string GetSessionID(size_t dataset_index) const;
+
+  std::optional<std::chrono::milliseconds> GetDelay(size_t dataset_index) const;
 
   std::string GetPayload(size_t dataset_index) const;
 
@@ -55,8 +57,6 @@ class PayloadDatasetManager {
   using PayloadsMapType = std::unordered_map<std::string, std::vector<size_t>>;
 
   PayloadsMapType CreateSessionIdToPayloadsMap() const;
-
-  std::string GetSessionID(size_t dataset_index) const;
 
   std::shared_ptr<const DataLoader> data_loader_{};
   const std::shared_ptr<ModelParser> parser_{};
