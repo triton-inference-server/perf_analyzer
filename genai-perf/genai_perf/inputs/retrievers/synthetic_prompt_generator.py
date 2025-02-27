@@ -16,7 +16,7 @@ import os
 import pathlib
 import random
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from genai_perf.inputs.input_constants import DEFAULT_CORPUS_FILE
 from genai_perf.logging import logging
@@ -103,7 +103,6 @@ class SyntheticPromptGenerator:
 
         Args:
             num_tokens: Number of tokens required in the prompt.
-            decode: Whether to decode the prompt tokens.
 
         Returns:
             A synthetic prompt of tokens.
@@ -136,7 +135,6 @@ class SyntheticPromptGenerator:
         Args:
             tokenizer: Tokenizer instance.
             num_tokens: Number of tokens required in the prompt.
-            decode: Whether to decode the prompt tokens.
 
         Returns:
             A synthetic prompt as a string.
