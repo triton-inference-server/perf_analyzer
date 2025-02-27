@@ -31,7 +31,6 @@ import pytest
 from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.inputs.retrievers.payload_input_retriever import PayloadInputRetriever
 from genai_perf.tokenizer import get_empty_tokenizer
 
@@ -56,11 +55,11 @@ class TestIntegrationMultiTurn:
     def retriever(self, mock_config):
         return PayloadInputRetriever(mock_config)
 
-    def test_multi_turn_input__generation(self, monkeypatch, mock_config):
+    def test_multi_turn_input_generation(self, monkeypatch, mock_config):
         input_data = (
             '{"text": "Turn 1", "session_id": "abc", "delay": 2}\n'
             '{"text": "Turn 2", "session_id": "abc", "delay": 3}\n'
-            '{"text": "Turn 3", "session_id": "abc", "timestamp": 5000}\n'
+            '{"text": "Turn 3", "session_id": "abc", "delay": 5000}\n'
         )
         mock_file_open = mock_open(read_data=input_data)
 
@@ -87,6 +86,4 @@ class TestIntegrationMultiTurn:
 
             for entry in output_data["data"]:
                 assert "session_id" in entry, "Session ID missing in output entry"
-                assert (
-                    "delay" in entry or "timestamp" in entry
-                ), "Either delay or timestamp must be present in output entry"
+                assert "delay" in entry, "Delay must be present in output entry"

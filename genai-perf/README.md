@@ -633,7 +633,7 @@ export file is `profile_export.json`, the genai-perf file will be exported to
 
 ### Session Options
 
-##### `--session-concurrency`
+##### `--session-concurrency <int>`
 
 The number of concurrenct sessions to benchmark. (default: `None`)
 
