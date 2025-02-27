@@ -97,19 +97,16 @@ class SyntheticPromptGenerator:
         cls._corpus_length = len(cls._tokenized_corpus)
 
     @classmethod
-    def _generate_prompt(
-        cls, tokenizer: Tokenizer, num_tokens: int, decode: bool = True
-    ):
+    def _generate_prompt_tokens(cls, num_tokens: int) -> List[int]:
         """
         Generate a prompt containing exactly `num_tokens` using the preloaded tokenized corpus.
 
         Args:
-            tokenizer: Tokenizer for decoding tokens.
             num_tokens: Number of tokens required in the prompt.
             decode: Whether to decode the prompt tokens.
 
         Returns:
-            A synthetic prompt as a string.
+            A synthetic prompt of tokens.
 
         Raises:
             ValueError: If the tokenized corpus is not initialized
@@ -129,17 +126,33 @@ class SyntheticPromptGenerator:
         if end_idx > cls._corpus_length:
             prompt_tokens += cls._tokenized_corpus[: end_idx - cls._corpus_length]
 
-        if decode:
-            return tokenizer.decode(prompt_tokens)
-        else:
-            return prompt_tokens
+        return prompt_tokens
+
+    @classmethod
+    def _generate_prompt(cls, tokenizer: Tokenizer, num_tokens: int) -> str:
+        """
+        Generate a prompt containing exactly `num_tokens` using the preloaded tokenized corpus.
+
+        Args:
+            tokenizer: Tokenizer instance.
+            num_tokens: Number of tokens required in the prompt.
+            decode: Whether to decode the prompt tokens.
+
+        Returns:
+            A synthetic prompt as a string.
+
+        Raises:
+            ValueError: If the tokenized corpus is not initialized
+        """
+
+        return tokenizer.decode(cls._generate_prompt_tokens(num_tokens))
 
     @classmethod
     def _generate_prompt_with_token_reuse(
         cls,
         tokenizer: Tokenizer,
         num_tokens: int,
-        prompt_hash_list: list,
+        prompt_hash_list: List[int],
         block_size: int,
     ) -> str:
         """
@@ -167,10 +180,13 @@ class SyntheticPromptGenerator:
             if index == len(prompt_hash_list) - 1:
                 size_to_use = num_tokens - (index * block_size)
             if hash_index not in cls._cache:
-                prompt = cls._generate_prompt(tokenizer, size_to_use, decode=False)
-                prompt.pop(-1)
-                prompt.insert(0, tokenizer.bos_token_id)
-                cls._cache[hash_index] = prompt
+                # To ensure that the prompt doesn't merge chunks, we pop the last token
+                # and insert the bos token at the beginning. Length is maintained and
+                # the prompt generates the expected number of tokens.
+                prompt_tokens = cls._generate_prompt_tokens(size_to_use)
+                prompt_tokens.pop(-1)
+                prompt_tokens.insert(0, tokenizer.bos_token_id())
+                cls._cache[hash_index] = prompt_tokens
             final_prompt.extend(cls._cache[hash_index])
         prompt = tokenizer.decode(final_prompt)
 
