@@ -16,7 +16,7 @@ import os
 import pathlib
 import random
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from genai_perf.inputs.input_constants import DEFAULT_CORPUS_FILE
 from genai_perf.logging import logging
@@ -30,7 +30,7 @@ class SyntheticPromptGenerator:
     _corpus_length = 0
     _prefix_prompts: List[str] = []
     logger = logging.getLogger(__name__)
-    _cache: Dict[int, str] = {}
+    _cache: Dict[int, List[int]] = {}
 
     @classmethod
     def create_synthetic_prompt(
@@ -97,13 +97,16 @@ class SyntheticPromptGenerator:
         cls._corpus_length = len(cls._tokenized_corpus)
 
     @classmethod
-    def _generate_prompt(cls, tokenizer: Tokenizer, num_tokens: int) -> str:
+    def _generate_prompt(
+        cls, tokenizer: Tokenizer, num_tokens: int, decode: bool = True
+    ):
         """
         Generate a prompt containing exactly `num_tokens` using the preloaded tokenized corpus.
 
         Args:
             tokenizer: Tokenizer for decoding tokens.
             num_tokens: Number of tokens required in the prompt.
+            decode: Whether to decode the prompt tokens.
 
         Returns:
             A synthetic prompt as a string.
@@ -126,7 +129,10 @@ class SyntheticPromptGenerator:
         if end_idx > cls._corpus_length:
             prompt_tokens += cls._tokenized_corpus[: end_idx - cls._corpus_length]
 
-        return tokenizer.decode(prompt_tokens)
+        if decode:
+            return tokenizer.decode(prompt_tokens)
+        else:
+            return prompt_tokens
 
     @classmethod
     def _generate_prompt_with_token_reuse(
@@ -155,17 +161,18 @@ class SyntheticPromptGenerator:
         Returns:
             str: A synthetic prompt as a string.
         """
-        final_prompt = []
+        final_prompt: List[int] = []
         size_to_use = block_size
         for index, hash_index in enumerate(prompt_hash_list):
             if index == len(prompt_hash_list) - 1:
                 size_to_use = num_tokens - (index * block_size)
             if hash_index not in cls._cache:
-                prompt = cls._generate_prompt(tokenizer, size_to_use)
+                prompt = cls._generate_prompt(tokenizer, size_to_use, decode=False)
+                prompt.pop(-1)
+                prompt.insert(0, tokenizer.bos_token_id)
                 cls._cache[hash_index] = prompt
-
-            final_prompt.append(cls._cache[hash_index])
-        prompt = " ".join(final_prompt)
+            final_prompt.extend(cls._cache[hash_index])
+        prompt = tokenizer.decode(final_prompt)
 
         return prompt
 
