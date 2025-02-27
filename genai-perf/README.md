@@ -631,6 +631,12 @@ exported to `<profile_export_file>_genai_perf.json` and
 export file is `profile_export.json`, the genai-perf file will be exported to
 `profile_export_genai_perf.csv`. (default: `profile_export.json`)
 
+### Session Options
+
+##### `--session-concurrency`
+
+The number of concurrenct sessions to benchmark. (default: `None`)
+
 ### Other Options
 
 ##### `--tokenizer <str>`
