@@ -61,7 +61,7 @@ class SyntheticPromptGenerator:
             )
 
         num_prompt_tokens = max(
-            1, int(random.gauss(prompt_tokens_mean, prompt_tokens_stddev))
+            0, int(random.gauss(prompt_tokens_mean, prompt_tokens_stddev))
         )
 
         return cls._generate_prompt(tokenizer, num_prompt_tokens)
