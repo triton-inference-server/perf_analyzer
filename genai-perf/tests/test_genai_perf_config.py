@@ -90,7 +90,6 @@ class TestGenAIPerfConfig(unittest.TestCase):
 
         expected_parameters = {"num_dataset_entries": 50}
 
-        expected_representation = " ".join([expected_parameters.__str__()])
         representation = self._default_genai_perf_config.representation()
 
         for key, value in expected_parameters.items():

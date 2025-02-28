@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
-from genai_perf.config.input.config_command import ConfigCommand, Subcommand
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
 
 
