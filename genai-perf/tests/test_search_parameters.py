@@ -21,7 +21,7 @@ from genai_perf.config.generate.search_parameters import (
     SearchParameters,
     SearchUsage,
 )
-from genai_perf.config.input.config_command import ConfigCommand, Subcommand
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults, Range
 from genai_perf.exceptions import GenAIPerfException
 

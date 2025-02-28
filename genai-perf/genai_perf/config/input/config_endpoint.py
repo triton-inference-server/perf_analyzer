@@ -72,7 +72,7 @@ class ConfigEndPoint(BaseConfig):
             default=EndPointDefaults.URL,
             verbose_template_comment="URL of the endpoint to target for benchmarking.",
         )
-        self.grpc_method = Any = ConfigField(
+        self.grpc_method: Any = ConfigField(
             default=EndPointDefaults.GRPC_METHOD,
             verbose_template_comment="A fully-qualified gRPC method name in "
             "'<package>.<service>/<method>' format."

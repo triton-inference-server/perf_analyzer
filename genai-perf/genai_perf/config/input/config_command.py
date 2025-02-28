@@ -14,16 +14,12 @@
 
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, TypeAlias, Union
+from typing import Any, Dict, List, Optional, TypeAlias, Union
 
 import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_analyze import ConfigAnalyze
-from genai_perf.config.input.config_defaults import (
-    AnalyzeDefaults,
-    Range,
-    TopLevelDefaults,
-)
+from genai_perf.config.input.config_defaults import Range, TopLevelDefaults
 from genai_perf.config.input.config_endpoint import ConfigEndPoint
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.config.input.config_input import ConfigInput
@@ -31,7 +27,6 @@ from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.types import CheckpointObject, ModelName
 
 
 class Subcommand(Enum):
