@@ -96,7 +96,7 @@ class ConfigField:
     def __setattr__(self, name, value):
         self.__dict__[name] = value
 
-        if name == "value":
+        if name == "value" and value:
             self.is_set_by_user = True
             self._check_bounds()
             self._check_choices()
