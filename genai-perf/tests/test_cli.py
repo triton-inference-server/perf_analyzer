@@ -259,6 +259,7 @@ class TestCLIArguments:
                 ["--service-kind", "openai", "--endpoint-type", "chat"],
                 {"service_kind": "openai", "endpoint": "v1/chat/completions"},
             ),
+            (["--session-concurrency", "3"], {"session_concurrency": 3}),
             (["--stability-percentage", "99.5"], {"stability_percentage": 99.5}),
             (["--streaming"], {"streaming": True}),
             (

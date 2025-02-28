@@ -90,6 +90,13 @@ class TestPayloadInputRetriever:
                 [{}],
             ),
             ('{"timestamp": 789}\n', ["Synthetic prompt"], [{"timestamp": 789}], [{}]),
+            (
+                '{"text": "What is AI?", "delay": 123, "session_id": "abc"}\n'
+                '{"text": "How does ML work?", "delay": 0, "custom_field": "value"}\n',
+                ["What is AI?", "How does ML work?"],
+                [{"delay": 123, "session_id": "abc"}, {"delay": 0}],
+                [{}, {"custom_field": "value"}],
+            ),
         ],
     )
     @patch("builtins.open")
@@ -117,9 +124,9 @@ class TestPayloadInputRetriever:
             mock_synthetic_prompt.assert_called_once()
 
     def test_convert_content_to_data_file(self, retriever):
-        prompts = ["Prompt 1", "Prompt 2"]
-        optional_data_list = [{"session_id": "123"}, {"custom_field": "value"}]
-        payload_metadata_list = [{"timestamp": 1}, {"timestamp": 2}]
+        prompts = ["Prompt 1", "Prompt 2", "Prompt 3"]
+        optional_data_list = [{"session_id": "123"}, {"custom_field": "value"}, {}]
+        payload_metadata_list = [{"timestamp": 1}, {"timestamp": 2}, {"delay": 3}]
         data_dict = {
             "prompts": prompts,
             "payload_metadata_list": payload_metadata_list,
@@ -128,7 +135,7 @@ class TestPayloadInputRetriever:
 
         file_data = retriever._convert_content_to_data_file(data_dict)
 
-        assert len(file_data.rows) == 2
+        assert len(file_data.rows) == 3
         assert file_data.rows[0].texts == ["Prompt 1"]
         assert file_data.rows[0].payload_metadata
         assert file_data.rows[0].payload_metadata.get("timestamp")
@@ -139,15 +146,26 @@ class TestPayloadInputRetriever:
         assert file_data.rows[1].payload_metadata.get("timestamp")
         assert file_data.rows[1].payload_metadata.get("timestamp") == 2
         assert file_data.rows[1].optional_data == {"custom_field": "value"}
+        assert file_data.rows[2].texts == ["Prompt 3"]
+        assert file_data.rows[2].payload_metadata
+        assert file_data.rows[2].payload_metadata.get("delay")
+        assert file_data.rows[2].payload_metadata.get("delay") == 3
 
+    @pytest.mark.parametrize(
+        "payload_metadata",
+        [
+            {"timestamp": 123, "session_id": "abc"},
+            {"delay": 456, "session_id": "def"},
+        ],
+    )
     @patch.object(PayloadInputRetriever, "_get_input_dataset_from_file")
-    def test_retrieve_data(self, mock_get_input, retriever):
+    def test_retrieve_data(self, mock_get_input, retriever, payload_metadata):
         mock_file_data = FileData(
             [
                 DataRow(
                     texts=["Test prompt"],
                     optional_data={"key": "value"},
-                    payload_metadata={"timestamp": 0},
+                    payload_metadata=payload_metadata,
                 )
             ]
         )
