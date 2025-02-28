@@ -233,6 +233,17 @@ class TestConfigCommand(unittest.TestCase):
 
                 request_count:
                     warmup: 19
+
+                sessions:
+                  num: 20
+
+                  turns:
+                    mean: 21
+                    stddev: 22
+
+                  turn_delay:
+                    mean: 23
+                    stddev: 24
             """)
         # yapf: enable
 
@@ -260,6 +271,11 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.prefix_prompt.num, 17)
         self.assertEqual(config.input.prefix_prompt.length, 18)
         self.assertEqual(config.input.request_count.warmup, 19)
+        self.assertEqual(config.input.sessions.num, 20)
+        self.assertEqual(config.input.sessions.turns.mean, 21)
+        self.assertEqual(config.input.sessions.turns.stddev, 22)
+        self.assertEqual(config.input.sessions.turn_delay.mean, 23)
+        self.assertEqual(config.input.sessions.turn_delay.stddev, 24)
 
     ###########################################################################
     # Test Output Config
