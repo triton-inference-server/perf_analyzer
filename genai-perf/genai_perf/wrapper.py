@@ -100,6 +100,7 @@ class Profiler:
             "model_selection_strategy",
             "num_dataset_entries",
             "num_prefix_prompts",
+            "num_sessions",
             "output_format",
             "output_tokens_mean",
             "output_tokens_mean_deterministic",
@@ -119,9 +120,13 @@ class Profiler:
             "synthetic_input_tokens_mean",
             "synthetic_input_tokens_stddev",
             "prefix_prompt_length",
+            "session_turn_delay_mean",
+            "session_turn_delay_stddev",
             "tokenizer",
             "tokenizer_trust_remote_code",
             "tokenizer_revision",
+            "turns_per_session_mean",
+            "turns_per_session_stddev",
         ]
 
         if args.prompt_source == PromptSource.PAYLOAD:

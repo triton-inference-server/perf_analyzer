@@ -633,9 +633,35 @@ export file is `profile_export.json`, the genai-perf file will be exported to
 
 ### Session Options
 
+##### `--num-sessions`
+
+The number of sessions to simulate. This is used when generating synthetic
+session data. (default: `0`)
+
 ##### `--session-concurrency <int>`
 
-The number of concurrenct sessions to benchmark. (default: `None`)
+The number of concurrent sessions to benchmark. This must be specified
+when using benchmarking sessions. (default: `0`)
+
+##### `--session-turn-delay-mean`
+
+The mean delay (in milliseconds) between turns in a session.
+(default: `0`)
+
+##### `--session-turn-delay-stddev`
+
+The standard deviation of the delay (in milliseconds) between turns in a session.
+(default: `0`)
+
+##### `--turns-per-session-mean`
+
+The mean number of turns per session.
+(default: `1`)
+
+##### `--turns-per-session-stddev`
+
+The standard deviation of the number of turns per session.
+(default: `0`)
 
 ### Other Options
 
