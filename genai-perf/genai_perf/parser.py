@@ -1374,6 +1374,13 @@ def add_cli_options_to_config(
     # Input - Request Count
     config.input.request_count.warmup = args.warmup_request_count
 
+    # Input - Sessions
+    config.input.sessions.num = args.num_sessions
+    config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
+    config.input.sessions.turn_delay.stddev = args.session_turn_delay_stddev
+    config.input.sessions.turns.mean = args.session_turns_mean
+    config.input.sessions.turns.stddev = args.session_turns_stddev
+
     # Output
     config.output.artifact_directory = args.artifact_dir
     # config.output.checkpoint_directory - There is no equivalent setting in the CLI

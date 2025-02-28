@@ -124,6 +124,23 @@ class InputDefaults:
 
 
 @dataclass(frozen=True)
+class SessionDefaults:
+    NUM = 0
+
+
+@dataclass(frozen=True)
+class SessionTurnsDefaults:
+    MEAN = 1
+    STDDEV = 0
+
+
+@dataclass(frozen=True)
+class SessionTurnDelayDefaults:
+    MEAN = 0
+    STDDEV = 0
+
+
+@dataclass(frozen=True)
 class OutputDefaults:
     ARTIFACT_DIRECTORY = "./artifacts"
     CHECKPOINT_DIRECTORY = "./checkpoint"

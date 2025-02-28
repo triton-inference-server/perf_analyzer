@@ -23,6 +23,9 @@ from genai_perf.config.input.config_defaults import (
     OutputTokenDefaults,
     PrefixPromptDefaults,
     RequestCountDefaults,
+    SessionDefaults,
+    SessionTurnDelayDefaults,
+    SessionTurnsDefaults,
     SyntheticTokenDefaults,
 )
 from genai_perf.config.input.config_field import ConfigField
@@ -392,12 +395,12 @@ class ConfigSessions(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.num: Any = ConfigField(
-            default=RequestCountDefaults.NUM_SESSIONS,
+            default=SessionDefaults.NUM,
             bounds={"min": 0},
             verbose_template_comment="The number of sessions to simulate",
         )
-        self.turns = ConfigTurns()
-        self.turn_delay = ConfigTurnDelay()
+        self.turns = ConfigSessionTurns()
+        self.turn_delay = ConfigSessionTurnDelay()
 
     def parse(self, sessions: Dict[str, Any]) -> None:
         for key, value in sessions.items():
@@ -413,16 +416,16 @@ class ConfigSessions(BaseConfig):
                 )
 
 
-class ConfigTurns(BaseConfig):
+class ConfigSessionTurns(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.mean: Any = ConfigField(
-            default=RequestCountDefaults.MEAN_TURNS,
+            default=SessionTurnsDefaults.MEAN,
             bounds={"min": 0},
             verbose_template_comment="The mean number of turns in a session",
         )
         self.stddev: Any = ConfigField(
-            default=RequestCountDefaults.STDDEV_TURNS,
+            default=SessionTurnsDefaults.STDDEV,
             bounds={"min": 0},
             verbose_template_comment="The standard deviation of the number of turns in a session",
         )
@@ -437,16 +440,16 @@ class ConfigTurns(BaseConfig):
                 raise ValueError(f"User Config: {key} is not a valid turns parameter")
 
 
-class ConfigTurnDelay(BaseConfig):
+class ConfigSessionTurnDelay(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
         self.mean: Any = ConfigField(
-            default=RequestCountDefaults.MEAN_TURN_DELAY,
+            default=SessionTurnDelayDefaults.MEAN,
             bounds={"min": 0},
             verbose_template_comment="The mean delay (in ms) between turns in a session",
         )
         self.stddev: Any = ConfigField(
-            default=RequestCountDefaults.STDDEV_TURN_DELAY,
+            default=SessionTurnDelayDefaults.STDDEV,
             bounds={"min": 0},
             verbose_template_comment="The standard deviation (in ms) of the delay between turns in a session",
         )
