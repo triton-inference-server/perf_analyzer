@@ -43,15 +43,13 @@ class TestJsonExporter:
         self, monkeypatch, cli_cmd: List[str], stats: Dict[str, Any], **kwargs
     ) -> JsonExporter:
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        args, config, _ = parser.parse_args()
+        exporter_config = create_default_exporter_config(
             stats=stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
             **kwargs,
         )
-        return JsonExporter(config)
+        return JsonExporter(exporter_config)
 
     @pytest.fixture
     def mock_read_write(self, monkeypatch: pytest.MonkeyPatch) -> List[Tuple[str, str]]:

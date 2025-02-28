@@ -89,8 +89,7 @@ def _report_output(
     config: ConfigCommand,
     perf_analyzer_config: PerfAnalyzerConfig,
 ) -> None:
-    # FIXME: this needs to be added to the config - talk to DavidY
-    if config.session_concurrency:
+    if "session_concurrency" in config.perf_analyzer.stimulus:
         # [TPA-985] Profile export file should have a session concurrency mode
         infer_mode = "request_rate"
         load_level = "0.0"
@@ -111,7 +110,11 @@ def _report_output(
     stats = data_parser.get_statistics(infer_mode, load_level)
     session_stats = data_parser.get_session_statistics()
 
-    telemetry_metrics = [c.get_metrics() for c in telemetry_data_collectors]
+    if telemetry_data_collectors:
+        telemetry_metrics = [c.get_metrics() for c in telemetry_data_collectors]  # type: ignore
+    else:
+        telemetry_metrics = []
+
     merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics)
     telemetry_stats = TelemetryStatistics(merged_telemetry_metrics)
 

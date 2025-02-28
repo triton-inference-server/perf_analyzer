@@ -369,8 +369,7 @@ class Analyze:
             or "num_dataset_entries" in self._config.analyze.sweep_parameters
             or "batch_size" in self._config.analyze.sweep_parameters
         ):
-            # FIXME: this needs to be added to the config - talk to DavidY
-            if config.session_concurrency:
+            if "session_concurrency" in self._config.perf_analyzer.stimulus:
                 # [TPA-985] Profile export file should have a session concurrency mode
                 infer_mode = "request_rate"
                 load_level = "0.0"

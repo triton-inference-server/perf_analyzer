@@ -1389,7 +1389,9 @@ def add_cli_options_to_config(
 
 
 def _convert_args_to_stimulus(args: argparse.Namespace) -> Dict[str, int]:
-    if args.concurrency:
+    if args.session_concurrency:
+        return {"session_concurrency": args.session_concurrency}
+    elif args.concurrency:
         return {"concurrency": args.concurrency}
     elif args.request_rate:
         return {"request_rate": args.request_rate}

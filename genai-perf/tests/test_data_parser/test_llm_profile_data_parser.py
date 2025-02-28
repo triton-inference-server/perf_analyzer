@@ -29,8 +29,8 @@ from typing import cast
 from unittest.mock import patch
 
 import pytest
-from genai_perf.exceptions import GenAIPerfException
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
@@ -1137,7 +1137,9 @@ class TestLLMProfileDataParser:
             'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
         ]
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1179,7 +1181,9 @@ class TestLLMProfileDataParser:
     )
     def test_handle_sse_error(self, mock_json, res_outputs) -> None:
         """Check if the parser can handle SSE error field."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1301,7 +1305,9 @@ class TestLLMProfileDataParser:
     )
     def test_session_metrics(self, mock_json) -> None:
         """Check if it handles session metrics."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("session_profile_export.json"),
             tokenizer=tokenizer,
@@ -1342,7 +1348,9 @@ class TestLLMProfileDataParser:
     )
     def test_no_session_metrics(self, mock_json) -> None:
         """Check if it handles profile export files without session metrics."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
