@@ -73,6 +73,9 @@ class Tokenizer:
         self._decode_args.update(kwargs)
         return self._tokenizer.decode(token_ids, **self._decode_args)
 
+    def bos_token_id(self) -> int:
+        return self._tokenizer.bos_token_id
+
     def __repr__(self) -> str:
         return self._tokenizer.__repr__()
 
