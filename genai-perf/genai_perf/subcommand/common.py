@@ -35,7 +35,10 @@ from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
+from genai_perf.inputs.input_constants import (
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+    DEFAULT_STARTING_INDEX,
+)
 from genai_perf.inputs.inputs import Inputs, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
@@ -175,6 +178,11 @@ def convert_config_to_inputs_config(
     perf_analyzer_config: PerfAnalyzerConfig,
     tokenizer: Optional[Tokenizer] = None,
 ) -> InputsConfig:
+    if config.input.output_tokens.get_field("mean").is_set_by_user:
+        output_tokens_mean = config.input.output_tokens.mean
+    else:
+        output_tokens_mean = DEFAULT_OUTPUT_TOKENS_MEAN
+
     return InputsConfig(
         audio_length_mean=config.input.audio.length_mean,
         audio_length_stddev=config.input.audio.length_stddev,
@@ -193,7 +201,7 @@ def convert_config_to_inputs_config(
         length=config.input.num_dataset_entries,
         prompt_tokens_mean=config.input.synthetic_tokens.mean,
         prompt_tokens_stddev=config.input.synthetic_tokens.stddev,
-        output_tokens_mean=config.input.output_tokens.mean,
+        output_tokens_mean=output_tokens_mean,
         output_tokens_stddev=config.input.output_tokens.stddev,
         output_tokens_deterministic=config.input.output_tokens.deterministic,
         image_width_mean=config.input.image.width_mean,
