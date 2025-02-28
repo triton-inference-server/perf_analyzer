@@ -119,7 +119,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
         row = DataRow(texts=[], images=[], optional_data={}, payload_metadata={})
 
         if session_id:
-            row.optional_data["session_id"] = session_id
+            row.payload_metadata["session_id"] = session_id
 
         row.texts = [
             self._generate_prompt(use_prefix_prompts)

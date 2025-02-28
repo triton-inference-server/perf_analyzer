@@ -245,7 +245,7 @@ class TestSyntheticDataRetriever:
 
         sessions = {}
         for row in dataset.files_data[DEFAULT_SYNTHETIC_FILENAME].rows:
-            session_id = row.optional_data.get("session_id")
+            session_id = row.payload_metadata.get("session_id")
             assert (
                 session_id is not None
             ), "Session ID should be assigned to each multi-turn entry."
