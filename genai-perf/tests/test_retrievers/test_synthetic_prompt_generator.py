@@ -24,6 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
@@ -33,11 +34,15 @@ from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 class TestSyntheticPromptGenerator:
 
     def test_synthetic_prompt_default(self):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         _ = SyntheticPromptGenerator.create_synthetic_prompt(tokenizer)
 
     def test_synthetic_prompt_zero_token(self):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         prompt = SyntheticPromptGenerator.create_synthetic_prompt(
             tokenizer=tokenizer,
             prompt_tokens_mean=0,
@@ -48,7 +53,9 @@ class TestSyntheticPromptGenerator:
         assert len(tokenizer.encode(prompt)) == 0
 
     def test_synthetic_prompt_nonzero_tokens(self):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         prompt = SyntheticPromptGenerator.create_synthetic_prompt(
             tokenizer=tokenizer,
             prompt_tokens_mean=123,

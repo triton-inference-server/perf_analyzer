@@ -36,7 +36,12 @@ class ConfigPerfAnalyzer(BaseConfig):
         )
         self.stimulus: Any = ConfigField(
             default=PerfAnalyzerDefaults.STIMULUS,
-            choices=["concurrency", "request_rate"],
+            choices=[
+                "concurrency",
+                "request_rate",
+                "session_concurrency",
+                "session_request_rate",
+            ],
             verbose_template_comment="The type and value of stimulus to benchmark",
         )
         self.stability_percentage: Any = ConfigField(

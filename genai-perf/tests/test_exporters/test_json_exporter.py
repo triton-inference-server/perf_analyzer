@@ -44,15 +44,13 @@ class TestJsonExporter:
         self, monkeypatch, cli_cmd: List[str], stats: Dict[str, Any], **kwargs
     ) -> JsonExporter:
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        args, config, _ = parser.parse_args()
+        exporter_config = create_default_exporter_config(
             stats=stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
             **kwargs,
         )
-        return JsonExporter(config)
+        return JsonExporter(exporter_config)
 
     stats = {
         "request_throughput": {"unit": "requests/sec", "avg": "7"},
@@ -280,7 +278,6 @@ class TestJsonExporter:
             "ignore_eos:true",
         ]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, self.stats)
-        assert json_exporter._export_data == json.loads(self.expected_json_output)
         json_exporter.export()
         expected_filename = "profile_export_genai_perf.json"
         written_data = [
@@ -290,7 +287,10 @@ class TestJsonExporter:
         ]
 
         assert len(written_data) == 1
-        assert json.loads(written_data[0]) == json.loads(self.expected_json_stats)
+
+        actual_json_stats = json.loads(written_data[0])
+        actual_json_stats.pop("input_config")
+        assert actual_json_stats == json.loads(self.expected_json_stats)
 
     def test_generate_json_custom_export(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -459,9 +459,9 @@ class TestJsonExporter:
         assert json_exporter._export_data["request_goodput"] == json.loads(
             expected_valid_goodput_json_output
         )
-        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
-            expected_valid_goodput_json_config
-        )
+        assert json_exporter._export_data["input_config"]["input"][
+            "goodput"
+        ] == json.loads(expected_valid_goodput_json_config)
 
         json_exporter.export()
         expected_filename = "profile_export_genai_perf.json"
@@ -478,7 +478,9 @@ class TestJsonExporter:
             expected_valid_goodput_json_output
         )
 
-        assert config.input.goodput == json.loads(expected_valid_goodput_json_config)
+        assert json_exporter._config.input.goodput == json.loads(
+            expected_valid_goodput_json_config
+        )
 
     def test_invalid_goodput_json_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -609,9 +611,9 @@ class TestJsonExporter:
         assert json_exporter._export_data["request_goodput"] == json.loads(
             expected_invalid_goodput_json_output
         )
-        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
-            expected_invalid_goodput_json_config
-        )
+        assert json_exporter._export_data["input_config"]["input"][
+            "goodput"
+        ] == json.loads(expected_invalid_goodput_json_config)
         json_exporter.export()
 
         expected_filename = "profile_export_genai_perf.json"
@@ -629,7 +631,9 @@ class TestJsonExporter:
             expected_invalid_goodput_json_output
         )
 
-        assert config.input.goodput == json.loads(expected_invalid_goodput_json_config)
+        assert json_exporter._config.input.goodput == json.loads(
+            expected_invalid_goodput_json_config
+        )
 
     def test_triton_telemetry_output(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
