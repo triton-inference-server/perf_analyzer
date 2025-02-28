@@ -188,7 +188,7 @@ def convert_config_to_inputs_config(
         model_selection_strategy=config.endpoint.model_selection_strategy,
         input_filename=config.input.file,
         payload_input_filename=config.input.payload_file,
-        synthetic_input_filenames=config.input.synthetic_input_files,
+        synthetic_input_filenames=config.input.synthetic_files,
         starting_index=DEFAULT_STARTING_INDEX,
         length=config.input.num_dataset_entries,
         prompt_tokens_mean=config.input.synthetic_tokens.mean,
