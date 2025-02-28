@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 from typing import Any, Dict
 
 import genai_perf.logging as logging
@@ -148,7 +149,8 @@ class ConfigInput(BaseConfig):
     ###########################################################################
     def infer_settings(self) -> None:
         self._infer_prompt_source()
-        self._infer_synthetic_input_files()
+        self._infer_synthetic_files()
+        self._infer_payload_file()
 
     def _infer_prompt_source(self) -> None:
         self.prompt_source: Any = ConfigField(
@@ -158,19 +160,34 @@ class ConfigInput(BaseConfig):
         if self.file:
             if str(self.file).startswith("synthetic:"):
                 self.prompt_source = PromptSource.SYNTHETIC
+            elif str(self.file).startswith("payload:"):
+                self.prompt_source = PromptSource.PAYLOAD
             else:
                 self.prompt_source = PromptSource.FILE
                 logger.debug(f"Input source is the following path: {self.file}")
 
-    def _infer_synthetic_input_files(self) -> None:
-        self.synthetic_input_files: Any = ConfigField(default=[])
+    def _infer_synthetic_files(self) -> None:
+        self.synthetic_files: Any = ConfigField(default=[])
 
         if self.file:
             if str(self.file).startswith("synthetic:"):
-                synthetic_input_files_str = str(self.file).split(":", 1)[1]
-                self.synthetic_input_files = synthetic_input_files_str.split(",")
+                synthetic_files_str = str(self.file).split(":", 1)[1]
+                self.synthetic_files = synthetic_files_str.split(",")
+                logger.debug(f"Input source is synthetic data: {self.synthetic_files}")
+
+    def _infer_payload_file(self) -> None:
+        self.payload_file: Any = ConfigField(default=[])
+
+        if self.file:
+            if str(self.file).startswith("payload:"):
+                self.payload_file = Path(str(self.file).split(":", 1)[1])
+                if not self.payload_file:
+                    raise ValueError("Invalid file path: Path is None or empty.")
+                if not self.payload_file.is_file():
+                    raise ValueError(f"File not found: {self.payload_file}")
+
                 logger.debug(
-                    f"Input source is synthetic data: {self.synthetic_input_files}"
+                    f"Input source is a payload file with timing information in the following path: {self.payload_file}"
                 )
 
 
