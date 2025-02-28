@@ -277,7 +277,7 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     """
     Check inference load args
     """
-    if args.prompt_source == ic.PromptSource.PAYLOAD:
+    if args.prompt_source == ic.PromptSource.PAYLOAD or args.session_concurrency:
         return args
     # If no concurrency or request rate is set, default to 1
     if not args.concurrency and not args.request_rate:
@@ -297,6 +297,16 @@ def _check_goodput_args(args):
                     f"Invalid value found, {target_metric}: {target_val}. "
                     f"The goodput constraint value should be non-negative. "
                 )
+    return args
+
+
+def _check_session_args(args):
+
+    if args.num_sessions:
+        if args.session_concurrency is None:
+            raise argparse.ArgumentTypeError(
+                "--session-concurrency must be set when using session-based benchmarking."
+            )
     return args
 
 
@@ -1056,11 +1066,51 @@ def _add_profile_args(parser):
 def _add_session_args(parser):
     session_group = parser.add_argument_group("Session")
 
+    session_load_management_group = session_group.add_mutually_exclusive_group(
+        required=False
+    )
+
     session_group.add_argument(
+        "--num-sessions",
+        type=int,
+        default=ic.DEFAULT_NUM_SESSIONS,
+        help="The number of sessions to simulate.",
+    )
+
+    session_load_management_group.add_argument(
         "--session-concurrency",
         type=int,
         required=False,
-        help="The number of concurrenct sessions to benchmark.",
+        help="The number of concurrent sessions to benchmark.",
+    )
+
+    session_group.add_argument(
+        "--session-turn-delay-mean",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
+        help="The mean delay (in ms) between turns in a session.",
+    )
+
+    session_group.add_argument(
+        "--session-turn-delay-stddev",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
+        help="The standard deviation (in ms) of the delay between turns in "
+        "a session.",
+    )
+
+    session_group.add_argument(
+        "--session-turns-mean",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURNS_MEAN,
+        help="The mean number of turns per session.",
+    )
+
+    session_group.add_argument(
+        "--session-turns-stddev",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURNS_STDDEV,
+        help="The standard deviation of the number of turns per session.",
     )
 
 
@@ -1135,6 +1185,7 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(analyze)
     _add_output_args(analyze)
     _add_profile_args(analyze)
+    _add_session_args(analyze)
     _add_tokenizer_args(analyze)
 
     analyze.set_defaults(func=analyze_handler)
@@ -1192,6 +1243,7 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
+        args = _check_session_args(args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
         args = _infer_prompt_source(args)
@@ -1200,6 +1252,7 @@ def refine_args(
         args = _check_image_input_args(parser, args)
         args = _check_server_metrics_url(parser, args)
         args = _check_goodput_args(args)
+        args = _check_session_args(args)
         args = _process_sweep_args(args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
