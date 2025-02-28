@@ -1095,20 +1095,21 @@ def _add_session_args(parser):
         "--session-turn-delay-stddev",
         type=int,
         default=ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
-        help="The standard deviation (in ms) of the delay between turns in a session.",
+        help="The standard deviation (in ms) of the delay between turns in "
+        "a session.",
     )
 
     session_group.add_argument(
-        "--turns-per-session-mean",
+        "--session-turns-mean",
         type=int,
-        default=ic.DEFAULT_TURNS_PER_SESSION_MEAN,
+        default=ic.DEFAULT_SESSION_TURNS_MEAN,
         help="The mean number of turns per session.",
     )
 
     session_group.add_argument(
-        "--turns-per-session-stddev",
+        "--session-turns-stddev",
         type=int,
-        default=ic.DEFAULT_TURNS_PER_SESSION_STDDEV,
+        default=ic.DEFAULT_SESSION_TURNS_STDDEV,
         help="The standard deviation of the number of turns per session.",
     )
 
@@ -1184,6 +1185,7 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(analyze)
     _add_output_args(analyze)
     _add_profile_args(analyze)
+    _add_session_args(analyze)
     _add_tokenizer_args(analyze)
 
     analyze.set_defaults(func=analyze_handler)

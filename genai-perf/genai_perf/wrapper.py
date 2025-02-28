@@ -125,8 +125,8 @@ class Profiler:
             "tokenizer",
             "tokenizer_trust_remote_code",
             "tokenizer_revision",
-            "turns_per_session_mean",
-            "turns_per_session_stddev",
+            "session_turns_mean",
+            "session_turns_stddev",
         ]
 
         if args.prompt_source == PromptSource.PAYLOAD:

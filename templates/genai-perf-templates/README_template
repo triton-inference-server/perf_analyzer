@@ -653,12 +653,12 @@ The mean delay (in milliseconds) between turns in a session.
 The standard deviation of the delay (in milliseconds) between turns in a session.
 (default: `0`)
 
-##### `--turns-per-session-mean`
+##### `--session-turns-mean`
 
 The mean number of turns per session.
 (default: `1`)
 
-##### `--turns-per-session-stddev`
+##### `--session-turns-stddev`
 
 The standard deviation of the number of turns per session.
 (default: `0`)

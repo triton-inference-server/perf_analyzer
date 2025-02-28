@@ -45,9 +45,9 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_RANDOM_SEED,
     DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
     DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
+    DEFAULT_SESSION_TURNS_MEAN,
+    DEFAULT_SESSION_TURNS_STDDEV,
     DEFAULT_STARTING_INDEX,
-    DEFAULT_TURNS_PER_SESSION_MEAN,
-    DEFAULT_TURNS_PER_SESSION_STDDEV,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
@@ -163,10 +163,10 @@ class InputsConfig:
     num_sessions: int = DEFAULT_NUM_SESSIONS
 
     # The mean number of turns per session
-    turns_per_session_mean: int = DEFAULT_TURNS_PER_SESSION_MEAN
+    session_turns_mean: int = DEFAULT_SESSION_TURNS_MEAN
 
     # The standard deviation of the number of turns per session
-    turns_per_session_stddev: int = DEFAULT_TURNS_PER_SESSION_STDDEV
+    session_turns_stddev: int = DEFAULT_SESSION_TURNS_STDDEV
 
     # The mean delay between turns in a session
     session_turn_delay_mean: int = DEFAULT_SESSION_TURN_DELAY_MEAN_MS

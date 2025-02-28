@@ -204,8 +204,8 @@ def create_config_options(args: Namespace) -> InputsConfig:
         num_prefix_prompts=args.num_prefix_prompts,
         prefix_prompt_length=args.prefix_prompt_length,
         num_sessions=args.num_sessions,
-        turns_per_session_mean=args.turns_per_session_mean,
-        turns_per_session_stddev=args.turns_per_session_stddev,
+        session_turns_mean=args.session_turns_mean,
+        session_turns_stddev=args.session_turns_stddev,
         session_turn_delay_mean=args.session_turn_delay_mean,
         session_turn_delay_stddev=args.session_turn_delay_stddev,
     )

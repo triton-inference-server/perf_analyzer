@@ -76,8 +76,8 @@ class SyntheticDataRetriever(BaseInputRetriever):
 
         for _ in range(self.config.num_sessions):
             num_turns = sample_bounded_normal_int(
-                self.config.turns_per_session_mean,
-                self.config.turns_per_session_stddev,
+                self.config.session_turns_mean,
+                self.config.session_turns_stddev,
                 lower=1,
             )
             session_id = str(uuid.uuid4())

@@ -210,7 +210,7 @@ class TestSyntheticDataRetriever:
         return_value="prompt prefix",
     )
     @pytest.mark.parametrize(
-        "num_sessions, turns_per_session_mean, turns_per_session_stddev",
+        "num_sessions, session_turns_mean, session_turns_stddev",
         [
             (2, 3, 0),  # 2 sessions, 3 turns each (no variance)
             # (3, 2, 1),  # 3 sessions, ~2 turns per session with variance
@@ -223,8 +223,8 @@ class TestSyntheticDataRetriever:
         mock_create_synthetic_prompt,
         mock_uuid,
         num_sessions,
-        turns_per_session_mean,
-        turns_per_session_stddev,
+        session_turns_mean,
+        session_turns_stddev,
     ):
         session_turn_delay_ms = 50
         config = InputsConfig(
@@ -234,8 +234,8 @@ class TestSyntheticDataRetriever:
             prefix_prompt_length=20,
             session_turn_delay_mean=session_turn_delay_ms,
             session_turn_delay_stddev=0,
-            turns_per_session_mean=turns_per_session_mean,
-            turns_per_session_stddev=turns_per_session_stddev,
+            session_turns_mean=session_turns_mean,
+            session_turns_stddev=session_turns_stddev,
             tokenizer=get_empty_tokenizer(),
         )
         synthetic_retriever = SyntheticDataRetriever(config)
