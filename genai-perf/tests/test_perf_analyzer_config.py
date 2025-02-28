@@ -118,9 +118,9 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         actual_command = set(self._default_perf_analyzer_config.create_command())
 
         for field in expected_command:
-            self.assertIn(field, command)
+            self.assertIn(field, actual_command)
 
-        self.assertEqual(len(expected_command), len(command))
+        self.assertEqual(len(expected_command), len(actual_command))
 
     ###########################################################################
     # Test Representation

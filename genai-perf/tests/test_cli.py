@@ -525,7 +525,7 @@ class TestCLIArguments:
             ],
         )
         mocker.patch.object(Path, "is_file", return_value=True)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.concurrency is None
 
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
@@ -1032,7 +1032,7 @@ class TestCLIArguments:
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
-        parsed_args, _ = parser.parse_args()
+        parsed_args, _, _ = parser.parse_args()
         assert parsed_args.prompt_source == expected_prompt_source
         assert parsed_args.payload_input_file == expected_input_file
 

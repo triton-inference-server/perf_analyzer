@@ -65,6 +65,7 @@ class EndPointDefaults:
     STREAMING = False
     SERVER_METRICS_URL = ["http://localhost:8002/metrics"]
     URL = "localhost:8001"
+    GRPC_METHOD = ""
 
 
 @dataclass(frozen=True)

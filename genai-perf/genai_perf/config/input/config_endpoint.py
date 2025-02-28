@@ -55,7 +55,7 @@ class ConfigEndPoint(BaseConfig):
         )
         self.service_kind: Any = ConfigField(
             default=EndPointDefaults.SERVICE_KIND,
-            choices=["triton", "openai", "tensorrtllm_engine"],
+            choices=["triton", "openai", "tensorrtllm_engine", "dynamic_grpc"],
             verbose_template_comment='The kind of service Perf Analyzer will generate load for.\
                 \nIn order to use "openai", you must specify an api via the "type" field',
         )
@@ -71,6 +71,13 @@ class ConfigEndPoint(BaseConfig):
         self.url: Any = ConfigField(
             default=EndPointDefaults.URL,
             verbose_template_comment="URL of the endpoint to target for benchmarking.",
+        )
+        self.grpc_method = Any = ConfigField(
+            default=EndPointDefaults.GRPC_METHOD,
+            verbose_template_comment="A fully-qualified gRPC method name in "
+            "'<package>.<service>/<method>' format."
+            "\nThe option is only supported by dynamic gRPC service kind and is"
+            "\nrequired to identify the RPC to use when sending requests to the server.",
         )
 
     def parse(self, endpoint: Dict[str, Any]) -> None:
@@ -112,6 +119,7 @@ class ConfigEndPoint(BaseConfig):
     def check_for_illegal_combinations(self) -> None:
         self._check_service_kind_and_type()
         self._check_server_metrics_url()
+        self._check_dynamic_grpc()
 
     def _check_service_kind_and_type(self) -> None:
         if not self.type:
@@ -168,6 +176,16 @@ class ConfigEndPoint(BaseConfig):
             raise ValueError(
                 f"Port missing in URL: {url}. A port number is required "
                 "(e.g., ':8002')."
+            )
+
+    def _check_dynamic_grpc(self) -> None:
+        if self.service_kind == "dynamic_grpc" and not self.grpc_method:
+            raise ValueError(
+                "User Config: service_kind 'dynamic_grpc' requires a grpc_method to be specified"
+            )
+        elif self.service_kind != "dynamic_grpc" and self.grpc_method:
+            raise ValueError(
+                "User Config: grpc_method is only valid with service_kind 'dynamic_grpc'"
             )
 
     ###########################################################################

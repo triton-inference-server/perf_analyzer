@@ -237,16 +237,17 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_with_payload_parameters(self):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        config = InputsConfig(
+        config = ConfigCommand({"model_names": ["test_model"]})
+        inputs_config = InputsConfig(
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=get_tokenizer(DEFAULT_TOKENIZER),
+            tokenizer=get_tokenizer(config),
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
-        result = trtllm_engine_converter.convert(generic_dataset, config)
+        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
 
         expected_result = {
             "data": [

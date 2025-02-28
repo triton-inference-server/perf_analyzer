@@ -80,6 +80,7 @@ class PerfAnalyzerConfig:
         cli_args += self._add_required_args(config)
         cli_args += self._add_verbose_args(config)
         cli_args += self._add_protocol_args(config)
+        cli_args += self._add_dynamic_grpc_args(config)
         cli_args += self._add_inference_load_args(config)
         cli_args += self._add_config_args(config)
         cli_args += self._add_extra_args(extra_args)
@@ -155,7 +156,7 @@ class PerfAnalyzerConfig:
             return model_name
 
     def _get_artifact_service_kind(self, config: ConfigCommand) -> List[str]:
-        if config.endpoint.service_kind == "openai":
+        if config.endpoint.service_kind in ["openai", "dynamic_grpc"]:
             service_kind = [f"{config.endpoint.service_kind}-{config.endpoint.type}"]
         elif config.endpoint.service_kind == "triton":
             service_kind = [
@@ -220,16 +221,18 @@ class PerfAnalyzerConfig:
         return verbose_args
 
     def _add_required_args(self, config: ConfigCommand) -> List[str]:
-        required_args = [
-            f"{config.perf_analyzer.path}",
-            f"-m",
-            f"{config.model_names[0]}",
-            f"--async",
-            f"--stability-percentage",
-            f"{config.perf_analyzer.stability_percentage}",
-            f"--measurement-interval",
-            f"{config.perf_analyzer.measurement_interval}",
-        ]
+        required_args = [f"{config.perf_analyzer.path}"]
+
+        if config.endpoint.service_kind != "dynamic_grpc":
+            required_args += [
+                f"-m",
+                f"{config.model_names[0]}",
+                f"--async",
+                f"--stability-percentage",
+                f"{config.perf_analyzer.stability_percentage}",
+                f"--measurement-interval",
+                f"{config.perf_analyzer.measurement_interval}",
+            ]
 
         return required_args
 
@@ -244,8 +247,19 @@ class PerfAnalyzerConfig:
                 protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif config.endpoint.service_kind == "openai":
             protocol_args += ["-i", "http"]
+        elif config.endpoint.service_kind == "dynamic_grpc":
+            if not config.endpoint.get_field("url").is_set_by_user:
+                protocol_args += ["-u", f"{DEFAULT_GRPC_URL}"]
 
         return protocol_args
+
+    def _add_dynamic_grpc_args(self, config: ConfigCommand) -> List[str]:
+        dynamic_grpc_args = []
+
+        if config.endpoint.service_kind == "dynamic_grpc":
+            dynamic_grpc_args += ["--dynamic-grpc", f"{config.endpoint.grpc_method}"]
+
+        return dynamic_grpc_args
 
     def _add_inference_load_args(self, config: ConfigCommand) -> List[str]:
         inference_load_args = []
