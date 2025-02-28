@@ -131,12 +131,20 @@ def scale(value, factor):
     return value * factor
 
 
-def sample_bounded_normal(mean, stddev, lower=float("-inf"), upper=float("inf")):
+def sample_bounded_normal(
+    mean, stddev, lower=float("-inf"), upper=float("inf")
+) -> float:
     """Bound random normal sampling to [lower, upper]. Set the final value to
     the boundary value if the value goes below or above the boundaries.
     """
     n = random.gauss(mean, stddev)
     return min(max(lower, n), upper)
+
+
+def sample_bounded_normal_int(
+    mean, stddev, lower=float("-inf"), upper=float("inf")
+) -> int:
+    return round(sample_bounded_normal(mean, stddev, lower, upper))
 
 
 def is_power_of_two(n: int) -> bool:

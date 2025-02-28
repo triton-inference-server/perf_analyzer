@@ -260,6 +260,13 @@ class TestCLIArguments:
                 {"service_kind": "openai", "endpoint": "v1/chat/completions"},
             ),
             (["--session-concurrency", "3"], {"session_concurrency": 3}),
+            (["--session-turn-delay-mean", "100"], {"session_turn_delay_mean": 100}),
+            (
+                ["--session-turn-delay-stddev", "100"],
+                {"session_turn_delay_stddev": 100},
+            ),
+            (["--session-turns-mean", "6"], {"session_turns_mean": 6}),
+            (["--session-turns-stddev", "7"], {"session_turns_stddev": 7}),
             (["--stability-percentage", "99.5"], {"stability_percentage": 99.5}),
             (["--streaming"], {"streaming": True}),
             (
