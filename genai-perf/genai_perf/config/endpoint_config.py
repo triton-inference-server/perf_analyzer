@@ -44,7 +44,7 @@ endpoint_type_map = {
     "completions": EndpointConfig(
         "v1/completions", "openai", OutputFormat.OPENAI_COMPLETIONS
     ),
-    "dynamic_grpc": EndpointConfig(None, "dynamic_grpc", ic.OutputFormat.DYANMIC_GRPC),
+    "dynamic_grpc": EndpointConfig(None, "dynamic_grpc", OutputFormat.DYANMIC_GRPC),
     "embeddings": EndpointConfig(
         "v1/embeddings", "openai", OutputFormat.OPENAI_EMBEDDINGS
     ),
