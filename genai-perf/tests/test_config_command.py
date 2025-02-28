@@ -381,9 +381,9 @@ class TestConfigCommand(unittest.TestCase):
 
         self.assertEqual(config.input.prompt_source, PromptSource.SYNTHETIC)
 
-    def test_infer_synthetic_input_files(self):
+    def test_infer_synthetic_files(self):
         """
-        Test that the synthetic input files are inferred correctly
+        Test that the synthetic files are inferred correctly
         """
         # yapf: disable
         yaml_str = ("""
@@ -397,9 +397,7 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(
-            config.input.synthetic_input_files, ["test_file1", "test_file2"]
-        )
+        self.assertEqual(config.input.synthetic_files, ["test_file1", "test_file2"])
 
     ###########################################################################
     # Test EndPoint Inference Methods

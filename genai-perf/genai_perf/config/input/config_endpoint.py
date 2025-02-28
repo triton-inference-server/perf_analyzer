@@ -98,6 +98,8 @@ class ConfigEndPoint(BaseConfig):
                 self.server_metrics_urls = self._parse_server_metrics_url(value)
             elif key == "url":
                 self.url = value
+            elif key == "grpc_method":
+                self.grpc_method = value
             else:
                 raise ValueError(
                     f"User Config: {key} is not a valid endpoint parameter"
