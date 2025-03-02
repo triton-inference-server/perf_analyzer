@@ -1079,7 +1079,7 @@ class TestLLMProfileDataParser:
         assert res_outputs[0]["response"] == expected_response
 
     ###############################
-    # SESSION METRICS
+    # SESSION MODE
     ###############################
     session_profile_data = {
         "service_kind": "openai",
@@ -1087,83 +1087,68 @@ class TestLLMProfileDataParser:
         "experiments": [
             {
                 "experiment": {
-                    "mode": "concurrency",
-                    "value": 10,
+                    "mode": "request_rate",
+                    "value": 0.0,
                 },
                 "requests": [
-                    # ---------------- session 1 ----------------
                     {
                         "timestamp": 1,
                         "request_inputs": {
-                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs"}],"session_id":"session-id-123"}',
+                            "payload": (
+                                "{"
+                                '  "model": "test_model",'
+                                '  "messages": ['
+                                '    {"role":"user","content":"I like dog"}'
+                                "  ]"
+                                "}"
+                            ),
+                            "session_id": "session-id-123",
                         },
-                        "response_timestamps": [3, 5, 8],
+                        "response_timestamps": [5],
                         "response_outputs": [
                             {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"I"}}]}\n\n'
-                            },
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" like"}}]}\n\n'
-                            },
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" dogs"}}]}\n\n'
-                            },
+                                "response": (
+                                    "{"
+                                    '  "object": "chat.completion",'
+                                    '  "model": "test_model",'
+                                    '  "choices": ['
+                                    '    {"message":{"role":"assistant","content":"I like dog too"}}'
+                                    "  ]"
+                                    "}"
+                                )
+                            }
                         ],
                     },
                     {
                         "timestamp": 14,
                         "request_inputs": {
-                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs"}],"session_id":"session-id-123"}',
+                            "payload": (
+                                "{"
+                                '  "model": "test_model",'
+                                '  "messages": ['
+                                '    {"role":"user","content":"I like dog"},'
+                                '    {"role":"assistant","content":"I like dog too"},'
+                                '    {"role":"user","content":"I like cat"}'
+                                "  ]"
+                                "}"
+                            ),
+                            "session_id": "session-id-123",
                         },
-                        "response_timestamps": [16, 18],
+                        "response_timestamps": [17],
                         "response_outputs": [
                             {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'
-                            },
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" world"}}]}\n\n'
-                            },
+                                "response": (
+                                    "{"
+                                    '  "object": "chat.completion",'
+                                    '  "model": "test_model",'
+                                    '  "choices": ['
+                                    '    {"message":{"role":"assistant","content":"I like cat too"}}'
+                                    "  ]"
+                                    "}"
+                                )
+                            }
                         ],
                     },
-                    # -------------------------------------------
-                    # ---------------- session 2 ----------------
-                    {
-                        "timestamp": 2,
-                        "request_inputs": {
-                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs too"}],"session_id":"session-id-456"}',
-                        },
-                        "response_timestamps": [4, 7, 10],
-                        "response_outputs": [
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"I"}}]}\n\n'
-                            },
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" like"}}]}\n\n'
-                            },
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" dogs"}}]}\n\n'
-                            },
-                        ],
-                    },
-                    {
-                        "timestamp": 13,
-                        "request_inputs": {
-                            "payload": '{"model":"test_model","messages":[{"role":"user","content":"I like dogs too"}],"session_id":"session-id-456"}',
-                        },
-                        "response_timestamps": [15, 16, 17],
-                        "response_outputs": [
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":"I"}}]}\n\n'
-                            },
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" like"}}]}\n\n'
-                            },
-                            {
-                                "response": 'data: {"object":"chat.completion.chunk","model":"test_model","choices":[{"index":0,"delta":{"content":" dogs"}}]}\n\n'
-                            },
-                        ],
-                    },
-                    # -------------------------------------------
                 ],
             },
         ],
@@ -1173,94 +1158,54 @@ class TestLLMProfileDataParser:
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
         return_value=session_profile_data,
     )
-    @pytest.mark.parametrize(
-        "infer_mode, load_level, expected_session1_metrics, expected_session2_metrics",
-        [
-            (
-                "concurrency",
-                "10",
-                {
-                    "request_latencies": [7, 4],
-                    "request_throughputs": [2 / ns_to_sec(17)],
-                    "time_to_first_tokens": [2, 2],
-                    "time_to_second_tokens": [2, 2],
-                    "inter_token_latencies": [2, 2],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(7),
-                        1 / ns_to_sec(2),
-                    ],
-                    "output_token_throughputs": [5 / ns_to_sec(17)],
-                    "output_sequence_lengths": [3, 2],
-                    "input_sequence_lengths": [3, 3],
-                },
-                {
-                    "request_latencies": [8, 4],
-                    "request_throughputs": [2 / ns_to_sec(15)],
-                    "time_to_first_tokens": [2, 2],
-                    "time_to_second_tokens": [3, 1],
-                    "inter_token_latencies": [3, 1],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(8),
-                        3 / ns_to_sec(4),
-                    ],
-                    "output_token_throughputs": [6 / ns_to_sec(15)],
-                    "output_sequence_lengths": [3, 3],
-                    "input_sequence_lengths": [4, 4],
-                },
-            ),
-        ],
-    )
-    def test_session_metrics(
-        self,
-        mock_json,
-        infer_mode,
-        load_level,
-        expected_session1_metrics,
-        expected_session2_metrics,
-    ) -> None:
-        """Check if it handles session metrics.
-
-        Metrics
-        * request_latencies
-            - session 1: [8 - 1, 18 - 14] = [7, 4]
-            - session 2: [10 - 2, 17 - 13] = [8, 4]
-        * request_throughputs
-            - session 1: [2/(18 - 1)] = [2/17]
-            - session 2: [2/(17 - 2)] = [2/15]
-        * time to first tokens
-            - session 1: [3 - 1, 16 - 14] = [2, 2]
-            - session 2: [4 - 2, 15 - 13] = [2, 2]
-        * time to second tokens
-            - session 1: [5 - 3, 18 - 16] = [2, 2]
-            - session 2: [7 - 4, 16 - 15] = [3, 1]
-        * inter token latencies
-            - session 1: [((8 - 1) - 2)/(3 - 1), ((18 - 14) - 2)/(2 - 1)]
-                          : [2.5, 2]
-                          : [2, 2]  # rounded
-            - session 2: [((10 - 2) - 2)/(3 - 1), ((17 - 13) - 2)/(3 - 1)]
-                          : [3, 1]
-        * output token throughputs per request
-            - session 1: [3/(8 - 1), 2/(18 - 14)] = [3/7, 1/2]
-            - session 2: [3/(10 - 2), 3/(17 - 13)] = [3/8, 3/4]
-        * output token throughputs
-            - session 1: [(3 + 2)/(18 - 1)] = [5/17]
-            - session 2: [(3 + 3)/(17 - 2)] = [6/15]
-        * output sequence lengths
-            - session 1: [3, 2]
-            - session 2: [3, 3]
-        * input sequence lengths
-            - session 1: [3, 3]
-            - session 2: [4, 4]
-        """
-
+    def test_session_metrics(self, mock_json) -> None:
+        """Check if it handles session metrics."""
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
         pd = LLMProfileDataParser(
             filename=Path("session_profile_export.json"),
             tokenizer=tokenizer,
         )
 
+        expected_session_metrics = {
+            # [5 - 1, 17 - 14]
+            "request_latencies": [4, 3],
+            # [2/(17 - 1)]
+            "request_throughputs": [2 / ns_to_sec(16)],
+            # Same as request_latencies
+            "time_to_first_tokens": [4, 3],
+            # N/A
+            "time_to_second_tokens": [],
+            # [((5 - 1) - 4)/(4 - 1), ((17 - 14) - 3)/(4 - 1)]
+            "inter_token_latencies": [0, 0],
+            # [4/(5 - 1), 4/(17 - 14)]
+            "output_token_throughputs_per_request": [
+                4 / ns_to_sec(4),
+                4 / ns_to_sec(3),
+            ],
+            # [(4 + 4)/(17 - 1)]
+            "output_token_throughputs": [8 / ns_to_sec(16)],
+            # [4, 4]
+            "output_sequence_lengths": [4, 4],
+            # [3, (3 + 4 + 3)]
+            "input_sequence_lengths": [3, 10],
+        }
+
         session_metrics = pd._session_metrics
+        assert len(session_metrics) == 1
         assert "session-id-123" in session_metrics
-        assert "session-id-456" in session_metrics
-        assert session_metrics["session-id-123"] == expected_session1_metrics
-        assert session_metrics["session-id-456"] == expected_session2_metrics
+        assert session_metrics["session-id-123"] == expected_session_metrics
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=openai_profile_data,
+    )
+    def test_no_session_metrics(self, mock_json) -> None:
+        """Check if it handles profile export files without session metrics."""
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        session_metrics = pd._session_metrics
+        assert session_metrics == {}

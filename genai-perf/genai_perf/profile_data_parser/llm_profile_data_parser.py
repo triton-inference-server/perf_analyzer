@@ -155,7 +155,7 @@ class LLMProfileDataParser(ProfileDataParser):
                     time_to_second_tokens.append(ttst)
 
                 # number of input tokens
-                input_seq_len, session_id = self._get_input_token_count(req_inputs)
+                input_seq_len = self._get_input_token_count(req_inputs)
                 input_sequence_lengths.append(input_seq_len)
 
                 # output token throughput per request
@@ -191,8 +191,8 @@ class LLMProfileDataParser(ProfileDataParser):
                 chunked_inter_token_latencies.append(chunked_inter_token_latency)
 
                 # (per-session) calculate llm metrics
-                if session_id:
-                    session_metric = self._session_metrics[session_id]
+                if "session_id" in req_inputs:
+                    session_metric = self._session_metrics[req_inputs["session_id"]]
                     session_metric["request_latencies"].append(req_latency_ns)
                     session_metric["time_to_first_tokens"].append(ttft)
                     if len(res_timestamps) > 1:
@@ -329,38 +329,33 @@ class LLMProfileDataParser(ProfileDataParser):
                 res_timestamps.pop(index)
                 res_outputs.pop(index)
 
-    def _get_input_token_count(self, req_inputs: dict) -> Tuple[int, str]:
+    def _get_input_token_count(self, req_inputs: dict) -> int:
         """Deserialize the request input and return tokenized inputs."""
         if self._service_kind == "triton":
             input_text = req_inputs["text_input"]
-            session_id = req_inputs.get("session_id", "")
         elif self._service_kind == "triton_c_api":
-            session_id = req_inputs.get("session_id", "")
-            return len(req_inputs["input_ids"]), session_id  # no tokenizer required
+            return len(req_inputs["input_ids"])  # no tokenizer required
         elif self._service_kind == "openai":
-            input_text, session_id = self._get_input_payload(req_inputs)
+            input_text = self._get_input_payload(req_inputs)
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
-        token_count = len(self._tokenizer.encode(input_text))
-        return token_count, session_id
+        return len(self._tokenizer.encode(input_text))
 
-    def _get_input_payload(self, req_inputs: dict) -> Tuple[str, str]:
+    def _get_input_payload(self, req_inputs: dict) -> str:
         """Deserialize the request input payload."""
         payload = load_json_str(req_inputs["payload"])
-        session_id = payload.get("session_id", "")
         if self._response_format == ResponseFormat.TRITON_GENERATE:
-            input_text = " ".join(payload["text_input"])
+            return " ".join(payload["text_input"])
         elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
-            input_text = payload["messages"][0]["content"]
+            return " ".join(m["content"] for m in payload["messages"])
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
-            input_text = " ".join(payload["prompt"])
+            return " ".join(payload["prompt"])
         elif self._response_format == ResponseFormat.OPENAI_VISION:
             content = payload["messages"][0]["content"]
-            input_text = " ".join(c["text"] for c in content if c["type"] == "text")
+            return " ".join(c["text"] for c in content if c["type"] == "text")
         else:
             raise ValueError("Failed to parse request input in profile export file.")
-        return input_text, session_id
 
     def _get_output_token_counts(
         self, res_outputs: List[Dict]
