@@ -174,6 +174,10 @@ class TestConfigCommand(unittest.TestCase):
                 stability_percentage: 500
                 measurement_interval: 1000
 
+                request_count:
+                  num: 100
+                  warmup: 200
+
             """)
         # yapf: enable
 
@@ -185,6 +189,8 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.perf_analyzer.stimulus, {"concurrency": 64})
         self.assertEqual(config.perf_analyzer.stability_percentage, 500)
         self.assertEqual(config.perf_analyzer.measurement_interval, 1000)
+        self.assertEqual(config.perf_analyzer.request_count.num, 100)
+        self.assertEqual(config.perf_analyzer.request_count.warmup, 200)
 
     ###########################################################################
     # Test Input Config
@@ -231,19 +237,16 @@ class TestConfigCommand(unittest.TestCase):
                     num: 17
                     length: 18
 
-                request_count:
-                    warmup: 19
-
                 sessions:
-                  num: 20
+                  num: 19
 
                   turns:
-                    mean: 21
-                    stddev: 22
+                    mean: 20
+                    stddev: 21
 
                   turn_delay:
-                    mean: 23
-                    stddev: 24
+                    mean: 22
+                    stddev: 23
             """)
         # yapf: enable
 
@@ -270,12 +273,11 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.synthetic_tokens.stddev, 16)
         self.assertEqual(config.input.prefix_prompt.num, 17)
         self.assertEqual(config.input.prefix_prompt.length, 18)
-        self.assertEqual(config.input.request_count.warmup, 19)
-        self.assertEqual(config.input.sessions.num, 20)
-        self.assertEqual(config.input.sessions.turns.mean, 21)
-        self.assertEqual(config.input.sessions.turns.stddev, 22)
-        self.assertEqual(config.input.sessions.turn_delay.mean, 23)
-        self.assertEqual(config.input.sessions.turn_delay.stddev, 24)
+        self.assertEqual(config.input.sessions.num, 19)
+        self.assertEqual(config.input.sessions.turns.mean, 20)
+        self.assertEqual(config.input.sessions.turns.stddev, 21)
+        self.assertEqual(config.input.sessions.turn_delay.mean, 22)
+        self.assertEqual(config.input.sessions.turn_delay.stddev, 23)
 
     ###########################################################################
     # Test Output Config

@@ -22,7 +22,6 @@ from genai_perf.config.input.config_defaults import (
     InputDefaults,
     OutputTokenDefaults,
     PrefixPromptDefaults,
-    RequestCountDefaults,
     SessionDefaults,
     SessionTurnDelayDefaults,
     SessionTurnsDefaults,
@@ -92,7 +91,7 @@ class ConfigInput(BaseConfig):
         self.output_tokens = ConfigOutputTokens()
         self.synthetic_tokens = ConfigSyntheticTokens()
         self.prefix_prompt = ConfigPrefixPrompt()
-        self.request_count = ConfigRequestCount()
+
         self.sessions = ConfigSessions()
 
     ###########################################################################
@@ -123,8 +122,6 @@ class ConfigInput(BaseConfig):
                 self.synthetic_tokens.parse(value)
             elif key == "prefix_prompt":
                 self.prefix_prompt.parse(value)
-            elif key == "request_count":
-                self.request_count.parse(value)
             elif key == "sessions":
                 self.sessions.parse(value)
             else:
@@ -369,25 +366,6 @@ class ConfigPrefixPrompt(BaseConfig):
             else:
                 raise ValueError(
                     f"User Config: {key} is not a valid prefix_prompt parameter"
-                )
-
-
-class ConfigRequestCount(BaseConfig):
-    def __init__(self) -> None:
-        super().__init__()
-        self.warmup: Any = ConfigField(
-            default=RequestCountDefaults.WARMUP,
-            bounds={"min": 0},
-            verbose_template_comment="The number of warmup requests to send before benchmarking.",
-        )
-
-    def parse(self, request_count: Dict[str, Any]) -> None:
-        for key, value in request_count.items():
-            if key == "warmup":
-                self.warmup = value
-            else:
-                raise ValueError(
-                    f"User Config: {key} is not a valid request_count parameter"
                 )
 
 

@@ -15,7 +15,10 @@
 from typing import Any, Dict
 
 from genai_perf.config.input.base_config import BaseConfig
-from genai_perf.config.input.config_defaults import PerfAnalyzerDefaults
+from genai_perf.config.input.config_defaults import (
+    PerfAnalyzerDefaults,
+    RequestCountDefaults,
+)
 from genai_perf.config.input.config_field import ConfigField
 
 
@@ -60,6 +63,8 @@ class ConfigPerfAnalyzer(BaseConfig):
                 \nover the requests completed within that time interval.",
         )
 
+        self.request_count = ConfigRequestCount()
+
     def parse(self, perf_analyzer: Dict[str, Any]) -> None:
         for key, value in perf_analyzer.items():
             if key == "path":
@@ -72,7 +77,37 @@ class ConfigPerfAnalyzer(BaseConfig):
                 self.stability_percentage = value
             elif key == "measurement_interval":
                 self.measurement_interval = value
+            elif key == "request_count":
+                self.request_count.parse(value)
             else:
                 raise ValueError(
                     f"User Config: {key} is not a valid perf_analyzer parameter"
+                )
+
+
+class ConfigRequestCount(BaseConfig):
+    def __init__(self) -> None:
+        super().__init__()
+        self.num: Any = ConfigField(
+            default=RequestCountDefaults.NUM,
+            bounds={"min": 0},
+            verbose_template_comment="The number of requests to use for measurement.\
+                \nBy default, the benchmark does not terminate based on request count.\
+                \nInstead, it continues until stabilization is detected.",
+        )
+        self.warmup: Any = ConfigField(
+            default=RequestCountDefaults.WARMUP,
+            bounds={"min": 0},
+            verbose_template_comment="The number of warmup requests to send before benchmarking.",
+        )
+
+    def parse(self, request_count: Dict[str, Any]) -> None:
+        for key, value in request_count.items():
+            if key == "num":
+                self.num = value
+            elif key == "warmup":
+                self.warmup = value
+            else:
+                raise ValueError(
+                    f"User Config: {key} is not a valid request_count parameter"
                 )

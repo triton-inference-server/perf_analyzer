@@ -1338,6 +1338,8 @@ def add_cli_options_to_config(
     config.perf_analyzer.stimulus = _convert_args_to_stimulus(args)
     config.perf_analyzer.stability_percentage = args.stability_percentage
     config.perf_analyzer.measurement_interval = args.measurement_interval
+    config.perf_analyzer.request_count.warmup = args.warmup_request_count
+    config.perf_analyzer.request_count.num = args.request_count
 
     # Input
     config.input.batch_size = args.batch_size_text
@@ -1370,9 +1372,6 @@ def add_cli_options_to_config(
     # Input - Prefix Prompt
     config.input.prefix_prompt.num = args.num_prefix_prompts
     config.input.prefix_prompt.length = args.prefix_prompt_length
-
-    # Input - Request Count
-    config.input.request_count.warmup = args.warmup_request_count
 
     # Input - Sessions
     config.input.sessions.num = args.num_sessions
