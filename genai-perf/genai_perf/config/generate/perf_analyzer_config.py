@@ -232,6 +232,10 @@ class PerfAnalyzerConfig:
                 f"{config.perf_analyzer.stability_percentage}",
                 f"--measurement-interval",
                 f"{config.perf_analyzer.measurement_interval}",
+                f"--request-count",
+                f"{config.perf_analyzer.request_count.num}",
+                f"--warmup-request-count",
+                f"{config.perf_analyzer.request_count.warmup}",
             ]
 
         return required_args
