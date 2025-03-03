@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -56,7 +56,13 @@ You can use GenAI-Perf to run performance benchmarks on
 - [Multiple LoRA Adapters](docs/lora.md)
 
 You can also use GenAI-Perf to run benchmarks on your
-[custom APIs](docs/customizable_frontends.md).
+custom APIs using either
+[customizable frontends](docs/customizable_frontends.md)
+or
+[customizable payloads](docs/customizable_payloads.md).
+Customizable frontends provide more customizability,
+while customizable payloads allow you to specify
+specific payload schemas using a Jinja2 template.
 
 > [!Note]
 > GenAI-Perf is currently in early release and under rapid development. While we
@@ -149,7 +155,12 @@ triton start
 Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 
 ```bash
-genai-perf profile -m gpt2 --service-kind triton --backend tensorrtllm --streaming
+genai-perf profile \
+  -m gpt2 \
+  --tokenizer gpt2 \
+  --service-kind triton \
+  --backend tensorrtllm \
+  --streaming
 ```
 
 Example output:
@@ -197,6 +208,7 @@ by passing the `--generate-plots` option when running the benchmark:
 ```bash
 genai-perf profile \
   -m gpt2 \
+  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --streaming \
@@ -415,6 +427,13 @@ Set a custom endpoint that differs from the OpenAI defaults. (default: `None`)
 The endpoint-type to send requests to on the server. This is only used with the
 `openai` service-kind. (default: `None`)
 
+##### `--server-metrics-urls <list>`
+
+The list of Triton server metrics URLs. These are used for Telemetry metric
+reporting with the Triton service-kind. Example usage: --server-metrics-urls
+http://server1:8002/metrics http://server2:8002/metrics.
+(default: `http://localhost:8002/metrics`)
+
 ##### `--service-kind {triton,openai}`
 
 The kind of service perf_analyzer will generate load for. In order to use
@@ -428,6 +447,12 @@ An option to enable the use of the streaming API. (default: `False`)
 ##### `--url <url>`
 
 URL of the endpoint to target for benchmarking. (default: `None`)
+
+##### `--grpc-method <str>`
+
+A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
+The option is only supported by dynamic gRPC service kind and is required to
+identify the RPC to use when sending requests to the server. (default: `None`)
 
 ### Input Options
 
@@ -463,14 +488,13 @@ Add a custom header to the requests. Headers must be specified as
 
 ##### `--input-file <path>`
 
-The input file or directory containing the content to use for
-profiling. Each line should be a JSON object with a 'text' or 'image' field
-in JSONL format. Example: {\"text\": \"Your prompt here\"}"
-To use synthetic files for a converter that needs
-multiple files, prefix the path with 'synthetic:', followed by a
-comma-separated list of filenames. The synthetic filenames should not have
-extensions. For example, 'synthetic:queries,passages'.
-(default: `None`)
+The input file or directory for profiling. Each line should be a JSON object
+with a `text` or `image` field in JSONL format. Example:
+`{"text": "Your prompt here"}`. To use synthetic files, prefix with
+`synthetic:` followed by a comma-separated list of filenames without
+extensions (Example: `synthetic:queries,passages`). To use a payload file with
+a fixed schedule workload, prefix with `payload:` followed by the filename
+(Example: `payload:input.jsonl`). (default: `None`)
 
 ##### `--num-dataset-entries <int>`
 
@@ -532,6 +556,31 @@ The number of tokens in each prefix prompt. This value is only used if
 being concatenated, the number of tokens in the final prompt may be off by one.
 (default: `100`)
 
+##### `--image-width-mean <int>`
+
+The mean width of images in pixels when generating synthetic image data.
+(default: `100`)
+
+##### `--image-width-stddev <int>`
+
+The standard deviation of width of images in pixels when generating synthetic image data.
+(default: `0`)
+
+##### `--image-height-mean <int>`
+
+The mean height of images in pixels when generating synthetic image data.
+(default: `100`)
+
+##### `--image-height-stddev <int>`
+
+The standard deviation of height of images in pixels when generating synthetic image data.
+(default: `0`)
+
+##### `--image-format <str>`
+
+The compression format of the images. If format is not selected,
+format of generated image is selected at random.
+
 ##### `--warmup-request-count <int>`
 ##### `--num-warmup-requests <int>`
 
@@ -582,6 +631,38 @@ exported to `<profile_export_file>_genai_perf.json` and
 export file is `profile_export.json`, the genai-perf file will be exported to
 `profile_export_genai_perf.csv`. (default: `profile_export.json`)
 
+### Session Options
+
+##### `--num-sessions`
+
+The number of sessions to simulate. This is used when generating synthetic
+session data. (default: `0`)
+
+##### `--session-concurrency <int>`
+
+The number of concurrent sessions to benchmark. This must be specified
+when using benchmarking sessions. (default: `0`)
+
+##### `--session-turn-delay-mean`
+
+The mean delay (in milliseconds) between turns in a session.
+(default: `0`)
+
+##### `--session-turn-delay-stddev`
+
+The standard deviation of the delay (in milliseconds) between turns in a session.
+(default: `0`)
+
+##### `--session-turns-mean`
+
+The mean number of turns per session.
+(default: `1`)
+
+##### `--session-turns-stddev`
+
+The standard deviation of the number of turns per session.
+(default: `0`)
+
 ### Other Options
 
 ##### `--tokenizer <str>`
@@ -609,6 +690,16 @@ An option to enable verbose mode. (default: `False`)
 ##### `--version`
 
 An option to print the version and exit.
+
+##### `-g <list>`
+##### `--goodput <list>`
+
+An option to provide constraints in order to compute goodput. Specify goodput
+constraints as 'key:value' pairs, where the key is a valid metric name, and the
+value is a number representing either milliseconds or a throughput value per
+second. For example, 'request_latency:300' or
+'output_token_throughput_per_request:600'. Multiple key:value pairs can be
+provided, separated by spaces. (default: `None`)
 
 </br>
 

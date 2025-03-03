@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from enum import Enum, auto
-from typing import Dict
 
 
 class ModelSelectionStrategy(Enum):
@@ -36,6 +35,7 @@ class ModelSelectionStrategy(Enum):
 class PromptSource(Enum):
     SYNTHETIC = auto()
     FILE = auto()
+    PAYLOAD = auto()
 
 
 class OutputFormat(Enum):
@@ -48,12 +48,14 @@ class OutputFormat(Enum):
     # Other output formats
     ################################################################
     IMAGE_RETRIEVAL = auto()
+    DYANMIC_GRPC = auto()
     NVCLIP = auto()
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()
     OPENAI_EMBEDDINGS = auto()
     OPENAI_VISION = auto()
     RANKINGS = auto()
+    TEMPLATE = auto()
     TENSORRTLLM_ENGINE = auto()
     TRITON_GENERATE = auto()
 
@@ -70,10 +72,13 @@ DEFAULT_REQUEST_COUNT = 0
 DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
 DEFAULT_WARMUP_REQUEST_COUNT = 0
 DEFAULT_BACKEND = "tensorrtllm"
+PAYLOAD_METADATA_FIELDS = ["timestamp", "delay", "session_id"]
+PAYLOAD_METADATA_INT_FIELDS = ["timestamp", "delay"]
 
 ###########################
 # Default Prompt Parameters
 ###########################
+DEFAULT_CORPUS_FILE = "shakespeare.txt"
 DEFAULT_STARTING_INDEX = 0
 MINIMUM_STARTING_INDEX = 0
 DEFAULT_LENGTH = 100
@@ -95,3 +100,13 @@ DEFAULT_IMAGE_WIDTH_MEAN = 100
 DEFAULT_IMAGE_WIDTH_STDDEV = 0
 DEFAULT_IMAGE_HEIGHT_MEAN = 100
 DEFAULT_IMAGE_HEIGHT_STDDEV = 0
+
+###########################
+# Default Session Parameters
+###########################
+DEFAULT_NUM_SESSIONS = 0
+DEFAULT_SESSION_CONCURRENCY = 1
+DEFAULT_SESSION_TURN_DELAY_MEAN_MS = 0
+DEFAULT_SESSION_TURN_DELAY_STDDEV_MS = 0
+DEFAULT_SESSION_TURNS_MEAN = 1
+DEFAULT_SESSION_TURNS_STDDEV = 0

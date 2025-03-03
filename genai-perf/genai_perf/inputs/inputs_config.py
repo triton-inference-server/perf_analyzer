@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -26,7 +26,7 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from genai_perf.inputs.input_constants import (
     DEFAULT_IMAGE_HEIGHT_MEAN,
@@ -36,12 +36,17 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_LENGTH,
     DEFAULT_NUM_DATASET_ENTRIES,
     DEFAULT_NUM_PREFIX_PROMPTS,
+    DEFAULT_NUM_SESSIONS,
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_OUTPUT_TOKENS_STDDEV,
     DEFAULT_PREFIX_PROMPT_LENGTH,
     DEFAULT_PROMPT_TOKENS_MEAN,
     DEFAULT_PROMPT_TOKENS_STDDEV,
     DEFAULT_RANDOM_SEED,
+    DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
+    DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
+    DEFAULT_SESSION_TURNS_MEAN,
+    DEFAULT_SESSION_TURNS_STDDEV,
     DEFAULT_STARTING_INDEX,
     ModelSelectionStrategy,
     OutputFormat,
@@ -74,13 +79,16 @@ class InputsConfig:
     batch_size_text: int = 1
 
     # If provided, append these inputs to every request
-    extra_inputs: Dict = field(default_factory=dict)
+    extra_inputs: Dict[str, Any] = field(default_factory=dict)
 
     # The filename where the input data is available
     input_filename: Optional[Path] = Path("")
 
     # The filenames used for synthetic data generation
     synthetic_input_filenames: Optional[List[str]] = field(default_factory=list)
+
+    # The filename where payload input data is available
+    payload_input_filename: Optional[Path] = Path("")
 
     # The compression format of the images.
     image_format: ImageFormat = ImageFormat.PNG
@@ -150,3 +158,18 @@ class InputsConfig:
 
     # The length of the prefix prompts to generate
     prefix_prompt_length: int = DEFAULT_PREFIX_PROMPT_LENGTH
+
+    # The number of sessions to generate
+    num_sessions: int = DEFAULT_NUM_SESSIONS
+
+    # The mean number of turns per session
+    session_turns_mean: int = DEFAULT_SESSION_TURNS_MEAN
+
+    # The standard deviation of the number of turns per session
+    session_turns_stddev: int = DEFAULT_SESSION_TURNS_STDDEV
+
+    # The mean delay between turns in a session
+    session_turn_delay_mean: int = DEFAULT_SESSION_TURN_DELAY_MEAN_MS
+
+    # The standard deviation of the delay between turns in a session
+    session_turn_delay_stddev: int = DEFAULT_SESSION_TURN_DELAY_STDDEV_MS

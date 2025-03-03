@@ -30,7 +30,9 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -41,7 +43,6 @@
 #include "../data_loader.h"
 #include "../model_parser.h"
 #include "../tensor_data.h"
-#include "payload_json_utils.h"
 
 namespace triton::perfanalyzer {
 
@@ -73,8 +74,8 @@ PayloadDatasetManager::GroupPayloadsBySession() const
   return session_datasets;
 }
 
-std::chrono::milliseconds
-PayloadDatasetManager::GetDelayForPayload(size_t dataset_index) const
+std::optional<std::chrono::milliseconds>
+PayloadDatasetManager::GetDelay(size_t dataset_index) const
 {
   TensorData delay_ms_tensor_data{};
 
@@ -83,6 +84,10 @@ PayloadDatasetManager::GetDelayForPayload(size_t dataset_index) const
 
   if (!error.IsOk()) {
     throw std::runtime_error(error.Message());
+  }
+
+  if (!delay_ms_tensor_data.data_ptr) {
+    return {};
   }
 
   const uint64_t delay_ms{
@@ -130,9 +135,27 @@ PayloadDatasetManager::CreateSessionIdToPayloadsMap() const
 std::string
 PayloadDatasetManager::GetSessionID(size_t dataset_index) const
 {
-  const auto payload{GetPayload(dataset_index)};
+  TensorData session_id_tensor_data{};
 
-  return PayloadJsonUtils::GetSessionID(payload);
+  const auto error{data_loader_->GetInputData(
+      (*parser_->Inputs())["session_id"], 0, dataset_index,
+      session_id_tensor_data)};
+
+  if (!error.IsOk()) {
+    throw std::runtime_error(error.Message());
+  }
+
+  uint32_t session_id_byte_size{};
+  std::memcpy(
+      &session_id_byte_size, session_id_tensor_data.data_ptr, sizeof(uint32_t));
+
+  const uint8_t* session_id_buffer{
+      session_id_tensor_data.data_ptr + sizeof(uint32_t)};
+
+  const std::string session_id(
+      reinterpret_cast<const char*>(session_id_buffer), session_id_byte_size);
+
+  return session_id;
 }
 
 }  // namespace triton::perfanalyzer

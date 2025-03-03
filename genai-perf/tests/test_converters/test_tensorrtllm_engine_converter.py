@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -57,6 +57,33 @@ class TestTensorRTLLMEngineConverter:
             }
         )
 
+    @staticmethod
+    def create_generic_dataset_with_payload_parameters() -> GenericDataset:
+        optional_data_1 = {"session_id": "abcd"}
+        optional_data_2 = {
+            "session_id": "dfwe",
+            "input_length": "6755",
+            "output_length": "500",
+        }
+        return GenericDataset(
+            files_data={
+                "file1": FileData(
+                    rows=[
+                        DataRow(
+                            texts=["text input one"],
+                            optional_data=optional_data_1,
+                            payload_metadata={"timestamp": 0},
+                        ),
+                        DataRow(
+                            texts=["text input two"],
+                            optional_data=optional_data_2,
+                            payload_metadata={"timestamp": 2345},
+                        ),
+                    ],
+                )
+            }
+        )
+
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
@@ -93,6 +120,47 @@ class TestTensorRTLLMEngineConverter:
         }
 
         assert result == expected_result
+
+    def test_convert_with_chat_template(self):
+        generic_dataset = self.create_generic_dataset()
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = InputsConfig(
+            extra_inputs={"apply_chat_template": True},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.TENSORRTLLM_ENGINE,
+            tokenizer=tokenizer,
+        )
+
+        trtllm_engine_converter = TensorRTLLMEngineConverter()
+
+        result = trtllm_engine_converter.convert(generic_dataset, config)
+
+        expected_texts = [
+            config.tokenizer._tokenizer.apply_chat_template(
+                [{"role": "user", "content": "text input one"}],
+                tokenize=False,
+                add_special_tokens=False,
+            ),
+            config.tokenizer._tokenizer.apply_chat_template(
+                [{"role": "user", "content": "text input two"}],
+                tokenize=False,
+                add_special_tokens=False,
+            ),
+        ]
+        expected_tokenized = [config.tokenizer.encode(text) for text in expected_texts]
+
+        assert "data" in result
+        assert isinstance(result["data"], list)
+        assert len(result["data"]) == 2
+
+        for i, payload in enumerate(result["data"]):
+            assert "input_ids" in payload
+            assert "content" in payload["input_ids"]
+            assert payload["input_ids"]["content"] == expected_tokenized[i], (
+                f"Mismatch in tokenized content for row {i}: "
+                f"Expected {expected_tokenized[i]}, but got {payload['input_ids']['content']}"
+            )
 
     def test_convert_with_request_parameters(self):
         generic_dataset = self.create_generic_dataset()
@@ -160,3 +228,46 @@ class TestTensorRTLLMEngineConverter:
         assert str(exc_info.value) == (
             "The --batch-size-text flag is not supported for tensorrtllm_engine."
         )
+
+    def test_convert_with_payload_parameters(self):
+        generic_dataset = self.create_generic_dataset_with_payload_parameters()
+
+        config = InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            output_format=OutputFormat.TENSORRTLLM_ENGINE,
+            tokenizer=get_tokenizer(DEFAULT_TOKENIZER),
+        )
+
+        trtllm_engine_converter = TensorRTLLMEngineConverter()
+        result = trtllm_engine_converter.convert(generic_dataset, config)
+
+        expected_result = {
+            "data": [
+                {
+                    "input_ids": {
+                        "content": [1426, 1881, 697],
+                        "shape": [3],
+                    },
+                    "input_lengths": [3],
+                    "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                    "session_id": "abcd",
+                    "timestamp": [0],
+                },
+                {
+                    "input_ids": {
+                        "content": [1426, 1881, 1023],
+                        "shape": [3],
+                    },
+                    "input_lengths": [3],
+                    "request_output_len": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                    "session_id": "dfwe",
+                    "input_length": "6755",
+                    "output_length": "500",
+                    "timestamp": [2345],
+                },
+            ]
+        }
+
+        assert result == expected_result

@@ -28,8 +28,8 @@
 #include <unordered_map>
 
 #include "client_backend/client_backend.h"
+#include "inference_load_mode.h"
 #include "perf_utils.h"
-#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -68,9 +68,8 @@ class ModelParser {
     ENSEMBLE_SEQUENCE
   };
 
-  explicit ModelParser(cb::BackendKind backend_kind)
-      : backend_kind_(backend_kind),
-        inputs_(std::make_shared<ModelTensorMap>()),
+  explicit ModelParser()
+      : inputs_(std::make_shared<ModelTensorMap>()),
         outputs_(std::make_shared<ModelTensorMap>()),
         composing_models_map_(std::make_shared<ComposingModelMap>()),
         scheduler_type_(NONE), max_batch_size_(0), is_decoupled_(false),
@@ -113,10 +112,13 @@ class ModelParser {
       const std::unordered_map<std::string, std::vector<int64_t>>& input_shapes,
       std::unique_ptr<cb::ClientBackend>& backend);
 
+  cb::Error InitDynamicGrpc(
+      const std::string& model_name, const std::string& model_version,
+      const int32_t batch_size);
+
   cb::Error InitOpenAI(
       const std::string& model_name, const std::string& model_version,
-      const int32_t batch_size,
-      SessionConcurrencyMode session_concurrency_mode);
+      const int32_t batch_size, InferenceLoadMode inference_load_mode);
 
   cb::Error InitTorchServe(
       const std::string& model_name, const std::string& model_version,
@@ -229,8 +231,6 @@ class ModelParser {
   /// \return cb::Error object indicating success or failure.
   cb::Error GetInt(const rapidjson::Value& value, int64_t* integer_value);
 
-  cb::BackendKind backend_kind_;
-
   std::shared_ptr<ModelTensorMap> inputs_;
   std::shared_ptr<ModelTensorMap> outputs_;
   std::shared_ptr<ComposingModelMap> composing_models_map_;
@@ -246,9 +246,6 @@ class ModelParser {
   friend TestModelParser;
   friend MockModelParser;
   friend InferenceProfiler;
-
- public:
-  ModelParser() = default;
 #endif
 };
 

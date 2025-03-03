@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,6 +64,7 @@ perf_analyzer_ignore_args = [
     "model_selection_strategy",
     "num_dataset_entries",
     "num_prefix_prompts",
+    "num_sessions",
     "prefix_prompt_length",
     "request_count",
     "warmup_request_count",
@@ -76,6 +77,10 @@ perf_analyzer_ignore_args = [
     "random_seed",
     "request_rate",
     "server_metrics_url",
+    "session_turn_delay_mean",
+    "session_turn_delay_stddev",
+    "session_turns_mean",
+    "session_turns_stddev",
     # The 'streaming' passed in to this script is to determine if the
     # LLM response should be streaming. That is different than the
     # 'streaming' that PA takes, which means something else (and is
@@ -137,7 +142,6 @@ class PerfAnalyzerConfig:
         if not hasattr(self._args, "subcommand"):
             return
 
-        self._cli_args += self._add_required_args(args)
         self._cli_args += Profiler.add_protocol_args(args)
         self._cli_args += Profiler.add_inference_load_args(args)
         self._cli_args += self._add_misc_args(args)
@@ -249,15 +253,6 @@ class PerfAnalyzerConfig:
             stimulus = [f"batch_size{runtime_batch_size}"]
 
         return stimulus
-
-    def _add_required_args(self, args: Namespace) -> List[str]:
-        required_args = [
-            f"-m",
-            f"{args.formatted_model_name}",
-            f"--async",
-        ]
-
-        return required_args
 
     def _add_misc_args(self, args: Namespace) -> List[str]:
         misc_args = []

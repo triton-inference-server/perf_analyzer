@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -88,7 +88,7 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
     }
   }
   CHECK(act->measurement_window_ms == exp->measurement_window_ms);
-  CHECK(act->using_concurrency_range == exp->using_concurrency_range);
+  CHECK(act->inference_load_mode == exp->inference_load_mode);
   CHECK(act->concurrency_range.start == exp->concurrency_range.start);
   CHECK(act->concurrency_range.end == exp->concurrency_range.end);
   CHECK(act->concurrency_range.step == exp->concurrency_range.step);
@@ -100,7 +100,6 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
   CHECK_STRING(act->string_data, exp->string_data);
   CHECK(act->async == exp->async);
   CHECK(act->forced_sync == exp->forced_sync);
-  CHECK(act->using_request_rate_range == exp->using_request_rate_range);
   CHECK(
       act->request_rate_range[0] ==
       doctest::Approx(exp->request_rate_range[0]));
@@ -113,7 +112,6 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
   CHECK(act->num_of_sequences == exp->num_of_sequences);
   CHECK(act->search_mode == exp->search_mode);
   CHECK(act->request_distribution == exp->request_distribution);
-  CHECK(act->using_custom_intervals == exp->using_custom_intervals);
   CHECK_STRING(act->request_intervals_file, exp->request_intervals_file);
   CHECK(act->shared_memory_type == exp->shared_memory_type);
   CHECK(act->output_shm_size == exp->output_shm_size);
@@ -161,24 +159,17 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
   CHECK(act->verbose_csv == exp->verbose_csv);
   CHECK(act->enable_mpi == exp->enable_mpi);
   CHECK(act->trace_options.size() == exp->trace_options.size());
-  CHECK(act->using_old_options == exp->using_old_options);
-  CHECK(act->dynamic_concurrency_mode == exp->dynamic_concurrency_mode);
   CHECK(act->url_specified == exp->url_specified);
   CHECK_STRING(act->url, exp->url);
   CHECK_STRING(act->model_name, exp->model_name);
   CHECK_STRING(act->model_version, exp->model_version);
   CHECK(act->batch_size == exp->batch_size);
   CHECK(act->using_batch_size == exp->using_batch_size);
-  CHECK(act->concurrent_request_count == exp->concurrent_request_count);
   CHECK(act->protocol == exp->protocol);
   CHECK(act->http_headers->size() == exp->http_headers->size());
-  CHECK(act->max_concurrency == exp->max_concurrency);
   CHECK_STRING(act->filename, act->filename);
   CHECK(act->mpi_driver != nullptr);
   CHECK_STRING(act->memory_type, exp->memory_type);
-  CHECK(
-      act->is_using_periodic_concurrency_mode ==
-      exp->is_using_periodic_concurrency_mode);
   CHECK(
       act->periodic_concurrency_range.start ==
       exp->periodic_concurrency_range.start);
@@ -244,8 +235,12 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
     int argc = 4;                                                            \
     char* argv[argc] = {app_name, "-m", model_name, option_name};            \
                                                                              \
+    std::string expected_msg =                                               \
+        ("Error: Missing value for option '" + std::string(option_name) +    \
+         "'");                                                               \
     CHECK_THROWS_WITH_AS(                                                    \
-        act = parser.Parse(argc, argv), "", PerfAnalyzerException);          \
+        act = parser.Parse(argc, argv), expected_msg.c_str(),                \
+        PerfAnalyzerException);                                              \
                                                                              \
     check_params = false;                                                    \
   }
@@ -267,7 +262,7 @@ TEST_CASE("Testing PerfAnalyzerParameters")
   CHECK_STRING("endpoint", params->endpoint, "");
   CHECK(params->input_shapes.size() == 0);
   CHECK(params->measurement_window_ms == 5000);
-  CHECK(params->using_concurrency_range == false);
+  CHECK(params->inference_load_mode == InferenceLoadMode::None);
   CHECK(params->concurrency_range.start == 1);
   CHECK(params->concurrency_range.end == 1);
   CHECK(params->concurrency_range.step == 1);
@@ -279,14 +274,12 @@ TEST_CASE("Testing PerfAnalyzerParameters")
   CHECK_STRING("string_data", params->string_data, "");
   CHECK(params->async == false);
   CHECK(params->forced_sync == false);
-  CHECK(params->using_request_rate_range == false);
   CHECK(params->request_rate_range[0] == doctest::Approx(1.0));
   CHECK(params->request_rate_range[1] == doctest::Approx(1.0));
   CHECK(params->request_rate_range[2] == doctest::Approx(1.0));
   CHECK(params->num_of_sequences == 4);
   CHECK(params->search_mode == SearchMode::LINEAR);
   CHECK(params->request_distribution == Distribution::CONSTANT);
-  CHECK(params->using_custom_intervals == false);
   CHECK_STRING("request_intervals_file", params->request_intervals_file, "");
   CHECK(params->shared_memory_type == NO_SHARED_MEMORY);
   CHECK(params->output_shm_size == 102400);
@@ -334,18 +327,14 @@ TEST_CASE("Testing PerfAnalyzerParameters")
   CHECK(params->verbose_csv == false);
   CHECK(params->enable_mpi == false);
   CHECK(params->trace_options.size() == 0);
-  CHECK(params->using_old_options == false);
-  CHECK(params->dynamic_concurrency_mode == false);
   CHECK(params->url_specified == false);
   CHECK_STRING("url", params->url, "localhost:8000");
   CHECK_STRING("model_name", params->model_name, "");
   CHECK_STRING("model_version", params->model_version, "");
   CHECK(params->batch_size == 1);
   CHECK(params->using_batch_size == false);
-  CHECK(params->concurrent_request_count == 1);
   CHECK(params->protocol == clientbackend::ProtocolType::HTTP);
   CHECK(params->http_headers->size() == 0);
-  CHECK(params->max_concurrency == 0);
   CHECK_STRING("filename", params->filename, "");
   CHECK(params->mpi_driver == nullptr);
   CHECK_STRING("memory_type", params->memory_type, "system");
@@ -371,8 +360,7 @@ class TestCLParser : public CLParser {
 void
 CheckValidRange(
     std::vector<char*>& args, char* option_name, TestCLParser& parser,
-    PAParamsPtr& act, bool& using_range, Range<uint64_t>& range,
-    size_t* max_threads)
+    PAParamsPtr& act, Range<uint64_t>& range, size_t* max_threads)
 {
   SUBCASE("start:end provided")
   {
@@ -387,7 +375,6 @@ CheckValidRange(
     REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
     CHECK(!parser.UsageCalled());
 
-    using_range = true;
     range.start = 100;
     range.end = 400;
   }
@@ -405,7 +392,6 @@ CheckValidRange(
     REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
     CHECK(!parser.UsageCalled());
 
-    using_range = true;
     range.start = 100;
     range.end = 400;
     range.step = 10;
@@ -499,12 +485,12 @@ CheckInvalidRange(
     char* argv[argc];
     std::copy(args.begin(), args.end(), argv);
 
-    // BUG (TMA-1307): Usage message does not contain error. Error statement
-    // "option '--concurrency-range' requires an argument" written directly
-    // to std::out
-    //
+    std::string expected_msg =
+        ("Error: Missing value for option '" + std::string(option_name) + "'");
+
     CHECK_THROWS_WITH_AS(
-        act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+        act = parser.Parse(argc, argv), expected_msg.c_str(),
+        PerfAnalyzerException);
 
     check_params = false;
   }
@@ -529,6 +515,7 @@ TEST_CASE("Testing Command Line Parser")
   // Most common defaults
   exp->model_name = model_name;  // model_name;
   exp->max_threads = DEFAULT_MAX_THREADS;
+  exp->inference_load_mode = InferenceLoadMode::Concurrency;
 
   SUBCASE("with no parameters")
   {
@@ -540,6 +527,30 @@ TEST_CASE("Testing Command Line Parser")
     CHECK_THROWS_WITH_AS(
         act = parser.Parse(argc, argv), expected_msg.c_str(),
         PerfAnalyzerException);
+
+    check_params = false;
+  }
+
+  SUBCASE("Invalid Short Option")
+  {
+    int argc = 2;
+    char* argv[argc] = {app_name, "-x"};
+
+    CHECK_THROWS_WITH_AS(
+        act = parser.Parse(argc, argv), "Error: Invalid short option '-x'",
+        PerfAnalyzerException);
+
+    check_params = false;
+  }
+
+  SUBCASE("Invalid Long Option")
+  {
+    int argc = 2;
+    char* argv[argc] = {app_name, "--invalid-option"};
+
+    CHECK_THROWS_WITH_AS(
+        act = parser.Parse(argc, argv),
+        "Error: Invalid long option '--invalid-option'", PerfAnalyzerException);
 
     check_params = false;
   }
@@ -630,14 +641,11 @@ TEST_CASE("Testing Command Line Parser")
       int argc = 4;
       char* argv[argc] = {app_name, "-m", model_name, "--max-threads"};
 
-      // NOTE: Empty message is not helpful
-      //
       CHECK_THROWS_WITH_AS(
-          act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--max-threads'",
+          PerfAnalyzerException);
 
-      // BUG: Dumping string "option '--max-threads' requires an argument"
-      // directly to std::out, instead of through usage()
-      //
       check_params = false;
     }
 
@@ -646,14 +654,11 @@ TEST_CASE("Testing Command Line Parser")
       int argc = 4;
       char* argv[argc] = {app_name, "-m", model_name, "--max-threads", "bad"};
 
-      // NOTE: Empty message is not helpful
-      //
       CHECK_THROWS_WITH_AS(
-          act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--max-threads'",
+          PerfAnalyzerException);
 
-      // BUG: Dumping string "option '--max-threads' requires an argument"
-      // directly to std::out, instead of through usage()
-      //
       check_params = false;
     }
   }
@@ -1132,14 +1137,13 @@ TEST_CASE("Testing Command Line Parser")
       REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
       CHECK(!parser.UsageCalled());
 
-      exp->using_concurrency_range = true;
       exp->concurrency_range.start = concurrency_range_start;
       exp->max_threads = DEFAULT_MAX_THREADS;
     }
 
     CheckValidRange(
-        args, option_name, parser, act, exp->using_concurrency_range,
-        exp->concurrency_range, &(exp->max_threads));
+        args, option_name, parser, act, exp->concurrency_range,
+        &(exp->max_threads));
     CheckInvalidRange(args, option_name, parser, act, check_params);
 
     SUBCASE("wrong separator")
@@ -1199,7 +1203,6 @@ TEST_CASE("Testing Command Line Parser")
       REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
       CHECK(!parser.UsageCalled());
 
-      exp->using_concurrency_range = true;
       exp->concurrency_range.start = concurrency_range_start;
       exp->concurrency_range.end = concurrency_range_end;
       exp->max_threads = DEFAULT_MAX_THREADS;
@@ -1221,7 +1224,6 @@ TEST_CASE("Testing Command Line Parser")
       REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
       CHECK(!parser.UsageCalled());
 
-      exp->using_concurrency_range = true;
       exp->concurrency_range.start = concurrency_range_start;
       exp->concurrency_range.end = concurrency_range_end;
       exp->max_threads = DEFAULT_MAX_THREADS;
@@ -1245,7 +1247,6 @@ TEST_CASE("Testing Command Line Parser")
       REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
       CHECK(!parser.UsageCalled());
 
-      exp->using_concurrency_range = true;
       exp->concurrency_range.start = concurrency_range_start;
       exp->concurrency_range.end = concurrency_range_end;
       exp->max_threads = exp->concurrency_range.end;
@@ -1264,6 +1265,7 @@ TEST_CASE("Testing Command Line Parser")
     exp->async = true;
     exp->streaming = true;
     exp->url = "localhost:8001";  // gRPC url
+    exp->inference_load_mode = InferenceLoadMode::PeriodicConcurrency;
 
     SUBCASE("start provided")
     {
@@ -1286,8 +1288,8 @@ TEST_CASE("Testing Command Line Parser")
     exp->max_threads = 400;
 
     CheckValidRange(
-        args, option_name, parser, act, exp->is_using_periodic_concurrency_mode,
-        exp->periodic_concurrency_range, &(exp->max_threads));
+        args, option_name, parser, act, exp->periodic_concurrency_range,
+        &(exp->max_threads));
 
     CheckInvalidRange(args, option_name, parser, act, check_params);
 
@@ -1303,10 +1305,8 @@ TEST_CASE("Testing Command Line Parser")
       std::copy(args.begin(), args.end(), argv);
 
       expected_msg =
-          "Cannot specify more then one inference load mode. Please choose "
-          "only one of the following modes: --concurrency-range, "
-          "--periodic-concurrency-range, --request-rate-range, or "
-          "--request-intervals.";
+          "Cannot use both PeriodicConcurrency and Concurrency inference load "
+          "modes.";
       CHECK_THROWS_WITH_AS(
           act = parser.Parse(argc, argv), expected_msg.c_str(),
           PerfAnalyzerException);
@@ -1522,7 +1522,9 @@ TEST_CASE("Testing Command Line Parser")
       char* argv[argc] = {app_name, "-m", model_name, "--stability-percentage"};
 
       CHECK_THROWS_WITH_AS(
-          act = parser.Parse(argc, argv), "", PerfAnalyzerException);
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--stability-percentage'",
+          PerfAnalyzerException);
 
       check_params = false;
     }
@@ -1957,6 +1959,49 @@ TEST_CASE("Testing Command Line Parser")
       CHECK_STRING(act->bls_composing_models[0].second, "1");
       CHECK_STRING(act->bls_composing_models[1].second, "");
       CHECK_STRING(act->bls_composing_models[2].second, "2");
+    }
+  }
+
+  SUBCASE("Option : --grpc-method")
+  {
+    SUBCASE("correct full grpc method name")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--grpc-method",
+          "hello.world.ServiceName/MethodName"};
+      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
+      CHECK(!parser.UsageCalled());
+    }
+    SUBCASE("more than one slash")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--grpc-method",
+          "hello.world/ServiceName/MethodName"};
+
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv),
+          "Received gRPC method name 'hello.world/ServiceName/MethodName' that "
+          "does not match the format: <package>.<service>/<method>.",
+          PerfAnalyzerException);
+
+      check_params = false;
+    }
+    SUBCASE("no slash")
+    {
+      int argc = 5;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--grpc-method",
+          "hello.world.ServiceName.MethodName"};
+
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv),
+          "Received gRPC method name 'hello.world.ServiceName.MethodName' that "
+          "does not match the format: <package>.<service>/<method>.",
+          PerfAnalyzerException);
+
+      check_params = false;
     }
   }
 

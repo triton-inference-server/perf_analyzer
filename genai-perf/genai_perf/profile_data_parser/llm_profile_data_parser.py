@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,17 +27,31 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from collections import defaultdict
 from itertools import tee
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TypeAlias
 
-from genai_perf.metrics import LLMMetrics, Metrics
+from genai_perf.constants import EMPTY_RESPONSE_TOKEN
+from genai_perf.exceptions import GenAIPerfException
+from genai_perf.logging import logging
+from genai_perf.metrics import LLMMetrics, Statistics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
     ResponseFormat,
 )
 from genai_perf.tokenizer import Tokenizer
-from genai_perf.utils import load_json_str, remove_sse_prefix
+from genai_perf.utils import (
+    load_json_str,
+    not_data_sse_field,
+    remove_sse_prefix,
+    sse_error_occurred,
+)
+from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
+
+SessionMetrics: TypeAlias = Dict[str, Dict[str, List[float | int]]]
 
 
 class LLMProfileDataParser(ProfileDataParser):
@@ -72,9 +86,29 @@ class LLMProfileDataParser(ProfileDataParser):
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._tokenizer = tokenizer
+        self._session_metrics: SessionMetrics = defaultdict(lambda: defaultdict(list))
         super().__init__(filename, goodput_constraints)
 
-    def _parse_requests(self, requests: dict) -> Metrics:
+    def _parse_profile_data(self, data: dict) -> None:
+        """Parse through the entire profile data to collect statistics."""
+        self._profile_results = {}
+        for experiment in data["experiments"]:
+            infer_mode = experiment["experiment"]["mode"]
+            load_level = experiment["experiment"]["value"]
+            requests = experiment["requests"]
+
+            llm_metrics = self._parse_requests(requests)
+
+            # aggregate and calculate statistics
+            statistics = Statistics(llm_metrics)
+            self._profile_results[(infer_mode, str(load_level))] = statistics
+
+            # calculate per-session statistics
+            for session_id, session_metric in self._session_metrics.items():
+                metrics = LLMMetrics.from_dict(session_metric)
+                self._session_statistics[session_id] = Statistics(metrics)
+
+    def _parse_requests(self, requests: dict) -> LLMMetrics:
         """Parse each requests in profile export data to extract key metrics."""
         min_req_timestamp, max_res_timestamp = float("inf"), 0
         request_latencies = []
@@ -86,77 +120,104 @@ class LLMProfileDataParser(ProfileDataParser):
         output_sequence_lengths = []
         chunked_inter_token_latencies = []
 
-        for request in requests:
-            req_timestamp = request["timestamp"]
-            req_inputs = request["request_inputs"]
-            res_timestamps = request["response_timestamps"]
-            res_outputs = request["response_outputs"]
+        logger.info(f"Parsing {len(requests)} requests")
+        with tqdm(total=len(requests), desc="Parsing Requests", unit="req") as pbar:
+            for request in requests:
+                req_timestamp = request["timestamp"]
+                req_inputs = request["request_inputs"]
+                res_timestamps = request["response_timestamps"]
+                res_outputs = request["response_outputs"]
 
-            self._preprocess_response(res_timestamps, res_outputs)
+                self._preprocess_response(res_timestamps, res_outputs)
 
-            # Skip requests with empty response. This happens sometimes when the
-            # model returns a single response with empty string.
-            if not res_timestamps:
-                continue
+                # Skip requests with empty response. This happens sometimes when the
+                # model returns a single response with empty string.
+                if not res_timestamps:
+                    pbar.update(1)
+                    continue
 
-            # track entire benchmark duration
-            min_req_timestamp = min(min_req_timestamp, req_timestamp)
-            max_res_timestamp = max(max_res_timestamp, res_timestamps[-1])
+                # track entire benchmark duration
+                min_req_timestamp = min(min_req_timestamp, req_timestamp)
+                max_res_timestamp = max(max_res_timestamp, res_timestamps[-1])
 
-            # request latencies
-            req_latency_ns = res_timestamps[-1] - req_timestamp
-            request_latencies.append(req_latency_ns)  # nanosec
-            req_latency_s = req_latency_ns / 1e9  # sec
+                # request latencies
+                req_latency_ns = res_timestamps[-1] - req_timestamp
+                request_latencies.append(req_latency_ns)  # nanosec
+                req_latency_s = req_latency_ns / 1e9  # sec
 
-            # time to first token
-            ttft = res_timestamps[0] - req_timestamp
-            time_to_first_tokens.append(ttft)
+                # time to first token
+                ttft = res_timestamps[0] - req_timestamp
+                time_to_first_tokens.append(ttft)
 
-            # time to second token (if available)
-            if len(res_timestamps) > 1:
-                ttst = res_timestamps[1] - res_timestamps[0]
-                time_to_second_tokens.append(ttst)
+                # time to second token (if available)
+                if len(res_timestamps) > 1:
+                    ttst = res_timestamps[1] - res_timestamps[0]
+                    time_to_second_tokens.append(ttst)
 
-            # number of input tokens
-            input_seq_len = self._get_input_token_count(req_inputs)
-            input_sequence_lengths.append(input_seq_len)
+                # number of input tokens
+                input_seq_len = self._get_input_token_count(req_inputs)
+                input_sequence_lengths.append(input_seq_len)
 
-            # output token throughput per request
-            output_token_counts, total_output_token = self._get_output_token_counts(
-                res_outputs
-            )
-            output_token_throughputs_per_request.append(
-                total_output_token / req_latency_s
-            )
-            output_sequence_lengths.append(total_output_token)
+                # output token throughput per request
+                output_token_counts, total_output_token = self._get_output_token_counts(
+                    res_outputs
+                )
+                output_token_throughputs_per_request.append(
+                    total_output_token / req_latency_s
+                )
+                output_sequence_lengths.append(total_output_token)
 
-            # inter token latencies
-            if total_output_token > 1:
-                inter_token_latency = (req_latency_ns - ttft) / (total_output_token - 1)
-                inter_token_latencies.append(round(inter_token_latency))
+                # inter token latencies
+                if total_output_token > 1:
+                    inter_token_latency = round(
+                        (req_latency_ns - ttft) / (total_output_token - 1)
+                    )
+                    inter_token_latencies.append(inter_token_latency)
 
-            # The new ITL calculation above loses all token-level ITL information
-            # and as a result breaks ITL vs token position visualization. Keep
-            # the old version of inter token latency as a WAR to preserve the
-            # visualization.
-            chunked_inter_token_latency = []
-            for (t1, _), (t2, n2) in self._pairwise(
-                zip(res_timestamps, output_token_counts)
-            ):
-                # TMA-1676: handle empty first/last responses
-                # if the latter response has zero token (e.g. empty string),
-                # then set it default to one for the sake of inter token latency
-                # calculation and to avoid divide by zero.
-                num_token = 1 if n2 == 0 else n2
-                chunked_inter_token_latency.append(round((t2 - t1) / num_token))
-            chunked_inter_token_latencies.append(chunked_inter_token_latency)
+                # The new ITL calculation above loses all token-level ITL information
+                # and as a result breaks ITL vs token position visualization. Keep
+                # the old version of inter token latency as a WAR to preserve the
+                # visualization.
+                chunked_inter_token_latency = []
+                for (t1, _), (t2, n2) in self._pairwise(
+                    zip(res_timestamps, output_token_counts)
+                ):
+                    # TMA-1676: handle empty first/last responses
+                    # if the latter response has zero token (e.g. empty string),
+                    # then set it default to one for the sake of inter token latency
+                    # calculation and to avoid divide by zero.
+                    num_token = 1 if n2 == 0 else n2
+                    chunked_inter_token_latency.append(round((t2 - t1) / num_token))
+                chunked_inter_token_latencies.append(chunked_inter_token_latency)
+
+                # (per-session) calculate llm metrics
+                if "session_id" in req_inputs:
+                    session_metric = self._session_metrics[req_inputs["session_id"]]
+                    session_metric["request_latencies"].append(req_latency_ns)
+                    session_metric["time_to_first_tokens"].append(ttft)
+                    if len(res_timestamps) > 1:
+                        session_metric["time_to_second_tokens"].append(ttst)
+                    if total_output_token > 1:
+                        session_metric["inter_token_latencies"].append(
+                            inter_token_latency
+                        )
+                    session_metric["output_token_throughputs_per_request"].append(
+                        total_output_token / req_latency_s
+                    )
+                    session_metric["input_sequence_lengths"].append(input_seq_len)
+                    session_metric["output_sequence_lengths"].append(total_output_token)
+                    # collect request and last response timestamps each session
+                    session_metric["req_timestamps"].append(req_timestamp)
+                    session_metric["last_res_timestamps"].append(res_timestamps[-1])
+
+                pbar.update(1)
 
         # request & output token throughput
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        llm_metric = LLMMetrics(
+        llm_metrics = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -169,11 +230,27 @@ class LLMProfileDataParser(ProfileDataParser):
             chunked_inter_token_latencies,
         )
 
-        if self._goodput_constraints:
-            goodput_val = self._calculate_goodput(benchmark_duration, llm_metric)
-            llm_metric.request_goodputs = goodput_val
+        self._postprocess_session_metrics()
 
-        return llm_metric
+        if self._goodput_constraints:
+            goodput_val = self._calculate_goodput(benchmark_duration, llm_metrics)
+            llm_metrics.request_goodputs = goodput_val
+
+        return llm_metrics
+
+    def _postprocess_session_metrics(self) -> None:
+        """Postprocess session metrics to calculate request & output token throughput."""
+        for metric in self._session_metrics.values():
+            init_t = min(metric["req_timestamps"])
+            last_t = max(metric["last_res_timestamps"])
+            session_latency = (last_t - init_t) / 1e9  # to seconds
+            num_requests = len(metric["req_timestamps"])
+            num_tokens = sum(metric["output_sequence_lengths"])
+            metric["request_throughputs"].append(num_requests / session_latency)
+            metric["output_token_throughputs"].append(num_tokens / session_latency)
+            # clean up
+            del metric["req_timestamps"]
+            del metric["last_res_timestamps"]
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""
@@ -188,47 +265,59 @@ class LLMProfileDataParser(ProfileDataParser):
         if self._service_kind == "openai":
             # Sometimes streamed chunks are returned in a splintered fashion.
             # This forces a merge with the previous chunk if error detected.
-            if len(res_outputs) > 1:
-                for i in reversed(range(len(res_outputs))):
-                    response = res_outputs[i]["response"]
-                    if not response.startswith("data: "):
-                        first_data = response.find("data: ")
-                        if first_data == -1:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"] + response.strip()
-                            )
-                            res_outputs[i]["response"] = ""
-                        else:
-                            res_outputs[i - 1]["response"] = (
-                                res_outputs[i - 1]["response"]
-                                + response[0:first_data].strip()
-                            )
-                            res_outputs[i]["response"] = response[first_data:].strip()
+            for i in reversed(range(1, len(res_outputs))):
+                response = res_outputs[i]["response"]
+
+                # skip non-data events
+                if not_data_sse_field(response):
+                    continue
+
+                if not response.startswith("data: "):
+                    prefix_idx = response.find("data: ")
+                    if "data: " not in res_outputs[i - 1]["response"]:
+                        raise GenAIPerfException(
+                            "Detected a splintered SSE response but the "
+                            "previous response does not contain proper SSE "
+                            "prefix to continue the fix."
+                        )
+
+                    # When 'data: ' prefix is not found in the current
+                    # response, append it with the previous response
+                    # (assuming that the prev response contains it).
+                    if prefix_idx == -1:
+                        res_outputs[i - 1]["response"] += response
+                        res_outputs[i]["response"] = ""
+                    else:
+                        res_outputs[i - 1]["response"] += response[0:prefix_idx]
+                        res_outputs[i]["response"] = response[prefix_idx:]
+
             # PA sometimes receives multiple SSE responses at once (as a single
             # response). Handle these responses by merging into a single response.
             for i in range(len(res_outputs)):
-                response = res_outputs[i]["response"]
-                responses = response.strip().split("\n\n")
-                if len(responses) > 1:
-                    merged_response = load_json_str(remove_sse_prefix(responses[0]))
-                    if (self._response_format != ResponseFormat.TRITON_GENERATE) and (
-                        merged_response["choices"][0]["delta"].get("content", None)
-                        is None
-                    ):
-                        merged_response["choices"][0]["delta"]["content"] = ""
-                    elif (self._response_format == ResponseFormat.TRITON_GENERATE) and (
-                        "text_output" not in merged_response
-                    ):
-                        merged_response["text_output"] = ""
+                responses = res_outputs[i]["response"].strip().split("\n\n")
 
-                for r in responses[1:]:
+                # Check if any error event occurred.
+                for r in responses:
+                    if sse_error_occurred(r):
+                        raise GenAIPerfException(
+                            f"Detected an error event in the SSE response: {r}"
+                        )
+
+                if len(responses) > 1:
+                    data = load_json_str(remove_sse_prefix(responses[0]))
                     if self._response_format == ResponseFormat.TRITON_GENERATE:
-                        text = self._extract_generate_text_output(r)
-                        merged_response["text_output"] += text
+                        merged_text = "".join(
+                            [self._extract_generate_text_output(r) for r in responses]
+                        )
+                        data["text_output"] = merged_text
                     else:
-                        text = self._extract_openai_text_output(r)
-                        merged_response["choices"][0]["delta"]["content"] += text
-                    res_outputs[i] = {"response": json.dumps(merged_response)}
+                        merged_text = "".join(
+                            [self._extract_openai_text_output(r) for r in responses]
+                        )
+                        data["choices"][0]["delta"]["content"] = merged_text
+                    res_outputs[i] = {"response": json.dumps(data)}
+                elif self._is_empty_response(responses[0]):
+                    res_outputs[i]["response"] = ""
 
             # Remove responses without any content
             indices_to_remove = []
@@ -247,19 +336,19 @@ class LLMProfileDataParser(ProfileDataParser):
         elif self._service_kind == "triton_c_api":
             return len(req_inputs["input_ids"])  # no tokenizer required
         elif self._service_kind == "openai":
-            input_text = self._get_input_text(req_inputs)
+            input_text = self._get_input_payload(req_inputs)
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
         return len(self._tokenizer.encode(input_text))
 
-    def _get_input_text(self, req_inputs: dict) -> str:
-        """Tokenize the request input texts."""
+    def _get_input_payload(self, req_inputs: dict) -> str:
+        """Deserialize the request input payload."""
         payload = load_json_str(req_inputs["payload"])
         if self._response_format == ResponseFormat.TRITON_GENERATE:
             return " ".join(payload["text_input"])
         elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
-            return payload["messages"][0]["content"]
+            return " ".join(m["content"] for m in payload["messages"])
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
             return " ".join(payload["prompt"])
         elif self._response_format == ResponseFormat.OPENAI_VISION:
@@ -295,8 +384,11 @@ class LLMProfileDataParser(ProfileDataParser):
         for r in res_outputs:
             if isinstance(r["output_ids"], list):
                 token_ids += r["output_ids"]
-            else:
+            elif isinstance(r["output_ids"], int):
                 token_ids.append(r["output_ids"])
+            else:
+                # for the empty first/last responses
+                token_ids.append(EMPTY_RESPONSE_TOKEN)
         return token_ids, len(token_ids)
 
     def _get_triton_output_tokens(self, res_outputs: List[Dict]) -> List[str]:
@@ -324,6 +416,9 @@ class LLMProfileDataParser(ProfileDataParser):
         return [out[1:] for out in encodings.data["input_ids"]]
 
     def _extract_generate_text_output(self, response: str) -> str:
+        if not response or not_data_sse_field(response):
+            return ""
+
         response = remove_sse_prefix(response)
         if response == "":
             return response
@@ -332,6 +427,11 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _extract_openai_text_output(self, response: str) -> str:
         """Extracts text/content of the OpenAI response object."""
+        # (TODO) TPA-829: Add more proper SSE event stream support
+        # Check for empty, comment, or event SSE response
+        if not response or not_data_sse_field(response):
+            return ""
+
         response = remove_sse_prefix(response)
 
         if response == "[DONE]":

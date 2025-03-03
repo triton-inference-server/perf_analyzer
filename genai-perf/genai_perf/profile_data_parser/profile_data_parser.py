@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from genai_perf.goodput_calculator.llm_goodput_calculator import LLMGoodputCalculator
+from genai_perf.logging import logging
 from genai_perf.metrics import Metrics, Statistics
 from genai_perf.utils import load_json
+
+logger = logging.getLogger(__name__)
 
 
 class ResponseFormat(Enum):
@@ -58,6 +61,8 @@ class ProfileDataParser:
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._goodput_constraints = goodput_constraints
+        self._session_statistics: Dict[str, Statistics] = {}
+        logger.info("Loading response data from '%s'", str(filename))
         data = load_json(filename)
         self._get_profile_metadata(data)
         self._parse_profile_data(data)
@@ -110,7 +115,7 @@ class ProfileDataParser:
                 else:
                     raise RuntimeError("Unknown OpenAI response format.")
 
-        elif self._service_kind == "triton":
+        elif self._service_kind in ["dynamic_grpc", "triton"]:
             self._response_format = ResponseFormat.TRITON
         elif self._service_kind == "triton_c_api":
             pass  # ignore
@@ -182,6 +187,10 @@ class ProfileDataParser:
         if (infer_mode, load_level) not in self._profile_results:
             raise KeyError(f"Profile with {infer_mode}={load_level} does not exist.")
         return self._profile_results[(infer_mode, load_level)]
+
+    def get_session_statistics(self) -> Dict[str, Statistics]:
+        """Return session statistics."""
+        return self._session_statistics
 
     def get_profile_load_info(self) -> List[Tuple[str, str]]:
         """Return available (infer_mode, load_level) tuple keys."""

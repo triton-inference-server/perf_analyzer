@@ -35,6 +35,7 @@ option(TRITON_ENABLE_PERF_ANALYZER_C_API "Enable Performance Analyzer C API" OFF
 option(TRITON_ENABLE_PERF_ANALYZER_TFS "Enable TensorFlow Serving support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_TS "Enable TorchServe support for Performance Analyzer" OFF)
 option(TRITON_ENABLE_PERF_ANALYZER_OPENAI "Enable OpenAI support for Performance Analyzer" OFF)
+option(TRITON_ENABLE_PERF_ANALYZER_DGRPC "Enable Dynamic gRPC support for Performance Analyzer" OFF)
 
 #
 # Feature Options
@@ -148,7 +149,6 @@ set(
   profile_data_exporter.cc
   periodic_concurrency_manager.cc
   periodic_concurrency_worker.cc
-  cuda_runtime_library_manager.cc
   session_concurrency/payload_dataset_manager.cc
   session_concurrency/payload_json_utils.cc
   session_concurrency/request_handler.cc
@@ -198,7 +198,6 @@ set(
   periodic_concurrency_manager.h
   periodic_concurrency_worker.h
   thread_config.h
-  cuda_runtime_library_manager.h
   thread_stat.h
   session_concurrency/payload_dataset_manager.h
   session_concurrency/payload_json_utils.h
@@ -208,6 +207,7 @@ set(
   rapidjson_utils.h
   session_concurrency_mode.h
   coroutine.h
+  inference_load_mode.h
 )
 
 add_executable(
@@ -270,6 +270,12 @@ if(TRITON_ENABLE_GPU)
   target_include_directories(perf_analyzer
                              PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
 
+  target_sources(perf_analyzer
+    PRIVATE
+    cuda_runtime_library_manager.h
+    cuda_runtime_library_manager.cc
+  )
+
 endif() # TRITON_ENABLE_GPU
 
 if(TRITON_ENABLE_PERF_ANALYZER_C_API)
@@ -300,6 +306,14 @@ if(TRITON_ENABLE_PERF_ANALYZER_OPENAI)
     PUBLIC TRITON_ENABLE_PERF_ANALYZER_OPENAI=1
   )
 endif() # TRITON_ENABLE_PERF_ANALYZER_OPENAI
+
+if(TRITON_ENABLE_PERF_ANALYZER_DGRPC)
+  target_compile_definitions(
+    client-backend-library
+    PUBLIC TRITON_ENABLE_PERF_ANALYZER_DGRPC=1
+  )
+endif() # TRITON_ENABLE_PERF_ANALYZER_DGRPC
+
 
 install(
   TARGETS perf_analyzer
@@ -367,6 +381,20 @@ target_sources(
     ${libb64_SOURCE_DIR}/src/cencode.c
 )
 
+if(TRITON_ENABLE_GPU)
+  target_sources(perf_analyzer_unit_tests
+    PRIVATE
+      cuda_runtime_library_manager.h
+      cuda_runtime_library_manager.cc
+  )
+
+  target_compile_definitions(
+    perf_analyzer_unit_tests
+    PUBLIC
+      TRITON_ENABLE_GPU=1
+  )
+endif()
+
 target_include_directories(
   perf_analyzer_unit_tests
   PRIVATE
@@ -390,8 +418,13 @@ target_link_libraries(
     client-backend-library
 )
 
+target_compile_features(
+  perf_analyzer_unit_tests
+  PRIVATE
+    cxx_std_${TRITON_MIN_CXX_STANDARD}
+)
+
 install(
   TARGETS perf_analyzer_unit_tests
   RUNTIME DESTINATION bin
 )
-

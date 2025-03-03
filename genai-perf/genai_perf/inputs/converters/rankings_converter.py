@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -79,8 +79,9 @@ class RankingsConverter(BaseConverter):
                     "model": model_name,
                 }
 
-            self._add_request_params(payload, config)
-            request_body["data"].append({"payload": [payload]})
+            request_body["data"].append(
+                self._finalize_payload(payload, config, passage_entry)
+            )
 
         return request_body
 
@@ -93,7 +94,9 @@ class RankingsConverter(BaseConverter):
             return True
         return False
 
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+    def _add_request_params(
+        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+    ) -> None:
         for key, value in config.extra_inputs.items():
             if not (key == "rankings" and value == "tei"):
                 payload[key] = value

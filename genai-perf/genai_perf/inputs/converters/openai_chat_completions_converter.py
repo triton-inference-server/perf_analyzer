@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -62,7 +62,9 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 payload = self._create_payload(index, row, config)
-                request_body["data"].append({"payload": [payload]})
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row)
+                )
 
         return request_body
 
@@ -82,7 +84,6 @@ class OpenAIChatCompletionsConverter(BaseConverter):
             ],
         }
 
-        self._add_request_params(payload, config)
         return payload
 
     def _retrieve_content(
@@ -119,16 +120,13 @@ class OpenAIChatCompletionsConverter(BaseConverter):
             )
         return content
 
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+    def _add_request_params(
+        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+    ) -> None:
         if config.add_stream:
             payload["stream"] = True
-        if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
-            payload["max_tokens"] = int(
-                sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
-                    lower=1,  # output token must be >= 1
-                )
-            )
+        max_tokens = self._get_max_tokens(config, optional_data)
+        if max_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
+            payload["max_tokens"] = max_tokens
         for key, value in config.extra_inputs.items():
             payload[key] = value

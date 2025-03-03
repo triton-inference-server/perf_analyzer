@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from copy import deepcopy
+
 import pytest
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import NVClipConverter
@@ -43,7 +45,16 @@ class TestNVClipConverter:
     def create_generic_dataset(rows) -> GenericDataset:
         return GenericDataset(files_data={"file1": FileData(rows)})
 
-    def test_convert_default(self):
+    @pytest.fixture
+    def default_config(self):
+        yield InputsConfig(
+            extra_inputs={},
+            model_name=["test_model"],
+            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
+            tokenizer=get_empty_tokenizer(),
+        )
+
+    def test_convert_default(self, default_config):
         generic_dataset = self.create_generic_dataset(
             [
                 DataRow(texts=["text1"], images=["image1"]),
@@ -52,15 +63,8 @@ class TestNVClipConverter:
             ]
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            tokenizer=get_empty_tokenizer(),
-        )
-
         nv_clip_converter = NVClipConverter()
-        result = nv_clip_converter.convert(generic_dataset, config)
+        result = nv_clip_converter.convert(generic_dataset, default_config)
 
         expected_result = {
             "data": [
@@ -93,22 +97,15 @@ class TestNVClipConverter:
 
         assert result == expected_result
 
-    def test_convert_batched(self):
+    def test_convert_batched(self, default_config):
         generic_dataset = self.create_generic_dataset(
             [
                 DataRow(texts=["text1", "text2"], images=["image1", "image2"]),
             ]
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            tokenizer=get_empty_tokenizer(),
-        )
-
         nv_clip_converter = NVClipConverter()
-        result = nv_clip_converter.convert(generic_dataset, config)
+        result = nv_clip_converter.convert(generic_dataset, default_config)
 
         expected_result = {
             "data": [
@@ -125,7 +122,7 @@ class TestNVClipConverter:
 
         assert result == expected_result
 
-    def test_convert_with_request_parameters(self):
+    def test_convert_with_request_parameters(self, default_config):
         generic_dataset = self.create_generic_dataset(
             [
                 DataRow(texts=["text1"], images=["image1"]),
@@ -133,13 +130,8 @@ class TestNVClipConverter:
         )
 
         extra_inputs = {"encoding_format": "base64"}
-
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = deepcopy(default_config)
+        config.extra_inputs.update(extra_inputs)
 
         nv_clip_converter = NVClipConverter()
         result = nv_clip_converter.convert(generic_dataset, config)
@@ -169,3 +161,35 @@ class TestNVClipConverter:
             GenAIPerfException, match="The --streaming option is not supported"
         ):
             nv_clip_converter.check_config(config)
+
+    def test_convert_with_payload_parameters(self, default_config):
+        optional_data = {"session_id": "abcd"}
+        generic_dataset = self.create_generic_dataset(
+            [
+                DataRow(
+                    texts=["text1"],
+                    images=["image1"],
+                    optional_data=optional_data,
+                    payload_metadata={"timestamp": 0},
+                ),
+            ]
+        )
+
+        nv_clip_converter = NVClipConverter()
+        result = nv_clip_converter.convert(generic_dataset, default_config)
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "model": "test_model",
+                            "input": ["text1", "image1"],
+                            "session_id": "abcd",
+                        }
+                    ],
+                    "timestamp": [0],
+                },
+            ]
+        }
+
+        assert result == expected_result

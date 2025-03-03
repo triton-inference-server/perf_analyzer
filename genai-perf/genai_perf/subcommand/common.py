@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,8 +34,9 @@ from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
-from genai_perf.inputs.inputs import Inputs
+from genai_perf.inputs.inputs import Inputs, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.profile_data_parser import (
     ImageRetrievalProfileDataParser,
     LLMProfileDataParser,
@@ -63,7 +64,12 @@ def generate_inputs(config_options: InputsConfig) -> None:
 
 
 def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParser:
-    if args.endpoint_type in ["embeddings", "nvclip", "rankings"]:
+    if args.output_format == OutputFormat.TEMPLATE:
+        return ProfileDataParser(
+            args.profile_export_file,
+            goodput_constraints=args.goodput,
+        )
+    if args.endpoint_type in ["embeddings", "nvclip", "rankings", "dynamic_grpc"]:
         return ProfileDataParser(
             args.profile_export_file,
             goodput_constraints=args.goodput,
@@ -82,24 +88,22 @@ def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParse
 
 
 def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
-    request_inputs = {}
+    request_inputs: Dict[str, Any] = {}
     if args.extra_inputs:
         for input_str in args.extra_inputs:
+            semicolon_count = input_str.count(":")
             if input_str.startswith("{") and input_str.endswith("}"):
                 request_inputs.update(load_json_str(input_str))
-            else:
-                semicolon_count = input_str.count(":")
-                if semicolon_count != 1:
-                    raise ValueError(
-                        f"Invalid input format for --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
-                    )
+            elif semicolon_count == 0:  # extra input as a flag
+                request_inputs[input_str] = None
+            elif semicolon_count == 1:
                 input_name, value = input_str.split(":", 1)
 
                 if not input_name or not value:
                     raise ValueError(
-                        f"Input name or value is empty in --extra-inputs: {input_str}\n"
-                        "Expected input format: 'input_name:value'"
+                        f"Input name or value is empty in --extra-inputs: "
+                        f"{input_str}\nExpected input format: 'input_name' or "
+                        "'input_name:value'"
                     )
 
                 is_bool = value.lower() in ["true", "false"]
@@ -117,28 +121,41 @@ def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
 
                 if input_name in request_inputs:
                     raise ValueError(
-                        f"Input name already exists in request_inputs dictionary: {input_name}"
+                        f"Input name already exists in request_inputs "
+                        f"dictionary: {input_name}"
                     )
                 request_inputs[input_name] = value
+            else:
+                raise ValueError(
+                    f"Invalid input format for --extra-inputs: {input_str}\n"
+                    "Expected input format: 'input_name' or 'input_name:value'"
+                )
 
     return request_inputs
 
 
-def create_telemetry_data_collector(
+def create_telemetry_data_collectors(
     args: Namespace,
-) -> Optional[TelemetryDataCollector]:
-    telemetry_data_collector = None
-    if args.service_kind == "triton":
-        server_metrics_url = args.server_metrics_url or DEFAULT_TRITON_METRICS_URL
-        telemetry_data_collector = TritonTelemetryDataCollector(server_metrics_url)
+) -> List[TelemetryDataCollector]:
+    """
+    Initializes telemetry data collectors for all endpoints.
+    """
+    telemetry_collectors: List[TelemetryDataCollector] = []
 
-    if telemetry_data_collector and not telemetry_data_collector.is_url_reachable():
-        logger.warning(
-            f"The metrics URL ({telemetry_data_collector.metrics_url}) is unreachable. "
-            "GenAI-Perf cannot collect telemetry data."
-        )
-        telemetry_data_collector = None
-    return telemetry_data_collector
+    if not args.service_kind == "triton":
+        return telemetry_collectors
+
+    if not args.server_metrics_url:
+        args.server_metrics_url = [DEFAULT_TRITON_METRICS_URL]
+
+    for url in args.server_metrics_url:
+        collector = TritonTelemetryDataCollector(url.strip())
+        if collector.is_url_reachable():
+            telemetry_collectors.append(collector)
+        else:
+            logger.warning(f"Skipping unreachable metrics URL: {url}")
+
+    return telemetry_collectors
 
 
 def create_artifacts_dirs(args: Namespace) -> None:
@@ -160,6 +177,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         model_name=args.model,
         model_selection_strategy=args.model_selection_strategy,
         input_filename=args.input_file,
+        payload_input_filename=args.payload_input_file,
         synthetic_input_filenames=args.synthetic_input_files,
         starting_index=DEFAULT_STARTING_INDEX,
         length=args.num_dataset_entries,
@@ -185,6 +203,11 @@ def create_config_options(args: Namespace) -> InputsConfig:
         output_dir=args.artifact_dir,
         num_prefix_prompts=args.num_prefix_prompts,
         prefix_prompt_length=args.prefix_prompt_length,
+        num_sessions=args.num_sessions,
+        session_turns_mean=args.session_turns_mean,
+        session_turns_stddev=args.session_turns_stddev,
+        session_turn_delay_mean=args.session_turn_delay_mean,
+        session_turn_delay_stddev=args.session_turn_delay_stddev,
     )
 
 
@@ -192,11 +215,11 @@ def run_perf_analyzer(
     args: Namespace,
     extra_args: Optional[List[str]] = None,
     perf_analyzer_config: Optional[PerfAnalyzerConfig] = None,
-    telemetry_data_collector: Optional[TelemetryDataCollector] = None,
+    telemetry_data_collectors: List[TelemetryDataCollector] = [],
 ) -> None:
     try:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.start()
+        for collector in telemetry_data_collectors:
+            collector.start()
 
         if perf_analyzer_config is not None:
             cmd = perf_analyzer_config.create_command()
@@ -212,5 +235,29 @@ def run_perf_analyzer(
         else:
             subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
     finally:
-        if telemetry_data_collector is not None:
-            telemetry_data_collector.stop()
+        for collector in telemetry_data_collectors:
+            collector.stop()
+
+
+def merge_telemetry_metrics(metrics_list: List[TelemetryMetrics]) -> TelemetryMetrics:
+    """
+    Merges multiple TelemetryMetrics objects into a single one.
+
+    Args:
+        metrics_list (List[TelemetryMetrics]): A list of TelemetryMetrics instances.
+
+    Returns:
+        TelemetryMetrics: A new TelemetryMetrics instance with merged raw data.
+    """
+
+    merged_metrics = TelemetryMetrics()
+
+    for metrics in metrics_list:
+        for metric in TelemetryMetrics.TELEMETRY_METRICS:
+            metric_key = metric.name
+            metric_dict = getattr(merged_metrics, metric_key)
+            source_dict = getattr(metrics, metric_key)
+
+            for gpu_id, values in source_dict.items():
+                metric_dict[gpu_id].extend(values)
+    return merged_metrics

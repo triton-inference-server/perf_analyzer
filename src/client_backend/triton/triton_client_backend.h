@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -38,6 +38,10 @@
 #include "grpc_client.h"
 #include "http_client.h"
 #include "shm_utils.h"
+
+#ifdef TRITON_ENABLE_GPU
+#include "../../cuda_runtime_library_manager.h"
+#endif  // TRITON_ENABLE_GPU
 
 #define RETURN_IF_TRITON_ERROR(S)                          \
   do {                                                     \
@@ -150,10 +154,13 @@ class TritonClientBackend : public ClientBackend {
       const std::string& name, const std::string& key,
       const size_t byte_size) override;
 
+#ifdef TRITON_ENABLE_GPU
   /// See ClientBackend::RegisterCudaSharedMemory()
   Error RegisterCudaSharedMemory(
-      const std::string& name, const cudaIpcMemHandle_t& handle,
+      const std::string& name,
+      const CUDARuntimeLibraryManager::cudaIpcMemHandle_t& handle,
       const size_t byte_size) override;
+#endif  // TRITON_ENABLE_GPU
 
   /// See ClientBackend::CreateSharedMemoryRegion()
   Error CreateSharedMemoryRegion(

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@ from genai_perf.config.run.run_config import RunConfig
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
+from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.record.types.energy_consumption_p99 import GpuEnergyConsumptionP99
 from genai_perf.record.types.gpu_memory_used_p99 import GpuMemoryUsedP99
 from genai_perf.record.types.gpu_power_limit_avg import GPUPowerLimitAvg
@@ -57,8 +58,9 @@ from genai_perf.subcommand.common import (
     calculate_metrics,
     create_artifacts_dirs,
     create_config_options,
-    create_telemetry_data_collector,
+    create_telemetry_data_collectors,
     generate_inputs,
+    merge_telemetry_metrics,
     run_perf_analyzer,
 )
 from genai_perf.tokenizer import get_tokenizer
@@ -135,7 +137,7 @@ class Analyze:
         self._sweep_objective_generator = SweepObjectiveGenerator(
             self._config, self._model_search_parameters
         )
-        self._telemetry_data_collector = create_telemetry_data_collector(args)
+        self._telemetry_data_collectors = create_telemetry_data_collectors(args)
         self._checkpoint = Checkpoint(self._config)
         self._results = self._checkpoint.results
 
@@ -219,7 +221,7 @@ class Analyze:
                 run_perf_analyzer(
                     args=obj_args,
                     perf_analyzer_config=perf_analyzer_config,
-                    telemetry_data_collector=self._telemetry_data_collector,
+                    telemetry_data_collectors=self._telemetry_data_collectors,
                 )
 
                 #
@@ -229,22 +231,27 @@ class Analyze:
                 )
                 data_parser = calculate_metrics(obj_args, tokenizer)
                 perf_stats = data_parser.get_statistics(infer_mode, load_level)
+                session_stats = data_parser.get_session_statistics()
                 perf_metrics = perf_stats.create_records()
 
                 #
                 # Extract Telemetry Metrics
-                telemetry_stats = (
-                    self._telemetry_data_collector.get_statistics()
-                    if self._telemetry_data_collector
-                    else None
+                telemetry_metrics_list = [
+                    collector.get_metrics()
+                    for collector in self._telemetry_data_collectors
+                ]
+
+                merged_telemetry_metrics = merge_telemetry_metrics(
+                    telemetry_metrics_list
                 )
-                gpu_metrics = (
-                    telemetry_stats.create_records() if telemetry_stats else {}
-                )
+                merged_telemetry_stats = TelemetryStatistics(merged_telemetry_metrics)
+                gpu_metrics = merged_telemetry_stats.create_records()
 
                 #
                 # Create output CSV in artifact directory
-                OutputReporter(perf_stats, telemetry_stats, obj_args).report_output()
+                OutputReporter(
+                    perf_stats, merged_telemetry_stats, obj_args, session_stats
+                ).report_output()
 
                 #
                 # Create RunConfigMeasurement
@@ -380,7 +387,11 @@ class Analyze:
             or args.sweep_type == "num_dataset_entries"
             or args.sweep_type == "batch_size"
         ):
-            if args.concurrency:
+            if args.session_concurrency:
+                # [TPA-985] Profile export file should have a session concurrency mode
+                infer_mode = "request_rate"
+                load_level = "0.0"
+            elif args.concurrency:
                 infer_mode = "concurrency"
                 load_level = f"{args.concurrency}"
             elif args.request_rate:

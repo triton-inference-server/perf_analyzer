@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -26,7 +26,6 @@
 
 
 import argparse
-import os
 import sys
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -40,12 +39,9 @@ from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-from genai_perf.plots.plot_config_parser import PlotConfigParser
-from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
-from genai_perf.telemetry_data import TelemetryDataCollector
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
@@ -85,6 +81,7 @@ _endpoint_type_map = {
     "completions": EndpointConfig(
         "v1/completions", "openai", ic.OutputFormat.OPENAI_COMPLETIONS
     ),
+    "dynamic_grpc": EndpointConfig(None, "dynamic_grpc", ic.OutputFormat.DYANMIC_GRPC),
     "embeddings": EndpointConfig(
         "v1/embeddings", "openai", ic.OutputFormat.OPENAI_EMBEDDINGS
     ),
@@ -100,10 +97,31 @@ _endpoint_type_map = {
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
     ),
     "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
+    "template": EndpointConfig(None, "triton", ic.OutputFormat.TEMPLATE),
     "tensorrtllm_engine": EndpointConfig(
         None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
     ),
 }
+
+
+def _check_payload_input_args(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
+    """
+    Raise an error if any of the profiling options are set
+    when using payload input
+    """
+    if args.prompt_source == ic.PromptSource.PAYLOAD:
+        incompatible_args = [
+            "concurrency",
+            "request_rate",
+            "request_count",
+            "warmup_request_count",
+        ]
+        for arg in incompatible_args:
+            if getattr(args, arg, None):
+                formatted_arg = f"--{arg.replace('_', '-')}"
+                parser.error((f"--{formatted_arg} cannot be used with payload input."))
 
 
 def _check_model_args(
@@ -173,11 +191,15 @@ def _check_conditional_args(
             parser.error(
                 "The --endpoint-type option is required when using the 'openai' service-kind."
             )
-
-    if args.service_kind == "triton" and args.endpoint_type is None:
+    elif args.service_kind == "dynamic_grpc":
+        args.endpoint_type = "dynamic_grpc"
+        if args.grpc_method is None:
+            parser.error(
+                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind."
+            )
+    elif args.service_kind == "triton" and args.endpoint_type is None:
         args.endpoint_type = "kserve"
-
-    if args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
+    elif args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
         args.endpoint_type = "tensorrtllm_engine"
 
     if args.endpoint_type and args.endpoint_type not in _endpoint_type_map:
@@ -201,9 +223,10 @@ def _check_conditional_args(
         if endpoint_config.endpoint:
             args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
 
-    if args.service_kind == "triton" and args.endpoint_type == "kserve":
+    if args.service_kind == "triton" and args.endpoint_type in ["kserve", "template"]:
         args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
-        args.output_format = args.backend
+        if args.endpoint_type == "kserve":
+            args.output_format = args.backend
     else:
         if args.backend is not ic.DEFAULT_BACKEND:
             parser.error(
@@ -240,6 +263,7 @@ def _check_conditional_args(
         ic.OutputFormat.NVCLIP,
         ic.OutputFormat.OPENAI_EMBEDDINGS,
         ic.OutputFormat.RANKINGS,
+        ic.OutputFormat.TEMPLATE,
     ]:
         if args.generate_plots:
             parser.error(
@@ -253,6 +277,8 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     """
     Check inference load args
     """
+    if args.prompt_source == ic.PromptSource.PAYLOAD or args.session_concurrency:
+        return args
     # If no concurrency or request rate is set, default to 1
     if not args.concurrency and not args.request_rate:
         args.concurrency = 1
@@ -271,6 +297,16 @@ def _check_goodput_args(args):
                     f"Invalid value found, {target_metric}: {target_val}. "
                     f"The goodput constraint value should be non-negative. "
                 )
+    return args
+
+
+def _check_session_args(args):
+
+    if args.num_sessions:
+        if args.session_concurrency is None:
+            raise argparse.ArgumentTypeError(
+                "--session-concurrency must be set when using session-based benchmarking."
+            )
     return args
 
 
@@ -355,8 +391,10 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
     """
     Validates a URL to ensure it meets the following criteria:
     - The scheme must be 'http' or 'https'.
-    - The netloc (domain) must be present.
+    - The netloc (domain) must be present OR the URL must be a valid localhost
+    address.
     - The path must contain '/metrics'.
+    - The port must be specified.
 
     Raises:
         `parser.error()` if the URL is invalid.
@@ -366,17 +404,28 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
     """
     parsed_url = urlparse(url)
 
-    if (
-        parsed_url.scheme not in ["http", "https"]
-        or not parsed_url.netloc
-        or "/metrics" not in parsed_url.path
-        or parsed_url.port is None
-    ):
+    if parsed_url.scheme not in ["http", "https"]:
         parser.error(
-            "The URL passed for --server-metrics-url is invalid. "
-            "It must use 'http' or 'https', have a valid domain and port, "
-            "and contain '/metrics' in the path. The expected structure is: "
-            "<scheme>://<netloc>/<path>;<params>?<query>#<fragment>"
+            f"Invalid scheme '{parsed_url.scheme}' in URL: {url}. Use 'http' "
+            "or 'https'."
+        )
+
+    valid_localhost = parsed_url.hostname in ["localhost", "127.0.0.1"]
+
+    if not parsed_url.netloc and not valid_localhost:
+        parser.error(
+            f"Invalid domain in URL: {url}. Use a valid hostname or " "'localhost'."
+        )
+
+    if "/metrics" not in parsed_url.path:
+        parser.error(
+            f"Invalid URL path '{parsed_url.path}' in {url}. The path must "
+            "include '/metrics'."
+        )
+
+    if parsed_url.port is None:
+        parser.error(
+            f"Port missing in URL: {url}. A port number is required " "(e.g., ':8002')."
         )
 
 
@@ -387,18 +436,27 @@ def _print_warnings(args: argparse.Namespace) -> None:
             "Custom tokenizer code can be executed. "
             "This should only be used with repositories you trust."
         )
+    if (
+        args.prompt_source == ic.PromptSource.PAYLOAD
+        and args.output_tokens_mean != ic.DEFAULT_OUTPUT_TOKENS_MEAN
+    ):
+        logger.warning(
+            "--output-tokens-mean is incompatible with output_length"
+            " in the payload input file. output-tokens-mean"
+            " will be ignored in favour of per payload settings."
+        )
 
 
 def _check_server_metrics_url(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     """
-    Checks if the server metrics URL passed is valid
+    Checks if each server metrics URL passed is valid
     """
 
-    # Check if the URL is valid and contains the expected path
     if args.service_kind == "triton" and args.server_metrics_url:
-        _is_valid_url(parser, args.server_metrics_url)
+        for url in args.server_metrics_url:
+            _is_valid_url(parser, url)
 
     return args
 
@@ -421,7 +479,7 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
         else:
             name = [f"{args.formatted_model_name}"]
 
-        if args.service_kind == "openai":
+        if args.service_kind in ["dynamic_grpc", "openai"]:
             name += [f"{args.service_kind}-{args.endpoint_type}"]
         elif args.service_kind == "triton":
             name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
@@ -465,15 +523,33 @@ def parse_goodput(values):
 
 def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
     args.synthetic_input_files = None
+    args.payload_input_file = None
 
     if args.input_file:
-        if str(args.input_file).startswith("synthetic:"):
+        input_file_str = str(args.input_file)
+        if input_file_str.startswith("synthetic:"):
             args.prompt_source = ic.PromptSource.SYNTHETIC
-            synthetic_input_files_str = str(args.input_file).split(":", 1)[1]
+            synthetic_input_files_str = input_file_str.split(":", 1)[1]
             args.synthetic_input_files = synthetic_input_files_str.split(",")
             logger.debug(
                 f"Input source is synthetic data: {args.synthetic_input_files}"
             )
+
+        elif input_file_str.startswith("payload:"):
+            args.prompt_source = ic.PromptSource.PAYLOAD
+            payload_file = Path(input_file_str.split(":", 1)[1])
+            if not payload_file:
+                raise ValueError("Invalid file path: Path is None or empty.")
+
+            if not payload_file.is_file():
+                raise ValueError(f"File not found: {payload_file}")
+
+            args.payload_input_file = payload_file
+
+            logger.debug(
+                f"Input source is a payload file with timing information in the following path: {args.payload_input_file}"
+            )
+
         else:
             args.prompt_source = ic.PromptSource.FILE
             logger.debug(f"Input source is the following path: {args.input_file}")
@@ -496,7 +572,7 @@ def _convert_str_to_enum_entry(args, option, enum):
 
 
 def file_or_directory(value: str) -> Path:
-    if value.startswith("synthetic:"):
+    if value.startswith("synthetic:") or value.startswith("payload"):
         return Path(value)
     else:
         path = Path(value)
@@ -626,7 +702,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--service-kind",
         type=str,
-        choices=["triton", "openai", "tensorrtllm_engine"],
+        choices=["dynamic_grpc", "openai", "tensorrtllm_engine", "triton"],
         default="triton",
         required=False,
         help="The kind of service perf_analyzer will "
@@ -636,12 +712,15 @@ def _add_endpoint_args(parser):
 
     endpoint_group.add_argument(
         "--server-metrics-url",
+        "--server-metrics-urls",
         type=str,
-        default=None,
+        nargs="+",
+        default=[],
         required=False,
-        help="The full URL to access the server metrics endpoint. "
-        "This argument is required if the metrics are available on "
-        "a different machine than localhost (where GenAI-Perf is running).",
+        help="The list of Triton server metrics URLs. These are used for "
+        "Telemetry metric reporting with the Triton service-kind. Example "
+        "usage: --server-metrics-url http://server1:8002/metrics "
+        "http://server2:8002/metrics",
     )
 
     endpoint_group.add_argument(
@@ -768,12 +847,17 @@ def _add_input_args(parser):
         required=False,
         help="The input file or directory containing the content to use for "
         "profiling. Each line should be a JSON object with a 'text' or "
-        "'image' field 'in JSONL format. Example: {\"text\":"
-        ' "Your prompt here"}\'. To use synthetic files for a converter that '
+        "'image' field in JSONL format. Example: {\"text\": "
+        '"Your prompt here"}. To use synthetic files for a converter that '
         "needs multiple files, prefix the path with 'synthetic:', followed "
         "by a comma-separated list of filenames. The synthetic filenames "
         "should not have extensions. For example, "
-        "'synthetic:queries,passages'. ",
+        "'synthetic:queries,passages'. For payload data, prefix the path with 'payload:', "
+        "followed by a JSON string representing a payload object. The payload should "
+        "contain a 'timestamp' field "
+        "and you can optionally add 'input_length', 'output_length','text_input', 'session_id', 'hash_ids', and 'priority'. "
+        'Example: \'payload:{"timestamp": 123.45, "input_length": 10, "output_length": 12, '
+        '"session_id": 1, "priority": 5, "text_input": "Your prompt here"}\'.',
     )
 
     input_group.add_argument(
@@ -846,6 +930,16 @@ def _add_input_args(parser):
         help="The number of requests to use for measurement."
         "By default, the benchmark does not terminate based on request count. "
         "Instead, it continues until stabilization is detected.",
+    )
+
+    input_group.add_argument(
+        "--grpc-method",
+        type=str,
+        required=False,
+        help="A fully-qualified gRPC method name in "
+        "'<package>.<service>/<method>' format. The option is only "
+        "supported by dynamic gRPC service kind and is required to identify "
+        "the RPC to use when sending requests to the server.",
     )
 
     input_group.add_argument(
@@ -969,6 +1063,57 @@ def _add_profile_args(parser):
     )
 
 
+def _add_session_args(parser):
+    session_group = parser.add_argument_group("Session")
+
+    session_load_management_group = session_group.add_mutually_exclusive_group(
+        required=False
+    )
+
+    session_group.add_argument(
+        "--num-sessions",
+        type=int,
+        default=ic.DEFAULT_NUM_SESSIONS,
+        help="The number of sessions to simulate.",
+    )
+
+    session_load_management_group.add_argument(
+        "--session-concurrency",
+        type=int,
+        required=False,
+        help="The number of concurrent sessions to benchmark.",
+    )
+
+    session_group.add_argument(
+        "--session-turn-delay-mean",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
+        help="The mean delay (in ms) between turns in a session.",
+    )
+
+    session_group.add_argument(
+        "--session-turn-delay-stddev",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
+        help="The standard deviation (in ms) of the delay between turns in "
+        "a session.",
+    )
+
+    session_group.add_argument(
+        "--session-turns-mean",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURNS_MEAN,
+        help="The mean number of turns per session.",
+    )
+
+    session_group.add_argument(
+        "--session-turns-stddev",
+        type=int,
+        default=ic.DEFAULT_SESSION_TURNS_STDDEV,
+        help="The standard deviation of the number of turns per session.",
+    )
+
+
 def _add_tokenizer_args(parser):
     tokenizer_group = parser.add_argument_group("Tokenizer")
 
@@ -1022,6 +1167,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(profile)
     _add_output_args(profile)
     _add_profile_args(profile)
+    _add_session_args(profile)
     _add_tokenizer_args(profile)
     profile.set_defaults(func=profile_handler)
     return profile
@@ -1039,7 +1185,9 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     _add_other_args(analyze)
     _add_output_args(analyze)
     _add_profile_args(analyze)
+    _add_session_args(analyze)
     _add_tokenizer_args(analyze)
+
     analyze.set_defaults(func=analyze_handler)
     return analyze
 
@@ -1087,6 +1235,7 @@ def refine_args(
 ) -> argparse.Namespace:
     if args.subcommand == Subcommand.PROFILE.to_lowercase():
         args = _infer_prompt_source(args)
+        _check_payload_input_args(parser, args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
@@ -1094,6 +1243,7 @@ def refine_args(
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
+        args = _check_session_args(args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
         args = _infer_prompt_source(args)
@@ -1102,6 +1252,7 @@ def refine_args(
         args = _check_image_input_args(parser, args)
         args = _check_server_metrics_url(parser, args)
         args = _check_goodput_args(args)
+        args = _check_session_args(args)
         args = _process_sweep_args(args)
         _print_warnings(args)
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():

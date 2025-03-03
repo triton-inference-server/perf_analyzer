@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@ from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
+from genai_perf.inputs.retrievers.payload_input_retriever import PayloadInputRetriever
 from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
 
 
@@ -43,6 +44,7 @@ class InputRetrieverFactory:
         retrievers = {
             PromptSource.SYNTHETIC: SyntheticDataRetriever,
             PromptSource.FILE: FileInputRetriever,
+            PromptSource.PAYLOAD: PayloadInputRetriever,
         }
         input_type = config.input_type
         if input_type not in retrievers:

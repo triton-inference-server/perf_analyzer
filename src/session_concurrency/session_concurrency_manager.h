@@ -69,7 +69,7 @@ class SessionConcurrencyManager : public LoadManager {
       const std::vector<size_t>& session_payloads,
       std::vector<RequestRecord>& request_records);
 
-  void GetAndWaitForDelayMs(size_t dataset_index) const;
+  void GetAndWaitForDelay(size_t dataset_index) const;
 
   std::vector<RequestRecord> GetRequestRecords() const;
 

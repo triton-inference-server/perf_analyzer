@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -61,22 +61,20 @@ class TensorRTLLMConverter(BaseConverter):
                     "text_input": [text],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],  # default
                 }
-                self._add_request_params(payload, config)
-                request_body["data"].append(payload)
+
+                request_body["data"].append(
+                    self._finalize_payload(payload, config, row, triton_format=True)
+                )
 
         return request_body
 
-    def _add_request_params(self, payload: Dict, config: InputsConfig) -> None:
+    def _add_request_params(
+        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+    ) -> None:
         if config.add_stream:
             payload["stream"] = [True]
-        if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
-            number_of_tokens = int(
-                sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
-                    lower=1,  # output token must be >= 1
-                )
-            )
+        number_of_tokens = self._get_max_tokens(config, optional_data)
+        if number_of_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
             if config.output_tokens_deterministic:
                 payload["min_length"] = [number_of_tokens]
             payload["max_tokens"] = [number_of_tokens]

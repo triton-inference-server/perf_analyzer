@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -38,6 +38,7 @@ class OutputFormatConverterFactory:
     @staticmethod
     def create(output_format: OutputFormat):
         converters = {
+            OutputFormat.DYANMIC_GRPC: DynamicGRPCConverter,
             OutputFormat.IMAGE_RETRIEVAL: ImageRetrievalConverter,
             OutputFormat.NVCLIP: NVClipConverter,
             OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,
@@ -45,6 +46,7 @@ class OutputFormatConverterFactory:
             OutputFormat.OPENAI_EMBEDDINGS: OpenAIEmbeddingsConverter,
             OutputFormat.OPENAI_VISION: OpenAIChatCompletionsConverter,
             OutputFormat.RANKINGS: RankingsConverter,
+            OutputFormat.TEMPLATE: TemplateConverter,
             OutputFormat.TENSORRTLLM: TensorRTLLMConverter,
             OutputFormat.TENSORRTLLM_ENGINE: TensorRTLLMEngineConverter,
             OutputFormat.VLLM: VLLMConverter,

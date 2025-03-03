@@ -34,8 +34,9 @@
 #include <iostream>
 #include <string>
 
+#include "data_loader.h"
+#include "inference_load_mode.h"
 #include "perf_analyzer_exception.h"
-#include "session_concurrency_mode.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -92,10 +93,6 @@ CLParser::FormatMessage(std::string str, int offset) const
 void
 CLParser::Usage(const std::string& msg)
 {
-  if (!msg.empty()) {
-    std::cerr << "Error: " << msg << std::endl;
-  }
-
   std::cerr << "Usage: " << argv_[0] << " [options]" << std::endl;
   std::cerr << "==== SYNOPSIS ====\n \n";
   std::cerr << "\t--version " << std::endl;
@@ -187,6 +184,7 @@ CLParser::Usage(const std::string& msg)
   std::cerr << "\t--streaming" << std::endl;
   std::cerr << "\t--grpc-compression-algorithm <compression_algorithm>"
             << std::endl;
+  std::cerr << "\t--grpc-method" << std::endl;
   std::cerr << "\t--trace-level" << std::endl;
   std::cerr << "\t--trace-rate" << std::endl;
   std::cerr << "\t--trace-count" << std::endl;
@@ -826,6 +824,18 @@ CLParser::Usage(const std::string& msg)
                    "version 3, while modelB's version is unspecified",
                    18)
             << std::endl;
+  std::cerr
+      << FormatMessage(
+             " --grpc-method: A fully-qualified gRPC method name in "
+             "'<package>.<service>/<method>' format. The option is only "
+             "supported by dynamic gRPC service kind and is used to identify "
+             "the RPC to use when sending requests to the server.",
+             18)
+      << std::endl;
+
+  if (!msg.empty()) {
+    std::cerr << "Error: " << msg << std::endl;
+  }
   throw pa::PerfAnalyzerException(GENERIC_ERROR);
 }
 
@@ -927,12 +937,15 @@ CLParser::ParseCommandLine(int argc, char** argv)
       {"endpoint", required_argument, 0, long_option_idx_base + 61},
       {"request-count", required_argument, 0, long_option_idx_base + 62},
       {"warmup-request-count", required_argument, 0, long_option_idx_base + 63},
-      {"schedule", required_argument, 0, long_option_idx_base + 64},
+      {"fixed-schedule", no_argument, 0, long_option_idx_base + 64},
       {"session-concurrency", required_argument, 0, long_option_idx_base + 65},
+      {"grpc-method", required_argument, 0, long_option_idx_base + 66},
       {0, 0, 0, 0}};
 
   // Parse commandline...
+  bool using_deprecated_concurrency{false};
   int opt;
+  opterr = 0;
   while ((opt = getopt_long(
               argc, argv, "vdazc:u:m:x:b:t:p:i:H:l:r:s:f:", long_options,
               NULL)) != -1) {
@@ -968,6 +981,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->percentile = std::atoi(optarg);
           break;
         case long_option_idx_base + 4:
+          std::cerr
+              << "Warning: --data-directory is deprecated and will be removed "
+                 "in an upcoming version. Use --input-data instead."
+              << std::endl;
           params_->user_data.push_back(optarg);
           break;
         case long_option_idx_base + 5: {
@@ -1016,7 +1033,12 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case long_option_idx_base + 7: {
-          params_->using_concurrency_range = true;
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and Concurrency inference load modes.");
+          }
+          params_->inference_load_mode = InferenceLoadMode::Concurrency;
           std::string arg = optarg;
           std::vector<std::string> values{SplitString(arg)};
           if (values.size() > 3) {
@@ -1114,7 +1136,12 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case long_option_idx_base + 16: {
-          params_->using_request_rate_range = true;
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and RequestRate inference load modes.");
+          }
+          params_->inference_load_mode = InferenceLoadMode::RequestRate;
           std::string arg = optarg;
           size_t pos = 0;
           int index = 0;
@@ -1167,10 +1194,15 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case long_option_idx_base + 20: {
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and CustomIntervals inference load modes.");
+          }
+          params_->inference_load_mode = InferenceLoadMode::CustomIntervals;
           std::string request_intervals_file{optarg};
           if (IsFile(request_intervals_file)) {
             params_->request_intervals_file = request_intervals_file;
-            params_->using_custom_intervals = true;
           } else {
             Usage(
                 "Failed to parse --request-intervals. The value must be a "
@@ -1188,8 +1220,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
             params_->shared_memory_type = SharedMemoryType::CUDA_SHARED_MEMORY;
 #else
             Usage(
-                "Cuda shared memory is not supported when "
-                "TRITON_ENABLE_GPU=0.");
+                "CUDA shared memory is not supported when building with `cmake "
+                "-D TRITON_ENABLE_GPU=OFF ...`. Install CUDA runtime library "
+                "(e.g. `apt install nvidia-cuda-toolkit`) then recompile with "
+                "`cmake -D TRITON_ENABLE_GPU=ON ...`.");
 #endif  // TRITON_ENABLE_GPU
           } else if (arg.compare("none") == 0) {
             params_->shared_memory_type = SharedMemoryType::NO_SHARED_MEMORY;
@@ -1225,6 +1259,8 @@ CLParser::ParseCommandLine(int argc, char** argv)
             params_->kind = cb::TRITON_C_API;
           } else if (arg.compare("openai") == 0) {
             params_->kind = cb::OPENAI;
+          } else if (arg.compare("dynamic_grpc") == 0) {
+            params_->kind = cb::DYNAMIC_GRPC;
           } else {
             Usage(
                 "Failed to parse --service-kind. Unsupported type provided: '" +
@@ -1590,7 +1626,12 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case long_option_idx_base + 58: {
-          params_->is_using_periodic_concurrency_mode = true;
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and PeriodicConcurrency inference load modes.");
+          }
+          params_->inference_load_mode = InferenceLoadMode::PeriodicConcurrency;
           std::string arg = optarg;
           std::vector<std::string> values{SplitString(arg)};
           if (values.size() < 2) {
@@ -1648,10 +1689,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
                 "<name:value:type>.");
           }
 
-          std::for_each(values.begin(), values.end(), ToLowerCase);
           std::string name{values[0]};
           std::string value{values[1]};
           std::string type{values[2]};
+          ToLowerCase(type);  // to string-match the type
 
           cb::RequestParameter param;
           param.name = name;
@@ -1683,26 +1724,39 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case long_option_idx_base + 64: {
-          std::vector<float> schedule;
-          std::string arg = optarg;
-          std::vector<std::string> float_strings = SplitString(optarg, ",");
-          for (const std::string& str : float_strings) {
-            schedule.push_back(std::stof(str));
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and FixedSchedule inference load modes.");
           }
-          params_->schedule = schedule;
-          params_->request_count = schedule.size();
-          // TODO: Remove this dependency on request_rate_range
-          params_->using_request_rate_range = true;
+          params_->inference_load_mode = InferenceLoadMode::FixedSchedule;
           break;
         }
         case long_option_idx_base + 65: {
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and SessionConcurrency inference load modes.");
+          }
+          params_->inference_load_mode = InferenceLoadMode::SessionConcurrency;
           params_->session_concurrency = std::stoull(optarg);
           if (params_->session_concurrency == 0) {
             Usage(
                 "Failed to parse --session-concurrency. Session concurrency "
                 "must be > 0.");
           }
-          params_->session_concurrency_mode = SessionConcurrencyMode::Enabled;
+          break;
+        }
+        case long_option_idx_base + 66: {
+          std::string rpc{optarg};
+          std::vector<std::string> components = SplitString(rpc, "/");
+          if (components.size() != 2) {
+            Usage(
+                "Received gRPC method name '" + rpc +
+                "' that does not match the format: "
+                "<package>.<service>/<method>.");
+          }
+          params_->grpc_method = rpc;
           break;
         }
         case 'v':
@@ -1710,11 +1764,21 @@ CLParser::ParseCommandLine(int argc, char** argv)
           params_->verbose = true;
           break;
         case 'z':
+          std::cerr << "Warning: -z is deprecated and will be removed in an "
+                       "upcoming version. Use --input-data=zero instead."
+                    << std::endl;
           params_->zero_input = true;
           break;
         case 'd':
-          params_->using_old_options = true;
-          params_->dynamic_concurrency_mode = true;
+          std::cerr << "Warning: -d is deprecated and will be removed in an "
+                       "upcoming version. Use --concurrency-range instead."
+                    << std::endl;
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and DeprecatedConcurrency inference load modes.");
+          }
+          using_deprecated_concurrency = true;
           break;
         case 'u':
           params_->url_specified = true;
@@ -1737,8 +1801,16 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case 't':
-          params_->using_old_options = true;
-          params_->concurrent_request_count = std::atoi(optarg);
+          std::cerr << "Warning: -t is deprecated and will be removed in an "
+                       "upcoming version. Use --concurrency-range instead."
+                    << std::endl;
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and DeprecatedConcurrency inference load modes.");
+          }
+          using_deprecated_concurrency = true;
+          params_->concurrency_range.start = std::stoull(optarg);
           break;
         case 'i':
           params_->protocol = ParseProtocol(optarg);
@@ -1750,14 +1822,47 @@ CLParser::ParseCommandLine(int argc, char** argv)
           break;
         }
         case 'c':
-          params_->using_old_options = true;
-          params_->max_concurrency = std::atoi(optarg);
+          std::cerr << "Warning: -c is deprecated and will be removed in an "
+                       "upcoming version. Use --concurrency-range instead."
+                    << std::endl;
+          if (params_->inference_load_mode != InferenceLoadMode::None) {
+            Usage(
+                "Cannot use both " + to_string(params_->inference_load_mode) +
+                " and DeprecatedConcurrency inference load modes.");
+          }
+          using_deprecated_concurrency = true;
+          params_->concurrency_range.end = std::stoull(optarg);
           break;
         case 'f':
           params_->filename = optarg;
           break;
         case '?':
-          Usage();
+          std::string last_arg =
+              (optind > 1) ? std::string(argv[optind - 1]) : "";
+
+          bool is_invalid_short_option = optopt && isprint(optopt);
+          bool is_invalid_long_option =
+              last_arg.starts_with("--") && optopt == 0;
+          bool is_missing_value =
+              (optarg == nullptr && optind > 1 && last_arg[0] == '-');
+
+          if (is_invalid_short_option) {
+            char invalid_char = static_cast<char>(optopt);
+            throw PerfAnalyzerException(
+                "Error: Invalid short option '-" +
+                    std::string(1, invalid_char) + "'",
+                GENERIC_ERROR);
+          } else if (is_invalid_long_option) {
+            throw PerfAnalyzerException(
+                "Error: Invalid long option '" + last_arg + "'", GENERIC_ERROR);
+          } else if (is_missing_value) {
+            throw PerfAnalyzerException(
+                "Error: Missing value for option '" + last_arg + "'",
+                GENERIC_ERROR);
+          } else {
+            throw PerfAnalyzerException(
+                "Error: Unknown command-line argument.", GENERIC_ERROR);
+          }
           break;
       }
     }
@@ -1775,6 +1880,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
     }
   }
 
+  if (params_->inference_load_mode == InferenceLoadMode::None ||
+      using_deprecated_concurrency) {
+    params_->inference_load_mode = InferenceLoadMode::Concurrency;
+  }
+
   params_->mpi_driver = std::shared_ptr<triton::perfanalyzer::MPIDriver>{
       std::make_shared<triton::perfanalyzer::MPIDriver>(params_->enable_mpi)};
   params_->mpi_driver->MPIInit(&argc, &argv);
@@ -1788,15 +1898,31 @@ CLParser::ParseCommandLine(int argc, char** argv)
     }
   }
 
-  // Overriding the max_threads default for request_rate search
-  if (!params_->max_threads_specified && params_->targeting_concurrency()) {
+  // Overriding the max_threads default for concurrency mode
+  if (!params_->max_threads_specified &&
+      params_->inference_load_mode == InferenceLoadMode::Concurrency) {
     params_->max_threads =
         std::max(DEFAULT_MAX_THREADS, params_->concurrency_range.end);
   }
 
-  if (params_->using_custom_intervals) {
+  if (params_->inference_load_mode == InferenceLoadMode::CustomIntervals) {
     // Will be using user-provided time intervals, hence no control variable.
     params_->search_mode = SearchMode::NONE;
+  }
+
+  // In fixed schedule mode, the request count is based on the number of
+  // payloads in the user-provided dataset
+  if (params_->inference_load_mode == pa::InferenceLoadMode::FixedSchedule) {
+    for (const auto& input_data_path : params_->user_data) {
+      if (!std::filesystem::is_regular_file(input_data_path)) {
+        throw std::runtime_error(
+            "'" + input_data_path +
+            "' is not a file. When using `--fixed-schedule`, all paths "
+            "passed to --input-data must be files.");
+      }
+    }
+
+    params_->request_count = pa::DataLoader::GetDatasetSize(params_->user_data);
   }
 
   // When the request-count feature is enabled, override the measurement mode to
@@ -1810,11 +1936,11 @@ CLParser::ParseCommandLine(int argc, char** argv)
 void
 CLParser::VerifyOptions()
 {
-  if (params_->model_name.empty()) {
+  if (params_->model_name.empty() &&
+      params_->kind != cb::BackendKind::DYNAMIC_GRPC) {
     Usage("Failed to parse -m (model name). The value must be specified.");
   }
-  if (params_->concurrency_range.start <= 0 ||
-      params_->concurrent_request_count < 0) {
+  if (params_->concurrency_range.start <= 0) {
     Usage("The start of the search range must be > 0");
   }
   if (params_->request_rate_range[SEARCH_RANGE::kSTART] <= 0) {
@@ -1859,53 +1985,26 @@ CLParser::VerifyOptions()
     Usage("Cannot specify --async and --sync simultaneously.");
   }
 
-  if (params_->using_concurrency_range && params_->using_old_options) {
-    Usage("Cannot use deprecated options with --concurrency-range.");
-  } else if (params_->using_old_options) {
-    if (params_->dynamic_concurrency_mode) {
-      params_->concurrency_range.end = params_->max_concurrency;
-    }
-    params_->concurrency_range.start = params_->concurrent_request_count;
+  if (params_->inference_load_mode == InferenceLoadMode::FixedSchedule &&
+      params_->warmup_request_count > 0) {
+    Usage("Cannot use warmup options with --fixed-schedule");
   }
 
-  if (params_->using_request_rate_range && params_->using_old_options) {
-    Usage("Cannot use concurrency options with --request-rate-range.");
-  }
-
-  if (!params_->schedule.empty() && params_->warmup_request_count > 0) {
-    Usage("Cannot use warmup options with --schedule");
-  }
-
-  if (!params_->schedule.empty() && params_->using_concurrency_range) {
-    Usage("Cannot use concurrency options with --schedule");
-  }
-
-  std::vector<bool> load_modes{
-      params_->is_using_periodic_concurrency_mode,
-      params_->using_concurrency_range, params_->using_request_rate_range,
-      params_->using_custom_intervals};
-  if (std::count(load_modes.begin(), load_modes.end(), true) > 1) {
-    Usage(
-        "Cannot specify more then one inference load mode. Please choose only "
-        "one of the following modes: --concurrency-range, "
-        "--periodic-concurrency-range, --request-rate-range, or "
-        "--request-intervals.");
-  }
-
-  if (params_->is_using_periodic_concurrency_mode && !params_->streaming) {
+  if (params_->inference_load_mode == InferenceLoadMode::PeriodicConcurrency &&
+      !params_->streaming) {
     Usage(
         "The --periodic-concurrency-range option requires bi-directional gRPC "
         "streaming.");
   }
 
-  if (params_->is_using_periodic_concurrency_mode &&
+  if (params_->inference_load_mode == InferenceLoadMode::PeriodicConcurrency &&
       (params_->profile_export_file == "")) {
     Usage(
         "Must provide --profile-export-file when using the "
         "--periodic-concurrency-range option.");
   }
 
-  if (params_->is_using_periodic_concurrency_mode) {
+  if (params_->inference_load_mode == InferenceLoadMode::PeriodicConcurrency) {
     if (params_->periodic_concurrency_range.end == pa::NO_LIMIT) {
       std::cerr
           << "WARNING: The maximum attainable concurrency will be limited by "
@@ -1930,24 +2029,15 @@ CLParser::VerifyOptions()
         "protocol.");
   }
 
-  if (params_->using_request_rate_range && params_->mpi_driver->IsMPIRun() &&
+  if (params_->inference_load_mode == InferenceLoadMode::RequestRate &&
+      params_->mpi_driver->IsMPIRun() &&
       (params_->request_rate_range[SEARCH_RANGE::kEND] != 1.0 ||
        params_->request_rate_range[SEARCH_RANGE::kSTEP] != 1.0)) {
     Usage("Cannot specify --request-rate-range when in multi-model mode.");
   }
 
-  if (params_->using_custom_intervals && params_->using_old_options) {
-    Usage("Cannot use deprecated options with --request-intervals.");
-  }
-
-  if ((params_->using_custom_intervals) &&
-      (params_->using_request_rate_range || params_->using_concurrency_range)) {
-    Usage(
-        "Cannot use --concurrency-range or --request-rate-range "
-        "along with --request-intervals.");
-  }
-
-  if (params_->using_concurrency_range && params_->mpi_driver->IsMPIRun() &&
+  if (params_->inference_load_mode == InferenceLoadMode::Concurrency &&
+      params_->mpi_driver->IsMPIRun() &&
       (params_->concurrency_range.end != 1 ||
        params_->concurrency_range.step != 1)) {
     Usage("Cannot specify --concurrency-range when in multi-model mode.");
@@ -1984,14 +2074,14 @@ CLParser::VerifyOptions()
   }
 
   if (params_->warmup_request_count != 0) {
-    if (params_->using_concurrency_range) {
+    if (params_->inference_load_mode == InferenceLoadMode::Concurrency) {
       if (params_->concurrency_range.start < params_->concurrency_range.end) {
         Usage(
             "--warmup-request-count not supported with multiple concurrency "
             "values in one run");
       }
     }
-    if (params_->using_request_rate_range) {
+    if (params_->inference_load_mode == InferenceLoadMode::RequestRate) {
       if (params_->request_rate_range[SEARCH_RANGE::kSTART] <
           params_->request_rate_range[SEARCH_RANGE::kEND]) {
         Usage(
@@ -2002,7 +2092,7 @@ CLParser::VerifyOptions()
   }
 
   if (params_->request_count != 0) {
-    if (params_->using_concurrency_range) {
+    if (params_->inference_load_mode == InferenceLoadMode::Concurrency) {
       if (params_->request_count < params_->concurrency_range.start) {
         Usage("--request-count can not be less than concurrency");
       }
@@ -2012,7 +2102,7 @@ CLParser::VerifyOptions()
             "one run");
       }
     }
-    if (params_->using_request_rate_range) {
+    if (params_->inference_load_mode == InferenceLoadMode::RequestRate) {
       if (params_->request_count <
           static_cast<int>(params_->request_rate_range[0])) {
         Usage("--request-count can not be less than request rate");
@@ -2091,6 +2181,20 @@ CLParser::VerifyOptions()
     }
   }
 
+  // Sanity checks for Dynamic gRPC client backend
+  if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
+    if (params_->async) {
+      Usage(
+          "Dynamic gRPC client only supports synchronous RPCs at the moment.");
+    }
+    if (params_->user_data.empty()) {
+      Usage(
+          "Must supply --input-data to provide input data stream for streaming "
+          "Dynamic gRPC service.");
+    }
+    params_->protocol = cb::ProtocolType::GRPC;
+  }
+
   if (params_->should_collect_metrics &&
       params_->kind != cb::BackendKind::TRITON) {
     Usage(
@@ -2122,7 +2226,12 @@ CLParser::VerifyOptions()
     }
   }
 
-  if (params_->session_concurrency_mode == SessionConcurrencyMode::Enabled &&
+  if (params_->inference_load_mode == InferenceLoadMode::FixedSchedule &&
+      params_->kind != cb::BackendKind::OPENAI) {
+    Usage("Fixed schedule mode is only supported with OpenAI service kind.");
+  }
+
+  if (params_->inference_load_mode == InferenceLoadMode::SessionConcurrency &&
       params_->kind != cb::BackendKind::OPENAI) {
     Usage(
         "Session concurrency mode is only supported with OpenAI service kind.");

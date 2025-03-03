@@ -140,6 +140,9 @@ class DataLoader {
   /// Return an error if the stream index or step index are invalid
   cb::Error ValidateIndexes(int stream_index, int step_index) const;
 
+  static size_t GetDatasetSize(
+      const std::vector<std::string>& input_data_paths);
+
  protected:
   /// Parses the input and output data from the json document
   /// \param inputs The input tensors of a model
@@ -150,6 +153,20 @@ class DataLoader {
       const rapidjson::Document& json,
       const std::shared_ptr<ModelTensorMap>& inputs,
       const std::shared_ptr<ModelTensorMap>& outputs);
+
+  /// Reads the input data stream from the user process through pipe.
+  /// \param command The command to execute and launch a process from which to
+  /// read the data from
+  /// \param key_name The string name to map the data read from pipe
+  /// Returns error object indicating status
+  virtual cb::Error ReadDataFromPipe(
+      const std::string& command, const std::string& key_name);
+
+  /// Helper function to read 4 bytes that represents the size of the data to
+  /// read from the pipe
+  /// \param pipe The stream to read from Returns the message
+  /// size of 4 bytes.
+  uint32_t ReadDataSizeFromPipe(FILE* pipe);
 
  private:
   /// Reads the data from file specified by path into vector of characters

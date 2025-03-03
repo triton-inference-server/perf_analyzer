@@ -1,4 +1,4 @@
-// Copyright 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -32,6 +32,7 @@
 #include <rapidjson/writer.h>
 
 #include "client_backend/client_backend.h"
+#include "profile_data_collector.h"
 
 namespace triton { namespace perfanalyzer {
 
@@ -46,9 +47,9 @@ ProfileDataExporter::Create(std::shared_ptr<ProfileDataExporter>* exporter)
 
 void
 ProfileDataExporter::Export(
-    const std::vector<Experiment>& raw_experiments, std::string& raw_version,
-    std::string& file_path, cb::BackendKind& service_kind,
-    std::string& endpoint)
+    const std::vector<ProfileDataCollector::Experiment>& raw_experiments,
+    std::string& raw_version, std::string& file_path,
+    cb::BackendKind& service_kind, std::string& endpoint)
 {
   ConvertToJson(raw_experiments, raw_version, service_kind, endpoint);
   OutputToFile(file_path);
@@ -56,8 +57,9 @@ ProfileDataExporter::Export(
 
 void
 ProfileDataExporter::ConvertToJson(
-    const std::vector<Experiment>& raw_experiments, std::string& raw_version,
-    cb::BackendKind& service_kind, std::string& endpoint)
+    const std::vector<ProfileDataCollector::Experiment>& raw_experiments,
+    std::string& raw_version, cb::BackendKind& service_kind,
+    std::string& endpoint)
 {
   ClearDocument();
   rapidjson::Value experiments(rapidjson::kArrayType);
@@ -92,7 +94,7 @@ ProfileDataExporter::ClearDocument()
 void
 ProfileDataExporter::AddExperiment(
     rapidjson::Value& entry, rapidjson::Value& experiment,
-    const Experiment& raw_experiment)
+    const ProfileDataCollector::Experiment& raw_experiment)
 {
   rapidjson::Value mode;
   rapidjson::Value value;
@@ -111,7 +113,7 @@ ProfileDataExporter::AddExperiment(
 void
 ProfileDataExporter::AddRequests(
     rapidjson::Value& entry, rapidjson::Value& requests,
-    const Experiment& raw_experiment)
+    const ProfileDataCollector::Experiment& raw_experiment)
 {
   for (auto& raw_request : raw_experiment.requests) {
     rapidjson::Value request(rapidjson::kObjectType);
@@ -286,7 +288,7 @@ ProfileDataExporter::AddResponseOutputs(
 void
 ProfileDataExporter::AddWindowBoundaries(
     rapidjson::Value& entry, rapidjson::Value& window_boundaries,
-    const Experiment& raw_experiment)
+    const ProfileDataCollector::Experiment& raw_experiment)
 {
   for (auto& window : raw_experiment.window_boundaries) {
     rapidjson::Value w;
@@ -319,6 +321,8 @@ ProfileDataExporter::AddServiceKind(cb::BackendKind& kind)
     raw_service_kind = "triton_c_api";
   } else if (kind == cb::BackendKind::OPENAI) {
     raw_service_kind = "openai";
+  } else if (kind == cb::BackendKind::DYNAMIC_GRPC) {
+    raw_service_kind = "dynamic_grpc";
   } else {
     std::cerr << "Unknown service kind detected. The 'service_kind' will not "
                  "be specified."

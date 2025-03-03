@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -56,6 +56,16 @@ def encode_image(img: Image, format: str):
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
+def not_data_sse_field(msg: str) -> bool:
+    # (TODO) TPA-829: Add more proper SSE event stream support
+    # Check for empty, comment, or event SSE response
+    return msg.startswith((":", "event:", "id:", "retry:"))
+
+
+def sse_error_occurred(msg: str) -> bool:
+    return msg.startswith("event:") and "error" in msg.lower()
+
+
 def remove_sse_prefix(msg: str) -> str:
     prefix = "data:"
     if msg.startswith(prefix):
@@ -103,7 +113,7 @@ def convert_option_name(name: str) -> str:
     return name.replace("_", "-")
 
 
-def get_enum_names(enum: Type[Enum]) -> List:
+def get_enum_names(enum: Type[Enum]) -> List[str]:
     names = []
     for e in enum:
         names.append(e.name.lower())
@@ -121,12 +131,20 @@ def scale(value, factor):
     return value * factor
 
 
-def sample_bounded_normal(mean, stddev, lower=float("-inf"), upper=float("inf")):
+def sample_bounded_normal(
+    mean, stddev, lower=float("-inf"), upper=float("inf")
+) -> float:
     """Bound random normal sampling to [lower, upper]. Set the final value to
     the boundary value if the value goes below or above the boundaries.
     """
     n = random.gauss(mean, stddev)
     return min(max(lower, n), upper)
+
+
+def sample_bounded_normal_int(
+    mean, stddev, lower=float("-inf"), upper=float("inf")
+) -> int:
+    return round(sample_bounded_normal(mean, stddev, lower, upper))
 
 
 def is_power_of_two(n: int) -> bool:

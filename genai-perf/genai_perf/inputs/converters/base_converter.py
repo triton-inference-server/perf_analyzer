@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,9 +28,13 @@ import random
 from typing import Any, Dict
 
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import ModelSelectionStrategy
+from genai_perf.inputs.input_constants import (
+    DEFAULT_OUTPUT_TOKENS_MEAN,
+    ModelSelectionStrategy,
+)
 from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
+from genai_perf.utils import sample_bounded_normal
 
 
 class BaseConverter:
@@ -65,8 +69,58 @@ class BaseConverter:
                 f"Model selection strategy '{config.model_selection_strategy}' is unsupported"
             )
 
+    def _get_max_tokens(
+        self, config: InputsConfig, optional_data: Dict[Any, Any]
+    ) -> int:
+        """
+        Return the `max_tokens` value to be added in the payload.
+        If `max_tokens` is present in `optional_data`, that value is used.
+        Otherwise, `max_tokens` is sampled from a bounded normal
+        distribution with a minimum value of 1.
+        """
+        if "max_tokens" in optional_data:
+            return optional_data["max_tokens"]
+        elif config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+            return int(
+                sample_bounded_normal(
+                    mean=config.output_tokens_mean,
+                    stddev=config.output_tokens_stddev,
+                    lower=1,  # output token must be >= 1
+                )
+            )
+        return DEFAULT_OUTPUT_TOKENS_MEAN
+
     def _add_request_params(
-        self, payload: Dict[Any, Any], config: InputsConfig
+        self,
+        payload: Dict[Any, Any],
+        config: InputsConfig,
+        optional_data: Dict[Any, Any],
     ) -> None:
         for key, value in config.extra_inputs.items():
             payload[key] = value
+
+    def _add_payload_optional_data(self, payload: Dict[Any, Any], row: DataRow) -> None:
+        for key, value in row.optional_data.items():
+            payload[key] = value
+
+    def _add_payload_metadata(self, record: Dict[str, Any], row: DataRow) -> None:
+        for key, value in row.payload_metadata.items():
+            record[key] = [value]
+
+    def _finalize_payload(
+        self,
+        payload: Dict[Any, Any],
+        config: InputsConfig,
+        row: DataRow,
+        triton_format=False,
+    ) -> Dict[str, Any]:
+        self._add_request_params(payload, config, row.optional_data)
+        self._add_payload_optional_data(payload, row)
+        record: Dict[str, Any] = {}
+        if not triton_format:
+            record["payload"] = [payload]
+        else:
+            record.update(payload)
+        self._add_payload_metadata(record, row)
+
+        return record

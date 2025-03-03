@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -246,10 +246,9 @@ ReportServerSideStats(
     if (parser->ResponseCacheEnabled()) {
       const uint64_t overhead_avg_us = GetOverheadDuration(
           cumm_avg_us, queue_avg_us, combined_cache_compute_avg_us);
-      std::cout << " (overhead " << overhead_avg_us << " usec + "
-                << "queue " << queue_avg_us << " usec + "
-                << "cache hit/miss " << combined_cache_compute_avg_us
-                << " usec)" << std::endl;
+      std::cout << " (overhead " << overhead_avg_us << " usec + " << "queue "
+                << queue_avg_us << " usec + " << "cache hit/miss "
+                << combined_cache_compute_avg_us << " usec)" << std::endl;
       std::cout << ident << ident
                 << "  Average Cache Hit Latency: " << cache_hit_avg_us
                 << " usec" << std::endl;
@@ -259,7 +258,6 @@ ReportServerSideStats(
                 << "compute input " << compute_input_avg_us << " usec + "
                 << "compute infer " << compute_infer_avg_us << " usec + "
                 << "compute output " << compute_output_avg_us << " usec)"
-                << std::endl
                 << std::endl;
     }
     // Response Cache Disabled
@@ -267,12 +265,10 @@ ReportServerSideStats(
       std::cout << " (overhead "
                 << GetOverheadDuration(
                        cumm_avg_us, queue_avg_us, compute_avg_us)
-                << " usec + "
-                << "queue " << queue_avg_us << " usec + "
+                << " usec + " << "queue " << queue_avg_us << " usec + "
                 << "compute input " << compute_input_avg_us << " usec + "
                 << "compute infer " << compute_infer_avg_us << " usec + "
                 << "compute output " << compute_output_avg_us << " usec)"
-                << std::endl
                 << std::endl;
 
       if (cache_hit_avg_us > 0 || cache_miss_avg_us > 0) {
@@ -293,9 +289,8 @@ ReportServerSideStats(
       // FIXME - Refactor these calculations in case of ensemble top level
       // response cache is enabled
       if (!parser->TopLevelResponseCachingEnabled()) {
-        std::cout << " (overhead " << overhead_avg_us << " usec + "
-                  << "queue " << ensemble_times.total_queue_time_avg_us
-                  << " usec + "
+        std::cout << " (overhead " << overhead_avg_us << " usec + " << "queue "
+                  << ensemble_times.total_queue_time_avg_us << " usec + "
                   << "cache hit/miss "
                   << ensemble_times.total_combined_cache_compute_time_avg_us
                   << " usec)" << std::endl;
@@ -317,9 +312,8 @@ ReportServerSideStats(
                 << GetOverheadDuration(
                        cumm_avg_us, ensemble_times.total_queue_time_avg_us,
                        ensemble_times.total_compute_time_avg_us)
-                << " usec + "
-                << "queue " << ensemble_times.total_queue_time_avg_us
-                << " usec + "
+                << " usec + " << "queue "
+                << ensemble_times.total_queue_time_avg_us << " usec + "
                 << "compute " << ensemble_times.total_compute_time_avg_us
                 << " usec)" << std::endl
                 << std::endl;
@@ -396,9 +390,9 @@ ReportClientSideStats(
   double delay_pct =
       ((double)stats.delayed_request_count / stats.request_count) * 100;
   if (delay_pct > DELAY_PCT_THRESHOLD) {
-    std::cout << "    "
-              << "Avg send request rate: " << std::fixed << std::setprecision(2)
-              << send_request_rate << " infer/sec" << std::endl;
+    std::cout << "    " << "Avg send request rate: " << std::fixed
+              << std::setprecision(2) << send_request_rate << " infer/sec"
+              << std::endl;
     std::cout << "    "
               << "[WARNING] Perf Analyzer was not able to keep up with the "
                  "desired request rate. ";
@@ -417,8 +411,7 @@ ReportClientSideStats(
 
   if (verbose) {
     std::stringstream client_overhead{""};
-    client_overhead << "    "
-                    << "Avg client overhead: " << std::fixed
+    client_overhead << "    " << "Avg client overhead: " << std::fixed
                     << std::setprecision(2) << overhead_pct << "%";
     std::cout << client_overhead.str() << std::endl;
   }
@@ -1420,7 +1413,12 @@ InferenceProfiler::CollectData(
     PerfStatus& summary, uint64_t window_start_ns, uint64_t window_end_ns,
     std::vector<RequestRecord>&& request_records)
 {
-  InferenceLoadMode id{summary.concurrency, summary.request_rate};
+  ProfileDataCollector::InferenceLoadMode id{};
+  if (dynamic_cast<CustomRequestScheduleManager*>(manager_.get())) {
+    id = {0, 0.0};
+  } else {
+    id = {summary.concurrency, summary.request_rate};
+  }
   collector_->AddWindow(id, window_start_ns, window_end_ns);
   collector_->AddData(id, std::move(request_records));
 }
@@ -1633,7 +1631,7 @@ cb::Error
 InferenceProfiler::SetTopLevelResponseCaching(
     bool enable_top_level_response_caching)
 {
-  parser_ = std::make_shared<ModelParser>(cb::BackendKind::TRITON);
+  parser_ = std::make_shared<ModelParser>();
   if (parser_ == nullptr) {
     return cb::Error("Failed to initialize ModelParser");
   }

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@
 import json
 import os
 from enum import Enum
-from typing import Dict, Optional, Union
+from typing import Dict, Union
 
 import genai_perf.logging as logging
 from genai_perf.export_data import telemetry_data_exporter_util as telem_utils
@@ -44,15 +44,18 @@ class JsonExporter:
 
     def __init__(self, config: ExporterConfig):
         self._stats: Dict = config.stats
-        self._telemetry_stats: Optional[
-            Dict[str, Dict[str, Union[str, Dict[str, float]]]]
-        ] = config.telemetry_stats
+        self._telemetry_stats: Dict[str, Dict[str, Union[str, Dict[str, float]]]] = (
+            config.telemetry_stats
+        )
+        self._session_stats: Dict = config.session_stats
         self._args = dict(vars(config.args))
         self._extra_inputs = config.extra_inputs
         self._output_dir = config.artifact_dir
-        self._stats_and_args: Dict = {}
+
+        self._export_data: Dict = {}
         self._prepare_args_for_export()
         self._merge_stats_and_args()
+        self._add_session_stats()
 
     def export(self) -> None:
         prefix = os.path.splitext(os.path.basename(self._args["profile_export_file"]))[
@@ -61,12 +64,21 @@ class JsonExporter:
         filename = self._output_dir / f"{prefix}_genai_perf.json"
         logger.info(f"Generating {filename}")
         with open(str(filename), "w") as f:
-            f.write(json.dumps(self._stats_and_args, indent=2))
+            f.write(json.dumps(self._export_data, indent=2))
+
+    def _exclude_args(self, args_to_exclude) -> None:
+        for arg in args_to_exclude:
+            self._args.pop(arg, None)
 
     def _prepare_args_for_export(self) -> None:
-        self._args.pop("func", None)
-        self._args.pop("output_format", None)
-        self._args.pop("input_file", None)
+        args_to_exclude = [
+            "func",
+            "output_format",
+            "input_file",
+            "payload_input_file",
+            "grpc_method",
+        ]
+        self._exclude_args(args_to_exclude)
         self._args["profile_export_file"] = str(self._args["profile_export_file"])
         self._args["artifact_dir"] = str(self._args["artifact_dir"])
         for k, v in self._args.items():
@@ -79,8 +91,10 @@ class JsonExporter:
         self._args.update({"extra_inputs": self._extra_inputs})
 
     def _merge_stats_and_args(self) -> None:
-        self._stats_and_args = dict(self._stats)
-        telem_utils.merge_telemetry_stats_json(
-            self._telemetry_stats, self._stats_and_args
-        )
-        self._stats_and_args.update({"input_config": self._args})
+        self._export_data = dict(self._stats)
+        telem_utils.merge_telemetry_stats_json(self._telemetry_stats, self._export_data)
+        self._export_data.update({"input_config": self._args})
+
+    def _add_session_stats(self) -> None:
+        if self._session_stats:
+            self._export_data.update({"sessions": self._session_stats})

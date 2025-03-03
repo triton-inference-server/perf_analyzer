@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,13 +24,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import subprocess
-from unittest.mock import MagicMock, patch
+from pathlib import Path
 
 import pytest
 from genai_perf import parser
 from genai_perf.constants import DEFAULT_GRPC_URL
-from genai_perf.subcommand.common import run_perf_analyzer
 from genai_perf.wrapper import Profiler
 
 
@@ -83,8 +81,6 @@ class TestWrapper:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "triton",
         ] + arg
         monkeypatch.setattr("sys.argv", args)
         args, extra_args = parser.parse_args()
@@ -93,6 +89,26 @@ class TestWrapper:
 
         expected_pattern = f"--profile-export-file {expected_filepath}"
         assert expected_pattern in cmd_string
+
+    def test_service_dynamic_grpc(self, monkeypatch):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--service-kind",
+            "dynamic_grpc",
+            "--grpc-method",
+            "package.name.v1.ServiceName/MethodName",
+        ]
+        monkeypatch.setattr("sys.argv", args)
+        args, extra_args = parser.parse_args()
+        cmd = Profiler.build_cmd(args, extra_args)
+        cmd_string = " ".join(cmd)
+
+        assert "--grpc-method" in cmd_string
+        assert "--async" not in cmd_string
+        assert "-m test_model" not in cmd_string
 
     @pytest.mark.parametrize(
         "arg",
@@ -147,46 +163,6 @@ class TestWrapper:
         # Ensure the correct arguments are appended.
         assert cmd_string.count(" -i http") == 1
 
-    @patch("genai_perf.subcommand.common.subprocess.run")
-    @patch("genai_perf.wrapper.TelemetryDataCollector")
-    def test_stdout_verbose(self, mock_telemetry_collector, mock_subprocess_run):
-        args = MagicMock()
-        args.model = "test_model"
-        args.verbose = True
-        telemetry_data_collector = mock_telemetry_collector.return_value
-        run_perf_analyzer(
-            args=args,
-            extra_args=None,
-            telemetry_data_collector=telemetry_data_collector,
-        )
-
-        # Check that standard output was not redirected.
-        for call_args in mock_subprocess_run.call_args_list:
-            _, kwargs = call_args
-            assert (
-                "stdout" not in kwargs or kwargs["stdout"] is None
-            ), "With the verbose flag, stdout should not be redirected."
-
-    @patch("genai_perf.subcommand.common.subprocess.run")
-    @patch("genai_perf.wrapper.TelemetryDataCollector")
-    def test_stdout_not_verbose(self, mock_telemetry_collector, mock_subprocess_run):
-        args = MagicMock()
-        args.model = "test_model"
-        args.verbose = False
-        telemetry_data_collector = mock_telemetry_collector.return_value
-        run_perf_analyzer(
-            args=args,
-            extra_args=None,
-            telemetry_data_collector=telemetry_data_collector,
-        )
-
-        # Check that standard output was redirected.
-        for call_args in mock_subprocess_run.call_args_list:
-            _, kwargs = call_args
-            assert (
-                kwargs["stdout"] is subprocess.DEVNULL
-            ), "When the verbose flag is not passed, stdout should be redirected to /dev/null."
-
     @pytest.mark.parametrize(
         "header_values, expected_headers",
         [
@@ -229,3 +205,47 @@ class TestWrapper:
                 assert (
                     False
                 ), f"Missing expected header flag: {expected_flag} or value: {expected_value}"
+
+    def test_payload_args_in_cmd(self, monkeypatch, mocker):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:input.jsonl",
+        ]
+        mocker.patch.object(Path, "is_file", return_value=True)
+        mocker.patch("genai_perf.utils.remove_file")
+        monkeypatch.setattr("sys.argv", args)
+        args, extra_args = parser.parse_args()
+        cmd = Profiler.build_cmd(args, extra_args)
+        cmd_string = " ".join(cmd)
+
+        assert "--fixed-schedule" in cmd_string
+
+    def test_payload_skipped_args_not_in_cmd(self, monkeypatch, mocker):
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:input.jsonl",
+        ]
+
+        mocker.patch.object(Path, "is_file", return_value=True)
+        mocker.patch("genai_perf.utils.remove_file")
+        monkeypatch.setattr("sys.argv", args)
+        args, extra_args = parser.parse_args()
+
+        cmd = Profiler.build_cmd(args, extra_args)
+        cmd_string = " ".join(cmd)
+
+        for skipped_arg in [
+            "--stability-percentage",
+            "--warmup-request-count",
+            "--request-count",
+            "--measurement-interval",
+        ]:
+            assert skipped_arg not in cmd_string

@@ -1,4 +1,4 @@
-// Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -24,6 +24,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <chrono>
 #include <vector>
 
 #include "command_line_parser.h"
@@ -37,82 +38,81 @@ namespace triton::perfanalyzer {
 class TestCustomRequestScheduleManager : public TestLoadManagerBase,
                                          public CustomRequestScheduleManager {
  public:
-  TestCustomRequestScheduleManager(
-      PerfAnalyzerParameters params, bool is_sequence_model = false,
-      bool is_decoupled_model = false, bool use_mock_infer = false)
-      : use_mock_infer_(use_mock_infer),
-        TestLoadManagerBase(params, is_sequence_model, is_decoupled_model),
-        CustomRequestScheduleManager(params, GetParser(), GetFactory()),
-        schedule_(params.schedule)
+  TestCustomRequestScheduleManager(PerfAnalyzerParameters params)
+      : TestLoadManagerBase(params, false, false),
+        CustomRequestScheduleManager(params, GetParser(), GetFactory())
   {
   }
 
-  void TestSchedule(PerfAnalyzerParameters params)
+  void TestSchedule(const std::vector<std::chrono::milliseconds> schedule)
   {
+    schedule_ = schedule;
     int request_count = schedule_.size();
     PauseWorkers();
     ConfigureThreads(request_count);
     GenerateSchedule();
 
-    std::vector<std::chrono::nanoseconds> expected_timestamps;
-    std::chrono::nanoseconds timestamp(0);
+    std::vector<std::chrono::nanoseconds> expected_timestamps{};
 
-    for (float schedule_value : schedule_) {
-      timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::duration<float>(schedule_value));
-
+    for (const auto& timestamp_ms : schedule_) {
+      const auto timestamp{
+          std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp_ms)};
       expected_timestamps.push_back(timestamp);
     }
 
-    size_t request_index = 0;
-    for (auto worker : workers_) {
-      auto timestamp = std::dynamic_pointer_cast<RequestRateWorker>(worker)
-                           ->GetNextTimestamp();
-      REQUIRE(timestamp.count() == expected_timestamps[request_index].count());
-      request_index++;
-    }
-  }
+    std::vector<std::chrono::nanoseconds> actual_timestamps{};
 
- private:
-  bool use_mock_infer_;
-  std::vector<float> schedule_;
+    for (const auto& iworker : workers_) {
+      const auto worker{std::dynamic_pointer_cast<RequestRateWorker>(iworker)};
+      for (size_t i{0}; i < worker->schedule_->intervals.size(); ++i) {
+        const auto timestamp{worker->GetNextTimestamp()};
+        actual_timestamps.push_back(timestamp);
+      }
+    }
+
+    std::sort(actual_timestamps.begin(), actual_timestamps.end());
+
+    CHECK(expected_timestamps == actual_timestamps);
+  }
 };
 
 TEST_CASE("custom_request_schedule")
 {
-  PerfAnalyzerParameters params;
-  params.max_trials = 10;
-  bool is_sequence = false;
-  bool is_decoupled = false;
-  bool use_mock_infer = true;
+  PerfAnalyzerParameters params{};
+
+  std::vector<std::chrono::milliseconds> schedule{};
 
   const auto& ParameterizeSchedule{[&]() {
+    using std::literals::chrono_literals::operator""ms;
+
     SUBCASE("schedule A")
     {
-      params.schedule = {1.0, 2.0, 3.0, 4.0, 5.0};
+      schedule = {1000ms, 2000ms, 3000ms, 4000ms, 5000ms};
     }
     SUBCASE("schedule B")
     {
-      params.schedule = {0.5, 2.0, 3.5};
+      schedule = {500ms, 2000ms, 3500ms};
     }
     SUBCASE("schedule C")
     {
-      params.schedule = {0.1, 0.3, 0.8, 1.5};
+      schedule = {100ms, 300ms, 800ms, 1500ms};
     }
     SUBCASE("schedule D")
     {
-      params.schedule = {0.0, 5.0, 10.0};
+      schedule = {0ms, 5000ms, 10000ms};
     }
     SUBCASE("schedule E")
     {
-      params.schedule = {1.0};
+      schedule = {1000ms};
     }
   }};
 
   ParameterizeSchedule();
-  TestCustomRequestScheduleManager tcrsm(
-      params, is_sequence, is_decoupled, use_mock_infer);
 
-  tcrsm.TestSchedule(params);
+  params.request_count = schedule.size();
+
+  TestCustomRequestScheduleManager tcrsm(params);
+
+  tcrsm.TestSchedule(schedule);
 }
 }  // namespace triton::perfanalyzer

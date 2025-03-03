@@ -27,12 +27,12 @@
 #include "perf_analyzer.h"
 
 #include "custom_request_schedule_manager.h"
+#include "inference_load_mode.h"
 #include "perf_analyzer_exception.h"
 #include "periodic_concurrency_manager.h"
 #include "report_writer.h"
 #include "request_rate_manager.h"
 #include "session_concurrency/session_concurrency_manager.h"
-#include "session_concurrency_mode.h"
 
 namespace pa = triton::perfanalyzer;
 
@@ -86,14 +86,14 @@ PerfAnalyzer::CreateAnalyzerObjects()
           params_->triton_server_path, params_->model_repository_path,
           params_->extra_verbose, params_->metrics_url,
           params_->input_tensor_format, params_->output_tensor_format,
-          &factory),
+          params_->grpc_method, &factory),
       "failed to create client factory");
 
   FAIL_IF_ERR(
       factory->CreateClientBackend(&backend_),
       "failed to create triton client backend");
 
-  parser_ = std::make_shared<pa::ModelParser>(params_->kind);
+  parser_ = std::make_shared<pa::ModelParser>();
   if (params_->kind == cb::BackendKind::TRITON ||
       params_->kind == cb::BackendKind::TRITON_C_API) {
     rapidjson::Document model_metadata;
@@ -112,11 +112,16 @@ PerfAnalyzer::CreateAnalyzerObjects()
             model_metadata, model_config, params_->model_version,
             params_->bls_composing_models, params_->input_shapes, backend_),
         "failed to create model parser");
+  } else if (params_->kind == cb::BackendKind::DYNAMIC_GRPC) {
+    FAIL_IF_ERR(
+        parser_->InitDynamicGrpc(
+            params_->model_name, params_->model_version, params_->batch_size),
+        "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::OPENAI) {
     FAIL_IF_ERR(
         parser_->InitOpenAI(
             params_->model_name, params_->model_version, params_->batch_size,
-            params_->session_concurrency_mode),
+            params_->inference_load_mode),
         "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
     rapidjson::Document model_metadata;
@@ -161,7 +166,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
     }
   }
 
-  if (params_->streaming) {
+  if (params_->streaming && params_->kind != cb::BackendKind::DYNAMIC_GRPC) {
     if (params_->forced_sync) {
       std::cerr << "can not use streaming with synchronous API" << std::endl;
       throw pa::PerfAnalyzerException(pa::GENERIC_ERROR);
@@ -176,8 +181,11 @@ PerfAnalyzer::CreateAnalyzerObjects()
         "either `-i grpc` or `--service-kind=triton_c_api`");
   }
 
+  const uint64_t max_concurrency{std::max(
+      params_->concurrency_range.start, params_->concurrency_range.end)};
+
   std::unique_ptr<pa::LoadManager> manager;
-  if (params_->targeting_concurrency()) {
+  if (params_->inference_load_mode == pa::InferenceLoadMode::Concurrency) {
     if ((parser_->SchedulerType() == pa::ModelParser::SEQUENCE) ||
         (parser_->SchedulerType() == pa::ModelParser::ENSEMBLE_SEQUENCE)) {
       if (params_->concurrency_range.end == pa::NO_LIMIT && params_->async) {
@@ -187,8 +195,6 @@ PerfAnalyzer::CreateAnalyzerObjects()
         throw pa::PerfAnalyzerException(pa::GENERIC_ERROR);
       }
     }
-    params_->max_concurrency = std::max(
-        params_->concurrency_range.start, params_->concurrency_range.end);
 
     if (!params_->async) {
       if (params_->concurrency_range.end == pa::NO_LIMIT) {
@@ -212,7 +218,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
       }
     }
     if ((params_->sequence_id_range != 0) &&
-        (params_->sequence_id_range < params_->max_concurrency)) {
+        (params_->sequence_id_range < max_concurrency)) {
       std::cerr << "sequence id range specified is smaller than the "
                 << "maximum possible concurrency, sequence id collision may "
                 << "occur." << std::endl;
@@ -221,19 +227,13 @@ PerfAnalyzer::CreateAnalyzerObjects()
     FAIL_IF_ERR(
         pa::ConcurrencyManager::Create(
             params_->async, params_->streaming, params_->batch_size,
-            params_->max_threads, params_->max_concurrency,
-            params_->shared_memory_type, params_->output_shm_size, parser_,
-            factory, &manager, params_->request_parameters),
+            params_->max_threads, max_concurrency, params_->shared_memory_type,
+            params_->output_shm_size, parser_, factory, &manager,
+            params_->request_parameters),
         "failed to create concurrency manager");
-
-  } else if (params_->is_using_periodic_concurrency_mode) {
-    manager = std::make_unique<pa::PeriodicConcurrencyManager>(
-        params_->async, params_->streaming, params_->batch_size,
-        params_->max_threads, params_->max_concurrency,
-        params_->shared_memory_type, params_->output_shm_size, parser_, factory,
-        params_->periodic_concurrency_range, params_->request_period,
-        params_->request_parameters);
-  } else if (params_->using_request_rate_range) {
+  } else if (
+      params_->inference_load_mode == pa::InferenceLoadMode::RequestRate ||
+      params_->inference_load_mode == pa::InferenceLoadMode::FixedSchedule) {
     if ((params_->sequence_id_range != 0) &&
         (params_->sequence_id_range < params_->num_of_sequences)) {
       std::cerr
@@ -242,7 +242,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
           << "may occur." << std::endl;
       throw pa::PerfAnalyzerException(pa::GENERIC_ERROR);
     }
-    if (!params_->schedule.empty()) {
+    if (params_->inference_load_mode == pa::InferenceLoadMode::FixedSchedule) {
       FAIL_IF_ERR(
           pa::CustomRequestScheduleManager::Create(
               *params_, parser_, factory, &manager),
@@ -259,16 +259,8 @@ PerfAnalyzer::CreateAnalyzerObjects()
               params_->request_parameters),
           "failed to create request rate manager");
     }
-
   } else if (
-      params_->session_concurrency_mode ==
-      pa::SessionConcurrencyMode::Enabled) {
-    manager = std::make_unique<pa::SessionConcurrencyManager>(
-        params_->async, params_->streaming, params_->batch_size,
-        params_->max_threads, params_->shared_memory_type,
-        params_->output_shm_size, parser_, factory, params_->request_parameters,
-        params_->session_concurrency);
-  } else {
+      params_->inference_load_mode == pa::InferenceLoadMode::CustomIntervals) {
     if ((params_->sequence_id_range != 0) &&
         (params_->sequence_id_range < params_->num_of_sequences)) {
       std::cerr
@@ -286,6 +278,23 @@ PerfAnalyzer::CreateAnalyzerObjects()
             params_->output_shm_size, params_->serial_sequences, parser_,
             factory, &manager, params_->request_parameters),
         "failed to create custom load manager");
+  } else if (
+      params_->inference_load_mode ==
+      pa::InferenceLoadMode::PeriodicConcurrency) {
+    manager = std::make_unique<pa::PeriodicConcurrencyManager>(
+        params_->async, params_->streaming, params_->batch_size,
+        params_->max_threads, max_concurrency, params_->shared_memory_type,
+        params_->output_shm_size, parser_, factory,
+        params_->periodic_concurrency_range, params_->request_period,
+        params_->request_parameters);
+  } else if (
+      params_->inference_load_mode ==
+      pa::InferenceLoadMode::SessionConcurrency) {
+    manager = std::make_unique<pa::SessionConcurrencyManager>(
+        params_->async, params_->streaming, params_->batch_size,
+        params_->max_threads, params_->shared_memory_type,
+        params_->output_shm_size, parser_, factory, params_->request_parameters,
+        params_->session_concurrency);
   }
 
   manager->InitManager(
@@ -389,7 +398,7 @@ PerfAnalyzer::PrerunReport()
                 << " requests per seconds" << std::endl;
     }
   }
-  if (params_->using_request_rate_range) {
+  if (params_->inference_load_mode == pa::InferenceLoadMode::RequestRate) {
     if (params_->request_distribution == pa::Distribution::POISSON) {
       std::cout << "  Using poisson distribution on request generation"
                 << std::endl;
@@ -421,24 +430,29 @@ PerfAnalyzer::Profile()
   params_->mpi_driver->MPIBarrierWorld();
 
   cb::Error err;
-  if (params_->targeting_concurrency()) {
+  if (params_->inference_load_mode == pa::InferenceLoadMode::Concurrency) {
     err = profiler_->Profile<size_t>(
         params_->concurrency_range.start, params_->concurrency_range.end,
         params_->concurrency_range.step, params_->search_mode,
         params_->warmup_request_count, params_->request_count, perf_statuses_);
-  } else if (params_->is_using_periodic_concurrency_mode) {
-    err = profiler_->ProfilePeriodicConcurrencyMode();
   } else if (
-      params_->session_concurrency_mode ==
-      pa::SessionConcurrencyMode::Enabled) {
-    err = profiler_->BenchmarkSessionConcurrencyMode();
-  } else {
+      params_->inference_load_mode == pa::InferenceLoadMode::RequestRate ||
+      params_->inference_load_mode == pa::InferenceLoadMode::CustomIntervals ||
+      params_->inference_load_mode == pa::InferenceLoadMode::FixedSchedule) {
     err = profiler_->Profile<double>(
         params_->request_rate_range[pa::SEARCH_RANGE::kSTART],
         params_->request_rate_range[pa::SEARCH_RANGE::kEND],
         params_->request_rate_range[pa::SEARCH_RANGE::kSTEP],
         params_->search_mode, params_->warmup_request_count,
         params_->request_count, perf_statuses_);
+  } else if (
+      params_->inference_load_mode ==
+      pa::InferenceLoadMode::PeriodicConcurrency) {
+    err = profiler_->BenchmarkPeriodicConcurrencyMode();
+  } else if (
+      params_->inference_load_mode ==
+      pa::InferenceLoadMode::SessionConcurrency) {
+    err = profiler_->BenchmarkSessionConcurrencyMode();
   }
 
   params_->mpi_driver->MPIBarrierWorld();
@@ -456,7 +470,9 @@ PerfAnalyzer::Profile()
 void
 PerfAnalyzer::WriteReport()
 {
-  if (!perf_statuses_.size() || params_->is_using_periodic_concurrency_mode) {
+  if (!perf_statuses_.size() ||
+      params_->inference_load_mode ==
+          pa::InferenceLoadMode::PeriodicConcurrency) {
     return;
   }
 
@@ -469,7 +485,7 @@ PerfAnalyzer::WriteReport()
   }
 
   for (pa::PerfStatus& status : perf_statuses_) {
-    if (params_->targeting_concurrency()) {
+    if (params_->inference_load_mode == pa::InferenceLoadMode::Concurrency) {
       std::cout << "Concurrency: " << status.concurrency << ", ";
     } else {
       std::cout << "Request Rate: " << status.request_rate << ", ";
@@ -486,8 +502,9 @@ PerfAnalyzer::WriteReport()
 
   FAIL_IF_ERR(
       pa::ReportWriter::Create(
-          params_->filename, params_->targeting_concurrency(), perf_statuses_,
-          params_->verbose_csv, profiler_->IncludeServerStats(),
+          params_->filename,
+          params_->inference_load_mode == pa::InferenceLoadMode::Concurrency,
+          perf_statuses_, params_->verbose_csv, profiler_->IncludeServerStats(),
           params_->percentile, parser_, &writer, should_output_metrics),
       "failed to create report writer");
 
