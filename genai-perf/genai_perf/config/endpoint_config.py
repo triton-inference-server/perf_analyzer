@@ -24,42 +24,44 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
-    SyntheticPromptGenerator,
-)
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from dataclasses import dataclass
+from typing import Optional
+
+from genai_perf.inputs.input_constants import OutputFormat
 
 
-class TestSyntheticPromptGenerator:
+@dataclass
+class EndpointConfig:
+    endpoint: Optional[str]
+    service_kind: str
+    output_format: OutputFormat
 
-    def test_synthetic_prompt_default(self):
-        config = ConfigCommand({})
-        config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        _ = SyntheticPromptGenerator.create_synthetic_prompt(tokenizer)
 
-    def test_synthetic_prompt_zero_token(self):
-        config = ConfigCommand({})
-        config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-            tokenizer=tokenizer,
-            prompt_tokens_mean=0,
-            prompt_tokens_stddev=0,
-        )
-
-        assert prompt == ""
-        assert len(tokenizer.encode(prompt)) == 0
-
-    def test_synthetic_prompt_nonzero_tokens(self):
-        config = ConfigCommand({})
-        config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-            tokenizer=tokenizer,
-            prompt_tokens_mean=123,
-            prompt_tokens_stddev=0,
-        )
-
-        assert len(tokenizer.encode(prompt)) == 123
+endpoint_type_map = {
+    "chat": EndpointConfig(
+        "v1/chat/completions", "openai", OutputFormat.OPENAI_CHAT_COMPLETIONS
+    ),
+    "completions": EndpointConfig(
+        "v1/completions", "openai", OutputFormat.OPENAI_COMPLETIONS
+    ),
+    "dynamic_grpc": EndpointConfig(None, "dynamic_grpc", OutputFormat.DYANMIC_GRPC),
+    "embeddings": EndpointConfig(
+        "v1/embeddings", "openai", OutputFormat.OPENAI_EMBEDDINGS
+    ),
+    "image_retrieval": EndpointConfig(
+        "v1/infer", "openai", OutputFormat.IMAGE_RETRIEVAL
+    ),
+    "nvclip": EndpointConfig("v1/embeddings", "openai", OutputFormat.NVCLIP),
+    "rankings": EndpointConfig("v1/ranking", "openai", OutputFormat.RANKINGS),
+    "vision": EndpointConfig(
+        "v1/chat/completions", "openai", OutputFormat.OPENAI_VISION
+    ),
+    "generate": EndpointConfig(
+        "v2/models/{MODEL_NAME}/generate", "triton", OutputFormat.TRITON_GENERATE
+    ),
+    "kserve": EndpointConfig(None, "triton", OutputFormat.TENSORRTLLM),
+    "template": EndpointConfig(None, "triton", OutputFormat.TEMPLATE),
+    "tensorrtllm_engine": EndpointConfig(
+        None, "tensorrtllm_engine", OutputFormat.TENSORRTLLM_ENGINE
+    ),
+}

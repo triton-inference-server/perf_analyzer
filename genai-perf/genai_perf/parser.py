@@ -30,18 +30,28 @@ import sys
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
-from genai_perf.config.input.config_command import RunConfigDefaults
+from genai_perf.config.endpoint_config import endpoint_type_map
+from genai_perf.config.input.config_command import ConfigCommand, Subcommand
+from genai_perf.config.input.config_defaults import (
+    AnalyzeDefaults,
+    EndPointDefaults,
+    PerfAnalyzerDefaults,
+    TemplateDefaults,
+)
+from genai_perf.config.input.config_field import ConfigField
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 from genai_perf.subcommand.analyze import analyze_handler
+from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
+from genai_perf.subcommand.template import template_handler
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
@@ -51,57 +61,8 @@ class PathType(Enum):
     FILE = auto()
     DIRECTORY = auto()
 
-    def to_lowercase(self):
-        return self.name.lower()
-
-
-class Subcommand(Enum):
-    PROFILE = auto()
-    COMPARE = auto()
-    ANALYZE = auto()
-
-    def to_lowercase(self):
-        return self.name.lower()
-
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class EndpointConfig:
-    endpoint: Optional[str]
-    service_kind: str
-    output_format: ic.OutputFormat
-
-
-_endpoint_type_map = {
-    "chat": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_CHAT_COMPLETIONS
-    ),
-    "completions": EndpointConfig(
-        "v1/completions", "openai", ic.OutputFormat.OPENAI_COMPLETIONS
-    ),
-    "dynamic_grpc": EndpointConfig(None, "dynamic_grpc", ic.OutputFormat.DYANMIC_GRPC),
-    "embeddings": EndpointConfig(
-        "v1/embeddings", "openai", ic.OutputFormat.OPENAI_EMBEDDINGS
-    ),
-    "image_retrieval": EndpointConfig(
-        "v1/infer", "openai", ic.OutputFormat.IMAGE_RETRIEVAL
-    ),
-    "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
-    "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    "vision": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
-    ),
-    "generate": EndpointConfig(
-        "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
-    ),
-    "kserve": EndpointConfig(None, "triton", ic.OutputFormat.TENSORRTLLM),
-    "template": EndpointConfig(None, "triton", ic.OutputFormat.TEMPLATE),
-    "tensorrtllm_engine": EndpointConfig(
-        None, "tensorrtllm_engine", ic.OutputFormat.TENSORRTLLM_ENGINE
-    ),
-}
 
 
 def _check_payload_input_args(
@@ -202,10 +163,10 @@ def _check_conditional_args(
     elif args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
         args.endpoint_type = "tensorrtllm_engine"
 
-    if args.endpoint_type and args.endpoint_type not in _endpoint_type_map:
+    if args.endpoint_type and args.endpoint_type not in endpoint_type_map:
         parser.error(f"Invalid endpoint type {args.endpoint_type}")
 
-    endpoint_config = _endpoint_type_map[args.endpoint_type]
+    endpoint_config = endpoint_type_map[args.endpoint_type]
     args.output_format = endpoint_config.output_format
 
     if endpoint_config.service_kind != args.service_kind:
@@ -223,12 +184,12 @@ def _check_conditional_args(
         if endpoint_config.endpoint:
             args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
 
+    args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
     if args.service_kind == "triton" and args.endpoint_type in ["kserve", "template"]:
-        args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
         if args.endpoint_type == "kserve":
             args.output_format = args.backend
     else:
-        if args.backend is not ic.DEFAULT_BACKEND:
+        if args.backend is not EndPointDefaults.BACKEND:
             parser.error(
                 "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type."
             )
@@ -461,49 +422,6 @@ def _check_server_metrics_url(
     return args
 
 
-def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
-    """
-    Set paths for all the artifacts.
-    """
-    if args.artifact_dir == Path(DEFAULT_ARTIFACT_DIR):
-        # Preprocess Huggingface model names that include '/' in their model name.
-        if (args.formatted_model_name is not None) and (
-            "/" in args.formatted_model_name
-        ):
-            filtered_name = "_".join(args.formatted_model_name.split("/"))
-            logger.info(
-                f"Model name '{args.formatted_model_name}' cannot be used to create artifact "
-                f"directory. Instead, '{filtered_name}' will be used."
-            )
-            name = [f"{filtered_name}"]
-        else:
-            name = [f"{args.formatted_model_name}"]
-
-        if args.service_kind in ["dynamic_grpc", "openai"]:
-            name += [f"{args.service_kind}-{args.endpoint_type}"]
-        elif args.service_kind == "triton":
-            name += [f"{args.service_kind}-{args.backend.to_lowercase()}"]
-        elif args.service_kind == "tensorrtllm_engine":
-            name += [f"{args.service_kind}"]
-        else:
-            raise ValueError(f"Unknown service kind '{args.service_kind}'.")
-
-        if args.concurrency:
-            name += [f"concurrency{args.concurrency}"]
-        elif args.request_rate:
-            name += [f"request_rate{args.request_rate}"]
-        args.artifact_dir = args.artifact_dir / Path("-".join(name))
-
-    if args.profile_export_file.parent != Path(""):
-        raise ValueError(
-            "Please use --artifact-dir option to define intermediary paths to "
-            "the profile export file."
-        )
-
-    args.profile_export_file = args.artifact_dir / args.profile_export_file
-    return args
-
-
 def parse_goodput(values):
     constraints = {}
     try:
@@ -601,7 +519,7 @@ def _add_analyze_args(parser):
     analyze_group.add_argument(
         "--sweep-type",
         type=str,
-        default=RunConfigDefaults.STIMULUS_TYPE,
+        default=AnalyzeDefaults.STIMULUS_TYPE,
         choices=[
             "batch_size",
             "concurrency",
@@ -615,7 +533,7 @@ def _add_analyze_args(parser):
     analyze_group.add_argument(
         "--sweep-range",
         type=str,
-        default=f"{RunConfigDefaults.MIN_CONCURRENCY}:{RunConfigDefaults.MAX_CONCURRENCY}",
+        default=f"{AnalyzeDefaults.MIN_CONCURRENCY}:{AnalyzeDefaults.MAX_CONCURRENCY}",
         required=False,
         help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
     )
@@ -694,7 +612,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--endpoint-type",
         type=str,
-        choices=list(_endpoint_type_map.keys()),
+        choices=list(endpoint_type_map.keys()),
         required=False,
         help=f"The endpoint-type to send requests to on the " "server.",
     )
@@ -1145,9 +1063,19 @@ def _add_tokenizer_args(parser):
     )
 
 
+def _parse_template_args(subparsers) -> argparse.ArgumentParser:
+    template = subparsers.add_parser(
+        Subcommand.TEMPLATE.value,
+        description="Subcommand to generate a template YAML file for profiling.",
+    )
+    _add_other_args(template)
+    template.set_defaults(func=template_handler)
+    return template
+
+
 def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
     compare = subparsers.add_parser(
-        Subcommand.COMPARE.to_lowercase(),
+        Subcommand.COMPARE.value,
         description="Subcommand to generate plots that compare multiple profile runs.",
     )
     _add_compare_args(compare)
@@ -1158,7 +1086,7 @@ def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     profile = subparsers.add_parser(
-        Subcommand.PROFILE.to_lowercase(),
+        Subcommand.PROFILE.value,
         description="Subcommand to profile LLMs and Generative AI models.",
     )
     _add_endpoint_args(profile)
@@ -1175,7 +1103,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     analyze = subparsers.add_parser(
-        Subcommand.ANALYZE.to_lowercase(),
+        Subcommand.ANALYZE.value,
         description="Subcommand to analyze LLMs and Generative AI models.",
     )
     _add_analyze_args(analyze)
@@ -1215,7 +1143,8 @@ def init_parsers():
     _ = _parse_compare_args(subparsers)
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
-    subparsers.required = True
+    _ = _parse_template_args(subparsers)
+    subparsers.required = False
 
     return parser
 
@@ -1233,7 +1162,7 @@ def get_passthrough_args_index(argv: list) -> int:
 def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
-    if args.subcommand == Subcommand.PROFILE.to_lowercase():
+    if args.subcommand == Subcommand.PROFILE.value:
         args = _infer_prompt_source(args)
         _check_payload_input_args(parser, args)
         args = _check_model_args(parser, args)
@@ -1241,11 +1170,10 @@ def refine_args(
         args = _check_image_input_args(parser, args)
         args = _check_load_manager_args(args)
         args = _check_server_metrics_url(parser, args)
-        args = _set_artifact_paths(args)
         args = _check_goodput_args(args)
         args = _check_session_args(args)
         _print_warnings(args)
-    elif args.subcommand == Subcommand.ANALYZE.to_lowercase():
+    elif args.subcommand == Subcommand.ANALYZE.value:
         args = _infer_prompt_source(args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
@@ -1255,12 +1183,125 @@ def refine_args(
         args = _check_session_args(args)
         args = _process_sweep_args(args)
         _print_warnings(args)
-    elif args.subcommand == Subcommand.COMPARE.to_lowercase():
+    elif args.subcommand == Subcommand.COMPARE.value:
         args = _check_compare_args(parser, args)
+    elif args.subcommand == Subcommand.TEMPLATE.value:
+        pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
 
     return args
+
+
+def add_cli_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    # These can only be set via the CLI and are added here
+    config.subcommand = ConfigField(
+        default="profile", value=args.subcommand, required=True
+    )
+    config.verbose = ConfigField(default=False, value=args.verbose)
+
+    # Analyze
+    if args.subcommand == "analyze":
+        config.analyze.sweep_parameters = {}
+        if args.sweep_list:
+            sweep_parameters = {args.sweep_type: args.sweep_list}
+        else:
+            sweep_parameters = {
+                args.sweep_type: {"start": args.sweep_min, "stop": args.sweep_max}
+            }
+            if args.sweep_step:
+                sweep_parameters[args.sweep_type]["step"] = args.sweep_step
+
+        config.analyze.parse(sweep_parameters)
+
+    # Endpoint
+    config.endpoint.model_selection_strategy = args.model_selection_strategy
+    config.endpoint.backend = args.backend
+    config.endpoint.custom = args.endpoint
+    config.endpoint.type = args.endpoint_type
+    config.endpoint.service_kind = args.service_kind
+    config.endpoint.streaming = args.streaming
+
+    if args.server_metrics_url:
+        config.endpoint.server_metrics_urls = args.server_metrics_url
+
+    if args.u:
+        config.endpoint.url = args.u
+
+    config.endpoint.output_format = args.output_format
+
+    # Perf Analyzer
+    # config.perf_analyzer.path - There is no equivalent setting in the CLI
+    config.perf_analyzer.stimulus = _convert_args_to_stimulus(args)
+    config.perf_analyzer.stability_percentage = args.stability_percentage
+    config.perf_analyzer.measurement_interval = args.measurement_interval
+    config.perf_analyzer.request_count.warmup = args.warmup_request_count
+    config.perf_analyzer.request_count.num = args.request_count
+
+    # Input
+    config.input.batch_size = args.batch_size_text
+    config.input.extra = get_extra_inputs_as_dict(args)
+    config.input.goodput = args.goodput
+    config.input.header = args.header
+    config.input.file = args.input_file
+    config.input.num_dataset_entries = args.num_dataset_entries
+    config.input.random_seed = args.random_seed
+    config.input.prompt_source = args.prompt_source
+    config.input.synthetic_input_files = args.synthetic_input_files
+
+    # Input - Image
+    config.input.image.batch_size = args.batch_size_image
+    config.input.image.width_mean = args.image_width_mean
+    config.input.image.width_stddev = args.image_width_stddev
+    config.input.image.height_mean = args.image_height_mean
+    config.input.image.height_stddev = args.image_height_stddev
+    config.input.image.format = args.image_format
+
+    # Input - Output Tokens
+    config.input.output_tokens.mean = args.output_tokens_mean
+    config.input.output_tokens.deterministic = args.output_tokens_mean_deterministic
+    config.input.output_tokens.stddev = args.output_tokens_stddev
+
+    # Input - Synthetic Tokens
+    config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
+    config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
+
+    # Input - Prefix Prompt
+    config.input.prefix_prompt.num = args.num_prefix_prompts
+    config.input.prefix_prompt.length = args.prefix_prompt_length
+
+    # Input - Sessions
+    config.input.sessions.num = args.num_sessions
+    config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
+    config.input.sessions.turn_delay.stddev = args.session_turn_delay_stddev
+    config.input.sessions.turns.mean = args.session_turns_mean
+    config.input.sessions.turns.stddev = args.session_turns_stddev
+
+    # Output
+    config.output.artifact_directory = args.artifact_dir
+    # config.output.checkpoint_directory - There is no equivalent setting in the CLI
+    config.output.profile_export_file = args.profile_export_file
+    config.output.generate_plots = args.generate_plots
+
+    # Tokenizer
+    config.tokenizer.name = args.tokenizer
+    config.tokenizer.revision = args.tokenizer_revision
+    config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
+
+    return config
+
+
+def _convert_args_to_stimulus(args: argparse.Namespace) -> Dict[str, int]:
+    if args.session_concurrency:
+        return {"session_concurrency": args.session_concurrency}
+    elif args.concurrency:
+        return {"concurrency": args.concurrency}
+    elif args.request_rate:
+        return {"request_rate": args.request_rate}
+    else:
+        return PerfAnalyzerDefaults.STIMULUS
 
 
 ### Entrypoint ###
@@ -1268,10 +1309,88 @@ def refine_args(
 
 def parse_args():
     argv = sys.argv
-
     parser = init_parsers()
     passthrough_index = get_passthrough_args_index(argv)
-    args = parser.parse_args(argv[1:passthrough_index])
-    args = refine_args(parser, args)
 
-    return args, argv[passthrough_index + 1 :]
+    # Assumption is that the subcommand will be implied by
+    # the fields set in the config file
+    if (
+        subcommand_found(argv)
+        or "-h" in argv
+        or "--help" in argv
+        or "--version" in argv
+    ):
+        args = parser.parse_args(argv[1:passthrough_index])
+        args = refine_args(parser, args)
+
+        if args.subcommand == Subcommand.TEMPLATE.value:
+            config = _create_template_config(args, argv)
+
+            return args, config, None
+        else:
+            # For all other subcommands, parse the CLI fully (no config file)
+            config = ConfigCommand({"model_name": args.formatted_model_name})
+            config = add_cli_options_to_config(config, args)
+
+            return args, config, argv[passthrough_index + 1 :]
+    else:  # No subcommmand on CLI
+        # Assumption is the last argument before the
+        # passthrough is the user config file
+        user_config = utils.load_yaml(argv[passthrough_index - 1])
+        config = ConfigCommand(user_config)
+
+        # Set subcommand
+        if config.analyze.get_field("sweep_parameters").is_set_by_user:
+            config_args = ["analyze"]
+        else:
+            config_args = ["profile"]
+
+        # Setup args in the way that argparse expects
+        config_args += ["-m", config.model_names[0]]
+        config_args += argv[1 : passthrough_index - 2]
+
+        args = parser.parse_args(config_args)
+
+        config.subcommand = ConfigField(
+            default="profile", value=args.subcommand, required=True
+        )
+
+        # Set verbose
+        config.verbose = ConfigField(default=False, value=args.verbose)
+
+        return args, config, argv[passthrough_index + 1 :]
+
+
+def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
+    config = ConfigCommand({})
+    config.verbose = ConfigField(
+        default=False, value=args.verbose, add_to_template=False
+    )
+    config.subcommand = ConfigField(
+        default="profile",
+        value=args.subcommand,
+        required=True,
+        add_to_template=False,
+    )
+
+    # The template command is: genai-perf template [filename] [-v/--verbose]
+    if "-v" in argv:
+        del argv[argv.index("-v")]
+    if "--verbose" in argv:
+        del argv[argv.index("--verbose")]
+
+    # Assumption is the final argument is the filename (if it exists)
+    filename = argv[2] if len(argv) > 2 else TemplateDefaults.FILENAME
+    config.template_filename = ConfigField(
+        default=TemplateDefaults.FILENAME, value=filename, add_to_template=False
+    )
+
+    return config
+
+
+def subcommand_found(argv) -> bool:
+    for sc in Subcommand:
+        if sc.value in argv:
+            return True
+
+    return False

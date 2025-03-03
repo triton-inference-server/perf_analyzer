@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 
 from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.input.config_command import default_field
+from genai_perf.config.input.config_defaults import default_field
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.record.record import Record

@@ -25,41 +25,20 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
-    SyntheticPromptGenerator,
-)
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from genai_perf.exceptions import GenAIPerfException
 
 
-class TestSyntheticPromptGenerator:
+def template_handler(config: ConfigCommand) -> None:
+    """
+    Handles `template` subcommand workflow
+    """
+    template = config.make_template()
 
-    def test_synthetic_prompt_default(self):
-        config = ConfigCommand({})
-        config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        _ = SyntheticPromptGenerator.create_synthetic_prompt(tokenizer)
-
-    def test_synthetic_prompt_zero_token(self):
-        config = ConfigCommand({})
-        config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-            tokenizer=tokenizer,
-            prompt_tokens_mean=0,
-            prompt_tokens_stddev=0,
+    try:
+        with open(config.template_filename, "x") as file:
+            file.write(template)
+    except FileExistsError:
+        raise GenAIPerfException(
+            f"File '{config.template_filename}' already exists. "
+            "Please specify a different filename."
         )
-
-        assert prompt == ""
-        assert len(tokenizer.encode(prompt)) == 0
-
-    def test_synthetic_prompt_nonzero_tokens(self):
-        config = ConfigCommand({})
-        config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-            tokenizer=tokenizer,
-            prompt_tokens_mean=123,
-            prompt_tokens_stddev=0,
-        )
-
-        assert len(tokenizer.encode(prompt)) == 123
