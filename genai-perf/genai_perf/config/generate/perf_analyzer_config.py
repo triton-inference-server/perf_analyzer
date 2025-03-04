@@ -293,7 +293,9 @@ class PerfAnalyzerConfig:
     def _add_config_args(self, config: ConfigCommand) -> List[str]:
         config_args = []
         config_args += ["--service-kind", f"{config.endpoint.service_kind}"]
-        config_args += ["--endpoint", f"{config.endpoint.backend.value.lower()}"]
+
+        if config.endpoint.custom:
+            config_args += ["--endpoint", f"{config.endpoint.custom}"]
 
         return config_args
 

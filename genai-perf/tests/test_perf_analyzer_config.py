@@ -108,8 +108,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             "0",
             "--warmup-request-count",
             "0",
-            "--endpoint",
-            "tensorrtllm",
             "--input-data",
             "artifacts/test_model-triton-tensorrtllm-runtime_batch_size1-concurrency64/inputs.json",
             "--profile-export-file",
@@ -155,8 +153,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 "64",
                 "--service-kind",
                 "triton",
-                "--endpoint",
-                "tensorrtllm",
                 "-b",
                 "1",
             ]
