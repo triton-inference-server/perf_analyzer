@@ -192,7 +192,7 @@ def convert_config_to_inputs_config(
         audio_format=config.input.audio.format,
         input_type=config.input.prompt_source,
         output_format=config.endpoint.output_format,
-        model_name=config.model_names[0],
+        model_name=config.model_names,
         model_selection_strategy=config.endpoint.model_selection_strategy,
         input_filename=config.input.file,
         payload_input_filename=config.input.payload_file,
