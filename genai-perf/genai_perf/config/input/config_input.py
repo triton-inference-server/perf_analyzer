@@ -109,7 +109,7 @@ class ConfigInput(BaseConfig):
             elif key == "header":
                 self.header = value
             elif key == "file":
-                self.file = value
+                self._parse_file(value)
             elif key == "num_dataset_entries":
                 self.num_dataset_entries = value
             elif key == "random_seed":
@@ -143,6 +143,16 @@ class ConfigInput(BaseConfig):
                 )
 
         self.goodput = constraints
+
+    def _parse_file(self, value: str) -> None:
+        if value.startswith("synthetic:") or value.startswith("payload"):
+            self.file = Path(value)
+        else:
+            path = Path(value)
+            if path.is_file() or path.is_dir():
+                self.file = path
+            else:
+                raise ValueError(f"'{value}' is not a valid file or directory")
 
     ###########################################################################
     # Infer Methods
