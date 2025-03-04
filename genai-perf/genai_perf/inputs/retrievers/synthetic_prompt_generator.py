@@ -157,12 +157,15 @@ class SyntheticPromptGenerator:
         """
         final_prompt = []
         size_to_use = block_size
-        for index, hash_index in enumerate(prompt_hash_list):
-            if index == len(prompt_hash_list) - 1:
-                size_to_use = num_tokens - (index * block_size)
+        remaining_tokens = num_tokens
+        # for _, hash_index in enumerate(prompt_hash_list):
+        for hash_index in prompt_hash_list:
             if hash_index not in cls._cache:
-                prompt = cls._generate_prompt(tokenizer, size_to_use)
+                prompt = cls._generate_prompt(
+                    tokenizer, min(remaining_tokens, block_size)
+                )
                 cls._cache[hash_index] = prompt
+            remaining_tokens -= block_size
 
             final_prompt.append(cls._cache[hash_index])
         prompt = " ".join(final_prompt)
