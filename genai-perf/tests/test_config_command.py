@@ -15,7 +15,7 @@
 import unittest
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
@@ -211,8 +211,7 @@ class TestConfigCommand(unittest.TestCase):
                     test_goodput: 2
                 header:
                     test_header: 3
-                file:
-                    test_file: 4
+                file: "synthetic:test_file"
                 num_dataset_entries: 50
                 random_seed: 100
 
@@ -257,7 +256,7 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.extra, {"test_extra": 1})
         self.assertEqual(config.input.goodput, {"test_goodput": 2})
         self.assertEqual(config.input.header, {"test_header": 3})
-        self.assertEqual(config.input.file, {"test_file": 4})
+        self.assertEqual(config.input.file, Path("synthetic:test_file"))
         self.assertEqual(config.input.num_dataset_entries, 50)
         self.assertEqual(config.input.random_seed, 100)
         self.assertEqual(config.input.image.batch_size, 8)
@@ -377,9 +376,15 @@ class TestConfigCommand(unittest.TestCase):
         # yapf: enable
 
         user_config = yaml.safe_load(yaml_str)
-        config = ConfigCommand(user_config)
 
-        self.assertEqual(config.input.prompt_source, PromptSource.FILE)
+        with patch("genai_perf.config.input.config_input.Path") as mock_path:
+            mock_path_instance = MagicMock()
+            mock_path_instance.is_file.return_value = True
+            mock_path.return_value = mock_path_instance
+
+            config = ConfigCommand(user_config)
+
+            self.assertEqual(config.input.prompt_source, PromptSource.FILE)
 
     def test_infer_prompt_source_synthetic(self):
         """
