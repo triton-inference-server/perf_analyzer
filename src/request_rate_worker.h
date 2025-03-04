@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -25,6 +25,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
+#include <chrono>
 #include <memory>
 
 #include "ischeduler.h"
@@ -114,6 +115,8 @@ class RequestRateWorker : public LoadWorker, public IScheduler {
 
     ctx->SetNumActiveThreads(num_threads_);
   }
+
+  const std::chrono::milliseconds delay_tolerance_{1};
 
 #ifndef DOCTEST_CONFIG_DISABLE
   friend NaggyMockRequestRateWorker;

@@ -1,4 +1,4 @@
-// Copyright 2022-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -27,6 +27,7 @@
 #include "request_rate_worker.h"
 
 #include <algorithm>
+#include <chrono>
 #include <thread>
 
 #include "client_backend/client_backend.h"
@@ -136,7 +137,8 @@ RequestRateWorker::SleepIfNecessary()
   std::chrono::nanoseconds wait_time = next_timestamp - current_timestamp;
 
   bool delayed = false;
-  if (wait_time.count() < 0) {
+  if (wait_time < std::chrono::nanoseconds::zero() &&
+      std::chrono::abs(wait_time) > delay_tolerance_) {
     delayed = true;
   } else {
     thread_stat_->idle_timer.Start();
