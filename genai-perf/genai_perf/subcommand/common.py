@@ -52,7 +52,7 @@ from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TritonTelemetryDataCollector,
 )
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
-from genai_perf.utils import load_json_str
+from genai_perf.utils import load_json_str, remove_file
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +237,7 @@ def run_perf_analyzer(
             if collector:
                 collector.start()
 
+        remove_file(perf_analyzer_config.get_profile_export_file())
         cmd = perf_analyzer_config.create_command()
         logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
 
