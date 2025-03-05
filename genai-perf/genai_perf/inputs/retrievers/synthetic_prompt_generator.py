@@ -177,9 +177,11 @@ class SyntheticPromptGenerator:
         final_prompt: List[int] = []
         size_to_use = block_size
         last_hash_length = num_tokens - ((len(prompt_hash_list) - 1) * block_size)
-        assert (
-            last_hash_length > 0 and last_hash_length <= block_size
-        ), f"Input_length: {num_tokens}, Hash_ids: {prompt_hash_list}, Block_size: {block_size} are not compatible."
+        assert 0 < last_hash_length <= block_size, (
+            f"Input_length: {num_tokens}, Hash_ids: {prompt_hash_list}, Block_size: {block_size} "
+            f"are not compatible. The final hash id length: {last_hash_length} must be greater "
+            f"than 0 and less than or equal to {block_size}."
+        )
         for index, hash_index in enumerate(prompt_hash_list):
             if index == len(prompt_hash_list) - 1:
                 size_to_use = num_tokens - (index * block_size)
