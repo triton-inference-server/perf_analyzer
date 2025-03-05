@@ -339,11 +339,12 @@ CLParser::Usage(const std::string& msg)
       << std::endl;
   std::cerr
       << FormatMessage(
-             " --session-concurrency <session concurrency>: Specifies the "
-             "number of concurrent multi-turn chat sessions to run during the "
-             "benchmark. A dataset must be provided using --input-data with at "
-             "least as many unique sessions as the specified session "
-             "concurrency. Only supported with --service-kind=openai.",
+             " --session-concurrency <session concurrency>: Enables session "
+             "concurrency inference load mode and specifies the number of "
+             "concurrent multi-turn chat sessions to run during the benchmark. "
+             "A dataset must be provided using --input-data with at least as "
+             "many unique sessions as the specified session concurrency. Only "
+             "supported with --service-kind=openai.",
              18)
       << std::endl;
   std::cerr
@@ -384,8 +385,8 @@ CLParser::Usage(const std::string& msg)
       << std::endl;
   std::cerr
       << FormatMessage(
-             " --request-distribution <\"poisson\"|\"constant\">: Specifies "
-             "the time interval distribution between dispatching inference "
+             " --request-distribution [constant|poisson]: Specifies the time "
+             "interval distribution between dispatching inference "
              "requests to the server. Poisson distribution closely mimics the "
              "real-world work load on a server. This option is ignored if not "
              "using --request-rate-range. By default, this option is set to be "
