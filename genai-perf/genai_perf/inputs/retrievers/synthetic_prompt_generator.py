@@ -82,7 +82,9 @@ class SyntheticPromptGenerator:
             lines = f.readlines()
 
         def tokenize_chunk(chunk):
-            return tokenizer.encode(" ".join(chunk))
+            cleaned_text = " ".join(line.strip() for line in chunk if line.strip())
+            tokens = tokenizer.encode(cleaned_text)
+            return tokens
 
         num_threads = os.cpu_count()
         if num_threads is None:
