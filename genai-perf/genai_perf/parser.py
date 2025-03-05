@@ -1350,7 +1350,8 @@ def add_cli_options_to_config(
     config.input.num_dataset_entries = args.num_dataset_entries
     config.input.random_seed = args.random_seed
     config.input.prompt_source = args.prompt_source
-    config.input.synthetic_input_files = args.synthetic_input_files
+    config.input.synthetic_files = args.synthetic_input_files
+    config.input.payload_file = args.payload_input_file
 
     # Input - Image
     config.input.image.batch_size = args.batch_size_image
