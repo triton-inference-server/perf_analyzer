@@ -193,8 +193,7 @@ class PerfAnalyzerConfig:
             request_rate = config.perf_analyzer.stimulus["request_rate"]
             stimulus = [f"request_rate{request_rate}"]
         elif "session_concurrency" in config.perf_analyzer.stimulus:
-            session_concurrency = config.perf_analyzer.stimulus["session_concurrency"]
-            stimulus = [f"session_concurrency{session_concurrency}"]
+            stimulus = [""]
         else:
             raise GenAIPerfException(f"Stimulus type not found in config")
 
