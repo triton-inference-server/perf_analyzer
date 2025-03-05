@@ -1,3 +1,5 @@
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,7 +16,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import List
 
-from genai_perf.config.input.config_command import default_field
+from genai_perf.config.input.config_defaults import default_field
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.measurements.run_constraints import RunConstraints
 from genai_perf.types import (
