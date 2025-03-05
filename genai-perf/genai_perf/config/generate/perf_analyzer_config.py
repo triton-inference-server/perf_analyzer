@@ -107,9 +107,10 @@ class PerfAnalyzerConfig:
     ) -> Path:
         artifact_name = [self._get_artifact_model_name(config)]
         artifact_name += self._get_artifact_service_kind(config)
-        artifact_name += self._get_artifact_stimulus_type(
-            config, model_objective_parameters
-        )
+
+        stimulus = self._get_artifact_stimulus_type(config, model_objective_parameters)
+        if stimulus:
+            artifact_name += stimulus
 
         artifact_directory = config.output.artifact_directory / Path(
             "-".join(artifact_name)
@@ -173,7 +174,7 @@ class PerfAnalyzerConfig:
         self,
         config: ConfigCommand,
         model_objective_parameters: Optional[ModelObjectiveParameters],
-    ) -> List[str]:
+    ) -> Optional[List[str]]:
         if model_objective_parameters:
             stimulus = self._get_artifact_stimulus_based_on_objective(
                 model_objective_parameters
@@ -185,7 +186,7 @@ class PerfAnalyzerConfig:
 
     def _get_artifact_stimulus_based_on_config(
         self, config: ConfigCommand
-    ) -> List[str]:
+    ) -> Optional[List[str]]:
         if "concurrency" in config.perf_analyzer.stimulus:
             concurrency = config.perf_analyzer.stimulus["concurrency"]
             stimulus = [f"concurrency{concurrency}"]
@@ -193,7 +194,7 @@ class PerfAnalyzerConfig:
             request_rate = config.perf_analyzer.stimulus["request_rate"]
             stimulus = [f"request_rate{request_rate}"]
         elif "session_concurrency" in config.perf_analyzer.stimulus:
-            stimulus = [""]
+            stimulus = None
         else:
             raise GenAIPerfException(f"Stimulus type not found in config")
 
@@ -201,7 +202,7 @@ class PerfAnalyzerConfig:
 
     def _get_artifact_stimulus_based_on_objective(
         self, model_objective_parameters: ModelObjectiveParameters
-    ) -> List[str]:
+    ) -> Optional[List[str]]:
         stimulus = []
         for objective in model_objective_parameters.values():
             for name, parameter in objective.items():
@@ -280,6 +281,11 @@ class PerfAnalyzerConfig:
                 inference_load_args += [
                     "--request-rate-range",
                     f'{config.perf_analyzer.stimulus["request_rate"]}',
+                ]
+            elif "session_concurrency" in config.perf_analyzer.stimulus:
+                inference_load_args += [
+                    "--session-concurrency",
+                    f"{config.perf_analyzer.stimulus['session_concurrency']}",
                 ]
         else:
             for parameter, value in self._parameters.items():
