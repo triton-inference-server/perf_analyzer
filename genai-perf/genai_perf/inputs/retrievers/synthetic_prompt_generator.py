@@ -183,9 +183,9 @@ class SyntheticPromptGenerator:
                 prompt_tokens.pop(-1)
                 prompt_tokens.insert(0, tokenizer.bos_token_id())
                 cls._cache[hash_index] = prompt_tokens
-            if num_tokens < 0:
+            if num_tokens <= 0:
                 raise ValueError(
-                    "Internal error: number of tokens cannot be " "negative."
+                    "Internal error: number of tokens should never be negative."
                 )
 
             if num_tokens > 0:
