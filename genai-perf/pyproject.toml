@@ -61,7 +61,6 @@ dependencies = [
   "pyyaml",
   "responses",
   "rich",
-  "soundfile",
   "statsmodels",
   "transformers",
   "tritonclient",
