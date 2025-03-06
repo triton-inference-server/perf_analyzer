@@ -188,9 +188,7 @@ class SyntheticPromptGenerator:
                 prompt_tokens.insert(0, tokenizer.bos_token_id())
                 cls._cache[hash_index] = prompt_tokens
             final_prompt.extend(cls._cache[hash_index])
-        prompt = tokenizer.decode(
-            final_prompt, skip_special_tokens=False, clean_up_tokenization_spaces=False
-        )
+        prompt = tokenizer.decode(final_prompt, skip_special_tokens=False)
 
         return prompt
 
