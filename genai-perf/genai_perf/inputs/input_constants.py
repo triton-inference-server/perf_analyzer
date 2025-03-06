@@ -76,6 +76,16 @@ PAYLOAD_METADATA_FIELDS = ["timestamp", "delay", "session_id"]
 PAYLOAD_METADATA_INT_FIELDS = ["timestamp", "delay"]
 
 ###########################
+# Default Audio Parameters
+###########################
+DEFAULT_AUDIO_LENGTH_MEAN = 10
+DEFAULT_AUDIO_LENGTH_STDDEV = 0
+DEFAULT_AUDIO_FORMAT = "wav"
+DEFAULT_AUDIO_DEPTHS = [16]
+DEFAULT_AUDIO_SAMPLE_RATES = [16]
+DEFAULT_AUDIO_NUM_CHANNELS = 1
+
+###########################
 # Default Prompt Parameters
 ###########################
 DEFAULT_CORPUS_FILE = "shakespeare.txt"
@@ -100,16 +110,6 @@ DEFAULT_IMAGE_WIDTH_MEAN = 100
 DEFAULT_IMAGE_WIDTH_STDDEV = 0
 DEFAULT_IMAGE_HEIGHT_MEAN = 100
 DEFAULT_IMAGE_HEIGHT_STDDEV = 0
-
-###########################
-# Default Audio Parameters
-###########################
-DEFAULT_AUDIO_LENGTH_MEAN = 10
-DEFAULT_AUDIO_LENGTH_STDDEV = 0
-DEFAULT_AUDIO_FORMAT = "wav"
-DEFAULT_AUDIO_DEPTHS = [16]
-DEFAULT_AUDIO_SAMPLE_RATES = [16]
-DEFAULT_AUDIO_NUM_CHANNELS = 1
 
 ###########################
 # Default Session Parameters

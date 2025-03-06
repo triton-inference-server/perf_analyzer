@@ -653,6 +653,67 @@ def _add_analyze_args(parser):
     )
 
 
+def _add_audio_input_args(parser):
+    input_group = parser.add_argument_group("Audio Input")
+
+    input_group.add_argument(
+        "--audio-length-mean",
+        type=int,
+        default=ic.DEFAULT_AUDIO_LENGTH_MEAN,
+        required=False,
+        help=f"The mean length of audio data in seconds. " "Default is 10 seconds.",
+    )
+
+    input_group.add_argument(
+        "--audio-length-stddev",
+        type=int,
+        default=ic.DEFAULT_AUDIO_LENGTH_STDDEV,
+        required=False,
+        help=f"The standard deviation of the length of audio data in seconds. "
+        "Default is 0.",
+    )
+
+    input_group.add_argument(
+        "--audio-format",
+        type=str,
+        choices=utils.get_enum_names(AudioFormat),
+        default=ic.DEFAULT_AUDIO_FORMAT,
+        required=False,
+        help=f"The format of the audio data. Default is 'wav'.",
+    )
+
+    input_group.add_argument(
+        "--audio-depths",
+        type=int,
+        default=ic.DEFAULT_AUDIO_DEPTHS,
+        nargs="*",
+        required=False,
+        help=f"A list of audio bit depths to randomly select from in bits. "
+        "Default is [16].",
+    )
+
+    input_group.add_argument(
+        "--audio-sample-rates",
+        type=float,
+        default=ic.DEFAULT_AUDIO_SAMPLE_RATES,
+        nargs="*",
+        required=False,
+        help=f"A list of audio sample rates to randomly select from in kHz. "
+        "Default is [16].",
+    )
+
+    input_group.add_argument(
+        "--audio-num-channels",
+        type=int,
+        default=ic.DEFAULT_AUDIO_NUM_CHANNELS,
+        choices=[1, 2],
+        required=False,
+        help=f"The number of audio channels to use for the audio data generation. "
+        "Currently only 1 (mono) and 2 (stereo) are supported. "
+        "Default is 1 (mono channel).",
+    )
+
+
 def _add_compare_args(parser):
     compare_group = parser.add_argument_group("Input")
     mx_group = compare_group.add_mutually_exclusive_group(required=False)
@@ -808,67 +869,6 @@ def _add_image_input_args(parser):
         required=False,
         help=f"The compression format of the images. "
         "If format is not selected, format of generated image is selected at random",
-    )
-
-
-def _add_audio_input_args(parser):
-    input_group = parser.add_argument_group("Audio Input")
-
-    input_group.add_argument(
-        "--audio-length-mean",
-        type=int,
-        default=ic.DEFAULT_AUDIO_LENGTH_MEAN,
-        required=False,
-        help=f"The mean length of audio data in seconds. " "Default is 10 seconds.",
-    )
-
-    input_group.add_argument(
-        "--audio-length-stddev",
-        type=int,
-        default=ic.DEFAULT_AUDIO_LENGTH_STDDEV,
-        required=False,
-        help=f"The standard deviation of the length of audio data in seconds. "
-        "Default is 0.",
-    )
-
-    input_group.add_argument(
-        "--audio-format",
-        type=str,
-        choices=utils.get_enum_names(AudioFormat),
-        default=ic.DEFAULT_AUDIO_FORMAT,
-        required=False,
-        help=f"The format of the audio data. Default is 'wav'.",
-    )
-
-    input_group.add_argument(
-        "--audio-depths",
-        type=int,
-        default=ic.DEFAULT_AUDIO_DEPTHS,
-        nargs="*",
-        required=False,
-        help=f"A list of audio bit depths to randomly select from in bits. "
-        "Default is [16].",
-    )
-
-    input_group.add_argument(
-        "--audio-sample-rates",
-        type=float,
-        default=ic.DEFAULT_AUDIO_SAMPLE_RATES,
-        nargs="*",
-        required=False,
-        help=f"A list of audio sample rates to randomly select from in kHz. "
-        "Default is [16].",
-    )
-
-    input_group.add_argument(
-        "--audio-num-channels",
-        type=int,
-        default=ic.DEFAULT_AUDIO_NUM_CHANNELS,
-        choices=[1, 2],
-        required=False,
-        help=f"The number of audio channels to use for the audio data generation. "
-        "Currently only 1 (mono) and 2 (stereo) are supported. "
-        "Default is 1 (mono channel).",
     )
 
 
@@ -1247,9 +1247,9 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
         Subcommand.PROFILE.to_lowercase(),
         description="Subcommand to profile LLMs and Generative AI models.",
     )
+    _add_audio_input_args(profile)
     _add_endpoint_args(profile)
     _add_image_input_args(profile)
-    _add_audio_input_args(profile)
     _add_input_args(profile)
     _add_other_args(profile)
     _add_output_args(profile)
@@ -1266,9 +1266,9 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
         description="Subcommand to analyze LLMs and Generative AI models.",
     )
     _add_analyze_args(analyze)
+    _add_audio_input_args(analyze)
     _add_endpoint_args(analyze)
     _add_image_input_args(analyze)
-    _add_audio_input_args(analyze)
     _add_input_args(analyze)
     _add_other_args(analyze)
     _add_output_args(analyze)
