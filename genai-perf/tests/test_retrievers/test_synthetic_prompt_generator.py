@@ -24,6 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from contextlib import nullcontext as does_not_raise
+
+import pytest
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
@@ -49,10 +53,30 @@ class TestSyntheticPromptGenerator:
 
     def test_synthetic_prompt_nonzero_tokens(self):
         tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        prompt_tokens = 123
+        tolerance = 2
         prompt = SyntheticPromptGenerator.create_synthetic_prompt(
             tokenizer=tokenizer,
-            prompt_tokens_mean=123,
+            prompt_tokens_mean=prompt_tokens,
             prompt_tokens_stddev=0,
         )
+        assert len(tokenizer.encode(prompt)) <= 123 + tolerance
+        assert len(tokenizer.encode(prompt)) >= 123 - tolerance
 
-        assert len(tokenizer.encode(prompt)) == 123
+    @pytest.mark.parametrize(
+        "test_num_tokens, context",
+        [
+            (12, does_not_raise()),
+            (9, pytest.raises(GenAIPerfException)),
+            (16, pytest.raises(GenAIPerfException)),
+        ],
+    )
+    def test_generate_prompt_with_token_reuse(self, test_num_tokens, context):
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        with context:
+            _ = SyntheticPromptGenerator._generate_prompt_with_token_reuse(
+                tokenizer=tokenizer,
+                num_tokens=test_num_tokens,
+                prompt_hash_list=[1, 2, 3],
+                block_size=5,
+            )

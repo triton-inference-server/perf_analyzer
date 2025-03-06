@@ -18,6 +18,7 @@ import random
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional
 
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import DEFAULT_CORPUS_FILE
 from genai_perf.logging import logging
 from genai_perf.tokenizer import Tokenizer
@@ -176,6 +177,13 @@ class SyntheticPromptGenerator:
         """
         final_prompt: List[int] = []
         size_to_use = block_size
+        last_hash_length = num_tokens - ((len(prompt_hash_list) - 1) * block_size)
+        if last_hash_length <= 0 or block_size < last_hash_length:
+            raise GenAIPerfException(
+                f"Input_length: {num_tokens}, Hash_ids: {prompt_hash_list}, Block_size: {block_size} "
+                f"are not compatible. The final hash id length: {last_hash_length} must be greater "
+                f"than 0 and less than or equal to {block_size}."
+            )
         for index, hash_index in enumerate(prompt_hash_list):
             if index == len(prompt_hash_list) - 1:
                 size_to_use = num_tokens - (index * block_size)
