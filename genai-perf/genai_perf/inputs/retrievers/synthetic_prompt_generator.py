@@ -180,7 +180,13 @@ class SyntheticPromptGenerator:
             if index == len(prompt_hash_list) - 1:
                 size_to_use = num_tokens - (index * block_size)
             if hash_index not in cls._cache:
-                cls._cache[hash_index] = cls._generate_prompt_tokens(size_to_use)
+                # To ensure that the prompt doesn't merge chunks, we pop the last token
+                # and insert the bos token at the beginning. Length is maintained and
+                # the prompt generates the expected number of tokens.
+                prompt_tokens = cls._generate_prompt_tokens(size_to_use)
+                prompt_tokens.pop(0)
+                prompt_tokens.insert(0, tokenizer.bos_token_id())
+                cls._cache[hash_index] = prompt_tokens
             final_prompt.extend(cls._cache[hash_index])
         prompt = tokenizer.decode(final_prompt, clean_up_tokenization_spaces=False)
 
