@@ -102,6 +102,15 @@ DEFAULT_IMAGE_HEIGHT_MEAN = 100
 DEFAULT_IMAGE_HEIGHT_STDDEV = 0
 
 ###########################
+# Default Audio Parameters
+###########################
+DEFAULT_AUDIO_LENGTH_MEAN = 10
+DEFAULT_AUDIO_LENGTH_STDDEV = 0
+DEFAULT_AUDIO_FORMAT = "wav"
+DEFAULT_AUDIO_SAMPLE_RATES = [16]
+DEFAULT_AUDIO_NUM_CHANNELS = 1
+
+###########################
 # Default Session Parameters
 ###########################
 DEFAULT_NUM_SESSIONS = 0
