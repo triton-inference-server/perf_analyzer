@@ -196,6 +196,8 @@ def _check_audio_input_args(
         parser.error("The --audio-length-stddev value must be non-negative.")
     if any(r <= 0 for r in args.audio_sample_rates):
         parser.error("The sample rate values in --audio-sample-rates must be positive.")
+    if any(d <= 0 for d in args.audio_depths):
+        parser.error("The bit depth values in --audio-depths must be positive.")
 
     args = _convert_str_to_enum_entry(args, "audio_format", AudioFormat)
     return args
@@ -839,6 +841,16 @@ def _add_audio_input_args(parser):
     )
 
     input_group.add_argument(
+        "--audio-depths",
+        type=int,
+        default=ic.DEFAULT_AUDIO_DEPTHS,
+        nargs="*",
+        required=False,
+        help=f"A list of audio bit depths to randomly select from in bits. "
+        "Default is [16].",
+    )
+
+    input_group.add_argument(
         "--audio-sample-rates",
         type=float,
         default=ic.DEFAULT_AUDIO_SAMPLE_RATES,
@@ -856,7 +868,7 @@ def _add_audio_input_args(parser):
         required=False,
         help=f"The number of audio channels to use for the audio data generation. "
         "Currently only 1 (mono) and 2 (stereo) are supported. "
-        "Default is 1.",
+        "Default is 1 (mono channel).",
     )
 
 

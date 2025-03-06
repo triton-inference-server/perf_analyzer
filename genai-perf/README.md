@@ -594,16 +594,21 @@ The standard deviation of the length of audio data in seconds.
 
 The format of the audio data. (default: `wav`)
 
+##### `--audio-depths <int>`
+
+A list of audio bit depths to randomly select from in bits.
+(default: `[16]`)
+
 ##### `--audio-sample-rates <int>`
 
 A list of audio sample rates to randomly select from in kHz.
-Default is [16].
+(default: `[16]`)
 
 ##### `--audio-num-channels <int>`
 
 The number of audio channels to use for the audio data generation.
 Currently only 1 (mono) and 2 (stereo) are supported.
-(default: `1`)
+(default: `1` (mono channel))
 
 ##### `--warmup-request-count <int>`
 ##### `--num-warmup-requests <int>`

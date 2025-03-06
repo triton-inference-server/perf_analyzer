@@ -318,6 +318,7 @@ class TestCLIArguments:
                 ["--audio-sample-rates", "16", "44.1", "48"],
                 {"audio_sample_rates": [16, 44.1, 48]},
             ),
+            (["--audio-depths", "16", "32"], {"audio_depths": [16, 32]}),
             (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
             (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
             (["-v"], {"verbose": True}),
@@ -1085,10 +1086,13 @@ class TestCLIArguments:
             ["--audio-length-mean", "-123"],
             ["--audio-length-stddev", "-34"],
             ["--audio-sample-rates", "-16"],
-            ["--audio-sample-rates", "16", "-44.1", "48"],  # mix
+            ["--audio-sample-rates", "16", "-44.1"],  # mix
+            ["--audio-depths", "-16"],
+            ["--audio-depths", "16", "-32"],  # mix
             # zeros
             ["--audio-length-mean", "0"],
             ["--audio-sample-rates", "0"],
+            ["--audio-depths", "0"],
         ],
     )
     def test_positive_audio_input_args(self, monkeypatch, args):

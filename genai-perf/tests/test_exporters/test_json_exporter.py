@@ -191,6 +191,7 @@ class TestJsonExporter:
             "audio_length_mean": 10,
             "audio_length_stddev": 0,
             "audio_sample_rates": [16],
+            "audio_depths": [16],
             "audio_num_channels": 1,
             "concurrency": 1,
             "measurement_interval": 10000,

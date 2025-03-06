@@ -95,6 +95,7 @@ class Profiler:
             "image_width_stddev",
             "audio_length_mean",
             "audio_length_stddev",
+            "audio_depths",
             "audio_sample_rates",
             "audio_format",
             "audio_num_channels",
