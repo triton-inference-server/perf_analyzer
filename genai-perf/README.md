@@ -467,7 +467,8 @@ The standard deviation of the length of audio data in seconds.
 
 ##### `--audio-format <str>`
 
-The format of the audio data. (default: `wav`)
+The format of the audio data. Currently we support wav and mp3 format.
+(default: `wav`)
 
 ##### `--audio-depths <int>`
 

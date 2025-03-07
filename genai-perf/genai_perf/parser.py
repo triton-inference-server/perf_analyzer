@@ -679,7 +679,8 @@ def _add_audio_input_args(parser):
         choices=utils.get_enum_names(AudioFormat),
         default=ic.DEFAULT_AUDIO_FORMAT,
         required=False,
-        help=f"The format of the audio data. Default is 'wav'.",
+        help=f"The format of the audio data. Currently we support wav and "
+        "mp3 format. Default is 'wav'.",
     )
 
     input_group.add_argument(
