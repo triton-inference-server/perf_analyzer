@@ -37,7 +37,10 @@ from genai_perf.inputs.input_constants import (
     PromptSource,
 )
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-from genai_perf.parser import PathType
+
+# TODO (TPA-1002): move AudioFormat to synthetic audio generator
+# from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
+from genai_perf.parser import AudioFormat
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
@@ -302,6 +305,20 @@ class TestCLIArguments:
                 {"image_height_stddev": 456},
             ),
             (["--image-format", "png"], {"image_format": ImageFormat.PNG}),
+            (
+                ["--audio-length-mean", "456"],
+                {"audio_length_mean": 456},
+            ),
+            (
+                ["--audio-length-stddev", "456"],
+                {"audio_length_stddev": 456},
+            ),
+            (["--audio-format", "wav"], {"audio_format": AudioFormat.WAV}),
+            (
+                ["--audio-sample-rates", "16", "44.1", "48"],
+                {"audio_sample_rates": [16, 44.1, 48]},
+            ),
+            (["--audio-depths", "16", "32"], {"audio_depths": [16, 32]}),
             (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
             (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
             (["-v"], {"verbose": True}),
@@ -844,6 +861,28 @@ class TestCLIArguments:
                 ],
                 "--service-kind: invalid choice: 'unknown_service'",
             ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--audio-format",
+                    "unknown_format",
+                ],
+                "--audio-format: invalid choice: 'unknown_format'",
+            ),
+            (
+                [
+                    "genai-perf",
+                    "profile",
+                    "-m",
+                    "test_model",
+                    "--audio-num-channels",
+                    "3",
+                ],
+                "--audio-num-channels: invalid choice: 3",
+            ),
         ],
     )
     def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):
@@ -1034,6 +1073,29 @@ class TestCLIArguments:
         ],
     )
     def test_positive_image_input_args(self, monkeypatch, args):
+        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        monkeypatch.setattr("sys.argv", combined_args)
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+    @pytest.mark.parametrize(
+        "args",
+        [
+            # negative numbers
+            ["--audio-length-mean", "-123"],
+            ["--audio-length-stddev", "-34"],
+            ["--audio-sample-rates", "-16"],
+            ["--audio-sample-rates", "16", "-44.1"],  # mix
+            ["--audio-depths", "-16"],
+            ["--audio-depths", "16", "-32"],  # mix
+            # zeros
+            ["--audio-length-mean", "0"],
+            ["--audio-sample-rates", "0"],
+            ["--audio-depths", "0"],
+        ],
+    )
+    def test_positive_audio_input_args(self, monkeypatch, args):
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 

@@ -42,6 +42,12 @@ from genai_perf.wrapper import Profiler
 # the PA command line
 perf_analyzer_ignore_args = [
     "artifact_dir",
+    "audio_length_mean",
+    "audio_length_stddev",
+    "audio_depths",
+    "audio_sample_rates",
+    "audio_format",
+    "audio_num_channels",
     "backend",
     "batch_size_image",
     "batch_size_text",
