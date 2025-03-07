@@ -36,11 +36,25 @@ from genai_perf.inputs.retrievers.synthetic_audio_generator import (
 )
 
 
-def decode_audio(audio_dict):
-    """Helper function to decode audio from the OpenAI API format"""
-    assert audio_dict["type"] == "input_audio"
-    audio_data = audio_dict["input_audio"]
-    decoded_data = base64.b64decode(audio_data["data"])
+def decode_audio(data_uri: str) -> tuple[np.ndarray, int]:
+    """Helper function to decode audio from data URI format.
+
+    Args:
+        data_uri: Data URI string in format "data:audio/{format};base64,{data}"
+
+    Returns:
+        Tuple of (audio_data: np.ndarray, sample_rate: int)
+    """
+    # Parse data URI
+    assert data_uri.startswith("data:audio/"), "Invalid data URI format"
+    # Skip "data:audio/" and split at first semicolon
+    format_and_data = data_uri[11:].split(";", 1)
+    assert len(format_and_data) == 2, "Invalid data URI format"
+    assert format_and_data[1].startswith("base64,"), "Invalid data URI format"
+
+    # Get the base64 data
+    base64_data = format_and_data[1][7:]  # Skip "base64,"
+    decoded_data = base64.b64decode(base64_data)
 
     # Load audio using soundfile - format is auto-detected from content
     audio_data, sample_rate = sf.read(io.BytesIO(decoded_data))
@@ -55,15 +69,15 @@ def decode_audio(audio_dict):
     ],
 )
 def test_different_audio_length(expected_audio_length):
-    audio_dict = SyntheticAudioGenerator.create_synthetic_audio(
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
         audio_length_mean=expected_audio_length,
         audio_length_stddev=0,
         sampling_rates_khz=[44],  # Fixed sampling rate for test
         bit_depths=[16],  # Fixed bit depth for test
-        output_format="wav",
+        audio_format="wav",
     )
 
-    audio_data, sample_rate = decode_audio(audio_dict)
+    audio_data, sample_rate = decode_audio(data_uri)
     actual_length = len(audio_data) / sample_rate
     assert (
         abs(actual_length - expected_audio_length) < 0.1
@@ -77,7 +91,7 @@ def test_negative_length_raises_error():
             audio_length_stddev=0,
             sampling_rates_khz=[44],
             bit_depths=[16],
-            output_format="wav",
+            audio_format="wav",
         )
 
 
@@ -93,48 +107,49 @@ def test_generator_deterministic(
 ):
     np.random.seed(123)
     random.seed(123)
-    audio1 = SyntheticAudioGenerator.create_synthetic_audio(
+    data_uri1 = SyntheticAudioGenerator.create_synthetic_audio(
         audio_length_mean=length_mean,
         audio_length_stddev=length_stddev,
         sampling_rates_khz=[sampling_rate_khz],
         bit_depths=[bit_depth],
-        output_format="wav",
+        audio_format="wav",
     )
 
     np.random.seed(123)
     random.seed(123)
-    audio2 = SyntheticAudioGenerator.create_synthetic_audio(
+    data_uri2 = SyntheticAudioGenerator.create_synthetic_audio(
         audio_length_mean=length_mean,
         audio_length_stddev=length_stddev,
         sampling_rates_khz=[sampling_rate_khz],
         bit_depths=[bit_depth],
-        output_format="wav",
+        audio_format="wav",
     )
 
     # Compare the actual audio data
-    audio_data1, _ = decode_audio(audio1)
-    audio_data2, _ = decode_audio(audio2)
+    audio_data1, _ = decode_audio(data_uri1)
+    audio_data2, _ = decode_audio(data_uri2)
     assert np.array_equal(audio_data1, audio_data2), "generator is nondeterministic"
 
 
-@pytest.mark.parametrize("output_format", ["wav", "mp3"])
-def test_audio_format(output_format):
+@pytest.mark.parametrize("audio_format", ["wav", "mp3"])
+def test_audio_format(audio_format):
     # use sample rate supported by all formats (44.1kHz)
     sampling_rate = 44.1
-    audio_dict = SyntheticAudioGenerator.create_synthetic_audio(
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
         audio_length_mean=1.0,
         audio_length_stddev=0,
         sampling_rates_khz=[sampling_rate],
         bit_depths=[16],
-        output_format=output_format,
+        audio_format=audio_format,
     )
 
-    # Check dictionary structure
-    assert audio_dict["type"] == "input_audio"
-    assert audio_dict["input_audio"]["format"] == output_format
+    # Check data URI format
+    assert data_uri.startswith(
+        f"data:audio/{audio_format};base64,"
+    ), "incorrect data URI format"
 
     # Verify the audio can be decoded
-    audio_data, _ = decode_audio(audio_dict)
+    audio_data, _ = decode_audio(data_uri)
     assert len(audio_data) > 0, "audio data is empty"
 
 
@@ -147,15 +162,15 @@ def test_audio_format(output_format):
     ],
 )
 def test_audio_parameters(sampling_rate_khz, bit_depth):
-    audio_dict = SyntheticAudioGenerator.create_synthetic_audio(
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
         audio_length_mean=1.0,
         audio_length_stddev=0,
         sampling_rates_khz=[sampling_rate_khz],
         bit_depths=[bit_depth],
-        output_format="wav",
+        audio_format="wav",
     )
 
-    _, sample_rate = decode_audio(audio_dict)
+    _, sample_rate = decode_audio(data_uri)
     assert sample_rate == sampling_rate_khz * 1000, "unexpected sampling rate"
 
 
@@ -166,7 +181,7 @@ def test_mp3_unsupported_sampling_rate():
             audio_length_stddev=0,
             sampling_rates_khz=[96],  # 96kHz is not supported for MP3
             bit_depths=[16],
-            output_format="mp3",
+            audio_format="mp3",
         )
     assert "MP3 format only supports" in str(
         exc_info.value

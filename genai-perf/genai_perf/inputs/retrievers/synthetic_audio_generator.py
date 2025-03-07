@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import base64
 import io
-from typing import List, Literal, TypedDict
+from typing import List, Literal
 
 import numpy as np
 import soundfile as sf
@@ -45,15 +45,13 @@ MP3_SUPPORTED_SAMPLE_RATES = {
     48000,
 }
 
-
-class InputAudio(TypedDict):
-    data: str
-    format: AudioFormat
-
-
-class AudioResponse(TypedDict):
-    type: Literal["input_audio"]
-    input_audio: InputAudio
+# Supported bit depths and their corresponding numpy types
+SUPPORTED_BIT_DEPTHS = {
+    8: (np.int8, "PCM_S8"),
+    16: (np.int16, "PCM_16"),
+    24: (np.int32, "PCM_24"),  # soundfile handles 24-bit as 32-bit
+    32: (np.int32, "PCM_32"),
+}
 
 
 class SyntheticAudioGenerator:
@@ -84,19 +82,19 @@ class SyntheticAudioGenerator:
                 return sample
 
     @staticmethod
-    def _validate_sampling_rate(sampling_rate: int, output_format: AudioFormat) -> None:
+    def _validate_sampling_rate(sampling_rate: int, audio_format: AudioFormat) -> None:
         """
         Validate sampling rate for the given output format.
 
         Args:
             sampling_rate: Sampling rate in Hz
-            output_format: Output audio format
+            audio_format: Audio format
 
         Raises:
             ValueError: If sampling rate is not supported for the given format
         """
         if (
-            output_format.lower() == "mp3"
+            audio_format.lower() == "mp3"
             and sampling_rate not in MP3_SUPPORTED_SAMPLE_RATES
         ):
             supported_rates = sorted(MP3_SUPPORTED_SAMPLE_RATES)
@@ -106,13 +104,32 @@ class SyntheticAudioGenerator:
             )
 
     @staticmethod
+    def _validate_bit_depth(bit_depth: int) -> None:
+        """
+        Validate bit depth is supported.
+
+        Args:
+            bit_depth: Bit depth in bits
+
+        Raises:
+            ValueError: If bit depth is not supported
+        """
+        if bit_depth not in SUPPORTED_BIT_DEPTHS:
+            supported_depths = sorted(SUPPORTED_BIT_DEPTHS.keys())
+            raise ValueError(
+                f"Unsupported bit depth: {bit_depth}. "
+                f"Supported bit depths are: {supported_depths}"
+            )
+
+    @staticmethod
     def create_synthetic_audio(
         audio_length_mean: float,
         audio_length_stddev: float,
         sampling_rates_khz: List[int],
         bit_depths: List[int],
-        output_format: AudioFormat = "wav",
-    ) -> AudioResponse:
+        audio_format: AudioFormat = "wav",
+        channels: int = 1,
+    ) -> str:
         """
         Generate synthetic audio data with specified parameters.
 
@@ -121,21 +138,23 @@ class SyntheticAudioGenerator:
             audio_length_stddev: Standard deviation of audio length in seconds
             sampling_rates_khz: List of allowed sampling rates in kHz
             bit_depths: List of allowed bit depths in bits
-            output_format: Output audio format, either "wav" or "mp3"
+            audio_format: Audio format, either "wav" or "mp3"
+            channels: Number of audio channels (1 for mono, 2 for stereo)
 
         Returns:
-            Dictionary compatible with OpenAI API input_audio format:
-            {
-                "type": "input_audio",
-                "input_audio": {
-                    "data": "<base64-encoded audio>",
-                    "format": "<wav or mp3>"
-                }
-            }
+            Data URI containing base64-encoded audio data with format specification
 
         Raises:
-            ValueError: If sampling rate is not supported for the given format
+            ValueError: If any of the following conditions are met:
+                - audio_length_mean is less than 0.1 seconds
+                - channels is not 1 (mono) or 2 (stereo)
+                - sampling rate is not supported for MP3 format
+                - bit depth is not supported (must be 8, 16, 24, or 32)
+                - audio format is not supported (must be 'wav' or 'mp3')
         """
+        if channels not in (1, 2):
+            raise ValueError("Only mono (1) and stereo (2) channels are supported")
+
         # Sample audio length (in seconds) using rejection sampling
         audio_length = SyntheticAudioGenerator._sample_positive_normal(
             audio_length_mean, audio_length_stddev
@@ -147,49 +166,46 @@ class SyntheticAudioGenerator:
         )  # Convert kHz to Hz
         bit_depth = np.random.choice(bit_depths)
 
-        # Validate sampling rate for the output format
-        SyntheticAudioGenerator._validate_sampling_rate(sampling_rate, output_format)
+        # Validate sampling rate and bit depth
+        SyntheticAudioGenerator._validate_sampling_rate(sampling_rate, audio_format)
+        SyntheticAudioGenerator._validate_bit_depth(bit_depth)
 
         # Generate synthetic audio data (gaussian noise)
         num_samples = int(audio_length * sampling_rate)
-        audio_data = np.random.normal(0, 0.3, num_samples)
+        audio_data = np.random.normal(
+            0, 0.3, (num_samples, channels) if channels > 1 else num_samples
+        )
 
         # Ensure the signal is within [-1, 1] range
         audio_data = np.clip(audio_data, -1, 1)
 
         # Scale to the appropriate bit depth range
         max_val = 2 ** (bit_depth - 1) - 1
-        audio_data = (audio_data * max_val).astype(
-            {
-                8: np.int8,
-                16: np.int16,
-                24: np.int32,  # soundfile can handle 24-bit as 32-bit
-                32: np.int32,
-            }[bit_depth]
-        )
+        numpy_type, _ = SUPPORTED_BIT_DEPTHS[bit_depth]
+        audio_data = (audio_data * max_val).astype(numpy_type)
 
         # Write audio using soundfile
         output_buffer = io.BytesIO()
 
         # Select appropriate subtype based on format
-        if output_format.upper() == "MP3":
+        if audio_format.upper() == "MP3":
             subtype = "MPEG_LAYER_III"
+        elif audio_format.upper() == "WAV":
+            _, subtype = SUPPORTED_BIT_DEPTHS[bit_depth]
         else:
-            subtype = {8: "PCM_S8", 16: "PCM_16", 24: "PCM_24", 32: "PCM_32"}[bit_depth]
+            raise ValueError(
+                f"Unsupported audio format: {audio_format}. Supported formats are: WAV, MP3"
+            )
 
         sf.write(
             output_buffer,
             audio_data,
             sampling_rate,
-            format=output_format.upper(),
+            format=audio_format.upper(),
             subtype=subtype,
         )
         audio_bytes = output_buffer.getvalue()
 
-        # Encode to base64
+        # Encode to base64 with data URI scheme
         base64_data = base64.b64encode(audio_bytes).decode("utf-8")
-
-        return {
-            "type": "input_audio",
-            "input_audio": {"data": base64_data, "format": output_format},
-        }
+        return f"data:audio/{audio_format};base64,{base64_data}"
