@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import argparse
 import sys
 from dataclasses import dataclass
@@ -38,19 +37,13 @@ import genai_perf.utils as utils
 from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers import AudioFormat, ImageFormat
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
-
-
-# TODO (TPA-1002): move to synthetic audio generator
-class AudioFormat(Enum):
-    WAV = auto()
-    MP3 = auto()
 
 
 class PathType(Enum):

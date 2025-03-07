@@ -23,14 +23,20 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 import base64
 import io
-from typing import List, Literal
+from enum import Enum, auto
+from typing import List
 
 import numpy as np
 import soundfile as sf
 
-AudioFormat = Literal["wav", "mp3"]
+
+class AudioFormat(Enum):
+    WAV = auto()
+    MP3 = auto()
+
 
 # MP3 supported sample rates in Hz
 MP3_SUPPORTED_SAMPLE_RATES = {
@@ -94,7 +100,7 @@ class SyntheticAudioGenerator:
             ValueError: If sampling rate is not supported for the given format
         """
         if (
-            audio_format.lower() == "mp3"
+            audio_format == AudioFormat.MP3
             and sampling_rate not in MP3_SUPPORTED_SAMPLE_RATES
         ):
             supported_rates = sorted(MP3_SUPPORTED_SAMPLE_RATES)
@@ -127,7 +133,7 @@ class SyntheticAudioGenerator:
         audio_length_stddev: float,
         sampling_rates_khz: List[int],
         bit_depths: List[int],
-        audio_format: AudioFormat = "wav",
+        audio_format: AudioFormat = AudioFormat.WAV,
         channels: int = 1,
     ) -> str:
         """
@@ -188,24 +194,25 @@ class SyntheticAudioGenerator:
         output_buffer = io.BytesIO()
 
         # Select appropriate subtype based on format
-        if audio_format.upper() == "MP3":
+        if audio_format == AudioFormat.MP3:
             subtype = "MPEG_LAYER_III"
-        elif audio_format.upper() == "WAV":
+        elif audio_format == AudioFormat.WAV:
             _, subtype = SUPPORTED_BIT_DEPTHS[bit_depth]
         else:
             raise ValueError(
-                f"Unsupported audio format: {audio_format}. Supported formats are: WAV, MP3"
+                f"Unsupported audio format: {audio_format.name}. "
+                f"Supported formats are: {AudioFormat.WAV.name}, {AudioFormat.MP3.name}"
             )
 
         sf.write(
             output_buffer,
             audio_data,
             sampling_rate,
-            format=audio_format.upper(),
+            format=audio_format.name,
             subtype=subtype,
         )
         audio_bytes = output_buffer.getvalue()
 
         # Encode to base64 with data URI scheme
         base64_data = base64.b64encode(audio_bytes).decode("utf-8")
-        return f"data:audio/{audio_format};base64,{base64_data}"
+        return f"data:audio/{audio_format.name.lower()};base64,{base64_data}"

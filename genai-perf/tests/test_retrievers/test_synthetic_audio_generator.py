@@ -32,6 +32,7 @@ import numpy as np
 import pytest
 import soundfile as sf
 from genai_perf.inputs.retrievers.synthetic_audio_generator import (
+    AudioFormat,
     SyntheticAudioGenerator,
 )
 
@@ -74,7 +75,7 @@ def test_different_audio_length(expected_audio_length):
         audio_length_stddev=0,
         sampling_rates_khz=[44],  # Fixed sampling rate for test
         bit_depths=[16],  # Fixed bit depth for test
-        audio_format="wav",
+        audio_format=AudioFormat.WAV,
     )
 
     audio_data, sample_rate = decode_audio(data_uri)
@@ -91,7 +92,7 @@ def test_negative_length_raises_error():
             audio_length_stddev=0,
             sampling_rates_khz=[44],
             bit_depths=[16],
-            audio_format="wav",
+            audio_format=AudioFormat.WAV,
         )
 
 
@@ -112,7 +113,7 @@ def test_generator_deterministic(
         audio_length_stddev=length_stddev,
         sampling_rates_khz=[sampling_rate_khz],
         bit_depths=[bit_depth],
-        audio_format="wav",
+        audio_format=AudioFormat.WAV,
     )
 
     np.random.seed(123)
@@ -122,7 +123,7 @@ def test_generator_deterministic(
         audio_length_stddev=length_stddev,
         sampling_rates_khz=[sampling_rate_khz],
         bit_depths=[bit_depth],
-        audio_format="wav",
+        audio_format=AudioFormat.WAV,
     )
 
     # Compare the actual audio data
@@ -131,7 +132,7 @@ def test_generator_deterministic(
     assert np.array_equal(audio_data1, audio_data2), "generator is nondeterministic"
 
 
-@pytest.mark.parametrize("audio_format", ["wav", "mp3"])
+@pytest.mark.parametrize("audio_format", [AudioFormat.WAV, AudioFormat.MP3])
 def test_audio_format(audio_format):
     # use sample rate supported by all formats (44.1kHz)
     sampling_rate = 44.1
@@ -145,24 +146,12 @@ def test_audio_format(audio_format):
 
     # Check data URI format
     assert data_uri.startswith(
-        f"data:audio/{audio_format};base64,"
+        f"data:audio/{audio_format.name.lower()};base64,"
     ), "incorrect data URI format"
 
     # Verify the audio can be decoded
     audio_data, _ = decode_audio(data_uri)
     assert len(audio_data) > 0, "audio data is empty"
-
-
-def test_unsupported_audio_format():
-    with pytest.raises(ValueError) as exc_info:
-        SyntheticAudioGenerator.create_synthetic_audio(
-            audio_length_mean=1.0,
-            audio_length_stddev=0,
-            sampling_rates_khz=[44],
-            bit_depths=[16],
-            audio_format="ogg",  # Unsupported format
-        )
-    assert "Supported formats are: WAV, MP3" in str(exc_info.value)
 
 
 def test_unsupported_bit_depth():
@@ -172,7 +161,7 @@ def test_unsupported_bit_depth():
             audio_length_stddev=0,
             sampling_rates_khz=[44],
             bit_depths=[12],  # Unsupported bit depth
-            audio_format="wav",
+            audio_format=AudioFormat.WAV,
         )
     assert "Supported bit depths are:" in str(exc_info.value)
 
@@ -184,7 +173,7 @@ def test_channels(channels):
         audio_length_stddev=0,
         sampling_rates_khz=[44],
         bit_depths=[16],
-        audio_format="wav",
+        audio_format=AudioFormat.WAV,
         channels=channels,
     )
 
@@ -203,7 +192,7 @@ def test_invalid_channels():
             audio_length_stddev=0,
             sampling_rates_khz=[44],
             bit_depths=[16],
-            audio_format="wav",
+            audio_format=AudioFormat.WAV,
             channels=3,  # Invalid number of channels
         )
     assert "Only mono (1) and stereo (2) channels are supported" in str(exc_info.value)
@@ -223,7 +212,7 @@ def test_audio_parameters(sampling_rate_khz, bit_depth):
         audio_length_stddev=0,
         sampling_rates_khz=[sampling_rate_khz],
         bit_depths=[bit_depth],
-        audio_format="wav",
+        audio_format=AudioFormat.WAV,
     )
 
     _, sample_rate = decode_audio(data_uri)
@@ -237,7 +226,7 @@ def test_mp3_unsupported_sampling_rate():
             audio_length_stddev=0,
             sampling_rates_khz=[96],  # 96kHz is not supported for MP3
             bit_depths=[16],
-            audio_format="mp3",
+            audio_format=AudioFormat.MP3,
         )
     assert "MP3 format only supports" in str(
         exc_info.value
