@@ -153,12 +153,68 @@ def test_audio_format(audio_format):
     assert len(audio_data) > 0, "audio data is empty"
 
 
+def test_unsupported_audio_format():
+    with pytest.raises(ValueError) as exc_info:
+        SyntheticAudioGenerator.create_synthetic_audio(
+            audio_length_mean=1.0,
+            audio_length_stddev=0,
+            sampling_rates_khz=[44],
+            bit_depths=[16],
+            audio_format="ogg",  # Unsupported format
+        )
+    assert "Supported formats are: WAV, MP3" in str(exc_info.value)
+
+
+def test_unsupported_bit_depth():
+    with pytest.raises(ValueError) as exc_info:
+        SyntheticAudioGenerator.create_synthetic_audio(
+            audio_length_mean=1.0,
+            audio_length_stddev=0,
+            sampling_rates_khz=[44],
+            bit_depths=[12],  # Unsupported bit depth
+            audio_format="wav",
+        )
+    assert "Supported bit depths are:" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("channels", [1, 2])
+def test_channels(channels):
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
+        audio_length_mean=1.0,
+        audio_length_stddev=0,
+        sampling_rates_khz=[44],
+        bit_depths=[16],
+        audio_format="wav",
+        channels=channels,
+    )
+
+    audio_data, _ = decode_audio(data_uri)
+    if channels == 1:
+        assert len(audio_data.shape) == 1, "mono audio should be 1D array"
+    else:
+        assert len(audio_data.shape) == 2, "stereo audio should be 2D array"
+        assert audio_data.shape[1] == 2, "stereo audio should have 2 channels"
+
+
+def test_invalid_channels():
+    with pytest.raises(ValueError) as exc_info:
+        SyntheticAudioGenerator.create_synthetic_audio(
+            audio_length_mean=1.0,
+            audio_length_stddev=0,
+            sampling_rates_khz=[44],
+            bit_depths=[16],
+            audio_format="wav",
+            channels=3,  # Invalid number of channels
+        )
+    assert "Only mono (1) and stereo (2) channels are supported" in str(exc_info.value)
+
+
 @pytest.mark.parametrize(
     "sampling_rate_khz, bit_depth",
     [
-        (44, 16),
-        (48, 24),
-        (96, 32),
+        (44.1, 16),  # Common CD quality
+        (48, 24),  # Studio quality
+        (96, 32),  # High-res audio
     ],
 )
 def test_audio_parameters(sampling_rate_khz, bit_depth):
