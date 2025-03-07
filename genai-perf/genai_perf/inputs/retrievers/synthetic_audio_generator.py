@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import base64
 import io
-from typing import Dict, List, Literal, TypedDict
+from typing import List, Literal, TypedDict
 
 import numpy as np
 import soundfile as sf
