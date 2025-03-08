@@ -1067,9 +1067,6 @@ class TestCLIArguments:
             ["--image-width-stddev", "-34"],
             ["--image-height-mean", "-123"],
             ["--image-height-stddev", "-34"],
-            # zeros
-            ["--image-width-mean", "0"],
-            ["--image-height-mean", "0"],
         ],
     )
     def test_positive_image_input_args(self, monkeypatch, args):
@@ -1090,7 +1087,6 @@ class TestCLIArguments:
             ["--audio-depths", "-16"],
             ["--audio-depths", "16", "-32"],  # mix
             # zeros
-            ["--audio-length-mean", "0"],
             ["--audio-sample-rates", "0"],
             ["--audio-depths", "0"],
         ],

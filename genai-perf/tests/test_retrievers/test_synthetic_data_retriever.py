@@ -12,19 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import cast
 from unittest.mock import patch
 
 import pytest
-from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME, OutputFormat
+from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
 from genai_perf.tokenizer import get_empty_tokenizer
 
+IMPORT_PREFIX = "genai_perf.inputs.retrievers.synthetic_data_retriever"
+
 
 class TestSyntheticDataRetriever:
+
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
     @pytest.mark.parametrize(
@@ -38,28 +40,67 @@ class TestSyntheticDataRetriever:
         config = InputsConfig(
             num_dataset_entries=num_dataset_entries,
             batch_size_text=batch_size_text,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
             tokenizer=get_empty_tokenizer(),
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
 
-        synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
-        assert (
-            len(dataset.files_data[synthetic_input_filenames[0]].rows)
-            == num_dataset_entries
-        )
-        for row in dataset.files_data[synthetic_input_filenames[0]].rows:
+        file_data = dataset.files_data[DEFAULT_SYNTHETIC_FILENAME]
+        assert len(file_data.rows) == num_dataset_entries
+
+        for row in file_data.rows:
             assert len(row.texts) == batch_size_text
+            assert len(row.images) == 0  # No images should be generated
             assert all(text == "test prompt" for text in row.texts)
 
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticImageGenerator.create_synthetic_image",
+        f"{IMPORT_PREFIX}.SyntheticImageGenerator.create_synthetic_image",
+        return_value="data:image/jpeg;base64,test_base64_encoding",
+    )
+    @pytest.mark.parametrize(
+        "num_dataset_entries",
+        [
+            123,
+            456,
+        ],
+    )
+    def test_synthetic_text_and_image(
+        self, mock_prompt, mock_image, num_dataset_entries
+    ):
+        """
+        Test synthetic data generation when both text and image are generated.
+        Assume single batch size for both text and image.
+        """
+        config = InputsConfig(
+            tokenizer=get_empty_tokenizer(),
+            num_dataset_entries=num_dataset_entries,
+            # Set the image width and height to non-zero values
+            # to ensure images are generated
+            image_width_mean=10,
+            image_height_mean=10,
+        )
+        synthetic_retriever = SyntheticDataRetriever(config)
+        dataset = synthetic_retriever.retrieve_data()
+
+        file_data = dataset.files_data[DEFAULT_SYNTHETIC_FILENAME]
+        assert len(file_data.rows) == num_dataset_entries
+
+        for row in file_data.rows:
+            assert len(row.texts) == 1
+            assert len(row.images) == 1
+            assert row.texts[0] == "test prompt"
+            assert row.images[0] == "data:image/jpeg;base64,test_base64_encoding"
+
+    @patch(
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
+        return_value="test prompt",
+    )
+    @patch(
+        f"{IMPORT_PREFIX}.SyntheticImageGenerator.create_synthetic_image",
         return_value="data:image/jpeg;base64,test_base64_encoding",
     )
     @pytest.mark.parametrize(
@@ -70,7 +111,7 @@ class TestSyntheticDataRetriever:
             (1, 2, 1),
         ],
     )
-    def test_synthetic_text_and_image(
+    def test_synthetic_batched_text_and_image(
         self,
         mock_prompt,
         mock_image,
@@ -78,24 +119,27 @@ class TestSyntheticDataRetriever:
         batch_size_image,
         num_dataset_entries,
     ):
+        """
+        Test synthetic data generation when both text and image are generated.
+        Assume different batch sizes for text and image.
+        """
         config = InputsConfig(
-            num_dataset_entries=num_dataset_entries,
+            tokenizer=get_empty_tokenizer(),
             batch_size_text=batch_size_text,
             batch_size_image=batch_size_image,
-            output_format=OutputFormat.OPENAI_VISION,
-            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
-            tokenizer=get_empty_tokenizer(),
+            num_dataset_entries=num_dataset_entries,
+            # Set the image width and height to non-zero values
+            # to ensure images are generated
+            image_width_mean=10,
+            image_height_mean=10,
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
 
-        synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
-        assert (
-            len(dataset.files_data[synthetic_input_filenames[0]].rows)
-            == num_dataset_entries
-        )
+        file_data = dataset.files_data[DEFAULT_SYNTHETIC_FILENAME]
+        assert len(file_data.rows) == num_dataset_entries
 
-        for row in dataset.files_data[synthetic_input_filenames[0]].rows:
+        for row in file_data.rows:
             assert len(row.texts) == batch_size_text
             assert len(row.images) == batch_size_image
             assert all(text == "test prompt" for text in row.texts)
@@ -105,87 +149,85 @@ class TestSyntheticDataRetriever:
             )
 
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
-    @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticImageGenerator.create_synthetic_image",
-        return_value="data:image/jpeg;base64,test_base64_encoding",
+    @pytest.mark.parametrize(
+        "input_filenames, num_dataset_entries",
+        [
+            (["file1.jsonl"], 2),
+            (["file1.jsonl", "file2.jsonl"], 4),
+        ],
     )
-    def test_synthetic_multiple_files(self, mock_prompt, mock_image):
+    def test_synthetic_multiple_files(
+        self, mock_prompt, input_filenames, num_dataset_entries
+    ):
         """
         Test synthetic data generation when multiple synthetic files are specified.
         """
         config = InputsConfig(
-            num_dataset_entries=2,
-            batch_size_text=1,
-            batch_size_image=1,
-            synthetic_input_filenames=["file1.jsonl", "file2.jsonl"],
-            output_format=OutputFormat.OPENAI_VISION,
+            synthetic_input_filenames=input_filenames,
+            num_dataset_entries=num_dataset_entries,
             tokenizer=get_empty_tokenizer(),
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
 
-        assert len(dataset.files_data) == 2
-        assert "file1.jsonl" in dataset.files_data
-        assert "file2.jsonl" in dataset.files_data
+        assert len(dataset.files_data) == len(input_filenames)
+        for filename in input_filenames:
+            assert filename in dataset.files_data
 
         for file_data in dataset.files_data.values():
-            assert len(file_data.rows) == 2
+            assert len(file_data.rows) == num_dataset_entries
 
             for row in file_data.rows:
                 assert len(row.texts) == 1
-                assert len(row.images) == 1
+                assert len(row.images) == 0  # No images should be generated
                 assert row.texts[0] == "test prompt"
-                assert row.images[0] == "data:image/jpeg;base64,test_base64_encoding"
 
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
+    @patch(f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_prefix_prompts_pool")
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_prefix_prompts_pool"
-    )
-    @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.get_random_prefix_prompt",
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.get_random_prefix_prompt",
         return_value="prompt prefix",
+    )
+    @pytest.mark.parametrize(
+        "num_prefix_prompts, prefix_prompt_length, num_dataset_entries",
+        [
+            (1, 123, 20),
+            (5, 456, 30),
+        ],
     )
     def test_synthetic_with_prefix_prompts(
         self,
         mock_random_prefix_prompt,
         mock_create_prefix_prompts_pool,
         mock_create_synthetic_prompt,
+        num_prefix_prompts,
+        prefix_prompt_length,
+        num_dataset_entries,
     ):
         config = InputsConfig(
-            num_dataset_entries=3,
-            num_prefix_prompts=3,
-            prefix_prompt_length=20,
-            batch_size_text=1,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            synthetic_input_filenames=[DEFAULT_SYNTHETIC_FILENAME],
+            num_dataset_entries=num_dataset_entries,
+            num_prefix_prompts=num_prefix_prompts,
+            prefix_prompt_length=prefix_prompt_length,
             tokenizer=get_empty_tokenizer(),
         )
 
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
 
-        # Validate the number of rows in the retrieved dataset matches the expected count
-        synthetic_input_filenames = cast(list[str], config.synthetic_input_filenames)
-        expected_row_count = config.num_dataset_entries
-        actual_row_count = len(dataset.files_data[synthetic_input_filenames[0]].rows)
-
-        assert (
-            actual_row_count == expected_row_count
-        ), f"Expected {expected_row_count} rows, got {actual_row_count}"
+        file_data = dataset.files_data[DEFAULT_SYNTHETIC_FILENAME]
+        assert len(file_data.rows) == num_dataset_entries
 
         # Ensure the prompt prefix pool was created exactly once
         mock_create_prefix_prompts_pool.assert_called_once()
 
         # Validate that every text in the dataset has the right prefix
-        for row_index, row in enumerate(
-            dataset.files_data[synthetic_input_filenames[0]].rows
-        ):
+        for row_index, row in enumerate(file_data.rows):
             expected_prefix = "prompt prefix "
             for text_index, text in enumerate(row.texts):
                 assert text.startswith(
@@ -193,20 +235,18 @@ class TestSyntheticDataRetriever:
                 ), f"Row {row_index}, text {text_index}: text does not start with '{expected_prefix}'. Actual: '{text}'"
 
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.uuid.uuid4",
+        f"{IMPORT_PREFIX}.uuid.uuid4",
         side_effect=[
             f"session_{i}" for i in range(10)
         ],  # Generate predictable session IDs
     )
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_synthetic_prompt",
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
         return_value="test prompt",
     )
+    @patch(f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_prefix_prompts_pool")
     @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.create_prefix_prompts_pool"
-    )
-    @patch(
-        "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticPromptGenerator.get_random_prefix_prompt",
+        f"{IMPORT_PREFIX}.SyntheticPromptGenerator.get_random_prefix_prompt",
         return_value="prompt prefix",
     )
     @pytest.mark.parametrize(
@@ -230,7 +270,6 @@ class TestSyntheticDataRetriever:
         config = InputsConfig(
             num_sessions=num_sessions,
             num_prefix_prompts=3,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
             prefix_prompt_length=20,
             session_turn_delay_mean=session_turn_delay_ms,
             session_turn_delay_stddev=0,
