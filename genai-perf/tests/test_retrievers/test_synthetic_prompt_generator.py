@@ -27,8 +27,8 @@
 from contextlib import nullcontext as does_not_raise
 
 import pytest
-from genai_perf.exceptions import GenAIPerfException
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
@@ -79,7 +79,9 @@ class TestSyntheticPromptGenerator:
         ],
     )
     def test_generate_prompt_with_token_reuse(self, test_num_tokens, context):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         with context:
             _ = SyntheticPromptGenerator._generate_prompt_with_token_reuse(
                 tokenizer=tokenizer,
