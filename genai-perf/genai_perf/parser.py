@@ -171,9 +171,9 @@ def _check_image_input_args(
     """
     Sanity check the image input args
     """
-    if args.image_width_mean <= 0 or args.image_height_mean <= 0:
+    if args.image_width_mean < 0 or args.image_height_mean < 0:
         parser.error(
-            "Both --image-width-mean and --image-height-mean values must be positive."
+            "Both --image-width-mean and --image-height-mean values must be non-negative."
         )
     if args.image_width_stddev < 0 or args.image_height_stddev < 0:
         parser.error(
@@ -190,8 +190,8 @@ def _check_audio_input_args(
     """
     Sanity check the audio input args
     """
-    if args.audio_length_mean <= 0:
-        parser.error("The --audio-length-mean value must be positive.")
+    if args.audio_length_mean < 0:
+        parser.error("The --audio-length-mean value must be non-negative.")
     if args.audio_length_stddev < 0:
         parser.error("The --audio-length-stddev value must be non-negative.")
     if any(r <= 0 for r in args.audio_sample_rates):

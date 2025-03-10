@@ -78,7 +78,7 @@ PAYLOAD_METADATA_INT_FIELDS = ["timestamp", "delay"]
 ###########################
 # Default Audio Parameters
 ###########################
-DEFAULT_AUDIO_LENGTH_MEAN = 10
+DEFAULT_AUDIO_LENGTH_MEAN = 0
 DEFAULT_AUDIO_LENGTH_STDDEV = 0
 DEFAULT_AUDIO_FORMAT = "wav"
 DEFAULT_AUDIO_DEPTHS = [16]
@@ -106,9 +106,9 @@ DEFAULT_PREFIX_PROMPT_LENGTH = 100
 ###########################
 # Default Image Parameters
 ###########################
-DEFAULT_IMAGE_WIDTH_MEAN = 100
+DEFAULT_IMAGE_WIDTH_MEAN = 0
 DEFAULT_IMAGE_WIDTH_STDDEV = 0
-DEFAULT_IMAGE_HEIGHT_MEAN = 100
+DEFAULT_IMAGE_HEIGHT_MEAN = 0
 DEFAULT_IMAGE_HEIGHT_STDDEV = 0
 
 ###########################
