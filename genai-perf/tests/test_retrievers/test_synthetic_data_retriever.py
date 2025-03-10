@@ -36,7 +36,10 @@ class TestSyntheticDataRetriever:
             (2, 2),
         ],
     )
-    def test_synthetic_text(self, mock_prompt, batch_size_text, num_dataset_entries):
+    def test_synthetic_default(self, mock_prompt, batch_size_text, num_dataset_entries):
+        """
+        Test default synthetic data generation where only text is generated.
+        """
         config = InputsConfig(
             num_dataset_entries=num_dataset_entries,
             batch_size_text=batch_size_text,
@@ -51,6 +54,7 @@ class TestSyntheticDataRetriever:
         for row in file_data.rows:
             assert len(row.texts) == batch_size_text
             assert len(row.images) == 0  # No images should be generated
+            assert len(row.audios) == 0  # No audio should be generated
             assert all(text == "test prompt" for text in row.texts)
 
     @patch(
@@ -61,27 +65,39 @@ class TestSyntheticDataRetriever:
         f"{IMPORT_PREFIX}.SyntheticImageGenerator.create_synthetic_image",
         return_value="data:image/jpeg;base64,test_base64_encoding",
     )
+    @patch(
+        f"{IMPORT_PREFIX}.SyntheticAudioGenerator.create_synthetic_audio",
+        return_value="data:audio/wav;base64,test_base64_encoding",
+    )
     @pytest.mark.parametrize(
-        "num_dataset_entries",
+        "num_dataset_entries, image_width_height, audio_length",
         [
-            123,
-            456,
+            (200, 10, 10),  # Text and image
+            (300, 0, 10),  # Text and audio
+            (400, 10, 10),  # Text, image, and audio
         ],
     )
-    def test_synthetic_text_and_image(
-        self, mock_prompt, mock_image, num_dataset_entries
+    def test_synthetic_multi_modal(
+        self,
+        mock_prompt,
+        mock_image,
+        mock_audio,
+        num_dataset_entries,
+        image_width_height,
+        audio_length,
     ):
         """
-        Test synthetic data generation when both text and image are generated.
-        Assume single batch size for both text and image.
+        Test synthetic data generation where text, image, and audio are generated.
+        Assume single batch size for all modalities.
         """
         config = InputsConfig(
             tokenizer=get_empty_tokenizer(),
             num_dataset_entries=num_dataset_entries,
-            # Set the image width and height to non-zero values
-            # to ensure images are generated
-            image_width_mean=10,
-            image_height_mean=10,
+            # Set image and audio sizes to non-zero values
+            # to ensure they are generated
+            image_width_mean=image_width_height,
+            image_height_mean=image_width_height,
+            audio_length_mean=audio_length,
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
@@ -91,9 +107,14 @@ class TestSyntheticDataRetriever:
 
         for row in file_data.rows:
             assert len(row.texts) == 1
-            assert len(row.images) == 1
             assert row.texts[0] == "test prompt"
-            assert row.images[0] == "data:image/jpeg;base64,test_base64_encoding"
+
+            if synthetic_retriever._include_image:
+                assert len(row.images) == 1
+                assert row.images[0] == "data:image/jpeg;base64,test_base64_encoding"
+            if synthetic_retriever._include_audio:
+                assert len(row.audios) == 1
+                assert row.audios[0] == "data:audio/wav;base64,test_base64_encoding"
 
     @patch(
         f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
@@ -103,20 +124,31 @@ class TestSyntheticDataRetriever:
         f"{IMPORT_PREFIX}.SyntheticImageGenerator.create_synthetic_image",
         return_value="data:image/jpeg;base64,test_base64_encoding",
     )
+    @patch(
+        f"{IMPORT_PREFIX}.SyntheticAudioGenerator.create_synthetic_audio",
+        return_value="data:audio/wav;base64,test_base64_encoding",
+    )
     @pytest.mark.parametrize(
-        "batch_size_text, batch_size_image, num_dataset_entries",
+        "batch_size_text, batch_size_image, batch_size_audio, num_dataset_entries",
         [
-            (1, 1, 3),
-            (2, 1, 2),
-            (1, 2, 1),
+            (1, 1, 1, 3),  # All single batch size
+            (2, 1, 1, 2),  # Text batch size >1
+            (1, 2, 1, 3),  # Image batch size >1
+            (1, 1, 2, 4),  # Audio batch size >1
+            (3, 2, 1, 5),  # Text and image batch size >1
+            (3, 1, 2, 6),  # Text and audio batch size >1
+            (1, 2, 3, 7),  # Image and audio batch size >1
+            (3, 3, 3, 8),  # Text, image, and audio batch size >1
         ],
     )
-    def test_synthetic_batched_text_and_image(
+    def test_synthetic_batched_multi_modal(
         self,
         mock_prompt,
         mock_image,
+        mock_audio,
         batch_size_text,
         batch_size_image,
+        batch_size_audio,
         num_dataset_entries,
     ):
         """
@@ -127,11 +159,13 @@ class TestSyntheticDataRetriever:
             tokenizer=get_empty_tokenizer(),
             batch_size_text=batch_size_text,
             batch_size_image=batch_size_image,
+            batch_size_audio=batch_size_audio,
             num_dataset_entries=num_dataset_entries,
-            # Set the image width and height to non-zero values
-            # to ensure images are generated
+            # Set image and audio sizes to non-zero values
+            # to ensure they are generated
             image_width_mean=10,
             image_height_mean=10,
+            audio_length_mean=5,
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()
@@ -142,10 +176,15 @@ class TestSyntheticDataRetriever:
         for row in file_data.rows:
             assert len(row.texts) == batch_size_text
             assert len(row.images) == batch_size_image
+            assert len(row.audios) == batch_size_audio
             assert all(text == "test prompt" for text in row.texts)
             assert all(
                 image == "data:image/jpeg;base64,test_base64_encoding"
                 for image in row.images
+            )
+            assert all(
+                audio == "data:audio/wav;base64,test_base64_encoding"
+                for audio in row.audios
             )
 
     @patch(
@@ -183,6 +222,7 @@ class TestSyntheticDataRetriever:
             for row in file_data.rows:
                 assert len(row.texts) == 1
                 assert len(row.images) == 0  # No images should be generated
+                assert len(row.audios) == 0  # No audio should be generated
                 assert row.texts[0] == "test prompt"
 
     @patch(

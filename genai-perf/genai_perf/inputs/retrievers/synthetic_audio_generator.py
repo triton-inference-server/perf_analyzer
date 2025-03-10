@@ -131,7 +131,7 @@ class SyntheticAudioGenerator:
     def create_synthetic_audio(
         audio_length_mean: float,
         audio_length_stddev: float,
-        sampling_rates_khz: List[int],
+        sampling_rates_khz: List[float],
         bit_depths: List[int],
         audio_format: AudioFormat = AudioFormat.WAV,
         channels: int = 1,

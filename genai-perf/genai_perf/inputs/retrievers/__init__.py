@@ -12,5 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .synthetic_audio_generator import AudioFormat
-from .synthetic_image_generator import ImageFormat
+from .synthetic_audio_generator import AudioFormat, SyntheticAudioGenerator
+from .synthetic_image_generator import ImageFormat, SyntheticImageGenerator
+from .synthetic_prompt_generator import SyntheticPromptGenerator
