@@ -172,6 +172,12 @@ def create_config_options(args: Namespace) -> InputsConfig:
         raise GenAIPerfException(e)
 
     return InputsConfig(
+        audio_length_mean=args.audio_length_mean,
+        audio_length_stddev=args.audio_length_stddev,
+        audio_sample_rates=args.audio_sample_rates,
+        audio_depths=args.audio_depths,
+        audio_num_channels=args.audio_num_channels,
+        audio_format=args.audio_format,
         input_type=args.prompt_source,
         output_format=args.output_format,
         model_name=args.model,
@@ -197,7 +203,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         tokenizer=get_tokenizer(
             args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
         ),
-        extra_inputs=extra_input_dict,
+        batch_size_audio=args.batch_size_audio,
         batch_size_image=args.batch_size_image,
         batch_size_text=args.batch_size_text,
         output_dir=args.artifact_dir,
@@ -208,6 +214,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         session_turns_stddev=args.session_turns_stddev,
         session_turn_delay_mean=args.session_turn_delay_mean,
         session_turn_delay_stddev=args.session_turn_delay_stddev,
+        extra_inputs=extra_input_dict,
     )
 
 

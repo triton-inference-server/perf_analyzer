@@ -28,31 +28,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from genai_perf.inputs.input_constants import (
-    DEFAULT_IMAGE_HEIGHT_MEAN,
-    DEFAULT_IMAGE_HEIGHT_STDDEV,
-    DEFAULT_IMAGE_WIDTH_MEAN,
-    DEFAULT_IMAGE_WIDTH_STDDEV,
-    DEFAULT_LENGTH,
-    DEFAULT_NUM_DATASET_ENTRIES,
-    DEFAULT_NUM_PREFIX_PROMPTS,
-    DEFAULT_NUM_SESSIONS,
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    DEFAULT_OUTPUT_TOKENS_STDDEV,
-    DEFAULT_PREFIX_PROMPT_LENGTH,
-    DEFAULT_PROMPT_TOKENS_MEAN,
-    DEFAULT_PROMPT_TOKENS_STDDEV,
-    DEFAULT_RANDOM_SEED,
-    DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
-    DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
-    DEFAULT_SESSION_TURNS_MEAN,
-    DEFAULT_SESSION_TURNS_STDDEV,
-    DEFAULT_STARTING_INDEX,
-    ModelSelectionStrategy,
-    OutputFormat,
-    PromptSource,
-)
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.input_constants import *
+from genai_perf.inputs.retrievers import AudioFormat, ImageFormat
 from genai_perf.tokenizer import Tokenizer
 
 
@@ -72,11 +49,14 @@ class InputsConfig:
     # If true, adds a steam field to each payload
     add_stream: bool = False
 
+    # The number of audio inputs per request
+    batch_size_audio: int = DEFAULT_BATCH_SIZE
+
     # The number of image inputs per request
-    batch_size_image: int = 1
+    batch_size_image: int = DEFAULT_BATCH_SIZE
 
     # The number of text inputs per request
-    batch_size_text: int = 1
+    batch_size_text: int = DEFAULT_BATCH_SIZE
 
     # If provided, append these inputs to every request
     extra_inputs: Dict[str, Any] = field(default_factory=dict)
@@ -89,21 +69,6 @@ class InputsConfig:
 
     # The filename where payload input data is available
     payload_input_filename: Optional[Path] = Path("")
-
-    # The compression format of the images.
-    image_format: ImageFormat = ImageFormat.PNG
-
-    # The mean height of images when generating synthetic image data.
-    image_height_mean: int = DEFAULT_IMAGE_HEIGHT_MEAN
-
-    # The standard deviation of height of images when generating synthetic image data.
-    image_height_stddev: int = DEFAULT_IMAGE_HEIGHT_STDDEV
-
-    # The mean width of images when generating synthetic image data.
-    image_width_mean: int = DEFAULT_IMAGE_WIDTH_MEAN
-
-    # The standard deviation of width of images when generating synthetic image data.
-    image_width_stddev: int = DEFAULT_IMAGE_WIDTH_STDDEV
 
     # Specify how the input is received
     input_type: PromptSource = PromptSource.SYNTHETIC
@@ -173,3 +138,44 @@ class InputsConfig:
 
     # The standard deviation of the delay between turns in a session
     session_turn_delay_stddev: int = DEFAULT_SESSION_TURN_DELAY_STDDEV_MS
+
+    #######################################
+    # Synthetic Audio Generation Parameters
+    #######################################
+
+    # The mean length of the audio to generate in seconds.
+    audio_length_mean: float = DEFAULT_AUDIO_LENGTH_MEAN
+
+    # The standard deviation of the length of the audio to generate in seconds.
+    audio_length_stddev: float = DEFAULT_AUDIO_LENGTH_STDDEV
+
+    # The sampling rates of the audio to generate in kHz.
+    audio_sample_rates: List[float] = field(default_factory=list)
+
+    # The bit depths of the audio to generate.
+    audio_depths: List[int] = field(default_factory=list)
+
+    # The number of channels of the audio to generate.
+    audio_num_channels: int = DEFAULT_AUDIO_NUM_CHANNELS
+
+    # The format of the audio to generate.
+    audio_format: AudioFormat = AudioFormat.WAV
+
+    #######################################
+    # Synthetic Image Generation Parameters
+    #######################################
+
+    # The compression format of the images.
+    image_format: ImageFormat = ImageFormat.PNG
+
+    # The mean height of images when generating synthetic image data.
+    image_height_mean: int = DEFAULT_IMAGE_HEIGHT_MEAN
+
+    # The standard deviation of height of images when generating synthetic image data.
+    image_height_stddev: int = DEFAULT_IMAGE_HEIGHT_STDDEV
+
+    # The mean width of images when generating synthetic image data.
+    image_width_mean: int = DEFAULT_IMAGE_WIDTH_MEAN
+
+    # The standard deviation of width of images when generating synthetic image data.
+    image_width_stddev: int = DEFAULT_IMAGE_WIDTH_STDDEV

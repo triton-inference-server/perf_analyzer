@@ -651,15 +651,15 @@ def _add_audio_input_args(parser):
 
     input_group.add_argument(
         "--audio-length-mean",
-        type=int,
+        type=float,
         default=ic.DEFAULT_AUDIO_LENGTH_MEAN,
         required=False,
-        help=f"The mean length of audio data in seconds. " "Default is 10 seconds.",
+        help=f"The mean length of audio data in seconds. Default is 10 seconds.",
     )
 
     input_group.add_argument(
         "--audio-length-stddev",
-        type=int,
+        type=float,
         default=ic.DEFAULT_AUDIO_LENGTH_STDDEV,
         required=False,
         help=f"The standard deviation of the length of audio data in seconds. "
@@ -868,6 +868,15 @@ def _add_image_input_args(parser):
 
 def _add_input_args(parser):
     input_group = parser.add_argument_group("Input")
+
+    input_group.add_argument(
+        "--batch-size-audio",
+        type=int,
+        default=ic.DEFAULT_BATCH_SIZE,
+        required=False,
+        help=f"The audio batch size of the requests GenAI-Perf should send. "
+        "This is currently supported with the OpenAI `multimodal` endpoint type.",
+    )
 
     input_group.add_argument(
         "--batch-size-image",

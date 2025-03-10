@@ -488,6 +488,13 @@ Currently only 1 (mono) and 2 (stereo) are supported.
 
 ##### `-b <int>`
 ##### `--batch-size <int>`
+
+##### `--batch-size-audio <int>`
+
+The audio batch size of the requests GenAI-Perf should send.
+This is currently only supported with the OpenAI `multimodal` endpoint type.
+(default: `1`)
+
 ##### `--batch-size-text <int>`
 
 The text batch size of the requests GenAI-Perf should send.
