@@ -1319,7 +1319,10 @@ def add_cli_options_to_config(
 
     # Endpoint
     config.endpoint.model_selection_strategy = args.model_selection_strategy
-    config.endpoint.backend = args.backend
+
+    if args.backend.name.lower() != ic.DEFAULT_BACKEND:
+        config.endpoint.backend = args.backend
+
     config.endpoint.custom = args.endpoint
     config.endpoint.type = args.endpoint_type
     config.endpoint.service_kind = args.service_kind
@@ -1332,6 +1335,7 @@ def add_cli_options_to_config(
         config.endpoint.url = args.u
 
     config.endpoint.output_format = args.output_format
+    config.endpoint.grpc_method = args.grpc_method
 
     # Perf Analyzer
     # config.perf_analyzer.path - There is no equivalent setting in the CLI
@@ -1391,6 +1395,10 @@ def add_cli_options_to_config(
     config.tokenizer.name = args.tokenizer
     config.tokenizer.revision = args.tokenizer_revision
     config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
+
+    config._infer_settings()
+    config._check_for_illegal_combinations()
+    config._check_profile_export_file()
 
     return config
 

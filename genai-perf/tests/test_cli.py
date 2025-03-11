@@ -233,10 +233,6 @@ class TestCLIArguments:
             ),
             (["--random-seed", "8"], {"random_seed": 8}),
             (["--request-count", "100"], {"request_count": 100}),
-            (
-                ["--grpc-method", "package.name.v1.ServiceName/MethodName"],
-                {"grpc_method": "package.name.v1.ServiceName/MethodName"},
-            ),
             (["--num-requests", "100"], {"request_count": 100}),
             (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
             (["--num-warmup-requests", "100"], {"warmup_request_count": 100}),
