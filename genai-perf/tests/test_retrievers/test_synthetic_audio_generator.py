@@ -41,21 +41,14 @@ def decode_audio(data_uri: str) -> tuple[np.ndarray, int]:
     """Helper function to decode audio from data URI format.
 
     Args:
-        data_uri: Data URI string in format "data:audio/{format};base64,{data}"
+        data_uri: Data URI string in format "format,b64_data"
 
     Returns:
         Tuple of (audio_data: np.ndarray, sample_rate: int)
     """
     # Parse data URI
-    assert data_uri.startswith("data:audio/"), "Invalid data URI format"
-    # Skip "data:audio/" and split at first semicolon
-    format_and_data = data_uri[11:].split(";", 1)
-    assert len(format_and_data) == 2, "Invalid data URI format"
-    assert format_and_data[1].startswith("base64,"), "Invalid data URI format"
-
-    # Get the base64 data
-    base64_data = format_and_data[1][7:]  # Skip "base64,"
-    decoded_data = base64.b64decode(base64_data)
+    _, b64_data = data_uri.split(",")
+    decoded_data = base64.b64decode(b64_data)
 
     # Load audio using soundfile - format is auto-detected from content
     audio_data, sample_rate = sf.read(io.BytesIO(decoded_data))
@@ -146,7 +139,7 @@ def test_audio_format(audio_format):
 
     # Check data URI format
     assert data_uri.startswith(
-        f"data:audio/{audio_format.name.lower()};base64,"
+        f"{audio_format.name.lower()},"
     ), "incorrect data URI format"
 
     # Verify the audio can be decoded

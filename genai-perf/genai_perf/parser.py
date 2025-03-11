@@ -89,8 +89,8 @@ _endpoint_type_map = {
     ),
     "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
     "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    "vision": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
+    "multimodal": EndpointConfig(
+        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_MULTIMODAL
     ),
     "generate": EndpointConfig(
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE

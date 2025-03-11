@@ -67,7 +67,7 @@ class TestSyntheticDataRetriever:
     )
     @patch(
         f"{IMPORT_PREFIX}.SyntheticAudioGenerator.create_synthetic_audio",
-        return_value="data:audio/wav;base64,test_base64_encoding",
+        return_value="wav,test_base64_encoding",
     )
     @pytest.mark.parametrize(
         "num_dataset_entries, image_width_height, audio_length",
@@ -114,7 +114,7 @@ class TestSyntheticDataRetriever:
                 assert row.images[0] == "data:image/jpeg;base64,test_base64_encoding"
             if synthetic_retriever._include_audio:
                 assert len(row.audios) == 1
-                assert row.audios[0] == "data:audio/wav;base64,test_base64_encoding"
+                assert row.audios[0] == "wav,test_base64_encoding"
 
     @patch(
         f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",
@@ -126,7 +126,7 @@ class TestSyntheticDataRetriever:
     )
     @patch(
         f"{IMPORT_PREFIX}.SyntheticAudioGenerator.create_synthetic_audio",
-        return_value="data:audio/wav;base64,test_base64_encoding",
+        return_value="wav,test_base64_encoding",
     )
     @pytest.mark.parametrize(
         "batch_size_text, batch_size_image, batch_size_audio, num_dataset_entries",
@@ -182,10 +182,7 @@ class TestSyntheticDataRetriever:
                 image == "data:image/jpeg;base64,test_base64_encoding"
                 for image in row.images
             )
-            assert all(
-                audio == "data:audio/wav;base64,test_base64_encoding"
-                for audio in row.audios
-            )
+            assert all(audio == "wav,test_base64_encoding" for audio in row.audios)
 
     @patch(
         f"{IMPORT_PREFIX}.SyntheticPromptGenerator.create_synthetic_prompt",

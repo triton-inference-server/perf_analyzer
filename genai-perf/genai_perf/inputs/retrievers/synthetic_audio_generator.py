@@ -213,6 +213,6 @@ class SyntheticAudioGenerator:
         )
         audio_bytes = output_buffer.getvalue()
 
-        # Encode to base64 with data URI scheme
+        # Encode to base64 with data URI scheme: "{format},{data}"
         base64_data = base64.b64encode(audio_bytes).decode("utf-8")
-        return f"data:audio/{audio_format.name.lower()};base64,{base64_data}"
+        return f"{audio_format.name.lower()},{base64_data}"

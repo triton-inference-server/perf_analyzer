@@ -53,7 +53,7 @@ class OutputFormat(Enum):
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()
     OPENAI_EMBEDDINGS = auto()
-    OPENAI_VISION = auto()
+    OPENAI_MULTIMODAL = auto()
     RANKINGS = auto()
     TEMPLATE = auto()
     TENSORRTLLM_ENGINE = auto()
