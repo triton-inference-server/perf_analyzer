@@ -50,7 +50,7 @@ running when GenAI-Perf is run.
 
 You can use GenAI-Perf to run performance benchmarks on
 - [Large Language Models](docs/tutorial.md)
-- [Vision Language Models](docs/multi_modal.md)
+- [Multi-Modal Language Models](docs/multi_modal.md)
 - [Embedding Models](docs/embeddings.md)
 - [Ranking Models](docs/rankings.md)
 - [Multiple LoRA Adapters](docs/lora.md)
