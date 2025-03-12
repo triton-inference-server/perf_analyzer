@@ -45,7 +45,7 @@ class Statistics:
     The Statistics class goes through each metric in the metrics class and
     calculates several statistics such as:
       - average (arithmetic mean)
-      - percentiles (p25, p50, p75, p90, p95, p99)
+      - percentiles (p1, p5, p10, p25, p50, p75, p90, p95, p99)
       - minimum & maximum
       - standard deviation
     The class will store each calculated statistics as part of its attribute.

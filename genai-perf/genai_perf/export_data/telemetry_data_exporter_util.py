@@ -42,6 +42,9 @@ TELEMETRY_DYNAMIC_METRICS_HEADER = [
     "p75",
     "p50",
     "p25",
+    "p10",
+    "p5",
+    "p1",
 ]
 
 TELEMETRY_CONSTANT_METRICS_HEADER = [
