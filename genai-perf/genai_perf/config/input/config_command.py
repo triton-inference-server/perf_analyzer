@@ -50,7 +50,7 @@ class ConfigCommand(BaseConfig):
         super().__init__()
 
         self.model_names: Any = ConfigField(
-            default=TopLevelDefaults.MODEL_NAME,
+            default=TopLevelDefaults.MODEL_NAMES,
             required=True,
             add_to_template=True,
             verbose_template_comment="The name of the model(s) to benchmark.",
@@ -69,28 +69,26 @@ class ConfigCommand(BaseConfig):
     # Top-Level Parsing Methods
     ###########################################################################
     def _parse_yaml(self, user_config: Optional[Dict[str, Any]] = None) -> None:
-        if not user_config:
-            return
-
-        for key, value in user_config.items():
-            if key == "model_name" or key == "model_names":
-                self._parse_model_names(value)
-            elif key == "analyze":
-                self.analyze.parse(value)
-            elif key == "endpoint":
-                self.endpoint.parse(value)
-            elif key == "perf_analyzer":
-                self.perf_analyzer.parse(value)
-            elif key == "input":
-                self.input.parse(value)
-            elif key == "output":
-                self.output.parse(value)
-            elif key == "tokenizer":
-                self.tokenizer.parse(value)
-            else:
-                raise ValueError(
-                    f"User Config: {key} is not a valid top-level parameter"
-                )
+        if user_config:
+            for key, value in user_config.items():
+                if key == "model_name" or key == "model_names":
+                    self._parse_model_names(value)
+                elif key == "analyze":
+                    self.analyze.parse(value)
+                elif key == "endpoint":
+                    self.endpoint.parse(value)
+                elif key == "perf_analyzer":
+                    self.perf_analyzer.parse(value)
+                elif key == "input":
+                    self.input.parse(value)
+                elif key == "output":
+                    self.output.parse(value)
+                elif key == "tokenizer":
+                    self.tokenizer.parse(value)
+                else:
+                    raise ValueError(
+                        f"User Config: {key} is not a valid top-level parameter"
+                    )
 
         self._infer_settings()
         self._check_for_illegal_combinations()

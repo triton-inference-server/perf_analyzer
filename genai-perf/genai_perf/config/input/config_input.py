@@ -145,7 +145,9 @@ class ConfigInput(BaseConfig):
         self.goodput = constraints
 
     def _parse_file(self, value: str) -> None:
-        if value.startswith("synthetic:") or value.startswith("payload"):
+        if not value:
+            return
+        elif value.startswith("synthetic:") or value.startswith("payload"):
             self.file = Path(value)
         else:
             path = Path(value)

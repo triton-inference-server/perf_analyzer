@@ -34,7 +34,7 @@ class Range:
 
 @dataclass(frozen=True)
 class TopLevelDefaults:
-    MODEL_NAME = ""
+    MODEL_NAMES = [""]
 
 
 @dataclass(frozen=True)

@@ -24,7 +24,11 @@ from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.constants import DEFAULT_GRPC_URL
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON, OutputFormat
+from genai_perf.inputs.input_constants import (
+    DEFAULT_INPUT_DATA_JSON,
+    OutputFormat,
+    PromptSource,
+)
 from genai_perf.logging import logging
 from genai_perf.types import (
     CheckpointObject,
@@ -82,6 +86,7 @@ class PerfAnalyzerConfig:
         cli_args += self._add_protocol_args(config)
         cli_args += self._add_dynamic_grpc_args(config)
         cli_args += self._add_inference_load_args(config)
+        cli_args += self._add_prompt_source_args(config)
         cli_args += self._add_config_args(config)
         cli_args += self._add_extra_args(extra_args)
 
@@ -297,6 +302,13 @@ class PerfAnalyzerConfig:
                     inference_load_args += ["-b", f"{value}"]
 
         return inference_load_args
+
+    def _add_prompt_source_args(self, config: ConfigCommand) -> List[str]:
+        prompt_source_args = []
+        if config.input.prompt_source == PromptSource.PAYLOAD:
+            prompt_source_args += ["--fixed-schedule"]
+
+        return prompt_source_args
 
     def _add_config_args(self, config: ConfigCommand) -> List[str]:
         config_args = []
