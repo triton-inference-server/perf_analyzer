@@ -42,6 +42,7 @@ from genai_perf.inputs import input_constants as ic
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.compare import compare_handler
+from genai_perf.subcommand.process_export_files import process_export_files_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
 from genai_perf.tokenizer import DEFAULT_TOKENIZER_REVISION
@@ -909,6 +910,15 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     return analyze
 
 
+def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
+    process_export_files = subparsers.add_parser(
+        Subcommand.PROCESS_EXPORT_FILES.to_cli_format(),
+        description="Subcommand to process export files and aggregate the results.",
+    )
+    process_export_files.set_defaults(func=process_export_files_handler)
+    return process_export_files
+
+
 ### Parser Initialization ###
 
 
@@ -933,6 +943,7 @@ def init_parsers():
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
     _ = _parse_template_args(subparsers)
+    _ = _parse_process_export_files_args(subparsers)
     subparsers.required = False
 
     return parser
@@ -959,6 +970,8 @@ def refine_args(
     elif args.subcommand == ic.Subcommand.COMPARE.value:
         args = _check_compare_args(parser, args)
     elif args.subcommand == ic.Subcommand.TEMPLATE.value:
+        pass
+    elif args.subcommand == Subcommand.PROCESS_EXPORT_FILES.to_cli_format():
         pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
