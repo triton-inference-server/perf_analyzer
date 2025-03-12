@@ -233,6 +233,65 @@ class TestLLMProfileDataParser:
             pd.get_statistics(infer_mode="concurrency", load_level="30")
 
     ###############################
+    # OPENAI COMPLETIONS
+    ###############################
+    openai_completions_profile_data = {
+        "service_kind": "openai",
+        "endpoint": "v1/completions",
+        "experiments": [
+            {
+                "experiment": {
+                    "mode": "concurrency",
+                    "value": 10,
+                },
+                "requests": [
+                    {
+                        "timestamp": 1,
+                        "request_inputs": {
+                            "payload": '{"model":"test_model","prompt":["This is test"],"stream":true}',
+                        },
+                        "response_timestamps": [3, 5, 8, 12],
+                        "response_outputs": [
+                            {
+                                "response": 'data: {"object":"text_completion","model":"test_model","choices":[{"text":" I"}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"text_completion","model":"test_model","choices":[{"text":" like"}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"text_completion","model":"test_model","choices":[{"text":" dogs"}]}\n\n'
+                            },
+                            {"response": "data: [DONE]\n\n"},
+                        ],
+                    },
+                    {
+                        "timestamp": 2,
+                        "request_inputs": {
+                            "payload": '{"model":"test_model","prompt":["This is test too"],"stream":true}',
+                        },
+                        "response_timestamps": [4, 7, 11, 15, 18],
+                        "response_outputs": [
+                            {
+                                "response": 'data: {"object":"text_completion","model":"test_model","choices":[{"text":" I"}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"text_completion","model":"test_model","choices":[{"text":" like"}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"text_completion","model":"test_model","choices":[{"text":" cats"}]}\n\n'
+                            },
+                            {
+                                "response": 'data: {"object":"text_completion","model":"test_model","choices":[{"text":" too"}]}\n\n'
+                            },
+                            {"response": "data: [DONE]\n\n"},
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    ###############################
     # OPENAI CHAT COMPLETIONS
     ###############################
     openai_profile_data = {
@@ -783,37 +842,6 @@ class TestLLMProfileDataParser:
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
         return_value=openai_profile_data,
     )
-    def test_merged_sse_response(self, mock_json) -> None:
-        """Test merging the multiple sse response."""
-        res_timestamps = [0, 1, 2, 3]
-        res_outputs = [
-            {
-                "response": 'data: {"choices":[{"delta":{"content":"aaa"}}],"object":"chat.completion.chunk"}\n\n'
-            },
-            {
-                "response": (
-                    'data: {"choices":[{"delta":{"content":"abc"}}],"object":"chat.completion.chunk"}\n\n'
-                    'data: {"choices":[{"delta":{"content":"1234"}}],"object":"chat.completion.chunk"}\n\n'
-                    'data: {"choices":[{"delta":{"content":"helloworld"}}],"object":"chat.completion.chunk"}\n\n'
-                )
-            },
-            {"response": "data: [DONE]\n\n"},
-        ]
-        expected_response = '{"choices": [{"delta": {"content": "abc1234helloworld"}}], "object": "chat.completion.chunk"}'
-
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
-        pd = LLMProfileDataParser(
-            filename=Path("openai_profile_export.json"),
-            tokenizer=tokenizer,
-        )
-
-        pd._preprocess_response(res_timestamps, res_outputs)
-        assert res_outputs[1]["response"] == expected_response
-
-    @patch(
-        "genai_perf.profile_data_parser.profile_data_parser.load_json",
-        return_value=openai_profile_data,
-    )
     def test_openai_output_token_counts(self, mock_json) -> None:
         output_texts = [
             "Ad",
@@ -924,42 +952,136 @@ class TestLLMProfileDataParser:
             tokenizer=tokenizer,
         )
 
-    @patch(
-        "genai_perf.profile_data_parser.profile_data_parser.load_json",
-        return_value=openai_profile_data,
+    @pytest.mark.parametrize(
+        "profile_data, res_outputs, expected_response",
+        [
+            # OpenAI Completions
+            (
+                openai_completions_profile_data,
+                [
+                    {
+                        "response": (
+                            'data: {"object":"text_completion","model":"test_model","choices":[{"text":"abc"}]}\n\n'
+                            'data: {"object":"text_completion","model":"test_model","choices":[{"text":"1234"}]}\n\n'
+                            'data: {"object":"text_completion","model":"test_model","choices":[{"text":"helloworld"}]}\n\n'
+                        )
+                    },
+                    {"response": "data: [DONE]\n\n"},
+                ],
+                '{"object": "text_completion", "model": "test_model", "choices": [{"text": "abc1234helloworld"}]}',
+            ),
+            # OpenAI Chat Completions
+            (
+                openai_profile_data,
+                [
+                    {
+                        "response": (
+                            'data: {"choices":[{"delta":{"content":"abc"}}],"object":"chat.completion.chunk"}\n\n'
+                            'data: {"choices":[{"delta":{"content":"1234"}}],"object":"chat.completion.chunk"}\n\n'
+                            'data: {"choices":[{"delta":{"content":"helloworld"}}],"object":"chat.completion.chunk"}\n\n'
+                        )
+                    },
+                    {"response": "data: [DONE]\n\n"},
+                ],
+                '{"choices": [{"delta": {"content": "abc1234helloworld"}}], "object": "chat.completion.chunk"}',
+            ),
+        ],
     )
-    def test_unfinished_responses(self, mock_json) -> None:
-        """Check if it handles unfinished responses."""
-        res_timestamps = [0, 1, 2, 3, 4]
-        res_outputs = [
-            # response 0 and 1 are single SSE response split into two.
-            {
-                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"de'
-            },
-            {
-                "response": 'lta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
-            },
-            # response 2 and 3 are two separate SSE responses overlapping some parts.
-            {
-                "response": 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"de'
-            },
-            {
-                "response": 'lta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\ndata: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
-            },
-            {"response": "data: [DONE]\n\n"},
-        ]
-        expected_response = 'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":" writing"}}],"model":"meta-llama"}\n\n'
+    def test_merged_sse_responses(
+        self, profile_data, res_outputs, expected_response
+    ) -> None:
+        """Test merging the multiple sse responses."""
+        with patch(
+            target="genai_perf.profile_data_parser.profile_data_parser.load_json",
+            return_value=profile_data,
+        ):
+            tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+            pd = LLMProfileDataParser(
+                filename=Path("profile_export.json"),
+                tokenizer=tokenizer,
+            )
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
-        pd = LLMProfileDataParser(
-            filename=Path("openai_profile_export.json"),
-            tokenizer=tokenizer,
-        )
-
+        res_timestamps = [i for i in range(len(res_outputs))]
         pd._preprocess_response(res_timestamps, res_outputs)
         assert res_outputs[0]["response"] == expected_response
-        assert res_outputs[1]["response"] == expected_response
-        assert res_outputs[2]["response"] == expected_response
+
+    @pytest.mark.parametrize(
+        "profile_data, res_outputs, expected_responses",
+        [
+            # OpenAI Completions
+            (
+                openai_completions_profile_data,
+                [
+                    # response 0 and 1 are single SSE response split into two.
+                    {
+                        "response": 'data: {"object":"text_com',
+                    },
+                    {
+                        "response": 'pletion","model":"test_model","choices":[{"text":"abc"}]}\n\n',
+                    },
+                    # response 2 and 3 are two separate SSE responses overlapping some parts.
+                    {
+                        "response": 'data: {"object":"text_completion","model":"test',
+                    },
+                    {
+                        "response": '_model","choices":[{"text":"1234"}]}\n\ndata: {"object":"text_completion","model":"test_model","choices":[{"text":"helloworld"}]}\n\n',
+                    },
+                    {"response": "data: [DONE]\n\n"},
+                ],
+                [
+                    'data: {"object":"text_completion","model":"test_model","choices":[{"text":"abc"}]}\n\n',
+                    'data: {"object":"text_completion","model":"test_model","choices":[{"text":"1234"}]}\n\n',
+                    'data: {"object":"text_completion","model":"test_model","choices":[{"text":"helloworld"}]}\n\n',
+                ],
+            ),
+            # OpenAI Chat Completions
+            (
+                openai_profile_data,
+                [
+                    # response 0 and 1 are single SSE response split into two.
+                    {
+                        "response": 'data: {"object":"chat.completion.chunk","choices":[{"de',
+                    },
+                    {
+                        "response": 'lta":{"content":"abc"}}],"model":"test_model"}\n\n',
+                    },
+                    # response 2 and 3 are two separate SSE responses overlapping some parts.
+                    {
+                        "response": 'data: {"object":"chat.completion.chunk","choices":[{"de',
+                    },
+                    {
+                        "response": 'lta":{"content":"123"}}],"model":"test_model"}\n\ndata: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"hello"}}],"model":"test_model"}\n\n',
+                    },
+                    {"response": "data: [DONE]\n\n"},
+                ],
+                [
+                    'data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"abc"}}],"model":"test_model"}\n\n',
+                    'data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"123"}}],"model":"test_model"}\n\n',
+                    'data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"hello"}}],"model":"test_model"}\n\n',
+                ],
+            ),
+        ],
+    )
+    def test_splintered_sse_responses(
+        self, profile_data, res_outputs, expected_responses
+    ) -> None:
+        """Check if the parser handles splintered SSE responses."""
+        with patch(
+            target="genai_perf.profile_data_parser.profile_data_parser.load_json",
+            return_value=profile_data,
+        ):
+            tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+            pd = LLMProfileDataParser(
+                filename=Path("profile_export.json"),
+                tokenizer=tokenizer,
+            )
+
+        res_timestamps = [i for i in range(len(res_outputs))]
+        pd._preprocess_response(res_timestamps, res_outputs)
+
+        assert len(res_outputs) == len(expected_responses)
+        for out, expected_response in zip(res_outputs, expected_responses):
+            assert out["response"] == expected_response
 
     @patch(
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
