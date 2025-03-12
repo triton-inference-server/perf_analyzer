@@ -83,11 +83,12 @@ class PerfAnalyzerConfig:
 
         cli_args += self._add_required_args(config)
         cli_args += self._add_verbose_args(config)
+        cli_args += self._add_perf_analyzer_args(config)
         cli_args += self._add_protocol_args(config)
         cli_args += self._add_dynamic_grpc_args(config)
         cli_args += self._add_inference_load_args(config)
         cli_args += self._add_prompt_source_args(config)
-        cli_args += self._add_config_args(config)
+        cli_args += self._add_endpoint_args(config)
         cli_args += self._add_extra_args(extra_args)
 
         return cli_args
@@ -232,10 +233,15 @@ class PerfAnalyzerConfig:
         required_args = [f"{config.perf_analyzer.path}"]
 
         if config.endpoint.service_kind != "dynamic_grpc":
-            required_args += [
-                f"-m",
-                f"{config.model_names[0]}",
-                f"--async",
+            required_args += [f"-m", f"{config.model_names[0]}", f"--async"]
+
+        return required_args
+
+    def _add_perf_analyzer_args(self, config: ConfigCommand) -> List[str]:
+        perf_analyzer_args = []
+
+        if config.input.prompt_source != PromptSource.PAYLOAD:
+            perf_analyzer_args += [
                 f"--stability-percentage",
                 f"{config.perf_analyzer.stability_percentage}",
                 f"--measurement-interval",
@@ -246,7 +252,7 @@ class PerfAnalyzerConfig:
                 f"{config.perf_analyzer.request_count.warmup}",
             ]
 
-        return required_args
+        return perf_analyzer_args
 
     def _add_protocol_args(self, config: ConfigCommand) -> List[str]:
         protocol_args = []
@@ -277,21 +283,22 @@ class PerfAnalyzerConfig:
         inference_load_args = []
 
         if not self._parameters:
-            if "concurrency" in config.perf_analyzer.stimulus:
-                inference_load_args += [
-                    "--concurrency-range",
-                    f'{config.perf_analyzer.stimulus["concurrency"]}',
-                ]
-            elif "request_rate" in config.perf_analyzer.stimulus:
-                inference_load_args += [
-                    "--request-rate-range",
-                    f'{config.perf_analyzer.stimulus["request_rate"]}',
-                ]
-            elif "session_concurrency" in config.perf_analyzer.stimulus:
-                inference_load_args += [
-                    "--session-concurrency",
-                    f"{config.perf_analyzer.stimulus['session_concurrency']}",
-                ]
+            if config.perf_analyzer.get_field("stimulus").is_set_by_user:
+                if "concurrency" in config.perf_analyzer.stimulus:
+                    inference_load_args += [
+                        "--concurrency-range",
+                        f'{config.perf_analyzer.stimulus["concurrency"]}',
+                    ]
+                elif "request_rate" in config.perf_analyzer.stimulus:
+                    inference_load_args += [
+                        "--request-rate-range",
+                        f'{config.perf_analyzer.stimulus["request_rate"]}',
+                    ]
+                elif "session_concurrency" in config.perf_analyzer.stimulus:
+                    inference_load_args += [
+                        "--session-concurrency",
+                        f"{config.perf_analyzer.stimulus['session_concurrency']}",
+                    ]
         else:
             for parameter, value in self._parameters.items():
                 if parameter == "concurrency":
@@ -310,14 +317,14 @@ class PerfAnalyzerConfig:
 
         return prompt_source_args
 
-    def _add_config_args(self, config: ConfigCommand) -> List[str]:
-        config_args = []
-        config_args += ["--service-kind", f"{config.endpoint.service_kind}"]
+    def _add_endpoint_args(self, config: ConfigCommand) -> List[str]:
+        endpoint_args = []
+        endpoint_args += ["--service-kind", f"{config.endpoint.service_kind}"]
 
         if config.endpoint.custom:
-            config_args += ["--endpoint", f"{config.endpoint.custom}"]
+            endpoint_args += ["--endpoint", f"{config.endpoint.custom}"]
 
-        return config_args
+        return endpoint_args
 
     def _add_boolean_arg(self, arg: str) -> List[str]:
         if len(arg) == 1:
