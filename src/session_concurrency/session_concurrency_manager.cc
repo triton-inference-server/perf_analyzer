@@ -33,8 +33,10 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -46,7 +48,6 @@
 #include "../model_parser.h"
 #include "../perf_utils.h"
 #include "../request_record.h"
-#include "../thread_stat.h"
 #include "payload_dataset_manager.h"
 #include "request_handler.h"
 
@@ -141,14 +142,12 @@ SessionConcurrencyManager::SendSequentialRequestsForOneSession(
   rapidjson::Document chat_history(rapidjson::kArrayType);
 
   for (size_t i{0}; i < one_session_payloads.size(); ++i) {
-    const size_t payload_index{one_session_payloads[i]};
+    const size_t payload_dataset_index{one_session_payloads[i]};
 
-    request_records.emplace_back();
-
-    auto& request_record{request_records.back()};
+    auto& request_record{request_records.emplace_back()};
 
     request_handler_->SendRequestAndWaitForResponse(
-        payload_index, chat_history, request_record);
+        payload_dataset_index, chat_history, request_record);
 
     const bool is_last_request{i == one_session_payloads.size() - 1};
 
@@ -156,16 +155,23 @@ SessionConcurrencyManager::SendSequentialRequestsForOneSession(
       break;
     }
 
-    GetAndWaitForDelayMs(payload_index);
+    GetAndWaitForDelay(payload_dataset_index);
   }
 }
 
 void
-SessionConcurrencyManager::GetAndWaitForDelayMs(size_t payload_index) const
+SessionConcurrencyManager::GetAndWaitForDelay(
+    size_t payload_dataset_index) const
 {
-  const auto delay{payload_dataset_manager_->GetDelayForPayload(payload_index)};
+  const auto delay{payload_dataset_manager_->GetDelay(payload_dataset_index)};
 
-  std::this_thread::sleep_for(delay);
+  if (!delay) {
+    throw std::runtime_error(
+        "Missing 'delay' input for payload with index " +
+        std::to_string(payload_dataset_index));
+  }
+
+  std::this_thread::sleep_for(*delay);
 }
 
 std::vector<RequestRecord>

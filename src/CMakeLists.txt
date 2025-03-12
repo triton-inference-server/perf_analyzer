@@ -414,6 +414,12 @@ target_link_libraries(
     client-backend-library
 )
 
+target_compile_features(
+  perf_analyzer_unit_tests
+  PRIVATE
+    cxx_std_${TRITON_MIN_CXX_STANDARD}
+)
+
 install(
   TARGETS perf_analyzer_unit_tests
   RUNTIME DESTINATION bin

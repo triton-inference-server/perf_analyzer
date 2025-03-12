@@ -64,6 +64,7 @@ perf_analyzer_ignore_args = [
     "model_selection_strategy",
     "num_dataset_entries",
     "num_prefix_prompts",
+    "num_sessions",
     "prefix_prompt_length",
     "request_count",
     "warmup_request_count",
@@ -76,6 +77,10 @@ perf_analyzer_ignore_args = [
     "random_seed",
     "request_rate",
     "server_metrics_url",
+    "session_turn_delay_mean",
+    "session_turn_delay_stddev",
+    "session_turns_mean",
+    "session_turns_stddev",
     # The 'streaming' passed in to this script is to determine if the
     # LLM response should be streaming. That is different than the
     # 'streaming' that PA takes, which means something else (and is

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -209,6 +209,13 @@ must provide `--profile-export-file` to specify where to dump all the measured
 timestamps.
 
 The default values of 'start', 'end', and 'step' are `1`.
+
+#### `--session-concurrency=<n>`
+
+Enables session concurrency inference load mode and specifies the number of
+concurrent multi-turn chat sessions to run during the benchmark. A dataset must
+be provided using `--input-data` with at least as many unique sessions as the
+specified session concurrency. Only supported with `--service-kind=openai`.
 
 #### `--request-period=<n>`
 

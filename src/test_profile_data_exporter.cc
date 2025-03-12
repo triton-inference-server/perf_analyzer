@@ -24,6 +24,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include <rapidjson/document.h>
+
 #include "doctest.h"
 #include "mock_profile_data_exporter.h"
 #include "profile_data_exporter.h"
@@ -244,9 +246,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "BOOL");
-    CHECK(json[0] == true);
-    CHECK(json[1] == false);
-    CHECK(json[2] == true);
+    CHECK(json[0].GetBool() == true);
+    CHECK(json[1].GetBool() == false);
+    CHECK(json[2].GetBool() == true);
   }
 
   SUBCASE("Test uint8")
@@ -256,9 +258,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "UINT8");
-    CHECK(json[0] == 1);
-    CHECK(json[1] == 2);
-    CHECK(json[2] == 3);
+    CHECK(json[0].GetUint() == 1);
+    CHECK(json[1].GetUint() == 2);
+    CHECK(json[2].GetUint() == 3);
   }
 
   SUBCASE("Test uint16")
@@ -268,9 +270,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "UINT16");
-    CHECK(json[0] == 4);
-    CHECK(json[1] == 5);
-    CHECK(json[2] == 6);
+    CHECK(json[0].GetUint() == 4);
+    CHECK(json[1].GetUint() == 5);
+    CHECK(json[2].GetUint() == 6);
   }
 
   SUBCASE("Test uint32")
@@ -280,9 +282,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "UINT32");
-    CHECK(json[0] == 7);
-    CHECK(json[1] == 8);
-    CHECK(json[2] == 9);
+    CHECK(json[0].GetUint() == 7);
+    CHECK(json[1].GetUint() == 8);
+    CHECK(json[2].GetUint() == 9);
   }
 
   SUBCASE("Test uint64")
@@ -292,9 +294,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "UINT64");
-    CHECK(json[0] == 10);
-    CHECK(json[1] == 11);
-    CHECK(json[2] == 12);
+    CHECK(json[0].GetUint64() == 10);
+    CHECK(json[1].GetUint64() == 11);
+    CHECK(json[2].GetUint64() == 12);
   }
 
   SUBCASE("Test int8")
@@ -304,9 +306,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "INT8");
-    CHECK(json[0] == 1);
-    CHECK(json[1] == -2);
-    CHECK(json[2] == 3);
+    CHECK(json[0].GetInt() == 1);
+    CHECK(json[1].GetInt() == -2);
+    CHECK(json[2].GetInt() == 3);
   }
 
   SUBCASE("Test int16")
@@ -316,9 +318,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "INT16");
-    CHECK(json[0] == 4);
-    CHECK(json[1] == -5);
-    CHECK(json[2] == 6);
+    CHECK(json[0].GetInt() == 4);
+    CHECK(json[1].GetInt() == -5);
+    CHECK(json[2].GetInt() == 6);
   }
 
   SUBCASE("Test int32")
@@ -328,9 +330,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "INT32");
-    CHECK(json[0] == 7);
-    CHECK(json[1] == -8);
-    CHECK(json[2] == 9);
+    CHECK(json[0].GetInt() == 7);
+    CHECK(json[1].GetInt() == -8);
+    CHECK(json[2].GetInt() == 9);
   }
 
   SUBCASE("Test int64")
@@ -340,9 +342,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "INT64");
-    CHECK(json[0] == 10);
-    CHECK(json[1] == -11);
-    CHECK(json[2] == 12);
+    CHECK(json[0].GetInt64() == 10);
+    CHECK(json[1].GetInt64() == -11);
+    CHECK(json[2].GetInt64() == 12);
   }
 
   SUBCASE("Test fp32")
@@ -352,9 +354,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "FP32");
-    CHECK(json[0] == 1.0);
-    CHECK(json[1] == -2.0);
-    CHECK(json[2] == 3.0);
+    CHECK(json[0].GetFloat() == 1.0);
+    CHECK(json[1].GetFloat() == -2.0);
+    CHECK(json[2].GetFloat() == 3.0);
   }
 
   SUBCASE("Test fp64")
@@ -364,9 +366,9 @@ TEST_CASE("profile_data_exporter: AddDataToJSON")
         reinterpret_cast<const uint8_t*>(data),
         reinterpret_cast<const uint8_t*>(data) + sizeof(data));
     exporter.AddDataToJSON(json, buf, "FP64");
-    CHECK(json[0] == 4.0);
-    CHECK(json[1] == -5.0);
-    CHECK(json[2] == 6.0);
+    CHECK(json[0].GetDouble() == 4.0);
+    CHECK(json[1].GetDouble() == -5.0);
+    CHECK(json[2].GetDouble() == 6.0);
   }
 }
 
@@ -386,8 +388,9 @@ TEST_CASE("profile_data_exporter: AddExperiment")
 
     exporter.AddExperiment(entry, experiment, raw_experiment);
     CHECK(entry.HasMember("experiment"));
-    CHECK(entry["experiment"]["mode"] == "concurrency");
-    CHECK(entry["experiment"]["value"] == 15);
+    CHECK(
+        std::string(entry["experiment"]["mode"].GetString()) == "concurrency");
+    CHECK(entry["experiment"]["value"].GetUint64() == 15);
   }
 
   SUBCASE("Request rate mode")
@@ -397,8 +400,9 @@ TEST_CASE("profile_data_exporter: AddExperiment")
 
     exporter.AddExperiment(entry, experiment, raw_experiment);
     CHECK(entry.HasMember("experiment"));
-    CHECK(entry["experiment"]["mode"] == "request_rate");
-    CHECK(entry["experiment"]["value"] == 23.5);
+    CHECK(
+        std::string(entry["experiment"]["mode"].GetString()) == "request_rate");
+    CHECK(entry["experiment"]["value"].GetDouble() == 23.5);
   }
 }
 

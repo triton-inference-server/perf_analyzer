@@ -28,11 +28,11 @@
 
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 #include <stddef.h>
 
+#include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <future>
 #include <memory>
@@ -71,9 +71,11 @@ RequestHandler::SendRequestAndWaitForResponse(
 {
   auto payload{payload_dataset_manager_->GetPayload(dataset_index)};
 
-  PayloadJsonUtils::RemoveSessionID(payload);
-
   PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history);
+
+  auto& request_inputs{request_record.request_inputs_.emplace_back()};
+
+  RecordRequestInputs(payload, dataset_index, request_inputs);
 
   auto response_promise{std::make_shared<std::promise<void>>()};
   std::future<void> response_future{response_promise->get_future()};
@@ -82,6 +84,52 @@ RequestHandler::SendRequestAndWaitForResponse(
       payload, std::move(response_promise), chat_history, request_record);
 
   WaitForResponse(std::move(response_future));
+}
+
+void
+RequestHandler::RecordRequestInputs(
+    const std::string& payload, size_t dataset_index,
+    RequestRecord::RequestInput& request_inputs) const
+{
+  RecordPayloadInput(payload, request_inputs);
+
+  const auto session_id{payload_dataset_manager_->GetSessionID(dataset_index)};
+  RecordSessionIDInput(session_id, request_inputs);
+
+  const auto delay{payload_dataset_manager_->GetDelay(dataset_index)};
+  if (delay) {
+    RecordDelayInput(*delay, request_inputs);
+  }
+}
+
+void
+RequestHandler::RecordPayloadInput(
+    const std::string& payload,
+    RequestRecord::RequestInput& request_inputs) const
+{
+  std::vector<uint8_t> payload_buf(payload.begin(), payload.end());
+  request_inputs.emplace("payload", RecordData(std::move(payload_buf), "JSON"));
+}
+
+void
+RequestHandler::RecordSessionIDInput(
+    const std::string& session_id,
+    RequestRecord::RequestInput& request_inputs) const
+{
+  std::vector<uint8_t> session_id_buf(session_id.begin(), session_id.end());
+  request_inputs.emplace(
+      "session_id", RecordData(std::move(session_id_buf), "BYTES"));
+}
+
+void
+RequestHandler::RecordDelayInput(
+    const std::chrono::milliseconds delay,
+    RequestRecord::RequestInput& request_inputs) const
+{
+  const uint64_t delay_ms{static_cast<uint64_t>(delay.count())};
+  std::vector<uint8_t> delay_buf(sizeof(uint64_t));
+  std::memcpy(delay_buf.data(), &delay_ms, sizeof(uint64_t));
+  request_inputs.emplace("delay", RecordData(std::move(delay_buf), "UINT64"));
 }
 
 void
@@ -100,7 +148,7 @@ RequestHandler::SendRequest(
 
   const auto inputs{PrepareInputs(payload)};
 
-  RecordRequest(inputs, request_record);
+  request_record.start_time_ = std::chrono::system_clock::now();
 
   const auto error{client_backend_->AsyncInfer(
       callback, options, inputs, requested_outputs)};
@@ -172,9 +220,7 @@ RequestHandler::RecordResponse(
 
   request_record.response_timestamps_.push_back(end_time);
 
-  request_record.response_outputs_.emplace_back();
-
-  auto& response_outputs{request_record.response_outputs_.back()};
+  auto& response_outputs{request_record.response_outputs_.emplace_back()};
 
   RecordResponseOutputs(infer_result, requested_outputs, response_outputs);
 }
@@ -239,38 +285,6 @@ RequestHandler::PrepareInputs(const std::string& payload) const
   }
 
   return {infer_input};
-}
-
-void
-RequestHandler::RecordRequest(
-    const std::vector<cb::InferInput*> inputs,
-    RequestRecord& request_record) const
-{
-  request_record.request_inputs_.emplace_back();
-
-  auto& request_inputs{request_record.request_inputs_.back()};
-
-  RecordRequestInputs(inputs, request_inputs);
-
-  request_record.start_time_ = std::chrono::system_clock::now();
-}
-
-void
-RequestHandler::RecordRequestInputs(
-    const std::vector<cb::InferInput*> inputs,
-    RequestRecord::RequestInput& request_inputs) const
-{
-  for (const auto& input : inputs) {
-    std::string data_type{input->Datatype()};
-    const uint8_t* buf{nullptr};
-    size_t byte_size{0};
-    input->RawData(&buf, &byte_size);
-
-    std::vector<uint8_t> buf_vec(buf, buf + byte_size);
-
-    request_inputs.emplace(
-        input->Name(), RecordData(std::move(buf_vec), data_type));
-  }
 }
 
 void
