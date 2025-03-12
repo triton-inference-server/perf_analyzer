@@ -93,17 +93,17 @@ def _report_output(
         # [TPA-985] Profile export file should have a session concurrency mode
         infer_mode = "request_rate"
         load_level = "0.0"
+    # When using fixed schedule mode, infer mode is not set.
+    # Setting to default values to avoid an error.
+    elif config.input.prompt_source == ic.PromptSource.PAYLOAD:
+        infer_mode = "request_rate"
+        load_level = "1.0"
     elif "concurrency" in config.perf_analyzer.stimulus:
         infer_mode = "concurrency"
         load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
     elif "request_rate" in config.perf_analyzer.stimulus:
         infer_mode = "request_rate"
         load_level = f'{config.perf_analyzer.stimulus["request_rate"]}'
-    # When using fixed schedule mode, infer mode is not set.
-    # Setting to default values to avoid an error.
-    elif config.input.prompt_source == ic.PromptSource.PAYLOAD:
-        infer_mode = "request_rate"
-        load_level = "1.0"
     else:
         raise GenAIPerfException("No valid infer mode specified")
 

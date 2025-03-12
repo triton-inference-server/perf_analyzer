@@ -193,7 +193,12 @@ class PerfAnalyzerConfig:
     def _get_artifact_stimulus_based_on_config(
         self, config: ConfigCommand
     ) -> Optional[List[str]]:
-        if "concurrency" in config.perf_analyzer.stimulus:
+        if (
+            config.input.prompt_source == PromptSource.PAYLOAD
+            and not "session_concurrency" in config.perf_analyzer.stimulus
+        ):
+            stimulus = None
+        elif "concurrency" in config.perf_analyzer.stimulus:
             concurrency = config.perf_analyzer.stimulus["concurrency"]
             stimulus = [f"concurrency{concurrency}"]
         elif "request_rate" in config.perf_analyzer.stimulus:
