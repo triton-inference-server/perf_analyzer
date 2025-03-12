@@ -142,7 +142,7 @@ docker run -ti \
     nvcr.io/nvidia/tritonserver:25.01-trtllm-python-py3
 
 # Install the Triton CLI
-pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
+pip install git+https://github.com/triton-inference-server/triton_cli.git@0.1.2
 
 # Build TRT LLM engine and generate a Triton model repository pointing at it
 triton remove -m all
