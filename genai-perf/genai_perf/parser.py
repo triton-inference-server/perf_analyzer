@@ -39,7 +39,6 @@ from genai_perf.config.input.config_command import ConfigCommand, Subcommand
 from genai_perf.config.input.config_defaults import (
     AnalyzeDefaults,
     EndPointDefaults,
-    PerfAnalyzerDefaults,
     TemplateDefaults,
 )
 from genai_perf.config.input.config_field import ConfigField
