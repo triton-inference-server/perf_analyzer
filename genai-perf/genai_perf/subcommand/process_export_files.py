@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,39 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
-import sys
-import traceback
+from argparse import Namespace
 
-import genai_perf.logging as logging
-from genai_perf import parser
+from genai_perf.exceptions import GenAIPerfException
 
 
-# Separate function that can raise exceptions used for testing
-# to assert correct errors and messages.
-def run():
-    # TMA-1900: refactor CLI handler
-    logging.init_logging()
-    args, extra_args = parser.parse_args()
-    if args.subcommand in ["compare", "analyze", "process-export-files"]:
-        args.func(args)
-    else:  # profile
-        args.func(args, extra_args)
-
-
-def main():
-    # Interactive use will catch exceptions and log formatted errors rather than
-    # tracebacks.
-    try:
-        run()
-    except Exception as e:
-        traceback.print_exc()
-        logger = logging.getLogger(__name__)
-        logger.error(e)
-        return 1
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+def process_export_files_handler(args: Namespace) -> None:
+    """
+    Handles `process-export-files` subcommand workflow
+    """
+    raise GenAIPerfException("Not implemented yet")
