@@ -1339,7 +1339,10 @@ def add_cli_options_to_config(
 
     # Perf Analyzer
     # config.perf_analyzer.path - There is no equivalent setting in the CLI
-    config.perf_analyzer.stimulus = _convert_args_to_stimulus(args)
+    stimulus = _convert_args_to_stimulus(args)
+    if stimulus:
+        config.perf_analyzer.stimulus = stimulus
+
     config.perf_analyzer.stability_percentage = args.stability_percentage
     config.perf_analyzer.measurement_interval = args.measurement_interval
     config.perf_analyzer.request_count.warmup = args.warmup_request_count
@@ -1403,7 +1406,7 @@ def add_cli_options_to_config(
     return config
 
 
-def _convert_args_to_stimulus(args: argparse.Namespace) -> Dict[str, int]:
+def _convert_args_to_stimulus(args: argparse.Namespace) -> Optional[Dict[str, int]]:
     if args.session_concurrency:
         return {"session_concurrency": args.session_concurrency}
     elif args.concurrency:
@@ -1411,7 +1414,7 @@ def _convert_args_to_stimulus(args: argparse.Namespace) -> Dict[str, int]:
     elif args.request_rate:
         return {"request_rate": args.request_rate}
     else:
-        return PerfAnalyzerDefaults.STIMULUS
+        return None
 
 
 ### Entrypoint ###

@@ -186,7 +186,7 @@ class ConfigInput(BaseConfig):
                 logger.debug(f"Input source is synthetic data: {self.synthetic_files}")
 
     def _infer_payload_file(self) -> None:
-        self.payload_file: Any = ConfigField(default=[])
+        self.payload_file: Any = ConfigField(default=None)
 
         if self.file:
             if str(self.file).startswith("payload:"):

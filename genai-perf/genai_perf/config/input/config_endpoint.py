@@ -64,7 +64,7 @@ class ConfigEndPoint(BaseConfig):
             verbose_template_comment="An option to enable the use of the streaming API.",
         )
         self.server_metrics_urls: Any = ConfigField(
-            default=EndPointDefaults.SERVER_METRICS_URL,
+            default=EndPointDefaults.SERVER_METRICS_URLS,
             verbose_template_comment='The list of Triton server metrics URLs.\
                 \nThese are used for Telemetry metric reporting with the "triton" service-kind.',
         )

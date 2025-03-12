@@ -63,7 +63,7 @@ class EndPointDefaults:
     TYPE = ""
     SERVICE_KIND = "triton"
     STREAMING = False
-    SERVER_METRICS_URL = ["http://localhost:8002/metrics"]
+    SERVER_METRICS_URLS = ["http://localhost:8002/metrics"]
     URL = "localhost:8001"
     GRPC_METHOD = ""
 
