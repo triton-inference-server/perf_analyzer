@@ -38,6 +38,7 @@ from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.config import config_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
+from genai_perf.subcommand.process_export_files import process_export_files_handler
 
 from . import __version__
 
@@ -784,6 +785,15 @@ def _parse_config_args(subparsers) -> argparse.ArgumentParser:
     return config
 
 
+def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
+    process_export_files = subparsers.add_parser(
+        Subcommand.PROCESS_EXPORT_FILES.to_cli_format(),
+        description="Subcommand to process export files and aggregate the results.",
+    )
+    process_export_files.set_defaults(func=process_export_files_handler)
+    return process_export_files
+
+
 ### Parser Initialization ###
 
 
@@ -808,6 +818,7 @@ def init_parsers():
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
     _ = _parse_template_args(subparsers)
+    _ = _parse_process_export_files_args(subparsers)
     subparsers.required = False
 
     return parser
@@ -837,6 +848,8 @@ def refine_args(
         args = _process_sweep_args(args)
         args = _check_goodput_args(args)
     elif args.subcommand == ic.Subcommand.TEMPLATE.value:
+        pass
+    elif args.subcommand == Subcommand.PROCESS_EXPORT_FILES.to_cli_format():
         pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
