@@ -314,7 +314,10 @@ class LLMProfileDataParser(ProfileDataParser):
                         merged_text = "".join(
                             [self._extract_openai_text_output(r) for r in responses]
                         )
-                        data["choices"][0]["delta"]["content"] = merged_text
+                        if self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
+                            data["choices"][0]["text"] = merged_text
+                        else:
+                            data["choices"][0]["delta"]["content"] = merged_text
                     res_outputs[i] = {"response": json.dumps(data)}
                 elif self._is_empty_response(responses[0]):
                     res_outputs[i]["response"] = ""
