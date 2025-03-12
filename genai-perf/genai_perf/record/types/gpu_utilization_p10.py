@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,20 +14,20 @@
 
 from functools import total_ordering
 
-from genai_perf.record.types.gpu_utilization_base import GpuUtilizationBase
+from genai_perf.record.types.gpu_utilization_base import GPUUtilizationBase
 
 
 @total_ordering
-class GpuUtilizationP10(GpuUtilizationBase):
+class GpuUtilizationP10(GPUUtilizationBase):
     """
     A record for p10 GPU utilization metric
     """
 
-    tag = GpuUtilizationBase.base_tag + "_p10"
+    tag = GPUUtilizationBase.base_tag + "_p10"
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p10 GPU Utilization (%)" 
+        return "p10 GPU Utilization (%)"

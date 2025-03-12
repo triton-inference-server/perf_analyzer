@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,9 @@
 
 from functools import total_ordering
 
-from genai_perf.record.types.output_token_throughput_per_request_base import OutputTokenThroughputPerRequestBase
+from genai_perf.record.types.output_token_throughput_per_request_base import (
+    OutputTokenThroughputPerRequestBase,
+)
 
 
 @total_ordering
@@ -30,4 +32,4 @@ class OutputTokenThroughputPerRequestP5(OutputTokenThroughputPerRequestBase):
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p5 Output Token Throughput Per Request (tokens/s)" 
+        return "p5 Output Token Throughput Per Request (tokens/s)"
