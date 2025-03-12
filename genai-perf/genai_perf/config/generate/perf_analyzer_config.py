@@ -312,7 +312,10 @@ class PerfAnalyzerConfig:
 
     def _add_prompt_source_args(self, config: ConfigCommand) -> List[str]:
         prompt_source_args = []
-        if config.input.prompt_source == PromptSource.PAYLOAD:
+        if (
+            config.input.prompt_source == PromptSource.PAYLOAD
+            and not "session_concurrency" in config.perf_analyzer.stimulus
+        ):
             prompt_source_args += ["--fixed-schedule"]
 
         return prompt_source_args
