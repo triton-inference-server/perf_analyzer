@@ -126,6 +126,10 @@ class TestCLIArguments:
                 {"endpoint": "v1/chat/completions"},
             ),
             (
+                ["--endpoint-type", "multimodal", "--service-kind", "openai"],
+                {"endpoint": "v1/chat/completions"},
+            ),
+            (
                 ["--endpoint-type", "rankings", "--service-kind", "openai"],
                 {"endpoint": "v1/ranking"},
             ),

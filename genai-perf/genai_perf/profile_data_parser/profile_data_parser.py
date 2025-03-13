@@ -43,7 +43,7 @@ class ResponseFormat(Enum):
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()
     OPENAI_EMBEDDINGS = auto()
-    OPENAI_VISION = auto()
+    OPENAI_MULTIMODAL = auto()
     RANKINGS = auto()
     IMAGE_RETRIEVAL = auto()
     TRITON = auto()
@@ -78,8 +78,8 @@ class ProfileDataParser:
                 # file.
                 request = data["experiments"][0]["requests"][0]
                 request_input = request["request_inputs"]["payload"]
-                if "image_url" in request_input:
-                    self._response_format = ResponseFormat.OPENAI_VISION
+                if "image_url" in request_input or "input_audio" in request_input:
+                    self._response_format = ResponseFormat.OPENAI_MULTIMODAL
                 else:
                     self._response_format = ResponseFormat.OPENAI_CHAT_COMPLETIONS
             elif data["endpoint"] == "v1/completions":
@@ -100,8 +100,8 @@ class ProfileDataParser:
                 request_input = request["request_inputs"]["payload"]
                 response = request["response_outputs"][0]["response"]
                 if "chat.completion" in response:
-                    if "image_url" in request_input:
-                        self._response_format = ResponseFormat.OPENAI_VISION
+                    if "image_url" in request_input or "input_audio" in request_input:
+                        self._response_format = ResponseFormat.OPENAI_MULTIMODAL
                     else:
                         self._response_format = ResponseFormat.OPENAI_CHAT_COMPLETIONS
                 elif "text_completion" in response:

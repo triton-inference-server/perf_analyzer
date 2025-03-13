@@ -158,6 +158,7 @@ class TestJsonExporter:
             "formatted_model_name": "test_model",
             "model_selection_strategy": "round_robin",
             "backend": "tensorrtllm",
+            "batch_size_audio": 1,
             "batch_size_image": 1,
             "batch_size_text": 1,
             "endpoint": None,

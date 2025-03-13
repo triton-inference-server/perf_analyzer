@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import argparse
 import sys
 from dataclasses import dataclass
@@ -38,19 +37,13 @@ import genai_perf.utils as utils
 from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers import AudioFormat, ImageFormat
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
-
-
-# TODO (TPA-1002): move to synthetic audio generator
-class AudioFormat(Enum):
-    WAV = auto()
-    MP3 = auto()
 
 
 class PathType(Enum):
@@ -96,8 +89,8 @@ _endpoint_type_map = {
     ),
     "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
     "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    "vision": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
+    "multimodal": EndpointConfig(
+        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_MULTIMODAL
     ),
     "generate": EndpointConfig(
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
@@ -658,15 +651,15 @@ def _add_audio_input_args(parser):
 
     input_group.add_argument(
         "--audio-length-mean",
-        type=int,
+        type=float,
         default=ic.DEFAULT_AUDIO_LENGTH_MEAN,
         required=False,
-        help=f"The mean length of audio data in seconds. " "Default is 10 seconds.",
+        help=f"The mean length of audio data in seconds. Default is 10 seconds.",
     )
 
     input_group.add_argument(
         "--audio-length-stddev",
-        type=int,
+        type=float,
         default=ic.DEFAULT_AUDIO_LENGTH_STDDEV,
         required=False,
         help=f"The standard deviation of the length of audio data in seconds. "
@@ -679,7 +672,8 @@ def _add_audio_input_args(parser):
         choices=utils.get_enum_names(AudioFormat),
         default=ic.DEFAULT_AUDIO_FORMAT,
         required=False,
-        help=f"The format of the audio data. Default is 'wav'.",
+        help=f"The format of the audio data. Currently we support wav and "
+        "mp3 format. Default is 'wav'.",
     )
 
     input_group.add_argument(
@@ -874,6 +868,15 @@ def _add_image_input_args(parser):
 
 def _add_input_args(parser):
     input_group = parser.add_argument_group("Input")
+
+    input_group.add_argument(
+        "--batch-size-audio",
+        type=int,
+        default=ic.DEFAULT_BATCH_SIZE,
+        required=False,
+        help=f"The audio batch size of the requests GenAI-Perf should send. "
+        "This is currently supported with the OpenAI `multimodal` endpoint type.",
+    )
 
     input_group.add_argument(
         "--batch-size-image",

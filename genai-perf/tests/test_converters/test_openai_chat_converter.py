@@ -44,31 +44,15 @@ class TestOpenAIChatCompletionsConverter:
     def create_generic_dataset(rows: List[Dict[str, Any]]) -> GenericDataset:
         def clean_text(row):
             text = row.get("text", [])
-            if isinstance(text, list):
-                return [t for t in text if t]
-            elif text:
-                return [text]
-            return []
+            return [text] if isinstance(text, str) else text
 
         def clean_image(row):
             image = row.get("image", [])
-            if isinstance(image, list):
-                return [i for i in image if i]
-            elif image:
-                return [image]
-            return []
+            return [image] if isinstance(image, str) else image
 
-        def clean_optional_data(row):
-            optional_data = row.get("optional_data", {})
-            if isinstance(optional_data, Dict):
-                return optional_data
-            return {}
-
-        def clean_payload_metadata(row):
-            payload_metadata = row.get("payload_metadata")
-            if isinstance(payload_metadata, Dict):
-                return payload_metadata
-            return {}
+        def clean_audio(row):
+            audio = row.get("audio", [])
+            return [audio] if isinstance(audio, str) else audio
 
         return GenericDataset(
             files_data={
@@ -77,8 +61,9 @@ class TestOpenAIChatCompletionsConverter:
                         DataRow(
                             texts=clean_text(row),
                             images=clean_image(row),
-                            optional_data=clean_optional_data(row),
-                            payload_metadata=clean_payload_metadata(row),
+                            audios=clean_audio(row),
+                            optional_data=row.get("optional_data", {}),
+                            payload_metadata=row.get("payload_metadata", {}),
                         )
                         for row in rows
                     ],
@@ -200,14 +185,14 @@ class TestOpenAIChatCompletionsConverter:
         assert result == expected_result
 
     @pytest.mark.parametrize(
-        "rows, output_format, first_content, second_content",
+        "rows, first_content, second_content",
         [
+            # Two modalities: text, image
             (
                 [
                     {"text": "test input one", "image": "test_image_1"},
                     {"text": "test input two", "image": "test_image_2"},
                 ],
-                OutputFormat.OPENAI_VISION,
                 [
                     {
                         "type": "text",
@@ -233,12 +218,53 @@ class TestOpenAIChatCompletionsConverter:
                     },
                 ],
             ),
+            # Two modalities: text, audio
             (
                 [
-                    {"text": "test input A", "image": "test_image_A1"},
-                    {"text": "test input B", "image": "test_image_B2"},
+                    {"text": "test input A", "audio": "wav,test_audio_1"},
+                    {"text": "test input B", "audio": "mp3,test_audio_2"},
                 ],
-                OutputFormat.OPENAI_VISION,
+                [
+                    {
+                        "type": "text",
+                        "text": "test input A",
+                    },
+                    {
+                        "type": "input_audio",
+                        "input_audio": {
+                            "data": "test_audio_1",
+                            "format": "wav",
+                        },
+                    },
+                ],
+                [
+                    {
+                        "type": "text",
+                        "text": "test input B",
+                    },
+                    {
+                        "type": "input_audio",
+                        "input_audio": {
+                            "data": "test_audio_2",
+                            "format": "mp3",
+                        },
+                    },
+                ],
+            ),
+            # All three modalities: text, image, audio
+            (
+                [
+                    {
+                        "text": "test input A",
+                        "image": "test_image_1",
+                        "audio": "wav,test_audio_1",
+                    },
+                    {
+                        "text": "test input B",
+                        "image": "test_image_2",
+                        "audio": "mp3,test_audio_2",
+                    },
+                ],
                 [
                     {
                         "type": "text",
@@ -247,7 +273,14 @@ class TestOpenAIChatCompletionsConverter:
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "test_image_A1",
+                            "url": "test_image_1",
+                        },
+                    },
+                    {
+                        "type": "input_audio",
+                        "input_audio": {
+                            "data": "test_audio_1",
+                            "format": "wav",
                         },
                     },
                 ],
@@ -259,16 +292,21 @@ class TestOpenAIChatCompletionsConverter:
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "test_image_B2",
+                            "url": "test_image_2",
+                        },
+                    },
+                    {
+                        "type": "input_audio",
+                        "input_audio": {
+                            "data": "test_audio_2",
+                            "format": "mp3",
                         },
                     },
                 ],
             ),
         ],
     )
-    def test_convert_multi_modal(
-        self, rows, output_format, first_content, second_content
-    ) -> None:
+    def test_convert_multi_modal(self, rows, first_content, second_content) -> None:
         """
         Test multi-modal format of OpenAI Chat API
         """
@@ -278,7 +316,7 @@ class TestOpenAIChatCompletionsConverter:
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=output_format,
+            output_format=OutputFormat.OPENAI_MULTIMODAL,
             add_stream=True,
             tokenizer=get_empty_tokenizer(),
         )

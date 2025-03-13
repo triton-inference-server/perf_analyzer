@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -57,8 +57,8 @@ class ConsoleExporter:
             title += "Rankings Metrics"
         elif self._args.endpoint_type == "image_retrieval":
             title += "Image Retrieval Metrics"
-        elif self._args.endpoint_type == "vision":
-            title += "VLM Metrics"
+        elif self._args.endpoint_type == "multimodal":
+            title += "Multi-Modal Metrics"
         else:
             title += "LLM Metrics"
         return title

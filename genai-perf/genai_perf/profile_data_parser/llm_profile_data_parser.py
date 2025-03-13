@@ -354,7 +354,7 @@ class LLMProfileDataParser(ProfileDataParser):
             return " ".join(m["content"] for m in payload["messages"])
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
             return " ".join(payload["prompt"])
-        elif self._response_format == ResponseFormat.OPENAI_VISION:
+        elif self._response_format == ResponseFormat.OPENAI_MULTIMODAL:
             content = payload["messages"][0]["content"]
             return " ".join(c["text"] for c in content if c["type"] == "text")
         else:

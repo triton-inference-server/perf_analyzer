@@ -24,23 +24,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import uuid
 from typing import List
 
 from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
 from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.retrievers import (
+    SyntheticAudioGenerator,
+    SyntheticImageGenerator,
+    SyntheticPromptGenerator,
+)
 from genai_perf.inputs.retrievers.base_input_retriever import BaseInputRetriever
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
-)
-from genai_perf.inputs.retrievers.synthetic_image_generator import (
-    SyntheticImageGenerator,
-)
-from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
-    SyntheticPromptGenerator,
 )
 from genai_perf.utils import sample_bounded_normal_int
 
@@ -52,6 +50,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
         self._include_image: bool = (
             config.image_width_mean > 0 and config.image_height_mean > 0
         )
+        self._include_audio: bool = config.audio_length_mean > 0
 
     def retrieve_data(self) -> GenericDataset:
         files = self.config.synthetic_input_filenames or [DEFAULT_SYNTHETIC_FILENAME]
@@ -115,6 +114,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
             row = self._create_data_row()
             row.texts = self._generate_prompts(use_prefix_prompts)
             row.images = self._generate_images()
+            row.audios = self._generate_audios()
             data_rows.append(row)
 
         return data_rows
@@ -158,3 +158,22 @@ class SyntheticDataRetriever(BaseInputRetriever):
                     )
                 )
         return images
+
+    def _generate_audios(self) -> List[str]:
+        """
+        Generate synthetic audios if the audio length is specified.
+        """
+        audios = []
+        if self._include_audio:
+            for _ in range(self.config.batch_size_audio):
+                audios.append(
+                    SyntheticAudioGenerator.create_synthetic_audio(
+                        audio_length_mean=self.config.audio_length_mean,
+                        audio_length_stddev=self.config.audio_length_stddev,
+                        sampling_rates_khz=self.config.audio_sample_rates,
+                        bit_depths=self.config.audio_depths,
+                        audio_format=self.config.audio_format,
+                        channels=self.config.audio_num_channels,
+                    )
+                )
+        return audios

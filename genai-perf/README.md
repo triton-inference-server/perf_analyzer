@@ -50,7 +50,7 @@ running when GenAI-Perf is run.
 
 You can use GenAI-Perf to run performance benchmarks on
 - [Large Language Models](docs/tutorial.md)
-- [Vision Language Models](docs/multi_modal.md)
+- [Multi-Modal Language Models](docs/multi_modal.md)
 - [Embedding Models](docs/embeddings.md)
 - [Ranking Models](docs/rankings.md)
 - [Multiple LoRA Adapters](docs/lora.md)
@@ -467,7 +467,8 @@ The standard deviation of the length of audio data in seconds.
 
 ##### `--audio-format <str>`
 
-The format of the audio data. (default: `wav`)
+The format of the audio data. Currently we support wav and mp3 format.
+(default: `wav`)
 
 ##### `--audio-depths <int>`
 
@@ -487,6 +488,13 @@ Currently only 1 (mono) and 2 (stereo) are supported.
 
 ##### `-b <int>`
 ##### `--batch-size <int>`
+
+##### `--batch-size-audio <int>`
+
+The audio batch size of the requests GenAI-Perf should send.
+This is currently only supported with the OpenAI `multimodal` endpoint type.
+(default: `1`)
+
 ##### `--batch-size-text <int>`
 
 The text batch size of the requests GenAI-Perf should send.

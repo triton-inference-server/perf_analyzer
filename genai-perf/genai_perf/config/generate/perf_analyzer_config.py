@@ -49,6 +49,7 @@ perf_analyzer_ignore_args = [
     "audio_format",
     "audio_num_channels",
     "backend",
+    "batch_size_audio",
     "batch_size_image",
     "batch_size_text",
     "concurrency",
