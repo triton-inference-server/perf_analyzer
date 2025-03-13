@@ -217,8 +217,10 @@ class TestConfigCommand(unittest.TestCase):
                 random_seed: 100
 
                 audio:
-                    length_mean: 24
-                    length_stddev: 25
+                    length:
+                        mean: 24
+                        stddev: 25
+
                     format: MP3
                     depths: [26]
                     sample_rates: [27]
@@ -226,10 +228,15 @@ class TestConfigCommand(unittest.TestCase):
 
                 image:
                     batch_size: 8
-                    width_mean: 9
-                    width_stddev: 10
-                    height_mean: 11
-                    height_stddev: 12
+
+                    width:
+                      mean: 9
+                      stddev: 10
+
+                    height:
+                      mean: 11
+                      stddev: 12
+
                     format: PNG
 
                 output_tokens:
@@ -269,10 +276,10 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.num_dataset_entries, 50)
         self.assertEqual(config.input.random_seed, 100)
         self.assertEqual(config.input.image.batch_size, 8)
-        self.assertEqual(config.input.image.width_mean, 9)
-        self.assertEqual(config.input.image.width_stddev, 10)
-        self.assertEqual(config.input.image.height_mean, 11)
-        self.assertEqual(config.input.image.height_stddev, 12)
+        self.assertEqual(config.input.image.width.mean, 9)
+        self.assertEqual(config.input.image.width.stddev, 10)
+        self.assertEqual(config.input.image.height.mean, 11)
+        self.assertEqual(config.input.image.height.stddev, 12)
         self.assertEqual(config.input.image.format, ImageFormat.PNG)
         self.assertEqual(config.input.output_tokens.mean, 13)
         self.assertEqual(config.input.output_tokens.deterministic, True)
@@ -286,8 +293,8 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.sessions.turns.stddev, 21)
         self.assertEqual(config.input.sessions.turn_delay.mean, 22)
         self.assertEqual(config.input.sessions.turn_delay.stddev, 23)
-        self.assertEqual(config.input.audio.length_mean, 24)
-        self.assertEqual(config.input.audio.length_stddev, 25)
+        self.assertEqual(config.input.audio.length.mean, 24)
+        self.assertEqual(config.input.audio.length.stddev, 25)
         self.assertEqual(config.input.audio.format, AudioFormat.MP3)
         self.assertEqual(config.input.audio.depths, [26])
         self.assertEqual(config.input.audio.sample_rates, [27])

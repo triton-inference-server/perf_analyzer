@@ -43,7 +43,6 @@ class ConfigEndPoint(BaseConfig):
                 \nFor the TENSORRT-LLM backend,you currently must set 'exclude_input_in_output' to true\
                 \nin the model config to not echo the input tokens",
         )
-
         self.custom: Any = ConfigField(
             default=EndPointDefaults.CUSTOM,
             verbose_template_comment="Set a custom endpoint that differs from the OpenAI defaults.",
@@ -222,6 +221,8 @@ class ConfigEndPoint(BaseConfig):
         self.infer_output_format(model_name)
 
     def infer_output_format(self, model_name: str) -> None:
+        self.output_format: Any = ConfigField(default=None, add_to_template=False)
+
         if self.service_kind == "triton" and self.type in ["kserve", "template"]:
             self.output_format = self.backend
         elif self.service_kind == "tensorrtllm_engine":

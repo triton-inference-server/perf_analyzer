@@ -417,22 +417,22 @@ class TestCLIArguments:
             (
                 ["--image-width-mean", "123"],
                 {"image_width_mean": 123},
-                {"input.image.width_mean": 123},
+                {"input.image.width.mean": 123},
             ),
             (
                 ["--image-width-stddev", "123"],
                 {"image_width_stddev": 123},
-                {"input.image.width_stddev": 123},
+                {"input.image.width.stddev": 123},
             ),
             (
                 ["--image-height-mean", "456"],
                 {"image_height_mean": 456},
-                {"input.image.height_mean": 456},
+                {"input.image.height.mean": 456},
             ),
             (
                 ["--image-height-stddev", "789"],
                 {"image_height_stddev": 789},
-                {"input.image.height_stddev": 789},
+                {"input.image.height.stddev": 789},
             ),
             (
                 ["--image-format", "png"],
@@ -442,12 +442,12 @@ class TestCLIArguments:
             (
                 ["--audio-length-mean", "234"],
                 {"audio_length_mean": 234},
-                {"input.audio.length_mean": 234},
+                {"input.audio.length.mean": 234},
             ),
             (
                 ["--audio-length-stddev", "345"],
                 {"audio_length_stddev": 345},
-                {"input.audio.length_stddev": 345},
+                {"input.audio.length.stddev": 345},
             ),
             (
                 ["--audio-format", "wav"],

@@ -169,7 +169,7 @@ class ConfigInput(BaseConfig):
 
     def _infer_prompt_source(self) -> None:
         self.prompt_source: Any = ConfigField(
-            default=PromptSource.SYNTHETIC, choices=PromptSource
+            default=PromptSource.SYNTHETIC, choices=PromptSource, add_to_template=False
         )
 
         if self.file:
@@ -182,7 +182,7 @@ class ConfigInput(BaseConfig):
                 logger.debug(f"Input source is the following path: {self.file}")
 
     def _infer_synthetic_files(self) -> None:
-        self.synthetic_files: Any = ConfigField(default=[])
+        self.synthetic_files: Any = ConfigField(default=[], add_to_template=False)
 
         if self.file:
             if str(self.file).startswith("synthetic:"):
@@ -191,7 +191,7 @@ class ConfigInput(BaseConfig):
                 logger.debug(f"Input source is synthetic data: {self.synthetic_files}")
 
     def _infer_payload_file(self) -> None:
-        self.payload_file: Any = ConfigField(default=None)
+        self.payload_file: Any = ConfigField(default=None, add_to_template=False)
 
         if self.file:
             if str(self.file).startswith("payload:"):
@@ -216,16 +216,7 @@ class ConfigAudio(BaseConfig):
 
     def __init__(self) -> None:
         super().__init__()
-        self.length_mean: Any = ConfigField(
-            default=AudioDefaults.LENGTH_MEAN,
-            bounds={"min": 0},
-            verbose_template_comment="The mean length of the audio in seconds.",
-        )
-        self.length_stddev: Any = ConfigField(
-            default=AudioDefaults.LENGTH_STDDEV,
-            bounds={"min": 0},
-            verbose_template_comment="The standard deviation of the length of the audio in seconds.",
-        )
+        self.length = ConfigAudioLength()
         self.format: Any = ConfigField(
             default=AudioDefaults.FORMAT,
             choices=AudioFormat,
@@ -247,10 +238,8 @@ class ConfigAudio(BaseConfig):
 
     def parse(self, audio: Dict[str, Any]) -> None:
         for key, value in audio.items():
-            if key == "length_mean":
-                self.length_mean = value
-            elif key == "length_stddev":
-                self.length_stddev = value
+            if key == "length":
+                self.length.parse(value)
             elif key == "format":
                 if value:
                     self.format = AudioFormat(value.upper())
@@ -264,6 +253,36 @@ class ConfigAudio(BaseConfig):
                 raise ValueError(f"User Config: {key} is not a valid audio parameter")
 
 
+class ConfigAudioLength(BaseConfig):
+    """
+    Describes the configuration audio length options
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.mean: Any = ConfigField(
+            default=AudioDefaults.LENGTH_MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean length of the audio in seconds.",
+        )
+        self.stddev: Any = ConfigField(
+            default=AudioDefaults.LENGTH_STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of the length of the audio in seconds.",
+        )
+
+    def parse(self, audio_length: Dict[str, Any]) -> None:
+        for key, value in audio_length.items():
+            if key == "mean":
+                self.mean = value
+            elif key == "stddev":
+                self.stddev = value
+            else:
+                raise ValueError(
+                    f"User Config: {key} is not a valid audio_length parameter"
+                )
+
+
 class ConfigImage(BaseConfig):
     """
     Describes the configuration image options
@@ -271,31 +290,14 @@ class ConfigImage(BaseConfig):
 
     def __init__(self) -> None:
         super().__init__()
+        self.width = ConfigImageWidth()
+        self.height = ConfigImageHeight()
+
         self.batch_size: Any = ConfigField(
             default=ImageDefaults.BATCH_SIZE,
             bounds={"min": 0},
             verbose_template_comment="The image batch size of the requests GenAI-Perf should send.\
                 \nThis is currently supported with the image retrieval endpoint type.",
-        )
-        self.width_mean: Any = ConfigField(
-            default=ImageDefaults.WIDTH_MEAN,
-            bounds={"min": 0},
-            verbose_template_comment="The mean width of the images when generating synthetic image data.",
-        )
-        self.width_stddev: Any = ConfigField(
-            default=ImageDefaults.WIDTH_STDDEV,
-            bounds={"min": 0},
-            verbose_template_comment="The standard deviation of width of images when generating synthetic image data.",
-        )
-        self.height_mean: Any = ConfigField(
-            default=ImageDefaults.HEIGHT_MEAN,
-            bounds={"min": 0},
-            verbose_template_comment="The mean height of images when generating synthetic image data.",
-        )
-        self.height_stddev: Any = ConfigField(
-            default=ImageDefaults.HEIGHT_STDDEV,
-            bounds={"min": 0},
-            verbose_template_comment="The standard deviation of height of images when generating synthetic image data.",
         )
         self.format: Any = ConfigField(
             default=ImageDefaults.FORMAT,
@@ -307,19 +309,75 @@ class ConfigImage(BaseConfig):
         for key, value in image.items():
             if key == "batch_size":
                 self.batch_size = value
-            elif key == "width_mean":
-                self.width_mean = value
-            elif key == "width_stddev":
-                self.width_stddev = value
-            elif key == "height_mean":
-                self.height_mean = value
-            elif key == "height_stddev":
-                self.height_stddev = value
+            elif key == "width":
+                self.width.parse(value)
+            elif key == "height":
+                self.height.parse(value)
             elif key == "format":
                 if value:
                     self.format = ImageFormat(value.upper())
             else:
                 raise ValueError(f"User Config: {key} is not a valid image parameter")
+
+
+class ConfigImageWidth(BaseConfig):
+    """
+    Describes the configuration image width options
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.mean: Any = ConfigField(
+            default=ImageDefaults.WIDTH_MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean width of the images when generating synthetic image data.",
+        )
+        self.stddev: Any = ConfigField(
+            default=ImageDefaults.WIDTH_STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of width of images when generating synthetic image data.",
+        )
+
+    def parse(self, image_width: Dict[str, Any]) -> None:
+        for key, value in image_width.items():
+            if key == "mean":
+                self.mean = value
+            elif key == "stddev":
+                self.stddev = value
+            else:
+                raise ValueError(
+                    f"User Config: {key} is not a valid image_width parameter"
+                )
+
+
+class ConfigImageHeight(BaseConfig):
+    """
+    Describes the configuration image height options
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.mean: Any = ConfigField(
+            default=ImageDefaults.HEIGHT_MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean height of images when generating synthetic image data.",
+        )
+        self.stddev: Any = ConfigField(
+            default=ImageDefaults.HEIGHT_STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of height of images when generating synthetic image data.",
+        )
+
+    def parse(self, image_height: Dict[str, Any]) -> None:
+        for key, value in image_height.items():
+            if key == "mean":
+                self.mean = value
+            elif key == "stddev":
+                self.stddev = value
+            else:
+                raise ValueError(
+                    f"User Config: {key} is not a valid image_height parameter"
+                )
 
 
 class ConfigOutputTokens(BaseConfig):
