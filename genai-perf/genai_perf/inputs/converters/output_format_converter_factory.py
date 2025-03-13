@@ -44,7 +44,7 @@ class OutputFormatConverterFactory:
             OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,
             OutputFormat.OPENAI_COMPLETIONS: OpenAICompletionsConverter,
             OutputFormat.OPENAI_EMBEDDINGS: OpenAIEmbeddingsConverter,
-            OutputFormat.OPENAI_VISION: OpenAIChatCompletionsConverter,
+            OutputFormat.OPENAI_MULTIMODAL: OpenAIChatCompletionsConverter,
             OutputFormat.RANKINGS: RankingsConverter,
             OutputFormat.TEMPLATE: TemplateConverter,
             OutputFormat.TENSORRTLLM: TensorRTLLMConverter,

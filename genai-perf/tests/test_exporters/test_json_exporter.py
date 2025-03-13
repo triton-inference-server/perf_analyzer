@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
-import os
 from io import StringIO
 from typing import Any, Dict, List, Tuple
 
@@ -52,245 +51,11 @@ class TestJsonExporter:
         )
         return JsonExporter(config)
 
-    stats = {
-        "request_throughput": {"unit": "requests/sec", "avg": "7"},
-        "request_latency": {
-            "unit": "ms",
-            "avg": 1,
-            "p99": 2,
-            "p95": 3,
-            "p90": 4,
-            "p75": 5,
-            "p50": 6,
-            "p25": 7,
-            "max": 8,
-            "min": 9,
-            "std": 0,
-        },
-        "time_to_first_token": {
-            "unit": "ms",
-            "avg": 11,
-            "p99": 12,
-            "p95": 13,
-            "p90": 14,
-            "p75": 15,
-            "p50": 16,
-            "p25": 17,
-            "max": 18,
-            "min": 19,
-            "std": 10,
-        },
-        "inter_token_latency": {
-            "unit": "ms",
-            "avg": 21,
-            "p99": 22,
-            "p95": 23,
-            "p90": 24,
-            "p75": 25,
-            "p50": 26,
-            "p25": 27,
-            "max": 28,
-            "min": 29,
-            "std": 20,
-        },
-        "output_token_throughput": {
-            "unit": "tokens/sec",
-            "avg": 31,
-        },
-        "output_token_throughput_per_request": {
-            "unit": "tokens/sec",
-            "avg": 41,
-            "p99": 42,
-            "p95": 43,
-            "p90": 44,
-            "p75": 45,
-            "p50": 46,
-            "p25": 47,
-            "max": 48,
-            "min": 49,
-            "std": 40,
-        },
-        "output_sequence_length": {
-            "unit": "tokens",
-            "avg": 51,
-            "p99": 52,
-            "p95": 53,
-            "p90": 54,
-            "p75": 55,
-            "p50": 56,
-            "p25": 57,
-            "max": 58,
-            "min": 59,
-            "std": 50,
-        },
-        "input_sequence_length": {
-            "unit": "tokens",
-            "avg": 61,
-            "p99": 62,
-            "p95": 63,
-            "p90": 64,
-            "p75": 65,
-            "p50": 66,
-            "p25": 67,
-            "max": 68,
-            "min": 69,
-            "std": 60,
-        },
-    }
-
-    expected_json_output = """
-      {
-        "request_throughput": {
-          "unit": "requests/sec",
-          "avg": "7"
-          },
-          "request_latency": {
-              "unit": "ms",
-              "avg": 1,
-              "p99": 2,
-              "p95": 3,
-              "p90": 4,
-              "p75": 5,
-              "p50": 6,
-              "p25": 7,
-              "max": 8,
-              "min": 9,
-              "std": 0
-          },
-          "time_to_first_token": {
-              "unit": "ms",
-              "avg": 11,
-              "p99": 12,
-              "p95": 13,
-              "p90": 14,
-              "p75": 15,
-              "p50": 16,
-              "p25": 17,
-              "max": 18,
-              "min": 19,
-              "std": 10
-          },
-          "inter_token_latency": {
-              "unit": "ms",
-              "avg": 21,
-              "p99": 22,
-              "p95": 23,
-              "p90": 24,
-              "p75": 25,
-              "p50": 26,
-              "p25": 27,
-              "max": 28,
-              "min": 29,
-              "std": 20
-          },
-          "output_token_throughput": {
-              "unit": "tokens/sec",
-              "avg": 31
-          },
-          "output_token_throughput_per_request": {
-              "unit": "tokens/sec",
-              "avg": 41,
-              "p99": 42,
-              "p95": 43,
-              "p90": 44,
-              "p75": 45,
-              "p50": 46,
-              "p25": 47,
-              "max": 48,
-              "min": 49,
-              "std": 40
-          },
-          "output_sequence_length": {
-              "unit": "tokens",
-              "avg": 51,
-              "p99": 52,
-              "p95": 53,
-              "p90": 54,
-              "p75": 55,
-              "p50": 56,
-              "p25": 57,
-              "max": 58,
-              "min": 59,
-              "std": 50
-          },
-          "input_sequence_length": {
-              "unit": "tokens",
-              "avg": 61,
-              "p99": 62,
-              "p95": 63,
-              "p90": 64,
-              "p75": 65,
-              "p50": 66,
-              "p25": 67,
-              "max": 68,
-              "min": 69,
-              "std": 60
-          },
-        "input_config": {
-          "model": ["gpt2_vllm"],
-          "formatted_model_name": "gpt2_vllm",
-          "model_selection_strategy": "round_robin",
-          "backend": "vllm",
-          "batch_size_image": 1,
-          "batch_size_text": 1,
-          "endpoint": null,
-          "endpoint_type": "kserve",
-          "service_kind": "triton",
-          "server_metrics_url": [],
-          "session_concurrency": null,
-          "session_turn_delay_mean": 0,
-          "session_turn_delay_stddev": 0,
-          "streaming": true,
-          "u": null,
-          "num_dataset_entries": 100,
-          "num_prefix_prompts": 0,
-          "num_sessions": 0,
-          "output_tokens_mean": -1,
-          "output_tokens_mean_deterministic": false,
-          "output_tokens_stddev": 0,
-          "random_seed": 0,
-          "request_count": 0,
-          "synthetic_input_files": null,
-          "synthetic_input_tokens_mean": 550,
-          "synthetic_input_tokens_stddev": 0,
-          "prefix_prompt_length": 100,
-          "warmup_request_count": 0,
-          "image_width_mean": 100,
-          "image_width_stddev": 0,
-          "image_height_mean": 100,
-          "image_height_stddev": 0,
-          "image_format": null,
-          "concurrency": 1,
-          "measurement_interval": 10000,
-          "request_rate": null,
-          "stability_percentage": 999,
-          "generate_plots": false,
-          "profile_export_file": "artifacts/gpt2_vllm-triton-vllm-concurrency1/profile_export.json",
-          "artifact_dir": "artifacts/gpt2_vllm-triton-vllm-concurrency1",
-          "tokenizer": "hf-internal-testing/llama-tokenizer",
-          "tokenizer_revision": "main",
-          "tokenizer_trust_remote_code": false,
-          "session_turns_mean": 1,
-          "session_turns_stddev": 0,
-          "verbose": false,
-          "goodput": null,
-          "header": null,
-          "subcommand": "profile",
-          "prompt_source": "synthetic",
-          "extra_inputs": {
-            "max_tokens": 256,
-            "ignore_eos": true
-          }
-        }
-      }
-    """
-
     @pytest.fixture
     def mock_read_write(self, monkeypatch: pytest.MonkeyPatch) -> List[Tuple[str, str]]:
         """
         This function will mock the open function for specific files.
         """
-
         written_data = []
 
         def custom_open(filename, *args, **kwargs):
@@ -304,550 +69,242 @@ class TestJsonExporter:
             return tmp_file
 
         monkeypatch.setattr("builtins.open", custom_open)
-
         return written_data
 
-    def test_generate_json(
+    def test_generate_json_export_file(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
+        """
+        Tests that the resulting json file is generated/exported correctly.
+        """
         cli_cmd = [
             "genai-perf",
             "profile",
             "-m",
-            "gpt2_vllm",
-            "--backend",
-            "vllm",
-            "--streaming",
-            "--extra-inputs",
-            "max_tokens:256",
-            "--extra-inputs",
-            "ignore_eos:true",
+            "test_model",
+            "--artifact-dir",
+            "/tmp/test_artifact",
         ]
-        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, self.stats)
-        assert json_exporter._export_data == json.loads(self.expected_json_output)
+        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
-        expected_filename = "profile_export_genai_perf.json"
-        written_data = [
-            data
-            for filename, data in mock_read_write
-            if os.path.basename(filename) == expected_filename
-        ]
 
-        assert len(written_data) == 1
-        assert json.loads(written_data[0]) == json.loads(self.expected_json_output)
+        expected_filename = "/tmp/test_artifact/profile_export_genai_perf.json"
+        actual_filename, _ = next(iter(mock_read_write))
+        assert actual_filename == expected_filename
 
-    def test_generate_json_custom_export(
+    def test_generate_json_custom_export_file(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
-        artifacts_dir = "artifacts/gpt2_vllm-triton-vllm-concurrency1"
-        custom_filename = "custom_export.json"
-        expected_filename = f"{artifacts_dir}/custom_export_genai_perf.json"
-        expected_profile_filename = f"{artifacts_dir}/custom_export.json"
         cli_cmd = [
             "genai-perf",
             "profile",
             "-m",
-            "gpt2_vllm",
-            "--backend",
-            "vllm",
-            "--streaming",
-            "--extra-inputs",
-            "max_tokens:256",
-            "--extra-inputs",
-            "ignore_eos:true",
+            "test_model",
+            "--artifact-dir",
+            "/tmp/test_artifact",
             "--profile-export-file",
-            custom_filename,
+            "custom_export.json",
         ]
-        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, self.stats)
+        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
-        written_data = [
-            data for filename, data in mock_read_write if filename == expected_filename
-        ]
 
-        assert len(written_data) == 1
-        expected_json_output = json.loads(self.expected_json_output)
-        expected_json_output["input_config"][
-            "profile_export_file"
-        ] = expected_profile_filename
-        assert json.loads(written_data[0]) == expected_json_output
+        expected_json_filename = "/tmp/test_artifact/custom_export_genai_perf.json"
+        expected_profile_filename = "/tmp/test_artifact/custom_export.json"
 
-    def test_valid_goodput_json_output(
+        actual_json_filename, data = next(iter(mock_read_write))
+        assert actual_json_filename == expected_json_filename
+
+        json_output = json.loads(data)
+        actual_profile_filename = json_output["input_config"]["profile_export_file"]
+        assert actual_profile_filename == expected_profile_filename
+
+    def test_generate_json_stats(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
-        valid_goodput_stats = {
-            "request_throughput": {"unit": "requests/sec", "avg": "7"},
-            "request_latency": {
-                "unit": "ms",
-                "avg": 1,
-                "p99": 2,
-                "p95": 3,
-                "p90": 4,
-                "p75": 5,
-                "p50": 6,
-                "p25": 7,
-                "max": 8,
-                "min": 9,
-                "std": 0,
-            },
-            "request_goodput": {
+        """
+        Tests that the stats are exported correctly.
+        """
+        stats = {
+            "some_metric_1": {
                 "unit": "requests/sec",
-                "avg": "5",
+                "avg": 123,
+                "std": 456,
             },
-            "time_to_first_token": {
+            "some_metric_2": {
                 "unit": "ms",
-                "avg": 11,
-                "p99": 12,
-                "p95": 13,
-                "p90": 14,
-                "p75": 15,
-                "p50": 16,
-                "p25": 17,
-                "max": 18,
-                "min": 19,
-                "std": 10,
-            },
-            "inter_token_latency": {
-                "unit": "ms",
-                "avg": 21,
-                "p99": 22,
-                "p95": 23,
-                "p90": 24,
-                "p75": 25,
-                "p50": 26,
-                "p25": 27,
-                "max": 28,
-                "min": 29,
-                "std": 20,
-            },
-            "output_token_throughput": {
-                "unit": "tokens/sec",
-                "avg": 31,
-            },
-            "output_token_throughput_per_request": {
-                "unit": "tokens/sec",
-                "avg": 41,
-                "p99": 42,
-                "p95": 43,
-                "p90": 44,
-                "p75": 45,
-                "p50": 46,
-                "p25": 47,
-                "max": 48,
-                "min": 49,
-                "std": 40,
-            },
-            "output_sequence_length": {
-                "unit": "tokens",
-                "avg": 51,
-                "p99": 52,
-                "p95": 53,
-                "p90": 54,
-                "p75": 55,
-                "p50": 56,
-                "p25": 57,
-                "max": 58,
-                "min": 59,
-                "std": 50,
-            },
-            "input_sequence_length": {
-                "unit": "tokens",
-                "avg": 61,
-                "p99": 62,
-                "p95": 63,
-                "p90": 64,
-                "p75": 65,
-                "p50": 66,
-                "p25": 67,
-                "max": 68,
-                "min": 69,
-                "std": 60,
+                "p99": 789,
             },
         }
 
-        expected_valid_goodput_json_output = """
-            {
-                "unit": "requests/sec",
-                "avg": "5"
-            }
-        """
+        cli_cmd = ["genai-perf", "profile", "-m", "test_model"]
+        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats)
+        json_exporter.export()
 
-        expected_valid_goodput_json_config = """
-            {
-                "time_to_first_token": 8.0,
-                "inter_token_latency": 2.0,
-                "output_token_throughput_per_request": 650.0
-            }
+        _, data = next(iter(mock_read_write))
+        actual_json_output = json.loads(data)
+        del actual_json_output["input_config"]  # only test stats
+
+        assert actual_json_output == stats
+
+    def test_generate_json_input_config(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+    ) -> None:
+        cli_cmd = ["genai-perf", "profile", "-m", "test_model"]
+        json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
+        json_exporter.export()
+
+        expected_input_config = {
+            "model": ["test_model"],
+            "formatted_model_name": "test_model",
+            "model_selection_strategy": "round_robin",
+            "backend": "tensorrtllm",
+            "batch_size_audio": 1,
+            "batch_size_image": 1,
+            "batch_size_text": 1,
+            "endpoint": None,
+            "endpoint_type": "kserve",
+            "service_kind": "triton",
+            "server_metrics_url": [],
+            "session_concurrency": None,
+            "session_turn_delay_mean": 0,
+            "session_turn_delay_stddev": 0,
+            "streaming": False,
+            "u": None,
+            "num_dataset_entries": 100,
+            "num_prefix_prompts": 0,
+            "num_sessions": 0,
+            "output_tokens_mean": -1,
+            "output_tokens_mean_deterministic": False,
+            "output_tokens_stddev": 0,
+            "random_seed": 0,
+            "request_count": 0,
+            "synthetic_input_files": None,
+            "synthetic_input_tokens_mean": 550,
+            "synthetic_input_tokens_stddev": 0,
+            "prefix_prompt_length": 100,
+            "warmup_request_count": 0,
+            "image_width_mean": 0,
+            "image_width_stddev": 0,
+            "image_height_mean": 0,
+            "image_height_stddev": 0,
+            "image_format": None,
+            "audio_format": "wav",
+            "audio_length_mean": 0,
+            "audio_length_stddev": 0,
+            "audio_sample_rates": [16],
+            "audio_depths": [16],
+            "audio_num_channels": 1,
+            "concurrency": 1,
+            "measurement_interval": 10000,
+            "request_rate": None,
+            "stability_percentage": 999,
+            "generate_plots": False,
+            "profile_export_file": "artifacts/test_model-triton-tensorrtllm-concurrency1/profile_export.json",
+            "artifact_dir": "artifacts/test_model-triton-tensorrtllm-concurrency1",
+            "tokenizer": "hf-internal-testing/llama-tokenizer",
+            "tokenizer_revision": "main",
+            "tokenizer_trust_remote_code": False,
+            "session_turns_mean": 1,
+            "session_turns_stddev": 0,
+            "verbose": False,
+            "goodput": None,
+            "header": None,
+            "subcommand": "profile",
+            "prompt_source": "synthetic",
+            "extra_inputs": {},
+        }
+
+        _, data = next(iter(mock_read_write))
+        actual_json_output = json.loads(data)
+        assert actual_json_output["input_config"] == expected_input_config
+
+    def test_generate_json_goodput_stats(
+        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
+    ) -> None:
         """
+        Tests that the goodput stats are exported correctly.
+        """
+        goodput_stats = {
+            "some_goodput_metric_1": {
+                "unit": "requests/sec",
+                "avg": 123,
+            },
+            "some_goodput_metric_2": {
+                "unit": "requests/sec",
+                "avg": 456,
+            },
+        }
 
         cli_cmd = [
             "genai-perf",
             "profile",
             "-m",
-            "gpt2_vllm",
-            "--backend",
-            "vllm",
-            "--streaming",
-            "--extra-inputs",
-            "max_tokens:256",
-            "--extra-inputs",
-            "ignore_eos:true",
+            "test_model",
             "--goodput",
-            "time_to_first_token:8.0",
-            "inter_token_latency:2.0",
-            "output_token_throughput_per_request:650.0",
+            "some_metric_1:8.0",
+            "some_metric_2:2.0",
+            "some_metric_3:650.0",
         ]
         json_exporter = self.create_json_exporter(
-            monkeypatch, cli_cmd, valid_goodput_stats
+            monkeypatch, cli_cmd, stats=goodput_stats
         )
-        assert json_exporter._export_data["request_goodput"] == json.loads(
-            expected_valid_goodput_json_output
-        )
-        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
-            expected_valid_goodput_json_config
-        )
-
         json_exporter.export()
-        expected_filename = "profile_export_genai_perf.json"
-        written_data = [
-            data
-            for filename, data in mock_read_write
-            if os.path.basename(filename) == expected_filename
-        ]
 
-        assert len(written_data) == 1
-        output_data_dict = json.loads(written_data[0])
+        _, data = next(iter(mock_read_write))
+        json_output = json.loads(data)
 
-        assert output_data_dict["request_goodput"] == json.loads(
-            expected_valid_goodput_json_output
-        )
-
-        assert output_data_dict["input_config"]["goodput"] == json.loads(
-            expected_valid_goodput_json_config
-        )
-
-    def test_invalid_goodput_json_output(
-        self, monkeypatch, mock_read_write: pytest.MonkeyPatch
-    ) -> None:
-        invalid_goodput_stats = {
-            "request_throughput": {"unit": "requests/sec", "avg": "7"},
-            "request_latency": {
-                "unit": "ms",
-                "avg": 1,
-                "p99": 2,
-                "p95": 3,
-                "p90": 4,
-                "p75": 5,
-                "p50": 6,
-                "p25": 7,
-                "max": 8,
-                "min": 9,
-                "std": 0,
-            },
-            "request_goodput": {
-                "unit": "requests/sec",
-                "avg": "-1.0",
-            },
-            "time_to_first_token": {
-                "unit": "ms",
-                "avg": 11,
-                "p99": 12,
-                "p95": 13,
-                "p90": 14,
-                "p75": 15,
-                "p50": 16,
-                "p25": 17,
-                "max": 18,
-                "min": 19,
-                "std": 10,
-            },
-            "inter_token_latency": {
-                "unit": "ms",
-                "avg": 21,
-                "p99": 22,
-                "p95": 23,
-                "p90": 24,
-                "p75": 25,
-                "p50": 26,
-                "p25": 27,
-                "max": 28,
-                "min": 29,
-                "std": 20,
-            },
-            "output_token_throughput": {
-                "unit": "tokens/sec",
-                "avg": 31,
-            },
-            "output_token_throughput_per_request": {
-                "unit": "tokens/sec",
-                "avg": 41,
-                "p99": 42,
-                "p95": 43,
-                "p90": 44,
-                "p75": 45,
-                "p50": 46,
-                "p25": 47,
-                "max": 48,
-                "min": 49,
-                "std": 40,
-            },
-            "output_sequence_length": {
-                "unit": "tokens",
-                "avg": 51,
-                "p99": 52,
-                "p95": 53,
-                "p90": 54,
-                "p75": 55,
-                "p50": 56,
-                "p25": 57,
-                "max": 58,
-                "min": 59,
-                "std": 50,
-            },
-            "input_sequence_length": {
-                "unit": "tokens",
-                "avg": 61,
-                "p99": 62,
-                "p95": 63,
-                "p90": 64,
-                "p75": 65,
-                "p50": 66,
-                "p25": 67,
-                "max": 68,
-                "min": 69,
-                "std": 60,
-            },
+        input_config = json_output.pop("input_config")
+        assert input_config["goodput"] == {
+            "some_metric_1": 8.0,
+            "some_metric_2": 2.0,
+            "some_metric_3": 650.0,
         }
+        assert json_output == goodput_stats
 
-        expected_invalid_goodput_json_output = """
-            {
-                "unit": "requests/sec",
-                "avg": "-1.0"
-            }
-        """
-        expected_invalid_goodput_json_config = """
-            {
-                "time_to_first_tokens": 8.0,
-                "inter_token_latencies": 2.0,
-                "output_token_throughputs_per_requesdt": 650.0
-            }
-        """
-        cli_cmd = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "gpt2_vllm",
-            "--backend",
-            "vllm",
-            "--streaming",
-            "--extra-inputs",
-            "max_tokens:256",
-            "--extra-inputs",
-            "ignore_eos:true",
-            "--goodput",
-            "time_to_first_tokens:8.0",
-            "inter_token_latencies:2.0",
-            "output_token_throughputs_per_requesdt:650.0",
-        ]
-        json_exporter = self.create_json_exporter(
-            monkeypatch, cli_cmd, invalid_goodput_stats
-        )
-        assert json_exporter._export_data["request_goodput"] == json.loads(
-            expected_invalid_goodput_json_output
-        )
-        assert json_exporter._export_data["input_config"]["goodput"] == json.loads(
-            expected_invalid_goodput_json_config
-        )
-        json_exporter.export()
-        expected_filename = "profile_export_genai_perf.json"
-
-        written_data = [
-            data
-            for filename, data in mock_read_write
-            if os.path.basename(filename) == expected_filename
-        ]
-
-        assert len(written_data) == 1
-        output_data_dict = json.loads(written_data[0])
-
-        assert output_data_dict["request_goodput"] == json.loads(
-            expected_invalid_goodput_json_output
-        )
-
-        assert output_data_dict["input_config"]["goodput"] == json.loads(
-            expected_invalid_goodput_json_config
-        )
-
-    def test_triton_telemetry_output(
+    def test_generate_json_telemetry_stats(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
-
+        """
+        Tests that the telemetry stats are exported correctly.
+        """
         telemetry_stats = {
-            "gpu_power_usage": {
+            "some_telemetry_metric_1": {
                 "unit": "W",
                 "gpu0": {
-                    "avg": 80.30575675675676,
-                    "p25": 82.569,
-                    "p50": 83.597,
-                    "p75": 84.485,
-                    "p90": 84.589,
-                    "p95": 84.7184,
-                    "p99": 84.772,
-                    "min": 23.858,
-                    "max": 84.772,
+                    "avg": 123,
+                    "p25": 456,
+                    "p50": 789,
                 },
             },
-            "gpu_power_limit": {"unit": "W", "gpu0": {"avg": 300.0}},
-            "energy_consumption": {
-                "unit": "MJ",
+            "some_telemetry_metric_2": {
+                "unit": "W",
                 "gpu0": {
-                    "avg": 2.154032905081084,
-                    "p25": 2.1533188160000027,
-                    "p50": 2.154057423000003,
-                    "p75": 2.154666464000003,
-                    "p90": 2.155118764000003,
-                    "p95": 2.155270593000003,
-                    "p99": 2.1553677661200026,
-                    "min": 2.1527738520000033,
-                    "max": 2.1554224260000026,
-                },
-            },
-            "gpu_utilization": {
-                "unit": "%",
-                "gpu0": {
-                    "avg": 8.72972972972973,
-                    "p25": 9.0,
-                    "p50": 9.0,
-                    "p75": 9.0,
-                    "p90": 10.0,
-                    "p95": 10.0,
-                    "p99": 10.0,
-                    "min": 0.0,
-                    "max": 10.0,
-                },
-            },
-            "total_gpu_memory": {"unit": "GB", "gpu0": {"avg": 51.52702464}},
-            "gpu_memory_used": {
-                "unit": "GB",
-                "gpu0": {
-                    "avg": 26.052919296000006,
-                    "p25": 26.052919296000002,
-                    "p50": 26.052919296000002,
-                    "p75": 26.052919296000002,
-                    "p90": 26.052919296000002,
-                    "p95": 26.052919296000002,
-                    "p99": 26.052919296000002,
-                    "min": 26.052919296000002,
-                    "max": 26.052919296000002,
+                    "avg": 123,
+                    "p25": 456,
+                    "p50": 789,
                 },
             },
         }
-
-        expected_telemetry_json_output = """
-            {
-                "gpu_power_usage": {
-                    "unit": "W",
-                    "gpu0": {
-                        "avg": 80.30575675675676,
-                        "p25": 82.569,
-                        "p50": 83.597,
-                        "p75": 84.485,
-                        "p90": 84.589,
-                        "p95": 84.7184,
-                        "p99": 84.772,
-                        "min": 23.858,
-                        "max": 84.772
-                    }
-                },
-                "gpu_power_limit": {
-                    "unit": "W",
-                    "gpu0": {
-                        "avg": 300.0
-                    }
-                },
-                "energy_consumption": {
-                    "unit": "MJ",
-                    "gpu0": {
-                        "avg": 2.154032905081084,
-                        "p25": 2.1533188160000027,
-                        "p50": 2.154057423000003,
-                        "p75": 2.154666464000003,
-                        "p90": 2.155118764000003,
-                        "p95": 2.155270593000003,
-                        "p99": 2.1553677661200026,
-                        "min": 2.1527738520000033,
-                        "max": 2.1554224260000026
-                    }
-                },
-                "gpu_utilization": {
-                    "unit": "%",
-                    "gpu0": {
-                        "avg": 8.72972972972973,
-                        "p25": 9.0,
-                        "p50": 9.0,
-                        "p75": 9.0,
-                        "p90": 10.0,
-                        "p95": 10.0,
-                        "p99": 10.0,
-                        "min": 0.0,
-                        "max": 10.0
-                    }
-                },
-                "total_gpu_memory": {
-                    "unit": "GB",
-                    "gpu0": {
-                        "avg": 51.52702464
-                    }
-                },
-                "gpu_memory_used": {
-                    "unit": "GB",
-                    "gpu0": {
-                        "avg": 26.052919296000006,
-                        "p25": 26.052919296000002,
-                        "p50": 26.052919296000002,
-                        "p75": 26.052919296000002,
-                        "p90": 26.052919296000002,
-                        "p95": 26.052919296000002,
-                        "p99": 26.052919296000002,
-                        "min": 26.052919296000002,
-                        "max": 26.052919296000002
-                    }
-                }
-            }
-        """
 
         cli_cmd = [
             "genai-perf",
             "profile",
             "-m",
-            "gpt2_vllm",
+            "test_model",
             "--service-kind",
             "triton",
-            "--streaming",
             "--server-metrics-url",
             "http://tritonmetrics:8002/metrics",
         ]
 
         json_exporter = self.create_json_exporter(
-            monkeypatch, cli_cmd, self.stats, telemetry_stats=telemetry_stats
+            monkeypatch, cli_cmd, stats={}, telemetry_stats=telemetry_stats
         )
-        assert json_exporter._export_data["telemetry_stats"] == json.loads(
-            expected_telemetry_json_output
-        )
-
         json_exporter.export()
-        expected_filename = "profile_export_genai_perf.json"
-        written_data = [
-            data
-            for filename, data in mock_read_write
-            if os.path.basename(filename) == expected_filename
-        ]
 
-        assert len(written_data) == 1
-        output_data_dict = json.loads(written_data[0])
-
-        assert output_data_dict["telemetry_stats"] == json.loads(
-            expected_telemetry_json_output
-        )
+        _, data = next(iter(mock_read_write))
+        json_output = json.loads(data)
+        assert json_output["telemetry_stats"] == telemetry_stats
 
     def test_generate_json_session_stats(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -875,31 +332,6 @@ class TestJsonExporter:
             },
         }
 
-        expected_session_stats_json_output = """
-            {
-                "session-id-123": {
-                    "some_metric_1": {
-                        "unit": "count",
-                        "avg": 123
-                    },
-                    "some_metric_2": {
-                        "unit": "ms",
-                        "avg": 456
-                    }
-                },
-                "session-id-456": {
-                    "some_metric_1": {
-                        "unit": "requests/sec",
-                        "avg": 789
-                    },
-                    "some_metric_2": {
-                        "unit": "ms",
-                        "avg": 1011
-                    }
-                }
-            }
-        """
-
         cli_cmd = [
             "genai-perf",
             "profile",
@@ -911,19 +343,12 @@ class TestJsonExporter:
             "chat",
         ]
         json_exporter = self.create_json_exporter(
-            monkeypatch, cli_cmd, self.stats, session_stats=session_stats
+            monkeypatch, cli_cmd, stats={}, session_stats=session_stats
         )
         json_exporter.export()
-        expected_filename = "profile_export_genai_perf.json"
-        written_data = [
-            data
-            for filename, data in mock_read_write
-            if os.path.basename(filename) == expected_filename
-        ]
-        assert len(written_data) == 1
 
-        actual_session_stats = json.loads(written_data[0])
-        expected_session_stats = json.loads(expected_session_stats_json_output)
+        _, data = next(iter(mock_read_write))
+        json_output = json.loads(data)
 
-        assert "sessions" in actual_session_stats
-        assert actual_session_stats["sessions"] == expected_session_stats
+        assert "sessions" in json_output
+        assert json_output["sessions"] == session_stats

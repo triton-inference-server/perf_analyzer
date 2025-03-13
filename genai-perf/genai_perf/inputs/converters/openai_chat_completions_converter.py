@@ -43,7 +43,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
     def check_config(self, config: InputsConfig) -> None:
         if (
             config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
-            or config.output_format == OutputFormat.OPENAI_VISION
+            or config.output_format == OutputFormat.OPENAI_MULTIMODAL
         ):
             if config.batch_size_text != DEFAULT_BATCH_SIZE:
                 raise GenAIPerfException(
@@ -92,7 +92,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         content: Union[str, List[Dict[Any, Any]]] = ""
         if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
             content = row.texts[0]
-        elif config.output_format == OutputFormat.OPENAI_VISION:
+        elif config.output_format == OutputFormat.OPENAI_MULTIMODAL:
             content = self._add_multi_modal_content(row)
         else:
             raise GenAIPerfException(
@@ -115,6 +115,17 @@ class OpenAIChatCompletionsConverter(BaseConverter):
                     "type": "image_url",
                     "image_url": {
                         "url": image,
+                    },
+                }
+            )
+        for audio in entry.audios:
+            format, b64_audio = audio.split(",")
+            content.append(
+                {
+                    "type": "input_audio",
+                    "input_audio": {
+                        "data": b64_audio,
+                        "format": format,
                     },
                 }
             )

@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 import argparse
 import sys
 from dataclasses import dataclass
@@ -38,7 +37,7 @@ import genai_perf.utils as utils
 from genai_perf.config.input.config_command import RunConfigDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.retrievers import AudioFormat, ImageFormat
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
@@ -90,8 +89,8 @@ _endpoint_type_map = {
     ),
     "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
     "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
-    "vision": EndpointConfig(
-        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_VISION
+    "multimodal": EndpointConfig(
+        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_MULTIMODAL
     ),
     "generate": EndpointConfig(
         "v2/models/{MODEL_NAME}/generate", "triton", ic.OutputFormat.TRITON_GENERATE
@@ -165,9 +164,9 @@ def _check_image_input_args(
     """
     Sanity check the image input args
     """
-    if args.image_width_mean <= 0 or args.image_height_mean <= 0:
+    if args.image_width_mean < 0 or args.image_height_mean < 0:
         parser.error(
-            "Both --image-width-mean and --image-height-mean values must be positive."
+            "Both --image-width-mean and --image-height-mean values must be non-negative."
         )
     if args.image_width_stddev < 0 or args.image_height_stddev < 0:
         parser.error(
@@ -175,6 +174,25 @@ def _check_image_input_args(
         )
 
     args = _convert_str_to_enum_entry(args, "image_format", ImageFormat)
+    return args
+
+
+def _check_audio_input_args(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> argparse.Namespace:
+    """
+    Sanity check the audio input args
+    """
+    if args.audio_length_mean < 0:
+        parser.error("The --audio-length-mean value must be non-negative.")
+    if args.audio_length_stddev < 0:
+        parser.error("The --audio-length-stddev value must be non-negative.")
+    if any(r <= 0 for r in args.audio_sample_rates):
+        parser.error("The sample rate values in --audio-sample-rates must be positive.")
+    if any(d <= 0 for d in args.audio_depths):
+        parser.error("The bit depth values in --audio-depths must be positive.")
+
+    args = _convert_str_to_enum_entry(args, "audio_format", AudioFormat)
     return args
 
 
@@ -628,6 +646,68 @@ def _add_analyze_args(parser):
     )
 
 
+def _add_audio_input_args(parser):
+    input_group = parser.add_argument_group("Audio Input")
+
+    input_group.add_argument(
+        "--audio-length-mean",
+        type=float,
+        default=ic.DEFAULT_AUDIO_LENGTH_MEAN,
+        required=False,
+        help=f"The mean length of audio data in seconds. Default is 10 seconds.",
+    )
+
+    input_group.add_argument(
+        "--audio-length-stddev",
+        type=float,
+        default=ic.DEFAULT_AUDIO_LENGTH_STDDEV,
+        required=False,
+        help=f"The standard deviation of the length of audio data in seconds. "
+        "Default is 0.",
+    )
+
+    input_group.add_argument(
+        "--audio-format",
+        type=str,
+        choices=utils.get_enum_names(AudioFormat),
+        default=ic.DEFAULT_AUDIO_FORMAT,
+        required=False,
+        help=f"The format of the audio data. Currently we support wav and "
+        "mp3 format. Default is 'wav'.",
+    )
+
+    input_group.add_argument(
+        "--audio-depths",
+        type=int,
+        default=ic.DEFAULT_AUDIO_DEPTHS,
+        nargs="*",
+        required=False,
+        help=f"A list of audio bit depths to randomly select from in bits. "
+        "Default is [16].",
+    )
+
+    input_group.add_argument(
+        "--audio-sample-rates",
+        type=float,
+        default=ic.DEFAULT_AUDIO_SAMPLE_RATES,
+        nargs="*",
+        required=False,
+        help=f"A list of audio sample rates to randomly select from in kHz. "
+        "Default is [16].",
+    )
+
+    input_group.add_argument(
+        "--audio-num-channels",
+        type=int,
+        default=ic.DEFAULT_AUDIO_NUM_CHANNELS,
+        choices=[1, 2],
+        required=False,
+        help=f"The number of audio channels to use for the audio data generation. "
+        "Currently only 1 (mono) and 2 (stereo) are supported. "
+        "Default is 1 (mono channel).",
+    )
+
+
 def _add_compare_args(parser):
     compare_group = parser.add_argument_group("Input")
     mx_group = compare_group.add_mutually_exclusive_group(required=False)
@@ -788,6 +868,15 @@ def _add_image_input_args(parser):
 
 def _add_input_args(parser):
     input_group = parser.add_argument_group("Input")
+
+    input_group.add_argument(
+        "--batch-size-audio",
+        type=int,
+        default=ic.DEFAULT_BATCH_SIZE,
+        required=False,
+        help=f"The audio batch size of the requests GenAI-Perf should send. "
+        "This is currently supported with the OpenAI `multimodal` endpoint type.",
+    )
 
     input_group.add_argument(
         "--batch-size-image",
@@ -1161,6 +1250,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
         Subcommand.PROFILE.to_lowercase(),
         description="Subcommand to profile LLMs and Generative AI models.",
     )
+    _add_audio_input_args(profile)
     _add_endpoint_args(profile)
     _add_image_input_args(profile)
     _add_input_args(profile)
@@ -1179,6 +1269,7 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
         description="Subcommand to analyze LLMs and Generative AI models.",
     )
     _add_analyze_args(analyze)
+    _add_audio_input_args(analyze)
     _add_endpoint_args(analyze)
     _add_image_input_args(analyze)
     _add_input_args(analyze)
@@ -1239,6 +1330,7 @@ def refine_args(
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
+        args = _check_audio_input_args(parser, args)
         args = _check_load_manager_args(args)
         args = _check_server_metrics_url(parser, args)
         args = _set_artifact_paths(args)
@@ -1250,6 +1342,7 @@ def refine_args(
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
+        args = _check_audio_input_args(parser, args)
         args = _check_server_metrics_url(parser, args)
         args = _check_goodput_args(args)
         args = _check_session_args(args)
