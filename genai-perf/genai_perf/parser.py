@@ -44,7 +44,6 @@ from genai_perf.config.input.config_defaults import (
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.retrievers import AudioFormat, ImageFormat
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.compare import compare_handler
@@ -133,7 +132,7 @@ def _check_image_input_args(
             "Both --image-width-stddev and --image-height-stddev values must be non-negative."
         )
 
-    args = _convert_str_to_enum_entry(args, "image_format", ImageFormat)
+    args = _convert_str_to_enum_entry(args, "image_format", ic.ImageFormat)
     return args
 
 
@@ -152,7 +151,7 @@ def _check_audio_input_args(
     if any(d <= 0 for d in args.audio_depths):
         parser.error("The bit depth values in --audio-depths must be positive.")
 
-    args = _convert_str_to_enum_entry(args, "audio_format", AudioFormat)
+    args = _convert_str_to_enum_entry(args, "audio_format", ic.AudioFormat)
     return args
 
 
@@ -594,7 +593,7 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-format",
         type=str,
-        choices=utils.get_enum_names(AudioFormat),
+        choices=utils.get_enum_names(ic.AudioFormat),
         default=ic.DEFAULT_AUDIO_FORMAT,
         required=False,
         help=f"The format of the audio data. Currently we support wav and "
@@ -784,7 +783,7 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-format",
         type=str,
-        choices=utils.get_enum_names(ImageFormat),
+        choices=utils.get_enum_names(ic.ImageFormat),
         required=False,
         help=f"The compression format of the images. "
         "If format is not selected, format of generated image is selected at random",
@@ -1358,6 +1357,14 @@ def add_cli_options_to_config(
     config.input.prompt_source = args.prompt_source
     config.input.synthetic_files = args.synthetic_input_files
     config.input.payload_file = args.payload_input_file
+
+    # Input - Audio
+    config.input.audio.length_mean = args.audio_length_mean
+    config.input.audio.length_stddev = args.audio_length_stddev
+    config.input.audio.format = args.audio_format
+    config.input.audio.depths = args.audio_depths
+    config.input.audio.sample_rates = args.audio_sample_rates
+    config.input.audio.num_channels = args.audio_num_channels
 
     # Input - Image
     config.input.image.batch_size = args.batch_size_image

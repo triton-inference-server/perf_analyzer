@@ -38,6 +38,16 @@ class PromptSource(Enum):
     PAYLOAD = "PAYLOAD"
 
 
+class AudioFormat(Enum):
+    WAV = "WAV"
+    MP3 = "MP3"
+
+
+class ImageFormat(Enum):
+    PNG = "PNG"
+    JPEG = "JPEG"
+
+
 class OutputFormat(Enum):
     ################################################################
     # Triton backends

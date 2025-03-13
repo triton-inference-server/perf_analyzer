@@ -54,7 +54,7 @@ class ConsoleExporter:
             title += "Rankings Metrics"
         elif self._config.endpoint.type == "image_retrieval":
             title += "Image Retrieval Metrics"
-        elif self._args.endpoint_type == "multimodal":
+        elif self._config.endpoint.type == "multimodal":
             title += "Multi-Modal Metrics"
         else:
             title += "LLM Metrics"

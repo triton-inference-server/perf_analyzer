@@ -29,7 +29,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from genai_perf.inputs import input_constants as ic
-from genai_perf.inputs.retrievers import AudioFormat, ImageFormat
 from genai_perf.tokenizer import Tokenizer
 
 
@@ -159,14 +158,14 @@ class InputsConfig:
     audio_num_channels: int = ic.DEFAULT_AUDIO_NUM_CHANNELS
 
     # The format of the audio to generate.
-    audio_format: AudioFormat = AudioFormat.WAV
+    audio_format: ic.AudioFormat = ic.AudioFormat.WAV
 
     #######################################
     # Synthetic Image Generation Parameters
     #######################################
 
     # The compression format of the images.
-    image_format: ImageFormat = ImageFormat.PNG
+    image_format: ic.ImageFormat = ic.ImageFormat.PNG
 
     # The mean height of images when generating synthetic image data.
     image_height_mean: int = ic.DEFAULT_IMAGE_HEIGHT_MEAN

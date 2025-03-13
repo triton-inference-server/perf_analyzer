@@ -18,6 +18,7 @@ from typing import Any, Dict
 import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_defaults import (
+    AudioDefaults,
     ImageDefaults,
     InputDefaults,
     OutputTokenDefaults,
@@ -28,8 +29,7 @@ from genai_perf.config.input.config_defaults import (
     SyntheticTokenDefaults,
 )
 from genai_perf.config.input.config_field import ConfigField
-from genai_perf.inputs.input_constants import PromptSource
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.input_constants import AudioFormat, ImageFormat, PromptSource
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,7 @@ class ConfigInput(BaseConfig):
             verbose_template_comment="The seed used to generate random values.",
         )
 
+        self.audio = ConfigAudio()
         self.image = ConfigImage()
         self.output_tokens = ConfigOutputTokens()
         self.synthetic_tokens = ConfigSyntheticTokens()
@@ -114,6 +115,8 @@ class ConfigInput(BaseConfig):
                 self.num_dataset_entries = value
             elif key == "random_seed":
                 self.random_seed = value
+            elif key == "audio":
+                self.audio.parse(value)
             elif key == "image":
                 self.image.parse(value)
             elif key == "output_tokens":
@@ -206,6 +209,61 @@ class ConfigInput(BaseConfig):
 ###########################################################################
 # Sub-Config Classes
 ###########################################################################
+class ConfigAudio(BaseConfig):
+    """
+    Describes the configuration audio options
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.length_mean: Any = ConfigField(
+            default=AudioDefaults.LENGTH_MEAN,
+            bounds={"min": 0},
+            verbose_template_comment="The mean length of the audio in seconds.",
+        )
+        self.length_stddev: Any = ConfigField(
+            default=AudioDefaults.LENGTH_STDDEV,
+            bounds={"min": 0},
+            verbose_template_comment="The standard deviation of the length of the audio in seconds.",
+        )
+        self.format: Any = ConfigField(
+            default=AudioDefaults.FORMAT,
+            choices=AudioFormat,
+            verbose_template_comment="The audio format of the audio files (wav or mp3).",
+        )
+        self.depths: Any = ConfigField(
+            default=AudioDefaults.DEPTHS,
+            verbose_template_comment="A list of audio bit depths to randomly select from in bits.",
+        )
+        self.sample_rates: Any = ConfigField(
+            default=AudioDefaults.SAMPLE_RATES,
+            verbose_template_comment="A list of audio sample rates to randomly select from in kHz.",
+        )
+        self.num_channels: Any = ConfigField(
+            default=AudioDefaults.NUM_CHANNELS,
+            choices=[1, 2],
+            verbose_template_comment="The number of audio channels to use for the audio data generation.",
+        )
+
+    def parse(self, audio: Dict[str, Any]) -> None:
+        for key, value in audio.items():
+            if key == "length_mean":
+                self.length_mean = value
+            elif key == "length_stddev":
+                self.length_stddev = value
+            elif key == "format":
+                if value:
+                    self.format = AudioFormat(value.upper())
+            elif key == "depths":
+                self.depths = value
+            elif key == "sample_rates":
+                self.sample_rates = value
+            elif key == "num_channels":
+                self.num_channels = value
+            else:
+                raise ValueError(f"User Config: {key} is not a valid audio parameter")
+
+
 class ConfigImage(BaseConfig):
     """
     Describes the configuration image options

@@ -35,15 +35,12 @@ from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.inputs.input_constants import (
+    AudioFormat,
+    ImageFormat,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-
-# TODO (TPA-1002): move AudioFormat to synthetic audio generator
-# from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
-from genai_perf.parser import AudioFormat
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
@@ -141,6 +138,7 @@ class TestCLIArguments:
             (
                 ["--endpoint-type", "multimodal", "--service-kind", "openai"],
                 {"endpoint": "v1/chat/completions"},
+                {"endpoint.custom": "v1/chat/completions"},
             ),
             (
                 ["--endpoint-type", "rankings", "--service-kind", "openai"],
@@ -432,9 +430,9 @@ class TestCLIArguments:
                 {"input.image.height_mean": 456},
             ),
             (
-                ["--image-height-stddev", "456"],
-                {"image_height_stddev": 456},
-                {"input.image.height_stddev": 456},
+                ["--image-height-stddev", "789"],
+                {"image_height_stddev": 789},
+                {"input.image.height_stddev": 789},
             ),
             (
                 ["--image-format", "png"],
@@ -442,17 +440,20 @@ class TestCLIArguments:
                 {"input.image.format": ImageFormat.PNG},
             ),
             (
-                ["--audio-length-mean", "456"],
-                {"audio_length_mean": 456},
-                {"input.audio.length_mean": 456},
+                ["--audio-length-mean", "234"],
+                {"audio_length_mean": 234},
+                {"input.audio.length_mean": 234},
             ),
             (
-                ["--audio-length-stddev", "456"],
-                {"audio_length_stddev": 456},
-                {"input.audio.length_stddev": 456},
+                ["--audio-length-stddev", "345"],
+                {"audio_length_stddev": 345},
+                {"input.audio.length_stddev": 345},
             ),
-            (["--audio-format", "wav"], {"audio_format": AudioFormat.WAV}),
-            {"input.audio.format": AudioFormat.WAV},
+            (
+                ["--audio-format", "wav"],
+                {"audio_format": AudioFormat.WAV},
+                {"input.audio.format": AudioFormat.WAV},
+            ),
             (
                 ["--audio-sample-rates", "16", "44.1", "48"],
                 {"audio_sample_rates": [16, 44.1, 48]},

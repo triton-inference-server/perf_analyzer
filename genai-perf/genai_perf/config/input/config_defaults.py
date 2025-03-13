@@ -15,8 +15,12 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 
-from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
+from genai_perf.inputs.input_constants import (
+    AudioFormat,
+    ImageFormat,
+    ModelSelectionStrategy,
+    OutputFormat,
+)
 
 
 def default_field(obj):
@@ -85,6 +89,16 @@ class ImageDefaults:
     HEIGHT_MEAN = 100
     HEIGHT_STDDEV = 0
     FORMAT = ImageFormat.PNG
+
+
+@dataclass(frozen=True)
+class AudioDefaults:
+    LENGTH_MEAN = 100
+    LENGTH_STDDEV = 0
+    FORMAT = AudioFormat.WAV
+    DEPTHS = [16]
+    SAMPLE_RATES = [16]
+    NUM_CHANNELS = 1
 
 
 @dataclass(frozen=True)

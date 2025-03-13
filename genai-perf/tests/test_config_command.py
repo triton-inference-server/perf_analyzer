@@ -26,6 +26,7 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PromptSource,
 )
+from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
 
 
@@ -215,6 +216,14 @@ class TestConfigCommand(unittest.TestCase):
                 num_dataset_entries: 50
                 random_seed: 100
 
+                audio:
+                    length_mean: 24
+                    length_stddev: 25
+                    format: MP3
+                    depths: [26]
+                    sample_rates: [27]
+                    num_channels: 2
+
                 image:
                     batch_size: 8
                     width_mean: 9
@@ -277,6 +286,12 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.sessions.turns.stddev, 21)
         self.assertEqual(config.input.sessions.turn_delay.mean, 22)
         self.assertEqual(config.input.sessions.turn_delay.stddev, 23)
+        self.assertEqual(config.input.audio.length_mean, 24)
+        self.assertEqual(config.input.audio.length_stddev, 25)
+        self.assertEqual(config.input.audio.format, AudioFormat.MP3)
+        self.assertEqual(config.input.audio.depths, [26])
+        self.assertEqual(config.input.audio.sample_rates, [27])
+        self.assertEqual(config.input.audio.num_channels, 2)
 
     ###########################################################################
     # Test Output Config

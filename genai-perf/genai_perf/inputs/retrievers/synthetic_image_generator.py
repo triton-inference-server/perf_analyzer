@@ -31,12 +31,8 @@ from pathlib import Path
 from typing import Optional
 
 from genai_perf import utils
+from genai_perf.inputs.input_constants import ImageFormat
 from PIL import Image
-
-
-class ImageFormat(Enum):
-    PNG = "PNG"
-    JPEG = "JPEG"
 
 
 class SyntheticImageGenerator:
