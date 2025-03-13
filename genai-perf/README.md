@@ -460,7 +460,7 @@ identify the RPC to use when sending requests to the server. (default: `None`)
 
 ##### `--audio-length-mean <int>`
 
-The mean length of audio data in seconds. (default: `10`)
+The mean length of audio data in seconds. (default: `0`)
 
 ##### `--audio-length-stddev <int>`
 
