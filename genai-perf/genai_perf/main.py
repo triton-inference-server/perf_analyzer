@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,12 +25,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
 import sys
 import traceback
 
 import genai_perf.logging as logging
 from genai_perf import parser
+
+logger = logging.getLogger(__name__)
 
 
 # Separate function that can raise exceptions used for testing
@@ -54,7 +55,6 @@ def main():
         run()
     except Exception as e:
         traceback.print_exc()
-        logger = logging.getLogger(__name__)
         logger.error(e)
         return 1
 
