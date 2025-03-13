@@ -147,8 +147,12 @@ class BaseConfig:
     ) -> str:
         template = ""
         if field.add_to_template:
+            json_value = self._get_legal_json_value(self.__getattr__(name))
+            if type(json_value) is list:
+                json_value = ", ".join(map(str, json_value))
+
             template = indent(
-                f"  {name}: {self._get_legal_json_value(self.__getattr__(name))}\n",
+                f"  {name}: {json_value}\n",
                 indention,
             )
         return template

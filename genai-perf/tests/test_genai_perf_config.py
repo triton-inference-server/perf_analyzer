@@ -31,7 +31,7 @@ class TestGenAIPerfConfig(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(user_config={})
+        self._config = ConfigCommand({"model_name": "test_model"})
         self._config.model_names = ["test_model"]
 
         self._objective_parameters = {

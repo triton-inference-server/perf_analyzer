@@ -62,7 +62,7 @@ class TestCreateTelemetryDataCollector:
         """Test successful creation of a Triton telemetry data collector"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.service_kind = "triton"
 
         if server_metrics_url:
@@ -106,7 +106,7 @@ class TestCreateTelemetryDataCollector:
         """Test successful creation of multiple Triton telemetry data collectors"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.service_kind = "triton"
 
         if server_metrics_urls:
@@ -137,7 +137,7 @@ class TestCreateTelemetryDataCollector:
         """Test handling of unreachable Triton metrics URL"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.not_found)
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.service_kind = "triton"
         if server_metrics_url:
             config.endpoint.server_metrics_urls = server_metrics_url
@@ -158,7 +158,7 @@ class TestCreateTelemetryDataCollector:
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
         mock_telemetry_collector.return_value = MagicMock()
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.service_kind = "openai"
 
         if self.test_triton_metrics_url:

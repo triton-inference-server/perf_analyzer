@@ -38,7 +38,7 @@ class TestTokenizer:
     def _create_tokenizer_config(
         self, name, trust_remote_code=False, revision=DEFAULT_TOKENIZER_REVISION
     ):
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = name
         config.tokenizer.trust_remote_code = trust_remote_code
         config.tokenizer.revision = revision

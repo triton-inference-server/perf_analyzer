@@ -27,6 +27,7 @@ from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
 from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.utils import split_and_strip_whitespace
 
 
 class Subcommand(Enum):
@@ -94,13 +95,16 @@ class ConfigCommand(BaseConfig):
         self._check_for_illegal_combinations()
         self._check_profile_export_file()
 
-    def _parse_model_names(self, model_names: str) -> None:
+    def _parse_model_names(self, model_names: Any) -> None:
         if type(model_names) is str:
-            self.model_names = [model_names]
+            self.model_names = split_and_strip_whitespace(model_names)
         elif type(model_names) is list:
-            self.model_names = [model_names[0] + "_multi"]
+            self.model_names = model_names
         else:
             raise ValueError("User Config: model_names must be a string or list")
+
+        if len(self.model_names) > 1:
+            self.model_names = [self.model_names[0] + "_multi"]
 
     ###########################################################################
     # Infer Methods

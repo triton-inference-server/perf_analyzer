@@ -29,8 +29,7 @@ class TestCheckpoint(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(user_config={})
-        self._config.model_names = ["test_model"]
+        self._config = ConfigCommand(user_config={"model_name": "test_model"})
         self._model_search_parameters = {
             "test_model": SearchParameters(config=self._config)
         }
@@ -55,8 +54,7 @@ class TestCheckpoint(unittest.TestCase):
             )
             self._results.add_run_config(run_config)
 
-        config = ConfigCommand(user_config={})
-        config.model_names = ["test_model"]
+        config = ConfigCommand(user_config={"model_name": "test_model"})
 
         self._checkpoint = Checkpoint(config=config, results=self._results)
 

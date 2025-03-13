@@ -30,6 +30,7 @@ from genai_perf.config.input.config_defaults import (
 )
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.inputs.input_constants import AudioFormat, ImageFormat, PromptSource
+from genai_perf.utils import split_and_strip_whitespace
 
 logger = logging.getLogger(__name__)
 
@@ -244,13 +245,25 @@ class ConfigAudio(BaseConfig):
                 if value:
                     self.format = AudioFormat(value.upper())
             elif key == "depths":
-                self.depths = value
+                self.depths = self._parse_int_list(value)
             elif key == "sample_rates":
-                self.sample_rates = value
+                self.sample_rates = self._parse_int_list(value)
             elif key == "num_channels":
                 self.num_channels = value
             else:
                 raise ValueError(f"User Config: {key} is not a valid audio parameter")
+
+    def _parse_int_list(self, value: Any) -> list:
+        if isinstance(value, list):
+            return [int(i) for i in value]
+        elif type(value) is str:
+            return list(map(int, split_and_strip_whitespace(value)))
+        elif type(value) is int:
+            return [int(value)]
+        else:
+            raise ValueError(
+                "User Config: Audio depths and sample rates must be lists of integers"
+            )
 
 
 class ConfigAudioLength(BaseConfig):

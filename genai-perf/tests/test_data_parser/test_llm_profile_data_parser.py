@@ -209,7 +209,7 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
         """
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -422,7 +422,7 @@ class TestLLMProfileDataParser:
         * input sequence lengths
             - experiment 1: [3, 4]
         """
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -571,7 +571,7 @@ class TestLLMProfileDataParser:
         * input sequence lengths
             - experiment 1: [3, 4]
         """
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -826,7 +826,7 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
         """
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -869,7 +869,7 @@ class TestLLMProfileDataParser:
             response = f'data: {{"choices":[{{"delta":{{"content":"{text}"}}}}],"object":"chat.completion.chunk"}}\n\n'
             res_outputs.append({"response": response})
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -905,7 +905,7 @@ class TestLLMProfileDataParser:
         for text in output_texts:
             res_outputs.append({"text_output": text})
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -957,7 +957,7 @@ class TestLLMProfileDataParser:
     )
     def test_empty_response(self, mock_json) -> None:
         """Check if it handles all empty responses."""
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
 
@@ -1010,7 +1010,7 @@ class TestLLMProfileDataParser:
             target="genai_perf.profile_data_parser.profile_data_parser.load_json",
             return_value=profile_data,
         ):
-            config = ConfigCommand({})
+            config = ConfigCommand({"model_name": "test_model"})
             config.tokenizer.name = DEFAULT_TOKENIZER
             tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
@@ -1087,7 +1087,7 @@ class TestLLMProfileDataParser:
             target="genai_perf.profile_data_parser.profile_data_parser.load_json",
             return_value=profile_data,
         ):
-            config = ConfigCommand({})
+            config = ConfigCommand({"model_name": "test_model"})
             config.tokenizer.name = DEFAULT_TOKENIZER
             tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
@@ -1139,7 +1139,7 @@ class TestLLMProfileDataParser:
             'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
         ]
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -1183,7 +1183,7 @@ class TestLLMProfileDataParser:
     )
     def test_handle_sse_error(self, mock_json, res_outputs) -> None:
         """Check if the parser can handle SSE error field."""
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -1214,7 +1214,7 @@ class TestLLMProfileDataParser:
         ]
         expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
 
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -1307,7 +1307,7 @@ class TestLLMProfileDataParser:
     )
     def test_session_metrics(self, mock_json) -> None:
         """Check if it handles session metrics."""
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
@@ -1350,7 +1350,7 @@ class TestLLMProfileDataParser:
     )
     def test_no_session_metrics(self, mock_json) -> None:
         """Check if it handles profile export files without session metrics."""
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(

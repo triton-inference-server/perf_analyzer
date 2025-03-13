@@ -28,7 +28,7 @@ from genai_perf.exceptions import GenAIPerfException
 
 class TestSearchParameters(unittest.TestCase):
     def setUp(self):
-        self.config = ConfigCommand(user_config={})
+        self.config = ConfigCommand({"model_name": "test_model"})
         self.config.model_names = ["test_model"]
 
         self.search_parameters = SearchParameters(config=self.config)

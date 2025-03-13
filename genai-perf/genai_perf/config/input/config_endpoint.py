@@ -20,6 +20,7 @@ from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
+from genai_perf.utils import split_and_strip_whitespace
 
 
 class ConfigEndPoint(BaseConfig):
@@ -94,7 +95,7 @@ class ConfigEndPoint(BaseConfig):
             elif key == "streaming":
                 self.streaming = value
             elif key == "server_metrics_url" or key == "server_metrics_urls":
-                self.server_metrics_urls = self._parse_server_metrics_url(value)
+                self._parse_server_metrics_url(value)
             elif key == "url":
                 self.url = value
             elif key == "grpc_method":
@@ -104,11 +105,11 @@ class ConfigEndPoint(BaseConfig):
                     f"User Config: {key} is not a valid endpoint parameter"
                 )
 
-    def _parse_server_metrics_url(self, value: Any) -> List[str]:
-        if type(value) is str:
-            return [value]
-        elif type(value) is list:
-            return value
+    def _parse_server_metrics_url(self, server_metrics_urls: Any) -> None:
+        if type(server_metrics_urls) is str:
+            self.server_metrics_urls = split_and_strip_whitespace(server_metrics_urls)
+        elif type(server_metrics_urls) is list:
+            self.server_metrics_urls = server_metrics_urls
         else:
             raise ValueError(
                 "User Config: server_metrics_url(s) must be a string or list"

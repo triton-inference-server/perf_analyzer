@@ -118,7 +118,7 @@ class GenAIPerfConfig:
         a new instance of a GenAIPerfConfig
         """
         genai_perf_config = GenAIPerfConfig(
-            config=ConfigCommand(user_config={}),
+            config=ConfigCommand(user_config={"model_name": "test_model"}),
             model_objective_parameters={},
         )
 

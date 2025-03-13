@@ -74,7 +74,7 @@ class TestPlotConfigParser:
         monkeypatch.setattr(PlotConfigParser, "_get_metric", lambda *_: [1, 2, 3])
 
         config_parser = PlotConfigParser(Path("test_config.yaml"))
-        config = ConfigCommand({})
+        config = ConfigCommand({"model_name": "test_model"})
         plot_configs = config_parser.generate_configs(config)
 
         assert len(plot_configs) == 2

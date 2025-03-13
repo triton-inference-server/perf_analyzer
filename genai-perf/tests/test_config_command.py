@@ -60,9 +60,24 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.model_names, ["gpt2"])
         self.assertEqual(config.get_field("model_names").required, True)
 
-    def test_multi_model_name(self):
+    def test_multi_model_name_string(self):
         """
-        Test that a configuration with multiple model names is parsed correctly
+        Test that a configuration with a string of multiple model names is parsed correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: "gpt2,bert"
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.model_names, ["gpt2_multi"])
+
+    def test_multi_model_name_list(self):
+        """
+        Test that a configuration with a list of multiple model names is parsed correctly
         """
         # yapf: disable
         yaml_str = ("""
@@ -222,8 +237,8 @@ class TestConfigCommand(unittest.TestCase):
                         stddev: 25
 
                     format: MP3
-                    depths: [26]
-                    sample_rates: [27]
+                    depths: 26, 27,  28
+                    sample_rates: 29
                     num_channels: 2
 
                 image:
@@ -296,8 +311,8 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.audio.length.mean, 24)
         self.assertEqual(config.input.audio.length.stddev, 25)
         self.assertEqual(config.input.audio.format, AudioFormat.MP3)
-        self.assertEqual(config.input.audio.depths, [26])
-        self.assertEqual(config.input.audio.sample_rates, [27])
+        self.assertEqual(config.input.audio.depths, [26, 27, 28])
+        self.assertEqual(config.input.audio.sample_rates, [29])
         self.assertEqual(config.input.audio.num_channels, 2)
 
     ###########################################################################
