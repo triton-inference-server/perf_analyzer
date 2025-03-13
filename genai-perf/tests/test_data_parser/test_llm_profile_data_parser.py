@@ -1087,7 +1087,9 @@ class TestLLMProfileDataParser:
             target="genai_perf.profile_data_parser.profile_data_parser.load_json",
             return_value=profile_data,
         ):
-            tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+            config = ConfigCommand({})
+            config.tokenizer.name = DEFAULT_TOKENIZER
+            tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
                 filename=Path("profile_export.json"),
                 tokenizer=tokenizer,
