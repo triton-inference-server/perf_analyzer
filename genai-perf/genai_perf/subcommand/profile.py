@@ -97,7 +97,7 @@ def _report_output(
     # Setting to default values to avoid an error.
     elif config.input.prompt_source == ic.PromptSource.PAYLOAD:
         infer_mode = "request_rate"
-        load_level = "1.0"
+        load_level = "0.0"
     elif "concurrency" in config.perf_analyzer.stimulus:
         infer_mode = "concurrency"
         load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
