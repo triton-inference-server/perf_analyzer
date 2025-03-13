@@ -126,6 +126,8 @@ the GPT-2 model running on Triton Inference Server with a TensorRT-LLM engine.
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-trt-llm-model)
 in the Triton CLI Github repository to serve GPT-2 on the Triton server with the TensorRT-LLM backend.
+**NOTE**: pip dependency error messages can be safely ignored.
+
 The full instructions are copied below for convenience:
 
 ```bash
@@ -140,7 +142,7 @@ docker run -ti \
     nvcr.io/nvidia/tritonserver:25.01-trtllm-python-py3
 
 # Install the Triton CLI
-pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
+pip install git+https://github.com/triton-inference-server/triton_cli.git@0.1.2
 
 # Build TRT LLM engine and generate a Triton model repository pointing at it
 triton remove -m all
