@@ -22,7 +22,6 @@ from typing import Any, List, Optional
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
-from genai_perf.constants import DEFAULT_GRPC_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import (
     DEFAULT_INPUT_DATA_JSON,
