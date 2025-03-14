@@ -114,6 +114,7 @@ DEFAULT_IMAGE_HEIGHT_STDDEV = 0
 ###########################
 # Default Session Parameters
 ###########################
+DEFAULT_BLOCK_SIZE = 512
 DEFAULT_NUM_SESSIONS = 0
 DEFAULT_SESSION_CONCURRENCY = 1
 DEFAULT_SESSION_TURN_DELAY_MEAN_MS = 0

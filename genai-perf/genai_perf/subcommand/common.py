@@ -215,6 +215,7 @@ def create_config_options(args: Namespace) -> InputsConfig:
         session_turn_delay_mean=args.session_turn_delay_mean,
         session_turn_delay_stddev=args.session_turn_delay_stddev,
         extra_inputs=extra_input_dict,
+        block_size=args.block_size,
     )
 
 
