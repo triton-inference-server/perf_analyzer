@@ -78,7 +78,14 @@ class Profiler:
     def build_cmd(args: Namespace, extra_args: Optional[List[str]] = None) -> List[str]:
         skip_args = [
             "artifact_dir",
+            "audio_length_mean",
+            "audio_length_stddev",
+            "audio_depths",
+            "audio_sample_rates",
+            "audio_format",
+            "audio_num_channels",
             "backend",
+            "batch_size_audio",
             "batch_size_image",
             "batch_size_text",
             "concurrency",

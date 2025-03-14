@@ -50,7 +50,7 @@ running when GenAI-Perf is run.
 
 You can use GenAI-Perf to run performance benchmarks on
 - [Large Language Models](docs/tutorial.md)
-- [Vision Language Models](docs/multi_modal.md)
+- [Multi-Modal Language Models](docs/multi_modal.md)
 - [Embedding Models](docs/embeddings.md)
 - [Ranking Models](docs/rankings.md)
 - [Multiple LoRA Adapters](docs/lora.md)
@@ -126,6 +126,8 @@ the GPT-2 model running on Triton Inference Server with a TensorRT-LLM engine.
 
 You can follow the [quickstart guide](https://github.com/triton-inference-server/triton_cli?tab=readme-ov-file#serving-a-trt-llm-model)
 in the Triton CLI Github repository to serve GPT-2 on the Triton server with the TensorRT-LLM backend.
+**NOTE**: pip dependency error messages can be safely ignored.
+
 The full instructions are copied below for convenience:
 
 ```bash
@@ -140,7 +142,7 @@ docker run -ti \
     nvcr.io/nvidia/tritonserver:25.01-trtllm-python-py3
 
 # Install the Triton CLI
-pip install git+https://github.com/triton-inference-server/triton_cli.git@0.0.11
+pip install git+https://github.com/triton-inference-server/triton_cli.git@0.1.2
 
 # Build TRT LLM engine and generate a Triton model repository pointing at it
 triton remove -m all
@@ -456,8 +458,45 @@ identify the RPC to use when sending requests to the server. (default: `None`)
 
 ### Input Options
 
+##### `--audio-length-mean <int>`
+
+The mean length of audio data in seconds. (default: `10`)
+
+##### `--audio-length-stddev <int>`
+
+The standard deviation of the length of audio data in seconds.
+(default: `0`)
+
+##### `--audio-format <str>`
+
+The format of the audio data. Currently we support wav and mp3 format.
+(default: `wav`)
+
+##### `--audio-depths <int>`
+
+A list of audio bit depths to randomly select from in bits.
+(default: `[16]`)
+
+##### `--audio-sample-rates <int>`
+
+A list of audio sample rates to randomly select from in kHz.
+(default: `[16]`)
+
+##### `--audio-num-channels <int>`
+
+The number of audio channels to use for the audio data generation.
+Currently only 1 (mono) and 2 (stereo) are supported.
+(default: `1` (mono channel))
+
 ##### `-b <int>`
 ##### `--batch-size <int>`
+
+##### `--batch-size-audio <int>`
+
+The audio batch size of the requests GenAI-Perf should send.
+This is currently only supported with the OpenAI `multimodal` endpoint type.
+(default: `1`)
+
 ##### `--batch-size-text <int>`
 
 The text batch size of the requests GenAI-Perf should send.
@@ -559,7 +598,7 @@ being concatenated, the number of tokens in the final prompt may be off by one.
 ##### `--image-width-mean <int>`
 
 The mean width of images in pixels when generating synthetic image data.
-(default: `100`)
+(default: `0`)
 
 ##### `--image-width-stddev <int>`
 
@@ -569,7 +608,7 @@ The standard deviation of width of images in pixels when generating synthetic im
 ##### `--image-height-mean <int>`
 
 The mean height of images in pixels when generating synthetic image data.
-(default: `100`)
+(default: `0`)
 
 ##### `--image-height-stddev <int>`
 

@@ -25,12 +25,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, TypeAlias, Union
+from typing import Any, Dict, List, TypeAlias, Union
 
 Filename: TypeAlias = str
 TextData: TypeAlias = List[str]
 ImageData: TypeAlias = List[str]
-InputData: TypeAlias = Union[TextData, ImageData]
+AudioData: TypeAlias = List[str]
+InputData: TypeAlias = Union[TextData, ImageData, AudioData]
 OptionalData: TypeAlias = Dict[str, Any]
 PayloadMetadata: TypeAlias = Dict[str, Any]
 DataRowField: TypeAlias = Union[InputData, OptionalData, PayloadMetadata]
@@ -42,6 +43,7 @@ GenericDatasetDict: TypeAlias = Dict[Filename, List[DataRowDict]]
 class DataRow:
     texts: TextData = field(default_factory=list)
     images: ImageData = field(default_factory=list)
+    audios: AudioData = field(default_factory=list)
     optional_data: Dict[str, Any] = field(default_factory=dict)
     payload_metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -55,6 +57,8 @@ class DataRow:
             datarow_dict["texts"] = self.texts
         if self.images:
             datarow_dict["images"] = self.images
+        if self.audios:
+            datarow_dict["audios"] = self.audios
         if self.optional_data:
             datarow_dict["optional_data"] = self.optional_data
         if self.payload_metadata:
@@ -71,8 +75,20 @@ class FileData:
         Converts the FileData object to a list.
         Output format example for two payloads from a file:
         [
-            {'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'optional_data': {}, 'payload_metadata': {}},
-            {'texts': ['text3', 'text4'], 'images': ['image3', 'image4'], 'optional_data': {}, 'payload_metadata': {}},
+            {
+                'texts': ['text1', 'text2'],
+                'images': ['image1', 'image2'],
+                'audios': ['audio1', 'audio2'],
+                'optional_data': {},
+                'payload_metadata': {},
+            },
+            {
+                'texts': ['text3', 'text4'],
+                'images': ['image3', 'image4'],
+                'audios': ['audio3', 'audio4'],
+                'optional_data': {},
+                'payload_metadata': {},
+            },
         ]
         """
         return [row.to_dict() for row in self.rows]
@@ -87,8 +103,24 @@ class GenericDataset:
         Converts the entire DataStructure object to a dictionary.
         Output format example for one payload from two files:
         {
-            'file_0': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'optional_data': {}, 'payload_metadata': {}],
-            'file_1': [{'texts': ['text1', 'text2'], 'images': ['image1', 'image2'], 'optional_data': {}, 'payload_metadata': {}],
+            'file_0': [
+                {
+                    'texts': ['text1', 'text2'],
+                    'images': ['image1', 'image2'],
+                    'audios': ['audio1', 'audio2'],
+                    'optional_data': {},
+                    'payload_metadata': {},
+                },
+            ],
+            'file_1': [
+                {
+                    'texts': ['text1', 'text2'],
+                    'images': ['image1', 'image2'],
+                    'audios': ['audio1', 'audio2'],
+                    'optional_data': {},
+                    'payload_metadata': {},
+                },
+            ],
         }
         """
         return {
