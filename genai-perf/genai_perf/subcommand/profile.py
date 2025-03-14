@@ -90,22 +90,20 @@ def _report_output(
     # Setting to default values to avoid an error.
     elif args.prompt_source == ic.PromptSource.PAYLOAD:
         infer_mode = "request_rate"
-        load_level = "1.0"
+        load_level = "0.0"
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
     stats = data_parser.get_statistics(infer_mode, load_level)
-    telemetry_metrics_list = [
-        collector.get_metrics() for collector in telemetry_data_collectors
-    ]
+    session_stats = data_parser.get_session_statistics()
 
-    merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics_list)
+    telemetry_metrics = [c.get_metrics() for c in telemetry_data_collectors]
+    merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics)
+    telemetry_stats = TelemetryStatistics(merged_telemetry_metrics)
 
-    reporter = OutputReporter(
-        stats, TelemetryStatistics(merged_telemetry_metrics), args
-    )
-
+    reporter = OutputReporter(stats, telemetry_stats, args, session_stats)
     reporter.report_output()
+
     if args.generate_plots:
         _create_plots(args)
 

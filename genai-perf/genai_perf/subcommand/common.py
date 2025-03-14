@@ -203,6 +203,11 @@ def create_config_options(args: Namespace) -> InputsConfig:
         output_dir=args.artifact_dir,
         num_prefix_prompts=args.num_prefix_prompts,
         prefix_prompt_length=args.prefix_prompt_length,
+        num_sessions=args.num_sessions,
+        session_turns_mean=args.session_turns_mean,
+        session_turns_stddev=args.session_turns_stddev,
+        session_turn_delay_mean=args.session_turn_delay_mean,
+        session_turn_delay_stddev=args.session_turn_delay_stddev,
     )
 
 

@@ -62,16 +62,16 @@ class Tokenizer:
         self._tokenizer = tokenizer
 
     def __call__(self, text, **kwargs) -> "BatchEncoding":
-        self._call_args.update(kwargs)
-        return self._tokenizer(text, **self._call_args)
+        return self._tokenizer(text, **{**self._call_args, **kwargs})
 
     def encode(self, text, **kwargs) -> List[int]:
-        self._encode_args.update(kwargs)
-        return self._tokenizer.encode(text, **self._encode_args)
+        return self._tokenizer.encode(text, **{**self._encode_args, **kwargs})
 
     def decode(self, token_ids, **kwargs) -> str:
-        self._decode_args.update(kwargs)
-        return self._tokenizer.decode(token_ids, **self._decode_args)
+        return self._tokenizer.decode(token_ids, **{**self._decode_args, **kwargs})
+
+    def bos_token_id(self) -> int:
+        return self._tokenizer.bos_token_id
 
     def __repr__(self) -> str:
         return self._tokenizer.__repr__()

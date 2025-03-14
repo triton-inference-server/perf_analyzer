@@ -26,6 +26,7 @@
 
 import argparse
 from pathlib import Path
+from unittest.mock import patch
 
 import genai_perf.logging as logging
 import pytest
@@ -258,6 +259,14 @@ class TestCLIArguments:
                 ["--service-kind", "openai", "--endpoint-type", "chat"],
                 {"service_kind": "openai", "endpoint": "v1/chat/completions"},
             ),
+            (["--session-concurrency", "3"], {"session_concurrency": 3}),
+            (["--session-turn-delay-mean", "100"], {"session_turn_delay_mean": 100}),
+            (
+                ["--session-turn-delay-stddev", "100"],
+                {"session_turn_delay_stddev": 100},
+            ),
+            (["--session-turns-mean", "6"], {"session_turns_mean": 6}),
+            (["--session-turns-stddev", "7"], {"session_turns_stddev": 7}),
             (["--stability-percentage", "99.5"], {"stability_percentage": 99.5}),
             (["--streaming"], {"streaming": True}),
             (
@@ -1086,6 +1095,31 @@ class TestCLIArguments:
             parser.parse_args()
         except SystemExit:
             pytest.fail("Unexpected error in test")
+
+    def test_print_warnings_payload(self, monkeypatch, mocker):
+        expected_warning_message = (
+            "--output-tokens-mean is incompatible with output_length"
+            " in the payload input file. output-tokens-mean"
+            " will be ignored in favour of per payload settings."
+        )
+
+        args = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--input-file",
+            "payload:test.jsonl",
+            "--output-tokens-mean",
+            "50",
+        ]
+        logging.init_logging()
+        logger = logging.getLogger("genai_perf.parser")
+        mocker.patch.object(Path, "is_file", return_value=True)
+        monkeypatch.setattr("sys.argv", args)
+        with patch.object(logger, "warning") as mock_logger:
+            parser.parse_args()
+        mock_logger.assert_any_call(expected_warning_message)
 
     # ================================================
     # COMPARE SUBCOMMAND

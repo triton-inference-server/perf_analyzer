@@ -36,12 +36,17 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_LENGTH,
     DEFAULT_NUM_DATASET_ENTRIES,
     DEFAULT_NUM_PREFIX_PROMPTS,
+    DEFAULT_NUM_SESSIONS,
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_OUTPUT_TOKENS_STDDEV,
     DEFAULT_PREFIX_PROMPT_LENGTH,
     DEFAULT_PROMPT_TOKENS_MEAN,
     DEFAULT_PROMPT_TOKENS_STDDEV,
     DEFAULT_RANDOM_SEED,
+    DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
+    DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
+    DEFAULT_SESSION_TURNS_MEAN,
+    DEFAULT_SESSION_TURNS_STDDEV,
     DEFAULT_STARTING_INDEX,
     ModelSelectionStrategy,
     OutputFormat,
@@ -153,3 +158,18 @@ class InputsConfig:
 
     # The length of the prefix prompts to generate
     prefix_prompt_length: int = DEFAULT_PREFIX_PROMPT_LENGTH
+
+    # The number of sessions to generate
+    num_sessions: int = DEFAULT_NUM_SESSIONS
+
+    # The mean number of turns per session
+    session_turns_mean: int = DEFAULT_SESSION_TURNS_MEAN
+
+    # The standard deviation of the number of turns per session
+    session_turns_stddev: int = DEFAULT_SESSION_TURNS_STDDEV
+
+    # The mean delay between turns in a session
+    session_turn_delay_mean: int = DEFAULT_SESSION_TURN_DELAY_MEAN_MS
+
+    # The standard deviation of the delay between turns in a session
+    session_turn_delay_stddev: int = DEFAULT_SESSION_TURN_DELAY_STDDEV_MS

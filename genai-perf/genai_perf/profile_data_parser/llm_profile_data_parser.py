@@ -27,14 +27,15 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from collections import defaultdict
 from itertools import tee
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TypeAlias
 
 from genai_perf.constants import EMPTY_RESPONSE_TOKEN
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.logging import logging
-from genai_perf.metrics import LLMMetrics, Metrics
+from genai_perf.metrics import LLMMetrics, Statistics
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
     ResponseFormat,
@@ -49,6 +50,8 @@ from genai_perf.utils import (
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+SessionMetrics: TypeAlias = Dict[str, Dict[str, List[float | int]]]
 
 
 class LLMProfileDataParser(ProfileDataParser):
@@ -83,9 +86,29 @@ class LLMProfileDataParser(ProfileDataParser):
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         self._tokenizer = tokenizer
+        self._session_metrics: SessionMetrics = defaultdict(lambda: defaultdict(list))
         super().__init__(filename, goodput_constraints)
 
-    def _parse_requests(self, requests: dict) -> Metrics:
+    def _parse_profile_data(self, data: dict) -> None:
+        """Parse through the entire profile data to collect statistics."""
+        self._profile_results = {}
+        for experiment in data["experiments"]:
+            infer_mode = experiment["experiment"]["mode"]
+            load_level = experiment["experiment"]["value"]
+            requests = experiment["requests"]
+
+            llm_metrics = self._parse_requests(requests)
+
+            # aggregate and calculate statistics
+            statistics = Statistics(llm_metrics)
+            self._profile_results[(infer_mode, str(load_level))] = statistics
+
+            # calculate per-session statistics
+            for session_id, session_metric in self._session_metrics.items():
+                metrics = LLMMetrics.from_dict(session_metric)
+                self._session_statistics[session_id] = Statistics(metrics)
+
+    def _parse_requests(self, requests: dict) -> LLMMetrics:
         """Parse each requests in profile export data to extract key metrics."""
         min_req_timestamp, max_res_timestamp = float("inf"), 0
         request_latencies = []
@@ -146,10 +169,10 @@ class LLMProfileDataParser(ProfileDataParser):
 
                 # inter token latencies
                 if total_output_token > 1:
-                    inter_token_latency = (req_latency_ns - ttft) / (
-                        total_output_token - 1
+                    inter_token_latency = round(
+                        (req_latency_ns - ttft) / (total_output_token - 1)
                     )
-                    inter_token_latencies.append(round(inter_token_latency))
+                    inter_token_latencies.append(inter_token_latency)
 
                 # The new ITL calculation above loses all token-level ITL information
                 # and as a result breaks ITL vs token position visualization. Keep
@@ -167,6 +190,26 @@ class LLMProfileDataParser(ProfileDataParser):
                     chunked_inter_token_latency.append(round((t2 - t1) / num_token))
                 chunked_inter_token_latencies.append(chunked_inter_token_latency)
 
+                # (per-session) calculate llm metrics
+                if "session_id" in req_inputs:
+                    session_metric = self._session_metrics[req_inputs["session_id"]]
+                    session_metric["request_latencies"].append(req_latency_ns)
+                    session_metric["time_to_first_tokens"].append(ttft)
+                    if len(res_timestamps) > 1:
+                        session_metric["time_to_second_tokens"].append(ttst)
+                    if total_output_token > 1:
+                        session_metric["inter_token_latencies"].append(
+                            inter_token_latency
+                        )
+                    session_metric["output_token_throughputs_per_request"].append(
+                        total_output_token / req_latency_s
+                    )
+                    session_metric["input_sequence_lengths"].append(input_seq_len)
+                    session_metric["output_sequence_lengths"].append(total_output_token)
+                    # collect request and last response timestamps each session
+                    session_metric["req_timestamps"].append(req_timestamp)
+                    session_metric["last_res_timestamps"].append(res_timestamps[-1])
+
                 pbar.update(1)
 
         # request & output token throughput
@@ -174,7 +217,7 @@ class LLMProfileDataParser(ProfileDataParser):
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 
-        llm_metric = LLMMetrics(
+        llm_metrics = LLMMetrics(
             request_throughputs,
             request_latencies,
             time_to_first_tokens,
@@ -187,11 +230,27 @@ class LLMProfileDataParser(ProfileDataParser):
             chunked_inter_token_latencies,
         )
 
-        if self._goodput_constraints:
-            goodput_val = self._calculate_goodput(benchmark_duration, llm_metric)
-            llm_metric.request_goodputs = goodput_val
+        self._postprocess_session_metrics()
 
-        return llm_metric
+        if self._goodput_constraints:
+            goodput_val = self._calculate_goodput(benchmark_duration, llm_metrics)
+            llm_metrics.request_goodputs = goodput_val
+
+        return llm_metrics
+
+    def _postprocess_session_metrics(self) -> None:
+        """Postprocess session metrics to calculate request & output token throughput."""
+        for metric in self._session_metrics.values():
+            init_t = min(metric["req_timestamps"])
+            last_t = max(metric["last_res_timestamps"])
+            session_latency = (last_t - init_t) / 1e9  # to seconds
+            num_requests = len(metric["req_timestamps"])
+            num_tokens = sum(metric["output_sequence_lengths"])
+            metric["request_throughputs"].append(num_requests / session_latency)
+            metric["output_token_throughputs"].append(num_tokens / session_latency)
+            # clean up
+            del metric["req_timestamps"]
+            del metric["last_res_timestamps"]
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""
@@ -277,19 +336,19 @@ class LLMProfileDataParser(ProfileDataParser):
         elif self._service_kind == "triton_c_api":
             return len(req_inputs["input_ids"])  # no tokenizer required
         elif self._service_kind == "openai":
-            input_text = self._get_input_text(req_inputs)
+            input_text = self._get_input_payload(req_inputs)
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
         return len(self._tokenizer.encode(input_text))
 
-    def _get_input_text(self, req_inputs: dict) -> str:
-        """Tokenize the request input texts."""
+    def _get_input_payload(self, req_inputs: dict) -> str:
+        """Deserialize the request input payload."""
         payload = load_json_str(req_inputs["payload"])
         if self._response_format == ResponseFormat.TRITON_GENERATE:
             return " ".join(payload["text_input"])
         elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
-            return payload["messages"][0]["content"]
+            return " ".join(m["content"] for m in payload["messages"])
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
             return " ".join(payload["prompt"])
         elif self._response_format == ResponseFormat.OPENAI_VISION:

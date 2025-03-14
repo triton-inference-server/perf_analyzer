@@ -1077,3 +1077,135 @@ class TestLLMProfileDataParser:
 
         pd._preprocess_response(res_timestamps, res_outputs)
         assert res_outputs[0]["response"] == expected_response
+
+    ###############################
+    # SESSION MODE
+    ###############################
+    session_profile_data = {
+        "service_kind": "openai",
+        "endpoint": "v1/chat/completions",
+        "experiments": [
+            {
+                "experiment": {
+                    "mode": "request_rate",
+                    "value": 0.0,
+                },
+                "requests": [
+                    {
+                        "timestamp": 1,
+                        "request_inputs": {
+                            "payload": (
+                                "{"
+                                '  "model": "test_model",'
+                                '  "messages": ['
+                                '    {"role":"user","content":"I like dog"}'
+                                "  ]"
+                                "}"
+                            ),
+                            "session_id": "session-id-123",
+                        },
+                        "response_timestamps": [5],
+                        "response_outputs": [
+                            {
+                                "response": (
+                                    "{"
+                                    '  "object": "chat.completion",'
+                                    '  "model": "test_model",'
+                                    '  "choices": ['
+                                    '    {"message":{"role":"assistant","content":"I like dog too"}}'
+                                    "  ]"
+                                    "}"
+                                )
+                            }
+                        ],
+                    },
+                    {
+                        "timestamp": 14,
+                        "request_inputs": {
+                            "payload": (
+                                "{"
+                                '  "model": "test_model",'
+                                '  "messages": ['
+                                '    {"role":"user","content":"I like dog"},'
+                                '    {"role":"assistant","content":"I like dog too"},'
+                                '    {"role":"user","content":"I like cat"}'
+                                "  ]"
+                                "}"
+                            ),
+                            "session_id": "session-id-123",
+                        },
+                        "response_timestamps": [17],
+                        "response_outputs": [
+                            {
+                                "response": (
+                                    "{"
+                                    '  "object": "chat.completion",'
+                                    '  "model": "test_model",'
+                                    '  "choices": ['
+                                    '    {"message":{"role":"assistant","content":"I like cat too"}}'
+                                    "  ]"
+                                    "}"
+                                )
+                            }
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=session_profile_data,
+    )
+    def test_session_metrics(self, mock_json) -> None:
+        """Check if it handles session metrics."""
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("session_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        expected_session_metrics = {
+            # [5 - 1, 17 - 14]
+            "request_latencies": [4, 3],
+            # [2/(17 - 1)]
+            "request_throughputs": [2 / ns_to_sec(16)],
+            # Same as request_latencies
+            "time_to_first_tokens": [4, 3],
+            # N/A
+            "time_to_second_tokens": [],
+            # [((5 - 1) - 4)/(4 - 1), ((17 - 14) - 3)/(4 - 1)]
+            "inter_token_latencies": [0, 0],
+            # [4/(5 - 1), 4/(17 - 14)]
+            "output_token_throughputs_per_request": [
+                4 / ns_to_sec(4),
+                4 / ns_to_sec(3),
+            ],
+            # [(4 + 4)/(17 - 1)]
+            "output_token_throughputs": [8 / ns_to_sec(16)],
+            # [4, 4]
+            "output_sequence_lengths": [4, 4],
+            # [3, (3 + 4 + 3)]
+            "input_sequence_lengths": [3, 10],
+        }
+
+        session_metrics = pd._session_metrics
+        assert len(session_metrics) == 1
+        assert "session-id-123" in session_metrics
+        assert session_metrics["session-id-123"] == expected_session_metrics
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=openai_profile_data,
+    )
+    def test_no_session_metrics(self, mock_json) -> None:
+        """Check if it handles profile export files without session metrics."""
+        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        pd = LLMProfileDataParser(
+            filename=Path("openai_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        session_metrics = pd._session_metrics
+        assert session_metrics == {}

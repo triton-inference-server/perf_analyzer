@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -27,11 +27,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from collections import defaultdict
-from pathlib import Path
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
-import pandas as pd
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics.metrics import Metrics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
@@ -65,6 +63,7 @@ class Statistics:
             if self._should_skip(data, attr):
                 continue
 
+            # TelemetryMetrics does not have get_base_name method
             if hasattr(metrics, "get_base_name"):
                 attr = metrics.get_base_name(attr)
                 self._add_units(attr)
@@ -110,17 +109,12 @@ class Statistics:
         return float(std)
 
     def scale_data(self, factor: float = 1 / 1e6) -> None:
+        """Scale the time-based metrics by the factor."""
         for k1, v1 in self.stats_dict.items():
             if self._is_time_metric(k1):
                 for k2, v2 in v1.items():
                     if k2 != "unit":
-                        self.stats_dict[k1][k2] = self._scale(v2, factor)
-
-    def _scale(self, metric: float, factor: float) -> float:
-        """
-        Scale metrics by the factor
-        """
-        return metric * factor
+                        self.stats_dict[k1][k2] = v2 * factor
 
     def _add_units(self, key) -> None:
         if self._is_time_metric(key):
@@ -174,30 +168,6 @@ class Statistics:
             "image_latency",
         ]
         return field in time_metrics
-
-    def export_parquet(self, artifact_dir: Path, filename: str) -> None:
-        max_length = -1
-        col_index = 0
-        filler_list = []
-        df = pd.DataFrame()
-
-        # Data frames require all columns of the same length
-        # find the max length column
-        for key, value in self._metrics.data.items():
-            max_length = max(max_length, len(value))
-
-        # Insert None for shorter columns to match longest column
-        for key, value in self._metrics.data.items():
-            if len(value) < max_length:
-                diff = max_length - len(value)
-                filler_list = [None] * diff
-            df.insert(col_index, key, value + filler_list)
-            diff = 0
-            filler_list = []
-            col_index = col_index + 1
-
-        filepath = artifact_dir / f"{filename}.gzip"
-        df.to_parquet(filepath, compression="gzip")
 
     def create_records(self) -> PerfRecords:
         """

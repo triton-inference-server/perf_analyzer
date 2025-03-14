@@ -35,47 +35,6 @@
 
 namespace triton::perfanalyzer {
 
-TEST_CASE("PayloadJsonUtils::GetSession")
-{
-  SUBCASE("valid session ID")
-  {
-    const std::string payload{R"(
-        {
-          "session_id": "my_session_id"
-        }
-        )"};
-
-    const std::string session_id{PayloadJsonUtils::GetSessionID(payload)};
-
-    CHECK(session_id == "my_session_id");
-  }
-
-  SUBCASE("invalid json")
-  {
-    const std::string payload{""};
-
-    CHECK_THROWS_WITH_AS(
-        PayloadJsonUtils::GetSessionID(payload),
-        "RapidJSON parse error 1. Review JSON for formatting errors:\n\n\n\n\n",
-        std::runtime_error);
-  }
-
-  SUBCASE("invalid session ID")
-  {
-    const std::string payload{R"(
-        {
-          "session_id": false
-        }
-        )"};
-
-    CHECK_THROWS_WITH_AS(
-        PayloadJsonUtils::GetSessionID(payload),
-        "Request body must be an object and it must have a 'session_id' field "
-        "that is a string. Request body:\n\n{\"session_id\":false}\n\n\n",
-        std::runtime_error);
-  }
-}
-
 TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload")
 {
   SUBCASE("valid payload and chat history")
