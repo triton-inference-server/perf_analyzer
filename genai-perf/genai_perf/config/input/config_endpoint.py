@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 from urllib.parse import urlparse
 
 from genai_perf.config.endpoint_config import EndpointConfig, endpoint_type_map

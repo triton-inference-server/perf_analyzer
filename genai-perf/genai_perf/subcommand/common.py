@@ -184,8 +184,8 @@ def convert_config_to_inputs_config(
         output_tokens_mean = DEFAULT_OUTPUT_TOKENS_MEAN
 
     return InputsConfig(
-        audio_length_mean=config.input.audio.length_mean,
-        audio_length_stddev=config.input.audio.length_stddev,
+        audio_length_mean=config.input.audio.length.mean,
+        audio_length_stddev=config.input.audio.length.stddev,
         audio_sample_rates=config.input.audio.sample_rates,
         audio_depths=config.input.audio.depths,
         audio_num_channels=config.input.audio.num_channels,
