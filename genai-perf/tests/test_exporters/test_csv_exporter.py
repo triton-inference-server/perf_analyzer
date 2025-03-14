@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -113,13 +113,13 @@ class TestCsvExporter:
         exporter.export()
 
         expected_content = [
-            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "Time To First Token (ms),8.00,7.00,9.00,8.98,8.90,8.80,8.50,8.00,7.50\r\n",
-            "Time To Second Token (ms),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50\r\n",
-            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
+            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
+            "Time To First Token (ms),8.00,7.00,9.00,8.98,8.90,8.80,8.50,8.00,7.50,7.20,7.10,7.02\r\n",
+            "Time To Second Token (ms),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50,1.20,1.10,1.02\r\n",
+            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50,4.20,4.10,4.02\r\n",
+            "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50,10.20,10.10,10.02\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50,1.20,1.10,1.02\r\n",
+            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50,5.20,5.10,5.02\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
@@ -169,10 +169,10 @@ class TestCsvExporter:
 
         expected_filename = f"custom_export_genai_perf.csv"
         expected_content = [
-            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
+            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
+            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50,4.20,4.10,4.02\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50,1.20,1.10,1.02\r\n",
+            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50,5.20,5.10,5.02\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
@@ -216,8 +216,8 @@ class TestCsvExporter:
         exporter.export()
 
         expected_content = [
-            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
+            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
+            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50,4.20,4.10,4.02\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Request Throughput (per sec),123.00\r\n",
@@ -368,24 +368,24 @@ class TestCsvExporter:
         exporter.export()
 
         expected_content = [
-            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "Time To First Token (ms),8.00,7.00,9.00,8.98,8.90,8.80,8.50,8.00,7.50\r\n",
-            "Time To Second Token (ms),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50\r\n",
-            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50\r\n",
+            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
+            "Time To First Token (ms),8.00,7.00,9.00,8.98,8.90,8.80,8.50,8.00,7.50,7.20,7.10,7.02\r\n",
+            "Time To Second Token (ms),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50,1.20,1.10,1.02\r\n",
+            "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50,4.20,4.10,4.02\r\n",
+            "Inter Token Latency (ms),11.00,10.00,12.00,11.98,11.90,11.80,11.50,11.00,10.50,10.20,10.10,10.02\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,3.00,2.98,2.90,2.80,2.50,2.00,1.50,1.20,1.10,1.02\r\n",
+            "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50,5.20,5.10,5.02\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
             "Request Count (count),3.00\r\n",
             "\r\n",
-            "Metric,GPU,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "GPU Power Usage (W),gpu0,45.85,45.20,46.50,46.49,46.44,46.37,46.17,45.85,45.53\r\n",
-            "Energy Consumption (MJ),gpu0,0.55,0.50,0.60,0.60,0.59,0.59,0.57,0.55,0.53\r\n",
-            "GPU Utilization (%),gpu0,77.50,75.00,80.00,79.95,79.75,79.50,78.75,77.50,76.25\r\n",
-            "GPU Memory Used (GB),gpu0,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00\r\n",
+            "Metric,GPU,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
+            "GPU Power Usage (W),gpu0,45.85,45.20,46.50,46.49,46.44,46.37,46.17,45.85,45.53,45.33,45.27,45.21\r\n",
+            "Energy Consumption (MJ),gpu0,0.55,0.50,0.60,0.60,0.59,0.59,0.57,0.55,0.53,0.51,0.51,0.50\r\n",
+            "GPU Utilization (%),gpu0,77.50,75.00,80.00,79.95,79.75,79.50,78.75,77.50,76.25,75.50,75.25,75.05\r\n",
+            "GPU Memory Used (GB),gpu0,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00\r\n",
             "\r\n",
             "Metric,GPU,Value\r\n",
             "GPU Power Limit (W),gpu0,250.00\r\n",
@@ -444,21 +444,21 @@ class TestCsvExporter:
 
         mock_logger.error.assert_any_call(
             "Statistic 'avg' for metric 'request_latency' is missing. "
-            "Available stats: ['unit', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'max', 'std']."
+            "Available stats: ['unit', 'p1', 'p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'max', 'std']."
         )
         mock_logger.error.assert_any_call(
             "Statistic 'max' for metric 'output_sequence_length' is missing. "
-            "Available stats: ['unit', 'avg', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'std']."
+            "Available stats: ['unit', 'avg', 'p1', 'p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'std']."
         )
         mock_logger.error.assert_any_call(
             "Metric 'input_sequence_length' is missing in the provided statistics."
         )
         expected_filename = f"custom_export_genai_perf.csv"
         expected_content = [
-            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
-            "Request Latency (ms),N/A,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50\r\n",
-            "Output Sequence Length (tokens),2.00,1.00,N/A,2.98,2.90,2.80,2.50,2.00,1.50\r\n",
-            "Input Sequence Length (tokens),N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A\r\n",
+            "Metric,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
+            "Request Latency (ms),N/A,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50,4.20,4.10,4.02\r\n",
+            "Output Sequence Length (tokens),2.00,1.00,N/A,2.98,2.90,2.80,2.50,2.00,1.50,1.20,1.10,1.02\r\n",
+            "Input Sequence Length (tokens),N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A\r\n",
             "\r\n",
             "Metric,Value\r\n",
             "Output Token Throughput (per sec),456.00\r\n",
