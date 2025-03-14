@@ -32,4 +32,4 @@ class OutputTokenThroughputPerRequestP10(OutputTokenThroughputPerRequestBase):
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p10 Output Token Throughput Per Request (tokens/s)"
+        return "p10 Output Token Per Request (tokens/sec)"

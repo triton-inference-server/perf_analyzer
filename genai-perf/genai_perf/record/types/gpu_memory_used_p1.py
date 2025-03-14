@@ -30,4 +30,4 @@ class GpuMemoryUsedP1(GPUMemoryUsedBase):
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p1 GPU Memory Used (MiB)"
+        return "p1 GPU Memory Used (GB)"

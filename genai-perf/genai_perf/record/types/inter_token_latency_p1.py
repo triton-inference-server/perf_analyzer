@@ -30,4 +30,4 @@ class InterTokenLatencyP1(InterTokenLatencyBase):
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p1 Inter-Token Latency (ms)"
+        return "p1 Inter Token Latency (ms)"
