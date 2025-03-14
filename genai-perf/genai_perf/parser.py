@@ -89,6 +89,10 @@ _endpoint_type_map = {
     ),
     "nvclip": EndpointConfig("v1/embeddings", "openai", ic.OutputFormat.NVCLIP),
     "rankings": EndpointConfig("v1/ranking", "openai", ic.OutputFormat.RANKINGS),
+    # TODO: Deprecate this endpoint. Currently we have it for backward compatibility.
+    "vision": EndpointConfig(
+        "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_MULTIMODAL
+    ),
     "multimodal": EndpointConfig(
         "v1/chat/completions", "openai", ic.OutputFormat.OPENAI_MULTIMODAL
     ),
@@ -209,6 +213,14 @@ def _check_conditional_args(
             parser.error(
                 "The --endpoint-type option is required when using the 'openai' service-kind."
             )
+
+        # TODO: Remove the check once we deprecate the vision endpoint.
+        if args.endpoint_type == "vision":
+            logger.warning(
+                "[Deprecation Warning] The 'vision' endpoint-type is deprecated "
+                "and will be removed in a future release. Please use 'multimodal' endpoint-type instead."
+            )
+
     elif args.service_kind == "dynamic_grpc":
         args.endpoint_type = "dynamic_grpc"
         if args.grpc_method is None:
