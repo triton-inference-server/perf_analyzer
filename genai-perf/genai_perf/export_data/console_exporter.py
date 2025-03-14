@@ -25,15 +25,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-import genai_perf.logging as logging
 from rich.console import Console
 from rich.table import Table
 
 from . import exporter_utils
 from . import telemetry_data_exporter_util as telem_utils
 from .exporter_config import ExporterConfig
-
-logger = logging.getLogger(__name__)
 
 
 class ConsoleExporter:
@@ -63,7 +60,7 @@ class ConsoleExporter:
             title += "LLM Metrics"
         return title
 
-    def export(self) -> None:
+    def export(self, **kwargs) -> None:
         table = Table(title=self._get_title())
 
         table.add_column("Statistic", justify="right", style="cyan", no_wrap=True)
@@ -73,7 +70,7 @@ class ConsoleExporter:
         # Request metrics table
         self._construct_table(table)
 
-        console = Console()
+        console = Console(**kwargs)
         console.print(table)
         if self._args.verbose:
             telem_utils.export_telemetry_stats_console(

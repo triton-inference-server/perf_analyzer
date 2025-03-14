@@ -30,9 +30,24 @@ import os
 from typing import Optional
 
 from rich.highlighter import NullHighlighter
+from rich.logging import RichHandler
 
 DEFAULT_LOG_FORMAT = "%(message)s"
 DEFAULT_DATE_FORMAT = "[%Y-%m-%d %H:%M:%S]"
+HANDLER = "rich.logging.RichHandler"
+MOCK_HANDLER = "genai_perf.logging.MockRichHandler"
+
+
+class MockRichHandler(RichHandler):
+    """A mock RichHandler that prints the raw message for testing purposes."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def emit(self, record):
+        # In test mode, just print the raw message
+        message = self.format(record)
+        print(message)
 
 
 def init_logging(log_level: Optional[str] = None) -> None:
@@ -44,7 +59,10 @@ def init_logging(log_level: Optional[str] = None) -> None:
     # Use environment variable or passed parameter to override default log level
     log_level = log_level or os.environ.get("GENAI_PERF_LOG_LEVEL", "DEBUG")
 
-    LOGGING_CONFIG = {
+    # Check if we are running pytest
+    is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
+
+    logging_config = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
@@ -55,7 +73,7 @@ def init_logging(log_level: Optional[str] = None) -> None:
         },
         "handlers": {
             "console": {
-                "class": "rich.logging.RichHandler",
+                "class": MOCK_HANDLER if is_testing else HANDLER,
                 "formatter": "standard",
                 "highlighter": NullHighlighter(),
                 "omit_repeated_times": False,
@@ -81,7 +99,7 @@ def init_logging(log_level: Optional[str] = None) -> None:
             },
         },
     }
-    logging.config.dictConfig(LOGGING_CONFIG)
+    logging.config.dictConfig(logging_config)
 
 
 def getLogger(name):
