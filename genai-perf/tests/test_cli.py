@@ -1332,7 +1332,7 @@ class TestCLIArguments:
         self, monkeypatch, arg, expected_path, capsys
     ):
         combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
-        monkeypatch.setattr("genai_perf.parser.directory", lambda value: Path(value))
+        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
 
@@ -1343,11 +1343,11 @@ class TestCLIArguments:
         [
             (
                 ["--profile-export-file", "test.json"],
-                f"{DEFAULT_ARTIFACT_DIR}/test.json",
+                "test.json",
             ),
             (
                 [],
-                f"{DEFAULT_ARTIFACT_DIR}/{DEFAULT_PROFILE_EXPORT_FILE}",
+                f"{DEFAULT_PROFILE_EXPORT_FILE}",
             ),
         ],
     )
@@ -1355,14 +1355,14 @@ class TestCLIArguments:
         self, monkeypatch, arg, expected_path, capsys
     ):
         combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
-        monkeypatch.setattr("genai_perf.parser.directory", lambda value: Path(value))
+        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
 
         assert args.profile_export_file == Path(expected_path)
 
     def test_process_export_files_unrecognized_arg(self, monkeypatch, capsys):
-        monkeypatch.setattr("genai_perf.parser.directory", lambda value: Path(value))
+        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr(
             "sys.argv",
             ["genai-perf", "process-export-files", "test_dir", "--wrong-arg"],

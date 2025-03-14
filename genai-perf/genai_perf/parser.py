@@ -509,11 +509,6 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
     return args
 
 
-def _set_profile_export_file_path(args: argparse.Namespace) -> argparse.Namespace:
-    args.profile_export_file = args.artifact_dir / args.profile_export_file
-    return args
-
-
 def parse_goodput(values):
     constraints = {}
     try:
@@ -1298,7 +1293,7 @@ def refine_args(
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
         args = _check_compare_args(parser, args)
     elif args.subcommand == Subcommand.PROCESS_EXPORT_FILES.to_cli_format():
-        args = _set_profile_export_file_path(args)
+        pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
 
