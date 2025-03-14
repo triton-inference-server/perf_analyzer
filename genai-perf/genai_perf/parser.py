@@ -155,6 +155,15 @@ def _create_sweep_list(args):
 
 
 ### Types ###
+
+
+def directory(value: str) -> Path:
+    path = Path(value)
+    if path.is_dir():
+        return path
+    raise ValueError(f"'{value}' is not a valid directory")
+
+
 def file_or_directory(value: str) -> Path:
     if value.startswith("synthetic:") or value.startswith("payload"):
         return Path(value)
@@ -587,6 +596,16 @@ def _add_output_args(parser):
     )
 
 
+def _add_process_export_files_args(parser):
+    process_export_files_group = parser.add_argument_group("Process Export Files")
+    process_export_files_group.add_argument(
+        "input_path",
+        nargs=1,
+        type=directory,
+        help="The path to the directory containing the profile export files.",
+    )
+
+
 def _add_profile_args(parser):
     profile_group = parser.add_argument_group("Profiling")
     load_management_group = profile_group.add_mutually_exclusive_group(required=False)
@@ -790,6 +809,9 @@ def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
         Subcommand.PROCESS_EXPORT_FILES.to_cli_format(),
         description="Subcommand to process export files and aggregate the results.",
     )
+    _add_process_export_files_args(process_export_files)
+    _add_output_args(process_export_files)
+    _add_other_args(process_export_files)
     process_export_files.set_defaults(func=process_export_files_handler)
     return process_export_files
 
