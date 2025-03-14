@@ -509,6 +509,11 @@ def _set_artifact_paths(args: argparse.Namespace) -> argparse.Namespace:
     return args
 
 
+def _set_profile_export_file_path(args: argparse.Namespace) -> argparse.Namespace:
+    args.profile_export_file = args.artifact_dir / args.profile_export_file
+    return args
+
+
 def parse_goodput(values):
     constraints = {}
     try:
@@ -574,6 +579,13 @@ def _convert_str_to_enum_entry(args, option, enum):
 
 
 ### Types ###
+
+
+def directory(value: str) -> Path:
+    path = Path(value)
+    if path.is_dir():
+        return path
+    raise ValueError(f"'{value}' is not a valid directory")
 
 
 def file_or_directory(value: str) -> Path:
@@ -1025,6 +1037,16 @@ def _add_output_args(parser):
     )
 
 
+def _add_process_export_files_args(parser):
+    process_export_files_group = parser.add_argument_group("Process Export Files")
+    process_export_files_group.add_argument(
+        "input_path",
+        nargs=1,
+        type=directory,
+        help="The path to the directory containing the profile export files.",
+    )
+
+
 def _add_profile_args(parser):
     profile_group = parser.add_argument_group("Profiling")
     load_management_group = profile_group.add_mutually_exclusive_group(required=False)
@@ -1202,6 +1224,9 @@ def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
         Subcommand.PROCESS_EXPORT_FILES.to_cli_format(),
         description="Subcommand to process export files and aggregate the results.",
     )
+    _add_process_export_files_args(process_export_files)
+    _add_output_args(process_export_files)
+    _add_other_args(process_export_files)
     process_export_files.set_defaults(func=process_export_files_handler)
     return process_export_files
 
@@ -1273,7 +1298,7 @@ def refine_args(
     elif args.subcommand == Subcommand.COMPARE.to_lowercase():
         args = _check_compare_args(parser, args)
     elif args.subcommand == Subcommand.PROCESS_EXPORT_FILES.to_cli_format():
-        pass
+        args = _set_profile_export_file_path(args)
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
 

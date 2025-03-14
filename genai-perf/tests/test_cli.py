@@ -31,6 +31,7 @@ from unittest.mock import patch
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
+from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
@@ -1274,3 +1275,103 @@ class TestCLIArguments:
         assert parsed_args.tokenizer == "test_tokenizer"
         assert parsed_args.tokenizer_trust_remote_code
         assert parsed_args.tokenizer_revision == "test_revision"
+
+    # ================================================
+    # PROCESS-EXPORT-FILES SUBCOMMAND
+    # ================================================
+    expected_help_output = (
+        "Subcommand to process export files and aggregate the results."
+    )
+
+    @pytest.mark.parametrize(
+        "args, expected_output",
+        [
+            (["-h"], expected_help_output),
+            (["--help"], expected_help_output),
+        ],
+    )
+    def test_process_export_files_help_arguments_output_and_exit(
+        self, monkeypatch, args, expected_output, capsys
+    ):
+        monkeypatch.setattr("sys.argv", ["genai-perf", "process-export-files"] + args)
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code == 0
+
+        captured = capsys.readouterr()
+        assert expected_output in captured.out
+
+    def test_process_export_files_missing_input_path(self, monkeypatch, capsys):
+        args = ["genai-perf", "process-export-files"]
+        monkeypatch.setattr("sys.argv", args)
+        expected_output = "the following arguments are required: input_path"
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code != 0
+        captured = capsys.readouterr()
+        assert expected_output in captured.err
+
+    @pytest.mark.parametrize(
+        "arg, expected_path",
+        [
+            (
+                ["--artifact-dir", "test_dir"],
+                "test_dir",
+            ),
+            (
+                [],
+                f"{DEFAULT_ARTIFACT_DIR}",
+            ),
+        ],
+    )
+    def test_process_export_files_artifact_dir(
+        self, monkeypatch, arg, expected_path, capsys
+    ):
+        combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
+        monkeypatch.setattr("genai_perf.parser.directory", lambda value: Path(value))
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+
+        assert args.artifact_dir == Path(expected_path)
+
+    @pytest.mark.parametrize(
+        "arg, expected_path",
+        [
+            (
+                ["--profile-export-file", "test.json"],
+                f"{DEFAULT_ARTIFACT_DIR}/test.json",
+            ),
+            (
+                [],
+                f"{DEFAULT_ARTIFACT_DIR}/{DEFAULT_PROFILE_EXPORT_FILE}",
+            ),
+        ],
+    )
+    def test_process_export_files_profile_export_filepath(
+        self, monkeypatch, arg, expected_path, capsys
+    ):
+        combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
+        monkeypatch.setattr("genai_perf.parser.directory", lambda value: Path(value))
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+
+        assert args.profile_export_file == Path(expected_path)
+
+    def test_process_export_files_unrecognized_arg(self, monkeypatch, capsys):
+        monkeypatch.setattr("genai_perf.parser.directory", lambda value: Path(value))
+        monkeypatch.setattr(
+            "sys.argv",
+            ["genai-perf", "process-export-files", "test_dir", "--wrong-arg"],
+        )
+        expected_output = "unrecognized arguments: --wrong-arg"
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code != 0
+        captured = capsys.readouterr()
+        assert expected_output in captured.err
