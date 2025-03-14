@@ -88,7 +88,6 @@ def _check_model_args(
     """
     Check arguments associated with the model and apply any necessary formatting.
     """
-    logger.info(f"Profiling these models: {', '.join(args.model)}")
     args = _convert_str_to_enum_entry(
         args, "model_selection_strategy", ic.ModelSelectionStrategy
     )
@@ -1451,6 +1450,7 @@ def parse_args():
             config = ConfigCommand({"model_name": args.formatted_model_name})
             config = add_cli_options_to_config(config, args)
 
+            logger.info(f"Profiling these models: {', '.join(config.model_names)}")
             return args, config, argv[passthrough_index + 1 :]
     else:  # No subcommmand on CLI
         # Assumption is the last argument before the
@@ -1477,6 +1477,7 @@ def parse_args():
         # Set verbose
         config.verbose = ConfigField(default=False, value=args.verbose)
 
+        logger.info(f"Profiling these models: {', '.join(config.model_names)}")
         return args, config, argv[passthrough_index + 1 :]
 
 

@@ -263,16 +263,14 @@ class PerfAnalyzerConfig:
         protocol_args = []
 
         if config.endpoint.service_kind == "triton":
-            protocol_args += ["-i", "grpc", "--streaming"]
-            if not config.endpoint.get_field("url").is_set_by_user:
-                protocol_args += ["-u", f"{DEFAULT_GRPC_URL}"]
+            protocol_args += ["-i", "grpc", "--streaming", "-u", config.endpoint.url]
+
             if config.endpoint.backend == OutputFormat.TENSORRTLLM:
                 protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif config.endpoint.service_kind == "openai":
             protocol_args += ["-i", "http"]
         elif config.endpoint.service_kind == "dynamic_grpc":
-            if not config.endpoint.get_field("url").is_set_by_user:
-                protocol_args += ["-u", f"{DEFAULT_GRPC_URL}"]
+            protocol_args += ["-u", config.endpoint.url]
 
         return protocol_args
 
