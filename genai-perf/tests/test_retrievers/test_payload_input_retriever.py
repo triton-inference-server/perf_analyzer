@@ -53,6 +53,7 @@ class TestPayloadInputRetriever:
                 self.payload_input_filename = Path("test_input.jsonl")
                 self.prompt_tokens_mean = 10
                 self.prompt_tokens_stddev = 2
+                self.block_size = 10
 
         return MockConfig()
 

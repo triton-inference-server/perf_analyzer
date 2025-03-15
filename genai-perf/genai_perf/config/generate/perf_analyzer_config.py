@@ -52,6 +52,7 @@ perf_analyzer_ignore_args = [
     "batch_size_audio",
     "batch_size_image",
     "batch_size_text",
+    "block_size",
     "concurrency",
     "endpoint_type",
     "extra_inputs",
