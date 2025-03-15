@@ -64,4 +64,8 @@ endpoint_type_map = {
     "tensorrtllm_engine": EndpointConfig(
         None, "tensorrtllm_engine", OutputFormat.TENSORRTLLM_ENGINE
     ),
+    # TODO: Deprecate this endpoint. Currently we have it for backward compatibility.
+    "vision": EndpointConfig(
+        "v1/chat/completions", "openai", OutputFormat.OPENAI_MULTIMODAL
+    ),
 }
