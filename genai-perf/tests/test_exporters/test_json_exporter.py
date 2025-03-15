@@ -212,6 +212,7 @@ class TestJsonExporter:
             "subcommand": "profile",
             "prompt_source": "synthetic",
             "extra_inputs": {},
+            "block_size": 512,
         }
 
         _, data = next(iter(mock_read_write))

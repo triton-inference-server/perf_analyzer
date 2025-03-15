@@ -49,6 +49,8 @@ class SyntheticPromptGenerator:
             tokenizer: Tokenizer instance.
             prompt_tokens_mean: Mean number of tokens in the prompt.
             prompt_tokens_stddev: Standard deviation for the number of tokens in the prompt.
+            hash_ids: List of hash indices used for token reuse.
+            block_size: Number of tokens allocated per hash block (default 512).
 
         Returns:
             A synthetic prompt as a string.

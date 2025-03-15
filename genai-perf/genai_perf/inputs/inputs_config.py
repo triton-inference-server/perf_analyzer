@@ -106,6 +106,9 @@ class InputsConfig:
     # Synthetic Prompt Generation Parameters
     ########################################
 
+    # The number of tokens allocated per hash block.
+    block_size: int = ic.DEFAULT_BLOCK_SIZE
+
     # The number of dataset entries to generate and use as the payload pool
     num_dataset_entries: int = ic.DEFAULT_NUM_DATASET_ENTRIES
 

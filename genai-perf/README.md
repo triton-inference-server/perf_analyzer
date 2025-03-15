@@ -672,6 +672,10 @@ export file is `profile_export.json`, the genai-perf file will be exported to
 
 ### Session Options
 
+##### `--block-size`
+
+The number of tokens allocated per hash block.
+
 ##### `--num-sessions`
 
 The number of sessions to simulate. This is used when generating synthetic

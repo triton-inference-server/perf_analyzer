@@ -1172,6 +1172,14 @@ def _add_session_args(parser):
     )
 
     session_group.add_argument(
+        "--block-size",
+        type=int,
+        default=ic.DEFAULT_BLOCK_SIZE,
+        required=False,
+        help="The number of tokens allocated per hash block.",
+    )
+
+    session_group.add_argument(
         "--num-sessions",
         type=int,
         default=ic.DEFAULT_NUM_SESSIONS,

@@ -168,6 +168,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                 prompt_tokens_mean,
                 prompt_tokens_stddev,
                 hash_ids,
+                self.config.block_size,
             )
         prompt = prompt if prompt else prompt_alt
         return str(prompt)
