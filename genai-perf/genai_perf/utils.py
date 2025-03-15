@@ -151,3 +151,10 @@ def is_power_of_two(n: int) -> bool:
     if n <= 0:
         return False
     return (n & (n - 1)) == 0
+
+
+def split_and_strip_whitespace(input_string: str) -> List[str]:
+    """
+    Split a string by comma and strip whitespace from each item
+    """
+    return [item.strip() for item in input_string.split(",")]

@@ -31,16 +31,16 @@ from unittest.mock import patch
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.inputs.input_constants import (
+    AudioFormat,
+    ImageFormat,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-
-# TODO (TPA-1002): move AudioFormat to synthetic audio generator
-# from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
-from genai_perf.parser import AudioFormat
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
@@ -77,11 +77,12 @@ class TestCLIArguments:
         assert expected_output in captured.out
 
     @pytest.mark.parametrize(
-        "arg, expected_attributes",
+        "arg, expected_cli_attributes, expected_config_attributes",
         [
             (
                 ["--artifact-dir", "test_artifact_dir"],
                 {"artifact_dir": Path("test_artifact_dir")},
+                {"output.artifact_directory": Path("test_artifact_dir")},
             ),
             (
                 [
@@ -93,6 +94,7 @@ class TestCLIArguments:
                     "openai",
                 ],
                 {"batch_size_text": 5},
+                {"input.batch_size": 5},
             ),
             (
                 [
@@ -104,6 +106,7 @@ class TestCLIArguments:
                     "openai",
                 ],
                 {"batch_size_image": 5},
+                {"input.image.batch_size": 5},
             ),
             (
                 [
@@ -115,27 +118,37 @@ class TestCLIArguments:
                     "openai",
                 ],
                 {"batch_size_text": 5},
+                {"input.batch_size": 5},
             ),
-            (["--concurrency", "3"], {"concurrency": 3}),
+            (
+                ["--concurrency", "3"],
+                {"concurrency": 3},
+                {"perf_analyzer.stimulus": {"concurrency": 3}},
+            ),
             (
                 ["--endpoint-type", "completions", "--service-kind", "openai"],
                 {"endpoint": "v1/completions"},
+                {"endpoint.custom": "v1/completions"},
             ),
             (
                 ["--endpoint-type", "chat", "--service-kind", "openai"],
                 {"endpoint": "v1/chat/completions"},
+                {"endpoint.custom": "v1/chat/completions"},
             ),
             (
                 ["--endpoint-type", "multimodal", "--service-kind", "openai"],
                 {"endpoint": "v1/chat/completions"},
+                {"endpoint.custom": "v1/chat/completions"},
             ),
             (
                 ["--endpoint-type", "rankings", "--service-kind", "openai"],
                 {"endpoint": "v1/ranking"},
+                {"endpoint.custom": "v1/ranking"},
             ),
             (
                 ["--endpoint-type", "image_retrieval", "--service-kind", "openai"],
                 {"endpoint": "v1/infer"},
+                {"endpoint.custom": "v1/infer"},
             ),
             (
                 [
@@ -147,6 +160,7 @@ class TestCLIArguments:
                     "custom/address",
                 ],
                 {"endpoint": "custom/address"},
+                {"endpoint.custom": "custom/address"},
             ),
             (
                 [
@@ -158,6 +172,7 @@ class TestCLIArguments:
                     "   /custom/address",
                 ],
                 {"endpoint": "custom/address"},
+                {"endpoint.custom": "custom/address"},
             ),
             (
                 [
@@ -169,10 +184,12 @@ class TestCLIArguments:
                     "custom/address",
                 ],
                 {"endpoint": "custom/address"},
+                {"endpoint.custom": "custom/address"},
             ),
             (
                 ["--extra-inputs", "test_key:test_value"],
                 {"extra_inputs": ["test_key:test_value"]},
+                {"input.extra": {"test_key": "test_value"}},
             ),
             (
                 [
@@ -182,6 +199,7 @@ class TestCLIArguments:
                     "another_test_key:6",
                 ],
                 {"extra_inputs": ["test_key:5", "another_test_key:6"]},
+                {"input.extra": {"test_key": 5, "another_test_key": 6}},
             ),
             (
                 [
@@ -193,57 +211,118 @@ class TestCLIArguments:
                         '{"name": "Wolverine","hobbies": ["hacking", "slashing"],"address": {"street": "1407 Graymalkin Lane, Salem Center","city": "NY"}}'
                     ]
                 },
+                {
+                    "input.extra": {
+                        "name": "Wolverine",
+                        "hobbies": ["hacking", "slashing"],
+                        "address": {
+                            "street": "1407 Graymalkin Lane, Salem Center",
+                            "city": "NY",
+                        },
+                    },
+                },
             ),
-            (["-H", "header_name:value"], {"header": ["header_name:value"]}),
-            (["--header", "header_name:value"], {"header": ["header_name:value"]}),
+            (
+                ["-H", "header_name:value"],
+                {"header": ["header_name:value"]},
+                {"input.header": ["header_name:value"]},
+            ),
+            (
+                ["--header", "header_name:value"],
+                {"header": ["header_name:value"]},
+                {"input.header": ["header_name:value"]},
+            ),
             (
                 ["--header", "header_name:value", "--header", "header_name_2:value_2"],
                 {"header": ["header_name:value", "header_name_2:value_2"]},
+                {"input.header": ["header_name:value", "header_name_2:value_2"]},
             ),
-            (["--measurement-interval", "100"], {"measurement_interval": 100}),
+            (
+                ["--measurement-interval", "100"],
+                {"measurement_interval": 100},
+                {"perf_analyzer.measurement_interval": 100},
+            ),
             (
                 ["--model-selection-strategy", "random"],
                 {"model_selection_strategy": ModelSelectionStrategy.RANDOM},
+                {"endpoint.model_selection_strategy": ModelSelectionStrategy.RANDOM},
             ),
-            (["--num-dataset-entries", "101"], {"num_dataset_entries": 101}),
-            (["--num-prompts", "101"], {"num_dataset_entries": 101}),
-            (["--num-prefix-prompts", "101"], {"num_prefix_prompts": 101}),
+            (
+                ["--num-dataset-entries", "101"],
+                {"num_dataset_entries": 101},
+                {"input.num_dataset_entries": 101},
+            ),
+            (
+                ["--num-prompts", "101"],
+                {"num_dataset_entries": 101},
+                {"input.num_dataset_entries": 101},
+            ),
+            (
+                ["--num-prefix-prompts", "101"],
+                {"num_prefix_prompts": 101},
+                {"input.prefix_prompt.num": 101},
+            ),
             (
                 ["--output-tokens-mean", "6"],
                 {"output_tokens_mean": 6},
+                {"input.output_tokens.mean": 6},
             ),
             (
                 ["--osl", "6"],
                 {"output_tokens_mean": 6},
+                {"input.output_tokens.mean": 6},
             ),
             (
                 ["--output-tokens-mean", "6", "--output-tokens-stddev", "7"],
                 {"output_tokens_stddev": 7},
+                {"input.output_tokens.stddev": 7},
             ),
             (
                 ["--output-tokens-mean", "6", "--output-tokens-mean-deterministic"],
                 {"output_tokens_mean_deterministic": True},
+                {"input.output_tokens.deterministic": True},
             ),
-            (["-p", "100"], {"measurement_interval": 100}),
+            (
+                ["-p", "100"],
+                {"measurement_interval": 100},
+                {"perf_analyzer.measurement_interval": 100},
+            ),
             (
                 ["--profile-export-file", "test.json"],
-                {
-                    "profile_export_file": Path(
-                        "artifacts/test_model-triton-tensorrtllm-concurrency1/test.json"
-                    )
-                },
+                {"profile_export_file": Path("test.json")},
+                {"output.profile_export_file": Path("test.json")},
             ),
-            (["--random-seed", "8"], {"random_seed": 8}),
-            (["--request-count", "100"], {"request_count": 100}),
+            (["--random-seed", "8"], {"random_seed": 8}, {"input.random_seed": 8}),
             (
-                ["--grpc-method", "package.name.v1.ServiceName/MethodName"],
-                {"grpc_method": "package.name.v1.ServiceName/MethodName"},
+                ["--request-count", "100"],
+                {"request_count": 100},
+                {"perf_analyzer.request_count.num": 100},
             ),
-            (["--num-requests", "100"], {"request_count": 100}),
-            (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
-            (["--num-warmup-requests", "100"], {"warmup_request_count": 100}),
-            (["--request-rate", "9.0"], {"request_rate": 9.0}),
-            (["-s", "99.5"], {"stability_percentage": 99.5}),
+            (
+                ["--num-requests", "100"],
+                {"request_count": 100},
+                {"perf_analyzer.request_count.num": 100},
+            ),
+            (
+                ["--warmup-request-count", "100"],
+                {"warmup_request_count": 100},
+                {"perf_analyzer.request_count.warmup": 100},
+            ),
+            (
+                ["--num-warmup-requests", "100"],
+                {"warmup_request_count": 100},
+                {"perf_analyzer.request_count.warmup": 100},
+            ),
+            (
+                ["--request-rate", "9.0"],
+                {"request_rate": 9.0},
+                {"perf_analyzer.stimulus": {"request_rate": 9.0}},
+            ),
+            (
+                ["-s", "99.5"],
+                {"stability_percentage": 99.5},
+                {"perf_analyzer.stability_percentage": 99.5},
+            ),
             (
                 [
                     "--service-kind",
@@ -256,79 +335,149 @@ class TestCLIArguments:
                     "endpoint_type": "dynamic_grpc",
                     "grpc_method": "package.name.v1.ServiceName/MethodName",
                 },
+                {
+                    "endpoint.service_kind": "dynamic_grpc",
+                    "endpoint.type": "dynamic_grpc",
+                    "endpoint.grpc_method": "package.name.v1.ServiceName/MethodName",
+                },
             ),
-            (["--service-kind", "triton"], {"service_kind": "triton"}),
+            (
+                ["--service-kind", "triton"],
+                {"service_kind": "triton"},
+                {"endpoint.service_kind": "triton"},
+            ),
             (
                 ["--service-kind", "tensorrtllm_engine"],
                 {"service_kind": "tensorrtllm_engine"},
+                {"endpoint.service_kind": "tensorrtllm_engine"},
             ),
             (
                 ["--service-kind", "openai", "--endpoint-type", "chat"],
                 {"service_kind": "openai", "endpoint": "v1/chat/completions"},
+                {
+                    "endpoint.service_kind": "openai",
+                    "endpoint.custom": "v1/chat/completions",
+                },
             ),
-            (["--session-concurrency", "3"], {"session_concurrency": 3}),
-            (["--session-turn-delay-mean", "100"], {"session_turn_delay_mean": 100}),
+            (
+                ["--session-concurrency", "3"],
+                {"session_concurrency": 3},
+                {"perf_analyzer.stimulus": {"session_concurrency": 3}},
+            ),
+            (
+                ["--session-turn-delay-mean", "100"],
+                {"session_turn_delay_mean": 100},
+                {"input.sessions.turn_delay.mean": 100},
+            ),
             (
                 ["--session-turn-delay-stddev", "100"],
                 {"session_turn_delay_stddev": 100},
+                {"input.sessions.turn_delay.stddev": 100},
             ),
-            (["--session-turns-mean", "6"], {"session_turns_mean": 6}),
-            (["--session-turns-stddev", "7"], {"session_turns_stddev": 7}),
-            (["--stability-percentage", "99.5"], {"stability_percentage": 99.5}),
-            (["--streaming"], {"streaming": True}),
+            (
+                ["--session-turns-mean", "6"],
+                {"session_turns_mean": 6},
+                {"input.sessions.turns.mean": 6},
+            ),
+            (
+                ["--session-turns-stddev", "7"],
+                {"session_turns_stddev": 7},
+                {"input.sessions.turns.stddev": 7},
+            ),
+            (
+                ["--stability-percentage", "99.5"],
+                {"stability_percentage": 99.5},
+                {"perf_analyzer.stability_percentage": 99.5},
+            ),
+            (
+                ["--streaming"],
+                {"streaming": True},
+                {"endpoint.streaming": True},
+            ),
             (
                 ["--synthetic-input-tokens-mean", "6"],
                 {"synthetic_input_tokens_mean": 6},
+                {"input.synthetic_tokens.mean": 6},
             ),
             (
                 ["--isl", "6"],
                 {"synthetic_input_tokens_mean": 6},
+                {"input.synthetic_tokens.mean": 6},
             ),
             (
                 ["--synthetic-input-tokens-stddev", "7"],
                 {"synthetic_input_tokens_stddev": 7},
+                {"input.synthetic_tokens.stddev": 7},
             ),
             (
                 ["--prefix-prompt-length", "6"],
                 {"prefix_prompt_length": 6},
+                {"input.prefix_prompt.length": 6},
             ),
             (
                 ["--image-width-mean", "123"],
                 {"image_width_mean": 123},
+                {"input.image.width.mean": 123},
             ),
             (
                 ["--image-width-stddev", "123"],
                 {"image_width_stddev": 123},
+                {"input.image.width.stddev": 123},
             ),
             (
                 ["--image-height-mean", "456"],
                 {"image_height_mean": 456},
+                {"input.image.height.mean": 456},
             ),
             (
-                ["--image-height-stddev", "456"],
-                {"image_height_stddev": 456},
-            ),
-            (["--image-format", "png"], {"image_format": ImageFormat.PNG}),
-            (
-                ["--audio-length-mean", "456"],
-                {"audio_length_mean": 456},
+                ["--image-height-stddev", "789"],
+                {"image_height_stddev": 789},
+                {"input.image.height.stddev": 789},
             ),
             (
-                ["--audio-length-stddev", "456"],
-                {"audio_length_stddev": 456},
+                ["--image-format", "png"],
+                {"image_format": ImageFormat.PNG},
+                {"input.image.format": ImageFormat.PNG},
             ),
-            (["--audio-format", "wav"], {"audio_format": AudioFormat.WAV}),
+            (
+                ["--audio-length-mean", "234"],
+                {"audio_length_mean": 234},
+                {"input.audio.length.mean": 234},
+            ),
+            (
+                ["--audio-length-stddev", "345"],
+                {"audio_length_stddev": 345},
+                {"input.audio.length.stddev": 345},
+            ),
+            (
+                ["--audio-format", "wav"],
+                {"audio_format": AudioFormat.WAV},
+                {"input.audio.format": AudioFormat.WAV},
+            ),
             (
                 ["--audio-sample-rates", "16", "44.1", "48"],
                 {"audio_sample_rates": [16, 44.1, 48]},
+                {"input.audio.sample_rates": [16, 44.1, 48]},
             ),
-            (["--audio-depths", "16", "32"], {"audio_depths": [16, 32]}),
-            (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
-            (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
-            (["-v"], {"verbose": True}),
-            (["--verbose"], {"verbose": True}),
-            (["-u", "test_url"], {"u": "test_url"}),
-            (["--url", "test_url"], {"u": "test_url"}),
+            (
+                ["--audio-depths", "16", "32"],
+                {"audio_depths": [16, 32]},
+                {"input.audio.depths": [16, 32]},
+            ),
+            (
+                ["--tokenizer-trust-remote-code"],
+                {"tokenizer_trust_remote_code": True},
+                {"tokenizer.trust_remote_code": True},
+            ),
+            (
+                ["--tokenizer-revision", "not_main"],
+                {"tokenizer_revision": "not_main"},
+                {"tokenizer.revision": "not_main"},
+            ),
+            (["-v"], {"verbose": True}, {"verbose": True}),
+            (["--verbose"], {"verbose": True}, {"verbose": True}),
+            (["-u", "test_url"], {"u": "test_url"}, {"endpoint.url": "test_url"}),
+            (["--url", "test_url"], {"u": "test_url"}, {"endpoint.url": "test_url"}),
             (
                 [
                     "--goodput",
@@ -341,18 +490,40 @@ class TestCLIArguments:
                         "output_token_throughput_per_request": 6,
                     }
                 },
+                {
+                    "input.goodput": {
+                        "time_to_first_token": 5,
+                        "output_token_throughput_per_request": 6,
+                    }
+                },
             ),
         ],
     )
-    def test_non_file_flags_parsed(self, monkeypatch, arg, expected_attributes, capsys):
+    def test_non_file_flags_parsed(
+        self,
+        monkeypatch,
+        arg,
+        expected_cli_attributes,
+        expected_config_attributes,
+        capsys,
+    ):
         logging.init_logging()
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
 
         # Check that the attributes are set correctly
-        for key, value in expected_attributes.items():
+        for key, value in expected_cli_attributes.items():
             assert getattr(args, key) == value
+
+        for key_str, expected_value in expected_config_attributes.items():
+            keys = key_str.split(".")
+            value = config
+
+            for key in keys:
+                value = getattr(value, key)
+
+            assert value == expected_value
 
     @pytest.mark.parametrize(
         "models, expected_model_list, formatted_name",
@@ -385,7 +556,7 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile"] + models
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
 
         # Check that models are handled correctly
         for key, value in expected_model_list.items():
@@ -394,6 +565,7 @@ class TestCLIArguments:
         # Check that the formatted_model_name is correctly generated
         for key, value in formatted_name.items():
             assert getattr(args, key) == value
+            assert config.model_names == [value]
 
     def test_file_flags_parsed(self, monkeypatch, mocker):
         mocker.patch.object(Path, "is_file", return_value=True)
@@ -406,10 +578,11 @@ class TestCLIArguments:
             "fakefile.txt",
         ]
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
         assert args.input_file == Path(
             "fakefile.txt"
         ), "The file argument should be the path to the file"
+        assert config.input.file == args.input_file
 
     @pytest.mark.parametrize(
         "arg, expected_path",
@@ -457,9 +630,12 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = parser.add_cli_options_to_config(config, args)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
 
-        assert args.artifact_dir == Path(expected_path)
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     @pytest.mark.parametrize(
         "arg, expected_path, expected_output",
@@ -495,18 +671,20 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = ["genai-perf", "profile"] + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
 
-        assert args.artifact_dir == Path(expected_path)
-        captured = capsys.readouterr()
-        assert expected_output in captured.out
+        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = parser.add_cli_options_to_config(config, args)
+        perf_analyzer_config = PerfAnalyzerConfig(config)
+
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     def test_default_load_level(self, monkeypatch, capsys):
         logging.init_logging()
         monkeypatch.setattr(
             "sys.argv", ["genai-perf", "profile", "--model", "test_model"]
         )
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
         assert args.concurrency == 1
 
     def test_load_manager_args_with_payload(self, monkeypatch, mocker):
@@ -522,8 +700,9 @@ class TestCLIArguments:
             ],
         )
         mocker.patch.object(Path, "is_file", return_value=True)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
         assert args.concurrency is None
+        assert config.perf_analyzer.get_field("stimulus").is_set_by_user is False
 
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
         monkeypatch.setattr(
@@ -556,7 +735,7 @@ class TestCLIArguments:
         args = ["genai-perf", "profile", "-m", "test_model"]
         other_args = ["--", "With", "great", "power"]
         monkeypatch.setattr("sys.argv", args + other_args)
-        _, pass_through_args = parser.parse_args()
+        _, _, pass_through_args = parser.parse_args()
 
         assert pass_through_args == other_args[1:]
 
@@ -942,8 +1121,9 @@ class TestCLIArguments:
             "sys.argv", ["genai-perf", "profile", "-m", "test_model"] + args
         )
 
-        parsed_args, _ = parser.parse_args()
+        parsed_args, config, _ = parser.parse_args()
         assert parsed_args.output_format == expected_format
+        assert config.endpoint.output_format == expected_format
 
     @pytest.mark.parametrize(
         "args, expected_error",
@@ -973,10 +1153,8 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        parsed_args, _ = parser.parse_args()
-
         with pytest.raises(ValueError) as exc_info:
-            get_extra_inputs_as_dict(parsed_args)
+            parsed_args, _, _ = parser.parse_args()
 
         assert str(exc_info.value) == expected_error
 
@@ -1031,9 +1209,11 @@ class TestCLIArguments:
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
         monkeypatch.setattr("sys.argv", combined_args)
-        parsed_args, _ = parser.parse_args()
+        parsed_args, config, _ = parser.parse_args()
         assert parsed_args.prompt_source == expected_prompt_source
         assert parsed_args.payload_input_file == expected_input_file
+        assert config.input.prompt_source == expected_prompt_source
+        assert config.input.payload_file == expected_input_file
 
     @pytest.mark.parametrize(
         "args",
@@ -1315,8 +1495,16 @@ class TestCLIArguments:
     )
     def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
         assert args.server_metrics_url == expected_url
+
+        if expected_url:
+            assert config.endpoint.server_metrics_urls == expected_url
+        else:
+            assert (
+                config.endpoint.server_metrics_urls
+                == EndPointDefaults.SERVER_METRICS_URLS
+            )
 
     def test_tokenizer_args(self, monkeypatch):
         args = [
@@ -1331,8 +1519,12 @@ class TestCLIArguments:
             "test_revision",
         ]
         monkeypatch.setattr("sys.argv", args)
-        parsed_args, _ = parser.parse_args()
+        parsed_args, config, _ = parser.parse_args()
 
         assert parsed_args.tokenizer == "test_tokenizer"
         assert parsed_args.tokenizer_trust_remote_code
         assert parsed_args.tokenizer_revision == "test_revision"
+
+        assert config.tokenizer.name == "test_tokenizer"
+        assert config.tokenizer.trust_remote_code
+        assert config.tokenizer.revision == "test_revision"

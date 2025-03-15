@@ -29,6 +29,7 @@ from typing import cast
 from unittest.mock import patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
@@ -208,7 +209,9 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
             tokenizer=tokenizer,
@@ -419,7 +422,9 @@ class TestLLMProfileDataParser:
         * input sequence lengths
             - experiment 1: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -566,7 +571,9 @@ class TestLLMProfileDataParser:
         * input sequence lengths
             - experiment 1: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_vlm_profile_export.json"),
             tokenizer=tokenizer,
@@ -819,7 +826,9 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("tensorrtllm_engine_profile_export.json"),
             tokenizer=tokenizer,
@@ -860,7 +869,9 @@ class TestLLMProfileDataParser:
             response = f'data: {{"choices":[{{"delta":{{"content":"{text}"}}}}],"object":"chat.completion.chunk"}}\n\n'
             res_outputs.append({"response": response})
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -894,7 +905,9 @@ class TestLLMProfileDataParser:
         for text in output_texts:
             res_outputs.append({"text_output": text})
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
             tokenizer=tokenizer,
@@ -944,7 +957,9 @@ class TestLLMProfileDataParser:
     )
     def test_empty_response(self, mock_json) -> None:
         """Check if it handles all empty responses."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
 
         # Should not throw error
         _ = LLMProfileDataParser(
@@ -995,7 +1010,9 @@ class TestLLMProfileDataParser:
             target="genai_perf.profile_data_parser.profile_data_parser.load_json",
             return_value=profile_data,
         ):
-            tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+            config = ConfigCommand({"model_name": "test_model"})
+            config.tokenizer.name = DEFAULT_TOKENIZER
+            tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
                 filename=Path("profile_export.json"),
                 tokenizer=tokenizer,
@@ -1070,7 +1087,9 @@ class TestLLMProfileDataParser:
             target="genai_perf.profile_data_parser.profile_data_parser.load_json",
             return_value=profile_data,
         ):
-            tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+            config = ConfigCommand({"model_name": "test_model"})
+            config.tokenizer.name = DEFAULT_TOKENIZER
+            tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
                 filename=Path("profile_export.json"),
                 tokenizer=tokenizer,
@@ -1120,7 +1139,9 @@ class TestLLMProfileDataParser:
             'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
         ]
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1162,7 +1183,9 @@ class TestLLMProfileDataParser:
     )
     def test_handle_sse_error(self, mock_json, res_outputs) -> None:
         """Check if the parser can handle SSE error field."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1191,7 +1214,9 @@ class TestLLMProfileDataParser:
         ]
         expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1282,7 +1307,9 @@ class TestLLMProfileDataParser:
     )
     def test_session_metrics(self, mock_json) -> None:
         """Check if it handles session metrics."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("session_profile_export.json"),
             tokenizer=tokenizer,
@@ -1323,7 +1350,9 @@ class TestLLMProfileDataParser:
     )
     def test_no_session_metrics(self, mock_json) -> None:
         """Check if it handles profile export files without session metrics."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,

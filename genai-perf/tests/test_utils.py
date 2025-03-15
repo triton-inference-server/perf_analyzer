@@ -70,18 +70,21 @@ def check_statistics(s1: Statistics, s2: Statistics) -> None:
 def create_default_exporter_config(
     stats: Optional[Dict[Any, Any]] = None,
     metrics: Optional[Metrics] = None,
-    args: Optional[Namespace] = None,
-    extra_inputs: Optional[Dict[str, Any]] = None,
-    artifact_dir: Optional[Path] = None,
+    config: Optional[ConfigCommand] = None,
     telemetry_stats: Dict[str, Any] = {},
     session_stats: Dict[str, Any] = {},
 ) -> ExporterConfig:
+    if not config:
+        config = ConfigCommand({"model_name": "test_model"})
+
+    perf_analyzer_config = PerfAnalyzerConfig(config=config)
+
     return ExporterConfig(
         stats=stats or {},
         metrics=metrics or Metrics(),
-        args=args or Namespace(),
-        extra_inputs=extra_inputs or {},
-        artifact_dir=artifact_dir or Path("."),
+        config=config,
+        perf_analyzer_config=perf_analyzer_config,
+        extra_inputs=config.input.extra,
         telemetry_stats=telemetry_stats,
         session_stats=session_stats,
     )
@@ -147,12 +150,12 @@ def create_run_config(
     input_seq_length: int = 0,
     output_seq_length: int = 0,
 ) -> RunConfig:
-    config = ConfigCommand([model_name])
+    config = ConfigCommand(user_config={"model_name": "test_model"})
+    config.model_names = [model_name]
     genai_perf_config = GenAIPerfConfig(
         config=config, model_objective_parameters=model_objective_parameters
     )
     perf_analyzer_config = PerfAnalyzerConfig(
-        model_name=model_name,
         config=config,
         model_objective_parameters=model_objective_parameters,
     )

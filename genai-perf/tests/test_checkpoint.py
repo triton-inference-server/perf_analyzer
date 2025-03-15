@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,11 +29,9 @@ class TestCheckpoint(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(model_names=["test_model"])
+        self._config = ConfigCommand(user_config={"model_name": "test_model"})
         self._model_search_parameters = {
-            "test_model": SearchParameters(
-                config=self._config, subcommand=Subcommand.ANALYZE
-            )
+            "test_model": SearchParameters(config=self._config)
         }
 
         self._sweep_obj_gen = SweepObjectiveGenerator(
@@ -56,9 +54,9 @@ class TestCheckpoint(unittest.TestCase):
             )
             self._results.add_run_config(run_config)
 
-        self._checkpoint = Checkpoint(
-            config=ConfigCommand("test_model"), results=self._results
-        )
+        config = ConfigCommand(user_config={"model_name": "test_model"})
+
+        self._checkpoint = Checkpoint(config=config, results=self._results)
 
     def tearDown(self):
         patch.stopall()

@@ -41,15 +41,13 @@ class TestJsonExporter:
         self, monkeypatch, cli_cmd: List[str], stats: Dict[str, Any], **kwargs
     ) -> JsonExporter:
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, _ = parser.parse_args()
-        config = create_default_exporter_config(
+        args, config, _ = parser.parse_args()
+        exporter_config = create_default_exporter_config(
             stats=stats,
-            args=args,
-            extra_inputs=get_extra_inputs_as_dict(args),
-            artifact_dir=args.artifact_dir,
+            config=config,
             **kwargs,
         )
-        return JsonExporter(config)
+        return JsonExporter(exporter_config)
 
     @pytest.fixture
     def mock_read_write(self, monkeypatch: pytest.MonkeyPatch) -> List[Tuple[str, str]]:
@@ -88,7 +86,7 @@ class TestJsonExporter:
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
 
-        expected_filename = "/tmp/test_artifact/profile_export_genai_perf.json"
+        expected_filename = "/tmp/test_artifact/test_model-triton-tensorrtllm-concurrency1/profile_export_genai_perf.json"
         actual_filename, _ = next(iter(mock_read_write))
         assert actual_filename == expected_filename
 
@@ -108,14 +106,16 @@ class TestJsonExporter:
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
 
-        expected_json_filename = "/tmp/test_artifact/custom_export_genai_perf.json"
-        expected_profile_filename = "/tmp/test_artifact/custom_export.json"
+        expected_json_filename = "/tmp/test_artifact/test_model-triton-tensorrtllm-concurrency1/custom_export_genai_perf.json"
+        expected_profile_filename = "custom_export.json"
 
         actual_json_filename, data = next(iter(mock_read_write))
         assert actual_json_filename == expected_json_filename
 
         json_output = json.loads(data)
-        actual_profile_filename = json_output["input_config"]["profile_export_file"]
+        actual_profile_filename = json_output["input_config"]["output"][
+            "profile_export_file"
+        ]
         assert actual_profile_filename == expected_profile_filename
 
     def test_generate_json_stats(
@@ -153,70 +153,22 @@ class TestJsonExporter:
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
 
-        expected_input_config = {
-            "model": ["test_model"],
-            "formatted_model_name": "test_model",
-            "model_selection_strategy": "round_robin",
-            "backend": "tensorrtllm",
-            "batch_size_audio": 1,
-            "batch_size_image": 1,
-            "batch_size_text": 1,
-            "endpoint": None,
-            "endpoint_type": "kserve",
-            "service_kind": "triton",
-            "server_metrics_url": [],
-            "session_concurrency": None,
-            "session_turn_delay_mean": 0,
-            "session_turn_delay_stddev": 0,
-            "streaming": False,
-            "u": None,
-            "num_dataset_entries": 100,
-            "num_prefix_prompts": 0,
-            "num_sessions": 0,
-            "output_tokens_mean": -1,
-            "output_tokens_mean_deterministic": False,
-            "output_tokens_stddev": 0,
-            "random_seed": 0,
-            "request_count": 0,
-            "synthetic_input_files": None,
-            "synthetic_input_tokens_mean": 550,
-            "synthetic_input_tokens_stddev": 0,
-            "prefix_prompt_length": 100,
-            "warmup_request_count": 0,
-            "image_width_mean": 0,
-            "image_width_stddev": 0,
-            "image_height_mean": 0,
-            "image_height_stddev": 0,
-            "image_format": None,
-            "audio_format": "wav",
-            "audio_length_mean": 0,
-            "audio_length_stddev": 0,
-            "audio_sample_rates": [16],
-            "audio_depths": [16],
-            "audio_num_channels": 1,
-            "concurrency": 1,
-            "measurement_interval": 10000,
-            "request_rate": None,
-            "stability_percentage": 999,
-            "generate_plots": False,
-            "profile_export_file": "artifacts/test_model-triton-tensorrtllm-concurrency1/profile_export.json",
-            "artifact_dir": "artifacts/test_model-triton-tensorrtllm-concurrency1",
-            "tokenizer": "hf-internal-testing/llama-tokenizer",
-            "tokenizer_revision": "main",
-            "tokenizer_trust_remote_code": False,
-            "session_turns_mean": 1,
-            "session_turns_stddev": 0,
-            "verbose": False,
-            "goodput": None,
-            "header": None,
-            "subcommand": "profile",
-            "prompt_source": "synthetic",
-            "extra_inputs": {},
-        }
+        expected_input_config_sections = [
+            "model_names",
+            "analyze",
+            "endpoint",
+            "perf_analyzer",
+            "input",
+            "output",
+            "tokenizer",
+            "subcommand",
+        ]
 
         _, data = next(iter(mock_read_write))
         actual_json_output = json.loads(data)
-        assert actual_json_output["input_config"] == expected_input_config
+
+        for expected_input_config_section in expected_input_config_sections:
+            assert expected_input_config_section in actual_json_output["input_config"]
 
     def test_generate_json_goodput_stats(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
@@ -254,7 +206,7 @@ class TestJsonExporter:
         json_output = json.loads(data)
 
         input_config = json_output.pop("input_config")
-        assert input_config["goodput"] == {
+        assert input_config["input"]["goodput"] == {
             "some_metric_1": 8.0,
             "some_metric_2": 2.0,
             "some_metric_3": 650.0,

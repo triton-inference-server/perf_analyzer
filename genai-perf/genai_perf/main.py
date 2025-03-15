@@ -30,6 +30,7 @@ import traceback
 
 import genai_perf.logging as logging
 from genai_perf import parser
+from genai_perf.config.input.config_command import Subcommand
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,15 @@ logger = logging.getLogger(__name__)
 def run():
     # TMA-1900: refactor CLI handler
     logging.init_logging()
-    args, extra_args = parser.parse_args()
-    if args.subcommand == "compare":
-        args.func(args)
-    elif args.subcommand == "analyze":
-        args.func(args)
+    args, config, extra_args = parser.parse_args()
+    if config.subcommand == Subcommand.COMPARE.value:
+        args.func(config)
+    elif config.subcommand == Subcommand.ANALYZE.value:
+        args.func(config, extra_args)
+    elif config.subcommand == Subcommand.TEMPLATE.value:
+        args.func(config)
     else:  # profile
-        args.func(args, extra_args)
+        args.func(config, extra_args)
 
 
 def main():

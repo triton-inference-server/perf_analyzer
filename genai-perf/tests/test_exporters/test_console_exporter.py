@@ -28,6 +28,7 @@ from unittest.mock import patch
 
 import pytest
 from genai_perf import parser
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.metrics import (
     ImageRetrievalMetrics,
@@ -55,7 +56,9 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -69,10 +72,10 @@ class TestConsoleExporter:
         )
         stats = Statistics(metrics=metrics)
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
-        return config
+        return exporter_config
 
     def test_streaming_llm_output(self, monkeypatch, capsys) -> None:
         argv = [
@@ -87,7 +90,9 @@ class TestConsoleExporter:
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -101,12 +106,12 @@ class TestConsoleExporter:
         )
         stats = Statistics(metrics=metrics)
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
-        exporter.export(width=100)  # fix width for consistent test output
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
             "                           NVIDIA GenAI-Perf | LLM Metrics                            \n"
@@ -140,7 +145,9 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -155,11 +162,11 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
+        exporter = ConsoleExporter(exporter_config)
         exporter.export(width=100)  # fix width for consistent output
 
         # No TTFT and ITL in the output
@@ -192,7 +199,9 @@ class TestConsoleExporter:
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -201,11 +210,11 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
+        exporter = ConsoleExporter(exporter_config)
         exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
@@ -237,7 +246,9 @@ class TestConsoleExporter:
             "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -253,11 +264,11 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
+        exporter = ConsoleExporter(exporter_config)
         exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
@@ -295,7 +306,9 @@ class TestConsoleExporter:
             "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -312,11 +325,11 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
+        exporter = ConsoleExporter(exporter_config)
         exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
@@ -371,16 +384,18 @@ class TestConsoleExporter:
             endpoint_type,
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
+        exporter = ConsoleExporter(exporter_config)
         exporter.export(width=100)  # fix width for consistent output
 
         returned_data = capsys.readouterr().out
@@ -400,7 +415,9 @@ class TestConsoleExporter:
             "--verbose",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -426,14 +443,14 @@ class TestConsoleExporter:
         telemetry_stats = TelemetryStatistics(telemetry_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
+        exporter_config = create_default_exporter_config(
             stats=stats.stats_dict,
             metrics=stats.metrics,
-            args=args,
+            config=config,
             telemetry_stats=telemetry_stats.stats_dict,
         )
 
-        exporter = ConsoleExporter(config)
+        exporter = ConsoleExporter(exporter_config)
         exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
@@ -519,7 +536,9 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
+        args, _, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = parser.add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -534,16 +553,16 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, args=args, metrics=stats.metrics
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, config=config, metrics=stats.metrics
         )
 
         # Missing data
-        del config.stats["request_latency"]["avg"]
-        del config.stats["output_sequence_length"]["max"]
-        del config.stats["input_sequence_length"]
+        del exporter_config.stats["request_latency"]["avg"]
+        del exporter_config.stats["output_sequence_length"]["max"]
+        del exporter_config.stats["input_sequence_length"]
 
-        exporter = ConsoleExporter(config)
+        exporter = ConsoleExporter(exporter_config)
         exporter.export(width=100)  # fix width for consistent output
 
         # No TTFT and ITL in the output

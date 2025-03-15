@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,6 +29,7 @@ from pathlib import Path
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.plots.plot_config import PlotType
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 
@@ -73,7 +74,8 @@ class TestPlotConfigParser:
         monkeypatch.setattr(PlotConfigParser, "_get_metric", lambda *_: [1, 2, 3])
 
         config_parser = PlotConfigParser(Path("test_config.yaml"))
-        plot_configs = config_parser.generate_configs()
+        config = ConfigCommand({"model_name": "test_model"})
+        plot_configs = config_parser.generate_configs(config)
 
         assert len(plot_configs) == 2
         pc1, pc2 = plot_configs
