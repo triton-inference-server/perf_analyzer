@@ -1,4 +1,4 @@
-# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,25 +24,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, List
-
-from genai_perf.export_data.console_exporter import ConsoleExporter
-from genai_perf.export_data.csv_exporter import CsvExporter
-from genai_perf.export_data.exporter_config import ExporterConfig
-from genai_perf.export_data.json_exporter import JsonExporter
-
-ProfileDataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
-AnalyzeDataExporterList = [CsvExporter]
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.exceptions import GenAIPerfException
 
 
-class DataExporterFactory:
-    def create_data_exporters(self, config: ExporterConfig) -> List[Any]:
-        if config.config.subcommand == "analyze":
-            DataExporterList: List[Any] = AnalyzeDataExporterList
-        else:
-            DataExporterList = ProfileDataExporterList
+def template_handler(config: ConfigCommand) -> None:
+    """
+    Handles `template` subcommand workflow
+    """
+    template = config.make_template()
 
-        data_exporters = []
-        for exporter in DataExporterList:
-            data_exporters.append(exporter(config))
-        return data_exporters
+    try:
+        with open(config.template_filename, "x") as file:
+            file.write(template)
+    except FileExistsError:
+        raise GenAIPerfException(
+            f"File '{config.template_filename}' already exists. "
+            "Please specify a different filename."
+        )

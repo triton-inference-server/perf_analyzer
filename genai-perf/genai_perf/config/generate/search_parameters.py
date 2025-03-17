@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,12 @@ from genai_perf.config.generate.search_parameter import (
     SearchUsage,
 )
 from genai_perf.config.input.config_command import ConfigCommand, Range, Subcommand
+from genai_perf.constants import (
+    exponential_range_parameters,
+    linear_range_parameters,
+    runtime_gap_parameters,
+    runtime_pa_parameters,
+)
 from genai_perf.exceptions import GenAIPerfException
 
 
@@ -31,46 +37,14 @@ class SearchParameters:
     Contains information about all configuration parameters the user wants to search
     """
 
-    # These map to the various fields that can be set for PA and model configs
-    # See github.com/triton-inference-server/model_analyzer/blob/main/docs/config.md
-    exponential_range_parameters = [
-        "model_batch_size",
-        "runtime_batch_size",
-        "concurrency",
-        "request_rate",
-        "input_sequence_length",
-    ]
-
-    linear_range_parameters = ["instance_count", "num_dataset_entries"]
-
-    model_parameters = [
-        "model_batch_size",
-        "instance_count",
-        "max_queue_delay",
-    ]
-
-    runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
-
-    runtime_gap_parameters = ["num_dataset_entries", "input_sequence_length"]
-
-    all_parameters = model_parameters + runtime_pa_parameters + runtime_gap_parameters
-
     def __init__(
         self,
         config: ConfigCommand,
-        subcommand: Subcommand,
         is_bls_model: bool = False,
         is_ensemble_model: bool = False,
         is_composing_model: bool = False,
     ):
-        self._subcommand = subcommand
-        if subcommand == Subcommand.OPTIMIZE:
-            self._config = config.optimize
-        elif subcommand == Subcommand.ANALYZE:
-            self._config = config.analyze  # type: ignore
-
-        # TODO: OPTIMIZE
-        # self._supports_model_batch_size = model.supports_batching()
+        self._config = config.analyze
         self._supports_model_batch_size = True
 
         self._search_parameters: Dict[str, SearchParameter] = {}
@@ -78,7 +52,7 @@ class SearchParameters:
         self._is_bls_model = is_bls_model
         self._is_composing_model = is_composing_model
 
-        self._populate_search_parameters()
+        self._populate_analyze_parameters()
 
     ###########################################################################
     # Accessor Methods
@@ -128,153 +102,6 @@ class SearchParameters:
         return self._search_parameters[name].get_list()
 
     ###########################################################################
-    # Search Parameters
-    ###########################################################################
-    def _populate_search_parameters(self) -> None:
-        if self._subcommand == Subcommand.OPTIMIZE:
-            self._populate_model_config_parameters()
-            self._populate_perf_analyzer_parameters()
-            self._populate_genai_perf_parameters()
-        else:
-            self._populate_analyze_parameters()
-
-    ###########################################################################
-    # Perf Analyzer Parameters
-    ###########################################################################
-    def _populate_perf_analyzer_parameters(self) -> None:
-        self._populate_perf_analyzer_batch_size()
-
-        if not self._is_composing_model:
-            if self._config.is_request_rate_specified():
-                self._populate_request_rate()
-            else:
-                self._populate_concurrency()
-
-    def _populate_perf_analyzer_batch_size(self) -> None:
-        if isinstance(self._config.perf_analyzer.batch_size, list):
-            self._populate_list_parameter(
-                parameter_name="runtime_batch_size",
-                parameter_list=list(self._config.perf_analyzer.batch_size),
-                parameter_category=SearchCategory.INT_LIST,
-            )
-        elif isinstance(self._config.perf_analyzer.batch_size, Range):
-            self._populate_range_parameter(
-                parameter_name="runtime_batch_size",
-                parameter_min_value=self._config.perf_analyzer.batch_size.min,
-                parameter_max_value=self._config.perf_analyzer.batch_size.max,
-            )
-
-    def _populate_concurrency(self) -> None:
-        if self._config.perf_analyzer.use_concurrency_formula:
-            return
-        elif isinstance(self._config.perf_analyzer.concurrency, list):
-            self._populate_list_parameter(
-                parameter_name="concurrency",
-                parameter_list=list(self._config.perf_analyzer.concurrency),
-                parameter_category=SearchCategory.INT_LIST,
-            )
-        elif isinstance(self._config.perf_analyzer.concurrency, Range):
-            self._populate_range_parameter(
-                parameter_name="concurrency",
-                parameter_min_value=self._config.perf_analyzer.concurrency.min,
-                parameter_max_value=self._config.perf_analyzer.concurrency.max,
-            )
-
-    def _populate_request_rate(self) -> None:
-        if isinstance(self._config.perf_analyzer.request_rate, list):
-            self._populate_list_parameter(
-                parameter_name="request_rate",
-                parameter_list=list(self._config.perf_analyzer.request_rate),
-                parameter_category=SearchCategory.INT_LIST,
-            )
-        elif isinstance(self._config.perf_analyzer.request_rate, Range):
-            self._populate_range_parameter(
-                parameter_name="request_rate",
-                parameter_min_value=self._config.perf_analyzer.request_rate.min,
-                parameter_max_value=self._config.perf_analyzer.request_rate.max,
-            )
-
-    ###########################################################################
-    # GenAI Perf Parameters
-    ###########################################################################
-    def _populate_genai_perf_parameters(self) -> None:
-        self._populate_genai_perf_num_dataset_entries()
-
-    def _populate_genai_perf_num_dataset_entries(self) -> None:
-        if isinstance(self._config.genai_perf.num_dataset_entries, list):
-            self._populate_list_parameter(
-                parameter_name="num_dataset_entries",
-                parameter_list=list(self._config.genai_perf.num_dataset_entries),
-                parameter_category=SearchCategory.INT_LIST,
-            )
-        elif isinstance(self._config.genai_perf.num_dataset_entries, Range):
-            self._populate_range_parameter(
-                parameter_name="num_dataset_entries",
-                parameter_min_value=self._config.genai_perf.num_dataset_entries.min,
-                parameter_max_value=self._config.genai_perf.num_dataset_entries.max,
-            )
-
-    ###########################################################################
-    # Model Config Parameters
-    ###########################################################################
-    def _populate_model_config_parameters(self) -> None:
-        self._populate_model_batch_size()
-        self._populate_instance_count()
-        self._populate_max_queue_delay()
-
-    def _populate_model_batch_size(self) -> None:
-        if isinstance(self._config.model_config.batch_size, list):
-            self._populate_list_parameter(
-                parameter_name="model_batch_size",
-                parameter_list=list(self._config.model_config.batch_size),
-                parameter_category=SearchCategory.INT_LIST,
-            )
-        elif (
-            self._supports_model_batch_size
-            and not self._is_bls_model
-            and isinstance(self._config.model_config.batch_size, Range)
-        ):
-            # Need to populate max_batch_size based on range values
-            # when no model config parameters are present
-            self._populate_range_parameter(
-                parameter_name="model_batch_size",
-                parameter_min_value=self._config.model_config.batch_size.min,
-                parameter_max_value=self._config.model_config.batch_size.max,
-            )
-
-    def _populate_instance_count(self) -> None:
-        if isinstance(self._config.model_config.instance_count, list):
-            self._populate_list_parameter(
-                parameter_name="instance_count",
-                parameter_list=list(self._config.model_config.instance_count),
-                parameter_category=SearchCategory.INT_LIST,
-            )
-        elif not self._is_ensemble_model and isinstance(
-            self._config.model_config.instance_count, Range
-        ):
-            # Need to populate instance_count based on range values
-            # when no model config parameters are present
-            self._populate_range_parameter(
-                parameter_name="instance_count",
-                parameter_min_value=self._config.model_config.instance_count.min,
-                parameter_max_value=self._config.model_config.instance_count.max,
-            )
-
-    def _populate_max_queue_delay(self) -> None:
-        if isinstance(self._config.model_config.max_queue_delay, list):
-            self._populate_list_parameter(
-                parameter_name="max_queue_delay",
-                parameter_list=list(self._config.model_config.max_queue_delay),
-                parameter_category=SearchCategory.INT_LIST,
-            )
-        elif isinstance(self._config.model_config.max_queue_delay, Range):
-            self._populate_range_parameter(
-                parameter_name="max_queue_delay",
-                parameter_min_value=self._config.model_config.max_queue_delay.min,
-                parameter_max_value=self._config.model_config.max_queue_delay.max,
-            )
-
-    ###########################################################################
     # Analyze Parameters
     ###########################################################################
     def _populate_analyze_parameters(self) -> None:
@@ -287,7 +114,7 @@ class SearchParameters:
                 )
                 self._populate_list_parameter(
                     parameter_name=name,
-                    parameter_list=value,
+                    parameter_list=value,  # type: ignore
                     parameter_category=category,
                 )
             elif isinstance(value, Range):
@@ -340,9 +167,9 @@ class SearchParameters:
         )
 
     def _determine_parameter_category(self, name: str) -> SearchCategory:
-        if name in SearchParameters.exponential_range_parameters:
+        if name in exponential_range_parameters:
             category = SearchCategory.EXPONENTIAL
-        elif name in SearchParameters.linear_range_parameters:
+        elif name in linear_range_parameters:
             category = SearchCategory.INTEGER
         else:
             raise (GenAIPerfException(f"SearchCategory not found for {name}"))
@@ -350,11 +177,9 @@ class SearchParameters:
         return category
 
     def _determine_parameter_usage(self, name: str) -> SearchUsage:
-        if name in SearchParameters.model_parameters:
-            usage = SearchUsage.MODEL
-        elif name in SearchParameters.runtime_pa_parameters:
+        if name in runtime_pa_parameters:
             usage = SearchUsage.RUNTIME_PA
-        elif name in SearchParameters.runtime_gap_parameters:
+        elif name in runtime_gap_parameters:
             usage = SearchUsage.RUNTIME_GAP
         else:
             raise (GenAIPerfException(f"SearchUsage not found for {name}"))

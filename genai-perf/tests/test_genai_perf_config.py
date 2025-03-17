@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,11 +23,7 @@ from genai_perf.config.generate.objective_parameter import (
     ObjectiveParameter,
 )
 from genai_perf.config.generate.search_parameters import SearchUsage
-from genai_perf.config.input.config_command import (
-    ConfigCommand,
-    ConfigInput,
-    ConfigOutputTokens,
-)
+from genai_perf.config.input.config_command import ConfigCommand
 
 
 class TestGenAIPerfConfig(unittest.TestCase):
@@ -35,7 +31,8 @@ class TestGenAIPerfConfig(unittest.TestCase):
     # Setup & Teardown
     ###########################################################################
     def setUp(self):
-        self._config = ConfigCommand(model_names=["test_model"])
+        self._config = ConfigCommand({"model_name": "test_model"})
+        self._config.model_names = ["test_model"]
 
         self._objective_parameters = {
             "test_model": {
@@ -56,23 +53,25 @@ class TestGenAIPerfConfig(unittest.TestCase):
         patch.stopall()
 
     ###########################################################################
-    # Test Config and Objective Capture
+    # Test Parameters
     ###########################################################################
-    def test_default_config_and_objective_capture(self):
+    def test_parameters(self):
         """
         Test that we capture the config and objective parameters correctly
         at __init__
         """
-        expected_input_config = ConfigInput()
-        expected_input_config.num_dataset_entries = 50
+        expected_parameters = {"num_dataset_entries": 50}
 
-        self.assertEqual(expected_input_config, self._default_genai_perf_config.input)
+        expected_parameters["endpoint"] = self._config.endpoint.to_json_dict()
+        del expected_parameters["endpoint"]["server_metrics_urls"]
+        del expected_parameters["endpoint"]["url"]
 
-        expected_output_tokens_config = ConfigOutputTokens()
+        expected_parameters["input"] = self._config.input.to_json_dict()
+        expected_parameters["tokenizer"] = self._config.tokenizer.to_json_dict()
 
-        self.assertEqual(
-            expected_output_tokens_config, self._default_genai_perf_config.output_tokens
-        )
+        actual_parameters = self._default_genai_perf_config.get_parameters()
+        for key, value in expected_parameters.items():
+            self.assertEqual(value, actual_parameters[key])
 
     ###########################################################################
     # Test Representation
@@ -81,15 +80,21 @@ class TestGenAIPerfConfig(unittest.TestCase):
         """
         Test that the representation is created correctly
         """
-        expected_representation = " ".join(
-            [
-                ConfigInput(num_dataset_entries=50).__str__(),
-                ConfigOutputTokens().__str__(),
-            ]
-        )
+        expected_parameters = {}
+        expected_parameters["endpoint"] = self._config.endpoint.to_json_dict()
+        del expected_parameters["endpoint"]["server_metrics_urls"]
+        del expected_parameters["endpoint"]["url"]
+
+        expected_parameters["input"] = self._config.input.to_json_dict()
+        expected_parameters["tokenizer"] = self._config.tokenizer.to_json_dict()
+
+        expected_parameters = {"num_dataset_entries": 50}
+
         representation = self._default_genai_perf_config.representation()
 
-        self.assertEqual(expected_representation, representation)
+        for key, value in expected_parameters.items():
+            self.assertIn(key, representation)
+            self.assertIn(value.__str__(), representation)
 
     ###########################################################################
     # Checkpoint Tests
@@ -109,12 +114,8 @@ class TestGenAIPerfConfig(unittest.TestCase):
         )
 
         self.assertEqual(
-            genai_perf_config_from_checkpoint.input,
-            self._default_genai_perf_config.input,
-        )
-        self.assertEqual(
-            genai_perf_config_from_checkpoint.output_tokens,
-            self._default_genai_perf_config.output_tokens,
+            genai_perf_config_from_checkpoint,
+            self._default_genai_perf_config,
         )
 
 

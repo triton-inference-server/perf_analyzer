@@ -31,12 +31,7 @@ from typing import List
 
 import numpy as np
 import soundfile as sf
-
-
-class AudioFormat(Enum):
-    WAV = auto()
-    MP3 = auto()
-
+from genai_perf.inputs.input_constants import AudioFormat
 
 # MP3 supported sample rates in Hz
 MP3_SUPPORTED_SAMPLE_RATES = {

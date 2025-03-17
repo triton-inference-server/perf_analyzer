@@ -84,14 +84,14 @@ class TensorRTLLMEngineConverter(BaseConverter):
             payload["request_output_len"] = [num_tokens]
             if config.output_tokens_deterministic:
                 payload["min_length"] = [num_tokens]
-
-        for key, value in config.extra_inputs.items():
-            if key == "set_end_id":
-                payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
-            elif key == "apply_chat_template":
-                pass
-            else:
-                payload[key] = [value]
+        if config.extra_inputs:
+            for key, value in config.extra_inputs.items():
+                if key == "set_end_id":
+                    payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
+                elif key == "apply_chat_template":
+                    pass
+                else:
+                    payload[key] = [value]
 
     def _encode_tokens(self, prompt: str, config: InputsConfig) -> List[int]:
         if "apply_chat_template" in config.extra_inputs:

@@ -27,6 +27,8 @@
 from argparse import Namespace
 from typing import List, Optional
 
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.inputs import input_constants as ic
@@ -36,8 +38,9 @@ from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.profile_data_parser import ProfileDataParser
 from genai_perf.subcommand.common import (
     calculate_metrics,
-    create_artifacts_dirs,
-    create_config_options,
+    convert_config_to_inputs_config,
+    create_artifact_directory,
+    create_plot_directory,
     create_telemetry_data_collectors,
     generate_inputs,
     merge_telemetry_metrics,
@@ -49,75 +52,93 @@ from genai_perf.telemetry_data.triton_telemetry_data_collector import (
 from genai_perf.tokenizer import get_tokenizer
 
 
-def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
+def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
     """
     Handles `profile` subcommand workflow
     """
-    config_options = create_config_options(args)
-    create_artifacts_dirs(args)
-    tokenizer = get_tokenizer(
-        args.tokenizer,
-        args.tokenizer_trust_remote_code,
-        args.tokenizer_revision,
+    perf_analyzer_config = PerfAnalyzerConfig(config=config, extra_args=extra_args)
+
+    create_artifact_directory(perf_analyzer_config.get_artifact_directory())
+    create_plot_directory(config, perf_analyzer_config.get_artifact_directory())
+
+    tokenizer = get_tokenizer(config)
+    inputs_config = convert_config_to_inputs_config(
+        config, perf_analyzer_config, tokenizer
     )
-    generate_inputs(config_options)
-    telemetry_data_collectors = create_telemetry_data_collectors(args)
+    generate_inputs(inputs_config)
+
+    telemetry_data_collectors = create_telemetry_data_collectors(config)
+
     run_perf_analyzer(
-        args=args,
-        extra_args=extra_args,
+        config=config,
+        perf_analyzer_config=perf_analyzer_config,
         telemetry_data_collectors=telemetry_data_collectors,
     )
-    data_parser = calculate_metrics(args, tokenizer)
-    _report_output(data_parser, telemetry_data_collectors, args)
+    data_parser = calculate_metrics(config, perf_analyzer_config, tokenizer)
+    _report_output(
+        data_parser=data_parser,
+        telemetry_data_collectors=telemetry_data_collectors,
+        config=config,
+        perf_analyzer_config=perf_analyzer_config,
+    )
 
 
 def _report_output(
     data_parser: ProfileDataParser,
-    telemetry_data_collectors: List[TelemetryDataCollector],
-    args: Namespace,
+    telemetry_data_collectors: List[Optional[TelemetryDataCollector]],
+    config: ConfigCommand,
+    perf_analyzer_config: PerfAnalyzerConfig,
 ) -> None:
-    if args.session_concurrency:
+    if "session_concurrency" in config.perf_analyzer.stimulus:
         # [TPA-985] Profile export file should have a session concurrency mode
         infer_mode = "request_rate"
         load_level = "0.0"
-    elif args.concurrency:
-        infer_mode = "concurrency"
-        load_level = f"{args.concurrency}"
-    elif args.request_rate:
-        infer_mode = "request_rate"
-        load_level = f"{args.request_rate}"
     # When using fixed schedule mode, infer mode is not set.
     # Setting to default values to avoid an error.
-    elif args.prompt_source == ic.PromptSource.PAYLOAD:
+    elif config.input.prompt_source == ic.PromptSource.PAYLOAD:
         infer_mode = "request_rate"
         load_level = "0.0"
+    elif "concurrency" in config.perf_analyzer.stimulus:
+        infer_mode = "concurrency"
+        load_level = f'{config.perf_analyzer.stimulus["concurrency"]}'
+    elif "request_rate" in config.perf_analyzer.stimulus:
+        infer_mode = "request_rate"
+        load_level = f'{config.perf_analyzer.stimulus["request_rate"]}'
     else:
         raise GenAIPerfException("No valid infer mode specified")
 
     stats = data_parser.get_statistics(infer_mode, load_level)
     session_stats = data_parser.get_session_statistics()
 
-    telemetry_metrics = [c.get_metrics() for c in telemetry_data_collectors]
+    if telemetry_data_collectors:
+        telemetry_metrics = [c.get_metrics() for c in telemetry_data_collectors]  # type: ignore
+    else:
+        telemetry_metrics = []
+
     merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics)
     telemetry_stats = TelemetryStatistics(merged_telemetry_metrics)
 
-    reporter = OutputReporter(stats, telemetry_stats, args, session_stats)
+    reporter = OutputReporter(
+        stats=stats,
+        telemetry_stats=TelemetryStatistics(merged_telemetry_metrics),
+        config=config,
+        perf_analyzer_config=perf_analyzer_config,
+        session_stats=session_stats,
+    )
     reporter.report_output()
 
-    if args.generate_plots:
-        _create_plots(args)
+    if config.output.generate_plots:
+        _create_plots(config)
 
 
-def _create_plots(args: Namespace) -> None:
+def _create_plots(config: ConfigCommand) -> None:
     # TMA-1911: support plots CLI option
-    plot_dir = args.artifact_dir / "plots"
+    plot_dir = config.output.artifact_directory / "plots"
     PlotConfigParser.create_init_yaml_config(
-        filenames=[args.profile_export_file],  # single run
+        filenames=[config.output.profile_export_file],  # single run
         output_dir=plot_dir,
     )
     config_parser = PlotConfigParser(plot_dir / "config.yaml")
-    plot_configs = config_parser.generate_configs(
-        args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
-    )
+    plot_configs = config_parser.generate_configs(config)
     plot_manager = PlotManager(plot_configs)
     plot_manager.generate_plots()

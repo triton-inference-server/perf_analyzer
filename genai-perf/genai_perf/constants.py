@@ -35,3 +35,22 @@ DEFAULT_COMPARE_DIR = "compare"
 DEFAULT_PARQUET_FILE = "all_data"
 DEFAULT_PROFILE_EXPORT_FILE = "profile_export.json"
 EMPTY_RESPONSE_TOKEN = 0
+
+# These map to the various fields that can be set for PA and model configs
+# See github.com/triton-inference-server/model_analyzer/blob/main/docs/config.md
+exponential_range_parameters = [
+    "model_batch_size",
+    "runtime_batch_size",
+    "concurrency",
+    "request_rate",
+    "input_sequence_length",
+]
+
+linear_range_parameters = ["instance_count", "num_dataset_entries"]
+
+
+runtime_pa_parameters = ["runtime_batch_size", "concurrency", "request_rate"]
+
+runtime_gap_parameters = ["num_dataset_entries", "input_sequence_length"]
+
+all_parameters = runtime_pa_parameters + runtime_gap_parameters

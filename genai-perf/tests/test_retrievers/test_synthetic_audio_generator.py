@@ -31,8 +31,8 @@ import random
 import numpy as np
 import pytest
 import soundfile as sf
+from genai_perf.inputs.input_constants import AudioFormat
 from genai_perf.inputs.retrievers.synthetic_audio_generator import (
-    AudioFormat,
     SyntheticAudioGenerator,
 )
 

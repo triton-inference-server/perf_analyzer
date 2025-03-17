@@ -78,5 +78,6 @@ class TensorRTLLMConverter(BaseConverter):
             if config.output_tokens_deterministic:
                 payload["min_length"] = [number_of_tokens]
             payload["max_tokens"] = [number_of_tokens]
-        for key, value in config.extra_inputs.items():
-            payload[key] = [value]
+        if config.extra_inputs:
+            for key, value in config.extra_inputs.items():
+                payload[key] = [value]

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,220 +12,199 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from copy import copy
-from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Optional, TypeAlias, Union
+from pathlib import Path
+from typing import Any, Dict, List, Optional, TypeAlias, Union
 
-from genai_perf.types import ModelName
+import genai_perf.logging as logging
+from genai_perf.config.input.base_config import BaseConfig
+from genai_perf.config.input.config_analyze import ConfigAnalyze
+from genai_perf.config.input.config_defaults import Range, TopLevelDefaults
+from genai_perf.config.input.config_endpoint import ConfigEndPoint
+from genai_perf.config.input.config_field import ConfigField
+from genai_perf.config.input.config_input import ConfigInput
+from genai_perf.config.input.config_output import ConfigOutput
+from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
+from genai_perf.config.input.config_tokenizer import ConfigTokenizer
+from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.utils import split_and_strip_whitespace
 
 
 class Subcommand(Enum):
-    ANALYZE = auto()
-    OPTIMIZE = auto()
-
-
-def default_field(obj):
-    return field(default_factory=lambda: copy(obj))
-
-
-@dataclass
-class Range:
-    min: int
-    max: int
+    COMPARE = "compare"
+    PROFILE = "profile"
+    ANALYZE = "analyze"
+    TEMPLATE = "create-template"
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
-AnalyzeParameter: TypeAlias = Dict[str, ConfigRangeOrList]
+
+logger = logging.getLogger(__name__)
 
 
-# TODO: OPTIMIZE
-# These will be moved to RunConfig once it's created
-@dataclass(frozen=True)
-class RunConfigDefaults:
-    # Top-level Defaults
-    CHECKPOINT_DIRECTORY = "./"
+class ConfigCommand(BaseConfig):
+    """
+    Describes the top-level configuration options for GAP
+    """
 
-    # Optimize: Top-level Defaults
-    OBJECTIVE = "throughput"
-    CONSTRAINT = None
-    SEARCH_SPACE_PERCENTAGE = Range(min=5, max=10)
-    NUMBER_OF_TRIALS = Range(min=0, max=0)
-    EARLY_EXIT_THRESHOLD = 10
+    def __init__(self, user_config: Optional[Dict[str, Any]] = None):
+        super().__init__()
 
-    # Optimize: Model Defaults
-    MIN_MODEL_BATCH_SIZE = 1
-    MAX_MODEL_BATCH_SIZE = 128
-    MIN_INSTANCE_COUNT = 1
-    MAX_INSTANCE_COUNT = 5
-    MAX_QUEUE_DELAY = None
-    DYNAMIC_BATCHING = True
-    CPU_ONLY = False
-
-    # Optimize: PA Defaults
-    STIMULUS_TYPE = "concurrency"
-    PA_BATCH_SIZE = 1
-    MIN_CONCURRENCY = 1
-    MAX_CONCURRENCY = 1024
-    MIN_REQUEST_RATE = 16
-    MAX_REQUEST_RATE = 8192
-    USE_CONCURRENCY_FORMULA = True
-
-    # Analyze Defaults
-    SWEEP = {"concurrency": Range(min=MIN_CONCURRENCY, max=MAX_CONCURRENCY)}
-
-    # Perf Analyzer Defaults
-    PA_PATH = "perf_analyzer"
-    TIMEOUT_THRESHOLD = 600
-    MAX_CPU_UTILIZATION = 80.0
-    OUTPUT_LOGGING = False
-    OUTPUT_PATH = "./logs"
-    MAX_AUTO_ADJUSTS = 10
-    STABILITY_THRESHOLD = 999
-
-    # GAP Input Defaults
-    DATASET = "openorca"
-    FILE = None
-    NUM_PROMPTS = 100
-    SEED = 0
-
-    # GAP Input Synthetic Tokens Defaults
-    INPUT_MEAN = -1
-    INPUT_STDDEV = 0
-
-    # GAP Output Token Defaults
-    OUTPUT_MEAN = -1
-    DETERMINISTIC = False
-    OUTPUT_STDDEV = 0
-
-
-# TODO: OPTIMIZE
-# These are placeholder dataclasses until the real Command Parser is written
-@dataclass
-class ConfigModelConfig:
-    batch_size: ConfigRangeOrList = default_field(
-        Range(
-            min=RunConfigDefaults.MIN_MODEL_BATCH_SIZE,
-            max=RunConfigDefaults.MAX_MODEL_BATCH_SIZE,
+        self.model_names: Any = ConfigField(
+            default=TopLevelDefaults.MODEL_NAMES,
+            required=True,
+            add_to_template=True,
+            verbose_template_comment="The name of the model(s) to benchmark.",
         )
-    )
-    instance_count: ConfigRangeOrList = default_field(
-        Range(
-            min=RunConfigDefaults.MIN_INSTANCE_COUNT,
-            max=RunConfigDefaults.MAX_INSTANCE_COUNT,
-        )
-    )
-    max_queue_delay: Optional[List[int]] = default_field(
-        RunConfigDefaults.MAX_QUEUE_DELAY
-    )
-    dynamic_batching: bool = default_field(RunConfigDefaults.DYNAMIC_BATCHING)
-    cpu_only: bool = default_field(RunConfigDefaults.CPU_ONLY)
 
+        self.analyze = ConfigAnalyze()
+        self.endpoint = ConfigEndPoint()
+        self.perf_analyzer = ConfigPerfAnalyzer()
+        self.input = ConfigInput()
+        self.output = ConfigOutput()
+        self.tokenizer = ConfigTokenizer()
 
-@dataclass
-class ConfigOptimizePerfAnalyzer:
-    stimulus_type: str = default_field(RunConfigDefaults.STIMULUS_TYPE)
-    batch_size: ConfigRangeOrList = default_field([RunConfigDefaults.PA_BATCH_SIZE])
-    concurrency: ConfigRangeOrList = default_field(
-        Range(
-            min=RunConfigDefaults.MIN_CONCURRENCY, max=RunConfigDefaults.MAX_CONCURRENCY
-        )
-    )
-    request_rate: ConfigRangeOrList = default_field(
-        Range(
-            min=RunConfigDefaults.MIN_REQUEST_RATE,
-            max=RunConfigDefaults.MAX_REQUEST_RATE,
-        )
-    )
-    use_concurrency_formula: bool = default_field(
-        RunConfigDefaults.USE_CONCURRENCY_FORMULA
-    )
+        self._parse_yaml(user_config)
 
-    def is_request_rate_specified(self) -> bool:
-        rr_specified = self.stimulus_type == "request_rate"
+    ###########################################################################
+    # Top-Level Parsing Methods
+    ###########################################################################
+    def _parse_yaml(self, user_config: Optional[Dict[str, Any]] = None) -> None:
+        if user_config:
+            for key, value in user_config.items():
+                if key == "model_name" or key == "model_names":
+                    self._parse_model_names(value)
+                elif key == "analyze":
+                    self.analyze.parse(value)
+                elif key == "endpoint":
+                    self.endpoint.parse(value)
+                elif key == "perf_analyzer":
+                    self.perf_analyzer.parse(value)
+                elif key == "input":
+                    self.input.parse(value)
+                elif key == "output":
+                    self.output.parse(value)
+                elif key == "tokenizer":
+                    self.tokenizer.parse(value)
+                else:
+                    raise ValueError(
+                        f"User Config: {key} is not a valid top-level parameter"
+                    )
 
-        return rr_specified
+        self._infer_settings()
+        self._check_for_illegal_combinations()
+        self._check_profile_export_file()
 
+    def _parse_model_names(self, model_names: Any) -> None:
+        if type(model_names) is str:
+            self.model_names = split_and_strip_whitespace(model_names)
+        elif type(model_names) is list:
+            self.model_names = model_names
+        else:
+            raise ValueError("User Config: model_names must be a string or list")
 
-@dataclass
-class ConfigOptimizeGenAIPerf:
-    num_dataset_entries: ConfigRangeOrList = default_field(
-        [RunConfigDefaults.NUM_PROMPTS]
-    )
+        if len(self.model_names) > 1:
+            self.model_names = [self.model_names[0] + "_multi"]
 
+    ###########################################################################
+    # Infer Methods
+    ###########################################################################
+    def _infer_settings(self) -> None:
+        self.endpoint.infer_settings(model_name=self.model_names[0])
+        self.input.infer_settings()
 
-@dataclass
-class ConfigOptimize:
-    objective: str = default_field(RunConfigDefaults.OBJECTIVE)
-    constraint: Optional[str] = default_field(RunConfigDefaults.CONSTRAINT)
-    search_space_percentage: Range = default_field(
-        RunConfigDefaults.SEARCH_SPACE_PERCENTAGE
-    )
-    number_of_trials: Range = default_field(RunConfigDefaults.NUMBER_OF_TRIALS)
-    early_exit_threshold: int = default_field(RunConfigDefaults.EARLY_EXIT_THRESHOLD)
+    ###########################################################################
+    # Illegal Combination Methods
+    ###########################################################################
+    def _check_for_illegal_combinations(self) -> None:
+        self._check_output_tokens_and_service_kind()
+        self._check_output_format_and_generate_plots()
 
-    model_config: ConfigModelConfig = default_field(ConfigModelConfig())
-    perf_analyzer: ConfigOptimizePerfAnalyzer = default_field(
-        ConfigOptimizePerfAnalyzer()
-    )
-    genai_perf: ConfigOptimizeGenAIPerf = default_field(ConfigOptimizeGenAIPerf())
+        self.endpoint.check_for_illegal_combinations()
 
-    def is_request_rate_specified(self) -> bool:
-        return self.perf_analyzer.is_request_rate_specified()
+    def _check_output_tokens_and_service_kind(self) -> None:
+        if self.endpoint.service_kind not in ["triton", "tensorrtllm_engine"]:
+            if self.input.output_tokens.get_field("deterministic").is_set_by_user:
+                raise ValueError(
+                    "User Config: input.output_tokens.deterministic is only supported with Triton or TensorRT-LLM Engine service kinds"
+                )
 
-    def is_set_by_user(self, field: str) -> bool:
-        # FIXME: OPTIMIZE - we have no way of knowing this until a real config class is created
-        return False
+    def _check_output_format_and_generate_plots(self) -> None:
+        if self.endpoint.output_format in [
+            OutputFormat.IMAGE_RETRIEVAL,
+            OutputFormat.NVCLIP,
+            OutputFormat.OPENAI_EMBEDDINGS,
+            OutputFormat.RANKINGS,
+        ]:
+            if self.output.generate_plots:
+                raise ValueError(
+                    "User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
+                )
 
+    ###########################################################################
+    # Set Path Methods
+    ###########################################################################
+    def _set_artifact_directory(self) -> None:
+        if not self.output.get_field("artifact_directory").is_set_by_user:
+            name = self._preprocess_model_name(self.model_names[0])
+            name += self._process_service_kind()
+            name += self._process_stimulus()
 
-@dataclass
-class ConfigAnalyze:
-    sweep_parameters: AnalyzeParameter = default_field(RunConfigDefaults.SWEEP)
+            self.output.artifact_directory = self.output.artifact_directory / Path(
+                "-".join(name)
+            )
 
+    def _check_profile_export_file(self) -> None:
+        if self.output.get_field("profile_export_file").is_set_by_user:
+            if Path(self.output.profile_export_file).parent != Path(""):
+                raise ValueError(
+                    "Please use artifact_directory option to define intermediary paths to "
+                    "the profile_export_file."
+                )
 
-@dataclass
-class ConfigPerfAnalyzer:
-    path: str = default_field(RunConfigDefaults.PA_PATH)
-    timeout_threshold: int = default_field(RunConfigDefaults.TIMEOUT_THRESHOLD)
-    max_cpu_utilization: float = default_field(RunConfigDefaults.MAX_CPU_UTILIZATION)
-    output_logging: bool = default_field(RunConfigDefaults.OUTPUT_LOGGING)
-    output_path: str = default_field(RunConfigDefaults.OUTPUT_PATH)
-    max_auto_adjusts: int = default_field(RunConfigDefaults.MAX_AUTO_ADJUSTS)
-    stability_threshold: float = default_field(RunConfigDefaults.STABILITY_THRESHOLD)
+    def _preprocess_model_name(self, model_name: str) -> List[str]:
+        # Preprocess Huggingface model names that include '/' in their model name.
+        if (model_name is not None) and ("/" in model_name):
+            filtered_name = "_".join(model_name.split("/"))
+            logger.info(
+                f"Model name '{model_name}' cannot be used to create artifact "
+                f"directory. Instead, '{filtered_name}' will be used."
+            )
+            return [f"{filtered_name}"]
+        else:
+            return [f"{model_name}"]
 
+    def _process_service_kind(self) -> List[str]:
+        if self.endpoint.service_kind == "openai":
+            return [f"{self.endpoint.service_kind}-{self.endpoint.type}"]
+        elif self.endpoint.service_kind == "triton":
+            return [
+                f"{self.endpoint.service_kind}-{self.endpoint.backend.to_lowercase()}"
+            ]
+        elif self.endpoint.service_kind == "tensorrtllm_engine":
+            return [f"{self.endpoint.service_kind}"]
+        else:
+            raise ValueError(f"Unknown service kind '{self.endpoint.service_kind}'.")
 
-@dataclass
-class ConfigSyntheticTokens:
-    mean: int = default_field(RunConfigDefaults.INPUT_MEAN)
-    stddev: int = default_field(RunConfigDefaults.INPUT_STDDEV)
+    def _process_stimulus(self) -> List[str]:
+        if "concurrency" in self.perf_analyzer.stimulus:
+            concurrency = self.perf_analyzer.stimulus["concurrency"]
+            return [f"concurrency{concurrency}"]
+        elif "request_rate" in self.perf_analyzer.stimulus:
+            request_rate = self.perf_analyzer.stimulus["request_rate"]
+            return [f"request_rate{request_rate}"]
+        else:
+            return []
 
+    ###########################################################################
+    # Template Creation Methods
+    ###########################################################################
+    def make_template(self) -> str:
+        return self.create_template(header="", level=0, verbose=self.verbose)
 
-@dataclass
-class ConfigInput:
-    dataset: str = default_field(RunConfigDefaults.DATASET)
-    file: str = default_field(RunConfigDefaults.FILE)
-    num_dataset_entries: int = default_field(RunConfigDefaults.NUM_PROMPTS)
-    seed: int = default_field(RunConfigDefaults.SEED)
-    synthetic_tokens: ConfigSyntheticTokens = default_field(ConfigSyntheticTokens())
-
-
-@dataclass
-class ConfigOutputTokens:
-    mean: int = default_field(RunConfigDefaults.OUTPUT_MEAN)
-    deterministic: bool = default_field(RunConfigDefaults.DETERMINISTIC)
-    stddev: int = default_field(RunConfigDefaults.OUTPUT_STDDEV)
-
-
-@dataclass
-class ConfigCommand:
-    model_names: List[ModelName]
-    checkpoint_directory: str = default_field(RunConfigDefaults.CHECKPOINT_DIRECTORY)
-    optimize: ConfigOptimize = default_field(ConfigOptimize())
-    analyze: ConfigAnalyze = default_field(ConfigAnalyze())
-    perf_analyzer: ConfigPerfAnalyzer = default_field(ConfigPerfAnalyzer())
-    input: ConfigInput = default_field(ConfigInput())
-    output_tokens: ConfigOutputTokens = default_field(ConfigOutputTokens())
-
+    ###########################################################################
+    # Utility Methods
+    ###########################################################################
     def get_max(self, config_value: ConfigRangeOrList) -> int:
         if type(config_value) is list:
             return max(config_value)
