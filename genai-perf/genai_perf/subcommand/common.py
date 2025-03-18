@@ -220,6 +220,7 @@ def convert_config_to_inputs_config(
         num_prefix_prompts=config.input.prefix_prompt.num,
         prefix_prompt_length=config.input.prefix_prompt.length,
         num_sessions=config.input.sessions.num,
+        session_delay_ratio=config.input.sessions.turn_delay.ratio,
         session_turns_mean=config.input.sessions.turns.mean,
         session_turns_stddev=config.input.sessions.turns.stddev,
         session_turn_delay_mean=config.input.sessions.turn_delay.mean,

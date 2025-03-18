@@ -567,6 +567,11 @@ class ConfigSessionTurnDelay(BaseConfig):
             bounds={"min": 0},
             verbose_template_comment="The mean delay (in ms) between turns in a session",
         )
+        self.ratio: Any = ConfigField(
+            default=SessionDefaults.DELAY_RATIO,
+            bounds={"min": 0},
+            verbose_template_comment="A ratio to scale multi-turn delays when using a payload file",
+        )
         self.stddev: Any = ConfigField(
             default=SessionTurnDelayDefaults.STDDEV,
             bounds={"min": 0},
@@ -579,6 +584,8 @@ class ConfigSessionTurnDelay(BaseConfig):
                 self.mean = value
             elif key == "stddev":
                 self.stddev = value
+            elif key == "ratio":
+                self.ratio = value
             else:
                 raise ValueError(
                     f"User Config: {key} is not a valid turn_delay parameter"

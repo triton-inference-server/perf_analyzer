@@ -53,6 +53,7 @@ class TestPayloadInputRetriever:
                 self.payload_input_filename = Path("test_input.jsonl")
                 self.prompt_tokens_mean = 10
                 self.prompt_tokens_stddev = 2
+                self.session_delay_ratio = 1.0
 
         return MockConfig()
 
@@ -190,3 +191,27 @@ class TestPayloadInputRetriever:
             match="Each data entry must have only one of 'text_input' or 'text' key name.",
         ):
             retriever._get_content_from_input_file(Path("test_input.jsonl"))
+
+    @pytest.mark.parametrize(
+        "delay, delay_ratio, expected_delay",
+        [
+            (1000, 1.0, 1000),  # No change with ratio 1.0
+            (1000, 0.5, 500),  # Half the delay
+            (1000, 2.0, 2000),  # Double the delay
+            (0, 1.5, 0),  # Zero delay stays zero
+        ],
+    )
+    def test_delay_ratio_application(
+        self, retriever, delay, delay_ratio, expected_delay
+    ):
+        # Set the delay ratio in the config
+        retriever.config.session_delay_ratio = delay_ratio
+
+        # Create test data with a delay
+        data = {"delay": delay}
+
+        # Get the payload metadata
+        metadata = retriever._get_payload_metadata(data)
+
+        # Check that the delay was properly scaled
+        assert metadata["delay"] == expected_delay

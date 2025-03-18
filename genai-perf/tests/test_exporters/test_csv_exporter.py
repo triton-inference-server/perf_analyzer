@@ -99,6 +99,8 @@ class TestCsvExporter:
             "--endpoint-type",
             "chat",
             "--streaming",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -157,6 +159,8 @@ class TestCsvExporter:
             "chat",
             "--profile-export-file",
             "custom_export.json",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -203,6 +207,8 @@ class TestCsvExporter:
             "openai",
             "--endpoint-type",
             "embeddings",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -249,6 +255,8 @@ class TestCsvExporter:
             "--streaming",
             "--goodput",
             "request_latency:100",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -301,6 +309,8 @@ class TestCsvExporter:
             "--streaming",
             "--goodput",
             "request_latenC:100",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -352,6 +362,8 @@ class TestCsvExporter:
             "--streaming",
             "--server-metrics-url",
             "http://tritonserver:8002/metrics",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -437,6 +449,8 @@ class TestCsvExporter:
             "chat",
             "--profile-export-file",
             "custom_export.json",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()

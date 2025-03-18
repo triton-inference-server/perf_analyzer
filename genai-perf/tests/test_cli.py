@@ -52,6 +52,14 @@ class TestCLIArguments:
         "CLI to profile LLMs and Generative AI models with Perf Analyzer"
     )
     expected_version_output = f"genai-perf {__version__}"
+    base_args = [
+        "genai-perf",
+        "profile",
+        "--model",
+        "test_model",
+        "--tokenizer",
+        "gpt2",
+    ]
 
     @pytest.mark.parametrize(
         "args, expected_output",
@@ -365,6 +373,11 @@ class TestCLIArguments:
                 {"perf_analyzer.stimulus": {"session_concurrency": 3}},
             ),
             (
+                ["--session-delay-ratio", "0.5"],
+                {"session_delay_ratio": 0.5},
+                {"input.sessions.turn_delay.ratio": 0.5},
+            ),
+            (
                 ["--session-turn-delay-mean", "100"],
                 {"session_turn_delay_mean": 100},
                 {"input.sessions.turn_delay.mean": 100},
@@ -508,7 +521,7 @@ class TestCLIArguments:
         capsys,
     ):
         logging.init_logging()
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, config, _ = parser.parse_args()
 
@@ -554,7 +567,7 @@ class TestCLIArguments:
         self, monkeypatch, models, expected_model_list, formatted_name, capsys
     ):
         logging.init_logging()
-        combined_args = ["genai-perf", "profile"] + models
+        combined_args = self.base_args + models
         monkeypatch.setattr("sys.argv", combined_args)
         args, config, _ = parser.parse_args()
 
@@ -576,6 +589,8 @@ class TestCLIArguments:
             "test_model",
             "--input-file",
             "fakefile.txt",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", combined_args)
         args, config, _ = parser.parse_args()
@@ -628,7 +643,7 @@ class TestCLIArguments:
         self, monkeypatch, arg, expected_path, capsys
     ):
         logging.init_logging()
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, _, _ = parser.parse_args()
         config = ConfigCommand({"model_name": args.formatted_model_name})
@@ -669,7 +684,7 @@ class TestCLIArguments:
         self, monkeypatch, arg, expected_path, expected_output, capsys
     ):
         logging.init_logging()
-        combined_args = ["genai-perf", "profile"] + arg
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, _, _ = parser.parse_args()
 
@@ -681,22 +696,19 @@ class TestCLIArguments:
 
     def test_default_load_level(self, monkeypatch, capsys):
         logging.init_logging()
-        monkeypatch.setattr(
-            "sys.argv", ["genai-perf", "profile", "--model", "test_model"]
-        )
+        monkeypatch.setattr("sys.argv", self.base_args)
         args, _, _ = parser.parse_args()
         assert args.concurrency == 1
 
     def test_load_manager_args_with_payload(self, monkeypatch, mocker):
         monkeypatch.setattr(
             "sys.argv",
-            [
-                "genai-perf",
-                "profile",
-                "--model",
-                "test_model",
+            self.base_args
+            + [
                 "--input-file",
                 "payload:test",
+                "--measurement-interval",
+                "100",
             ],
         )
         mocker.patch.object(Path, "is_file", return_value=True)
@@ -707,7 +719,7 @@ class TestCLIArguments:
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
         monkeypatch.setattr(
             "sys.argv",
-            ["genai-perf", "profile", "--concurrency", "3", "--request-rate", "9.0"],
+            self.base_args + ["--concurrency", "3", "--request-rate", "9.0"],
         )
         expected_output = (
             "argument --request-rate: not allowed with argument --concurrency"
@@ -732,9 +744,8 @@ class TestCLIArguments:
         assert expected_output in captured.err
 
     def test_pass_through_args(self, monkeypatch):
-        args = ["genai-perf", "profile", "-m", "test_model"]
         other_args = ["--", "With", "great", "power"]
-        monkeypatch.setattr("sys.argv", args + other_args)
+        monkeypatch.setattr("sys.argv", self.base_args + other_args)
         _, _, pass_through_args = parser.parse_args()
 
         assert pass_through_args == other_args[1:]
@@ -747,6 +758,8 @@ class TestCLIArguments:
                 "profile",
                 "-m",
                 "nonexistent_model",
+                "--tokenizer",
+                "gpt2",
                 "--wrong-arg",
             ],
         )
@@ -768,6 +781,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                 ],
@@ -779,6 +794,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                     "--endpoint",
@@ -792,6 +809,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "dynamic_grpc",
                 ],
@@ -803,6 +822,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--output-tokens-stddev",
                     "5",
                 ],
@@ -814,6 +835,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--output-tokens-mean-deterministic",
                 ],
                 "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic.",
@@ -824,6 +847,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--output-tokens-mean-deterministic",
                 ],
                 "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic.",
@@ -834,6 +859,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -850,6 +877,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -864,6 +893,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -878,6 +909,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -892,6 +925,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
@@ -905,6 +940,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
@@ -918,6 +955,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
@@ -931,6 +970,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
@@ -944,6 +985,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
@@ -957,6 +1000,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--num-dataset-entries",
                     "0",
                 ],
@@ -979,6 +1024,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -994,6 +1041,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--endpoint-type",
@@ -1009,6 +1058,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "tensorrtllm_engine",
                     "--endpoint-type",
@@ -1024,6 +1075,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -1039,6 +1092,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "unknown_service",
                 ],
@@ -1050,6 +1105,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--audio-format",
                     "unknown_format",
                 ],
@@ -1069,6 +1126,7 @@ class TestCLIArguments:
         ],
     )
     def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):
+        logging.init_logging()
         monkeypatch.setattr("sys.argv", args)
 
         with pytest.raises(SystemExit) as excinfo:
@@ -1117,9 +1175,7 @@ class TestCLIArguments:
         ],
     )
     def test_inferred_output_format(self, monkeypatch, args, expected_format):
-        monkeypatch.setattr(
-            "sys.argv", ["genai-perf", "profile", "-m", "test_model"] + args
-        )
+        monkeypatch.setattr("sys.argv", self.base_args + args)
 
         parsed_args, config, _ = parser.parse_args()
         assert parsed_args.output_format == expected_format
@@ -1150,7 +1206,7 @@ class TestCLIArguments:
         ],
     )
     def test_get_extra_inputs_as_dict_warning(self, monkeypatch, args, expected_error):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(ValueError) as exc_info:
@@ -1168,7 +1224,7 @@ class TestCLIArguments:
         ],
     )
     def test_goodput_args_warning(self, monkeypatch, args, expected_error):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(ValueError) as exc_info:
@@ -1207,7 +1263,7 @@ class TestCLIArguments:
         expected_input_file,
     ):
         mocker.patch.object(Path, "is_file", return_value=True)
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
         parsed_args, config, _ = parser.parse_args()
         assert parsed_args.prompt_source == expected_prompt_source
@@ -1229,16 +1285,16 @@ class TestCLIArguments:
         args,
     ):
         mocker.patch.object(Path, "is_file", return_value=False)
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(ValueError):
             parser.parse_args()
 
     def test_inferred_prompt_source_invalid_input(self, monkeypatch, mocker):
-        file_arg = ["--input-file", "invalid_input"]
+        arg = ["--input-file", "invalid_input"]
         mocker.patch.object(Path, "is_file", return_value=False)
         mocker.patch.object(Path, "is_dir", return_value=False)
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + file_arg
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(SystemExit):
             parser.parse_args()
@@ -1254,7 +1310,7 @@ class TestCLIArguments:
         ],
     )
     def test_positive_image_input_args(self, monkeypatch, args):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(SystemExit) as excinfo:
@@ -1276,7 +1332,7 @@ class TestCLIArguments:
         ],
     )
     def test_positive_audio_input_args(self, monkeypatch, args):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(SystemExit) as excinfo:
@@ -1306,14 +1362,14 @@ class TestCLIArguments:
     def test_check_payload_input_args_invalid_args(
         self, monkeypatch, mocker, capsys, args, expected_error_message
     ):
-        combined_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
-            "--input-file",
-            "payload:test.jsonl",
-        ] + args
+        combined_args = (
+            self.base_args
+            + [
+                "--input-file",
+                "payload:test.jsonl",
+            ]
+            + args
+        )
 
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", combined_args)
@@ -1323,11 +1379,7 @@ class TestCLIArguments:
         assert expected_error_message in captured.err
 
     def test_check_payload_input_args_valid(self, monkeypatch, mocker):
-        valid_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
+        valid_args = self.base_args + [
             "--input-file",
             "payload:test.jsonl",
         ]
@@ -1345,15 +1397,13 @@ class TestCLIArguments:
             " will be ignored in favour of per payload settings."
         )
 
-        args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
+        args = self.base_args + [
             "--input-file",
             "payload:test.jsonl",
             "--output-tokens-mean",
             "50",
+            "--measurement-interval",
+            "100",
         ]
         logging.init_logging()
         logger = logging.getLogger("genai_perf.parser")
@@ -1406,7 +1456,7 @@ class TestCLIArguments:
         assert expected_output in captured.err
 
     def test_compare_not_provided(self, monkeypatch, capsys):
-        args = ["genai-perf", "compare"]
+        args = ["genai-perf", "compare", "--tokenizer", "gpt2"]
         monkeypatch.setattr("sys.argv", args)
         expected_output = "Either the --config or --files option must be specified."
 
@@ -1459,6 +1509,8 @@ class TestCLIArguments:
                     "profile",
                     "--model",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--server-metrics-url",
@@ -1472,6 +1524,8 @@ class TestCLIArguments:
                     "profile",
                     "--model",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                     "--server-metrics-urls",
@@ -1486,6 +1540,8 @@ class TestCLIArguments:
                     "profile",
                     "--model",
                     "test_model",
+                    "--tokenizer",
+                    "gpt2",
                     "--service-kind",
                     "triton",
                 ],

@@ -54,6 +54,8 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             "chat",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -88,6 +90,8 @@ class TestConsoleExporter:
             "--endpoint-type",
             "chat",
             "--streaming",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -143,6 +147,8 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             "chat",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -197,6 +203,8 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             "embeddings",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -244,6 +252,8 @@ class TestConsoleExporter:
             "--streaming",
             "--goodput",
             "request_latency:100",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -304,6 +314,8 @@ class TestConsoleExporter:
             "--streaming",
             "--goodput",
             "request_latenC:100",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -382,6 +394,8 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             endpoint_type,
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -413,6 +427,8 @@ class TestConsoleExporter:
             "--server-metrics-url",
             "http://tritonmetrics:8002/metrics",
             "--verbose",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()
@@ -535,6 +551,8 @@ class TestConsoleExporter:
             "openai",
             "--endpoint-type",
             "chat",
+            "--tokenizer",
+            "gpt2",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _, _ = parser.parse_args()

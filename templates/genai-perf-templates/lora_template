@@ -34,7 +34,8 @@ To do this, list multiple adapters after the model name option `-m`:
 
 ```bash
 genai-perf profile \
-    -m lora_adapter1 lora_adapter2 lora_adapter3
+    -m lora_adapter1 lora_adapter2 lora_adapter3 \
+    --tokenizer model_name
 ```
 
 ## Choose a Strategy for Selecting Models
@@ -44,6 +45,7 @@ assigned to prompts using the `--model-selection-strategy` option:
 ```bash
 genai-perf profile \
     -m lora_adapter1 lora_adapter2 lora_adapter3 \
+    --tokenizer model_name \
     --model-selection-strategy round_robin
 ```
 
@@ -97,6 +99,7 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 # Run GenAI-Perf in the container:
 genai-perf profile \
   -m adapter1 adapter2 \
+  --tokenizer meta-llama/Llama-2-7b-hf \
   --service-kind openai \
   --endpoint-type completions \
   --model-selection-strategy round_robin
@@ -156,6 +159,7 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 # Run GenAI-Perf in the container:
 genai-perf profile \
   -m predibase/customer_support predibase/magicoder \
+  --tokenizer mistralai/Mistral-7B-v0.1 \
   --service-kind openai \
   --endpoint-type completions \
   --model-selection-strategy round_robin
@@ -214,6 +218,7 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 # Run GenAI-Perf in the container:
 genai-perf profile \
   -m alignment-handbook/zephyr-7b-dpo-lora Undi95/Mistral-7B-roleplay_alpaca-lora \
+  --tokenizer mistralai/Mistral-7B-Instruct-v0.1 \
   --service-kind openai \
   --endpoint-type completions \
   --model-selection-strategy round_robin \

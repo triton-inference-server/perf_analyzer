@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@ they can run the `compare` subcommand with the `--files` option to generate a
 set of default plots as well as a pre-filled YAML config file for the plots.
 
 ```bash
-genai-perf compare --files profile1.json profile2.json profile3.json
+genai-perf compare --tokenizer <tokenizer> --files profile1.json profile2.json profile3.json
 ```
 
 This will generate the default plots and compare across the three runs.
@@ -128,7 +128,7 @@ they can repeat the process of editing the config file and running with
 vi config.yaml
 
 # re-generate the plots
-genai-perf compare --config config.yaml
+genai-perf compare --tokenizer <tokenizer> --config config.yaml
 ```
 
 ## Running directly with `--config` option
@@ -160,7 +160,7 @@ After adding the lines, the user can run the following command to generate the
 plots specified in the configuration file (in this case, `config.yaml`):
 
 ```bash
-genai-perf compare --config config.yaml
+genai-perf compare --tokenizer <tokenizer> --config config.yaml
 ```
 
 The user can check the generated plots under the output directory:

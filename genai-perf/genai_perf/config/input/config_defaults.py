@@ -140,6 +140,7 @@ class InputDefaults:
 @dataclass(frozen=True)
 class SessionDefaults:
     NUM = 0
+    DELAY_RATIO = 1.0
 
 
 @dataclass(frozen=True)

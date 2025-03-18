@@ -25,8 +25,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
+import random
 import sys
-from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -49,7 +49,7 @@ from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, DEFAULT_TOKENIZER_REVISION
+from genai_perf.tokenizer import DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
 
@@ -79,7 +79,7 @@ def _check_payload_input_args(
         for arg in incompatible_args:
             if getattr(args, arg, None):
                 formatted_arg = f"--{arg.replace('_', '-')}"
-                parser.error((f"--{formatted_arg} cannot be used with payload input."))
+                parser.error((f"{formatted_arg} cannot be used with payload input."))
 
 
 def _check_model_args(
@@ -254,6 +254,8 @@ def _check_conditional_args(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
 
+    if args.random_seed is None:
+        args.random_seed = random.randint(0, sys.maxsize)
     return args
 
 
@@ -266,6 +268,15 @@ def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
     # If no concurrency or request rate is set, default to 1
     if not args.concurrency and not args.request_rate:
         args.concurrency = 1
+    return args
+
+
+def _check_measurement_args(args: argparse.Namespace) -> argparse.Namespace:
+    """
+    Check measurement args
+    """
+    if not args.measurement_interval and not args.request_count:
+        args.request_count = ic.DEFAULT_REQUEST_COUNT
     return args
 
 
@@ -928,20 +939,8 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--random-seed",
         type=int,
-        default=ic.DEFAULT_RANDOM_SEED,
         required=False,
         help="The seed used to generate random values.",
-    )
-
-    input_group.add_argument(
-        "--request-count",
-        "--num-requests",
-        type=int,
-        default=ic.DEFAULT_REQUEST_COUNT,
-        required=False,
-        help="The number of requests to use for measurement."
-        "By default, the benchmark does not terminate based on request count. "
-        "Instead, it continues until stabilization is detected.",
     )
 
     input_group.add_argument(
@@ -1035,6 +1034,7 @@ def _add_output_args(parser):
 def _add_profile_args(parser):
     profile_group = parser.add_argument_group("Profiling")
     load_management_group = profile_group.add_mutually_exclusive_group(required=False)
+    measurement_group = profile_group.add_mutually_exclusive_group(required=False)
 
     load_management_group.add_argument(
         "--concurrency",
@@ -1043,15 +1043,25 @@ def _add_profile_args(parser):
         help="The concurrency value to benchmark.",
     )
 
-    profile_group.add_argument(
+    measurement_group.add_argument(
         "--measurement-interval",
         "-p",
         type=int,
-        default="10000",
+        default=ic.DEFAULT_MEASUREMENT_INTERVAL,
         required=False,
         help="The time interval used for each measurement in milliseconds. "
         "Perf Analyzer will sample a time interval specified and take "
-        "measurement over the requests completed within that time interval.",
+        "measurement over the requests completed within that time interval. "
+        "When using the default stability percentage, GenAI-Perf will benchmark  "
+        "for 3*(measurement_interval) milliseconds.",
+    )
+
+    profile_group.add_argument(
+        "--request-count",
+        "--num-requests",
+        type=int,
+        required=False,
+        help="The number of requests to use for measurement.",
     )
 
     load_management_group.add_argument(
@@ -1097,6 +1107,14 @@ def _add_session_args(parser):
     )
 
     session_group.add_argument(
+        "--session-delay-ratio",
+        type=float,
+        default=ic.DEFAULT_SESSION_DELAY_RATIO,
+        help="A ratio to scale multi-turn delays when using a payload file. "
+        "For example, a value of 0.5 will halve the specified delays.",
+    )
+
+    session_group.add_argument(
         "--session-turn-delay-mean",
         type=int,
         default=ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
@@ -1132,8 +1150,7 @@ def _add_tokenizer_args(parser):
     tokenizer_group.add_argument(
         "--tokenizer",
         type=str,
-        default=DEFAULT_TOKENIZER,
-        required=False,
+        required=True,
         help="The HuggingFace tokenizer to use to interpret token metrics "
         "from prompts and responses. The value can be the name of a tokenizer "
         "or the filepath of the tokenizer.",
@@ -1266,6 +1283,7 @@ def refine_args(
         args = _check_image_input_args(parser, args)
         args = _check_audio_input_args(parser, args)
         args = _check_load_manager_args(args)
+        args = _check_measurement_args(args)
         args = _check_server_metrics_url(parser, args)
         args = _check_goodput_args(args)
         args = _check_session_args(args)
@@ -1389,6 +1407,7 @@ def add_cli_options_to_config(
     # Input - Sessions
     config.input.sessions.num = args.num_sessions
     config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
+    config.input.sessions.turn_delay.ratio = args.session_delay_ratio
     config.input.sessions.turn_delay.stddev = args.session_turn_delay_stddev
     config.input.sessions.turns.mean = args.session_turns_mean
     config.input.sessions.turns.stddev = args.session_turns_stddev

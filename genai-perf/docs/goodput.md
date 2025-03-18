@@ -66,6 +66,7 @@ genai-perf profile \
     --service-kind openai \
     --endpoint-type chat \
     --streaming \
+    --request-count 10 \
     --goodput time_to_first_token:75 inter_token_latency:19.75
 ```
 
