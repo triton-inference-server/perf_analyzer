@@ -509,7 +509,7 @@ def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
 
 def _infer_tokenizer(args: argparse.Namespace) -> argparse.Namespace:
     if not hasattr(args, "tokenizer") or args.tokenizer is None:
-        if not hasattr(args, "model") or args.model is None:
+        if not args.model:
             raise ValueError(
                 "The --tokenizer option is required when not specifying a model."
             )
