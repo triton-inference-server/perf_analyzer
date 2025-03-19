@@ -724,7 +724,8 @@ The standard deviation of the number of turns per session.
 
 The HuggingFace tokenizer to use to interpret token metrics from prompts and
 responses. The value can be the name of a tokenizer or the filepath of the
-tokenizer.
+tokenizer. The default value is the model name.
+(default: "<model_value>")
 
 ##### `--tokenizer-revision <str>`
 

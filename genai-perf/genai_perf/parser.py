@@ -25,7 +25,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import argparse
-import random
 import sys
 from enum import Enum, auto
 from pathlib import Path
@@ -505,6 +504,12 @@ def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
             logger.debug(f"Input source is the following path: {args.input_file}")
     else:
         args.prompt_source = ic.PromptSource.SYNTHETIC
+    return args
+
+
+def _infer_tokenizer(args: argparse.Namespace) -> argparse.Namespace:
+    if not hasattr(args, "tokenizer") or args.tokenizer is None:
+        args.tokenizer = args.model[0]
     return args
 
 
@@ -1149,10 +1154,11 @@ def _add_tokenizer_args(parser):
     tokenizer_group.add_argument(
         "--tokenizer",
         type=str,
-        required=True,
+        required=False,
         help="The HuggingFace tokenizer to use to interpret token metrics "
         "from prompts and responses. The value can be the name of a tokenizer "
-        "or the filepath of the tokenizer.",
+        "or the filepath of the tokenizer. The default value is the model "
+        "name.",
     )
     tokenizer_group.add_argument(
         "--tokenizer-revision",
@@ -1276,6 +1282,7 @@ def refine_args(
 ) -> argparse.Namespace:
     if args.subcommand == Subcommand.PROFILE.value:
         args = _infer_prompt_source(args)
+        args = _infer_tokenizer(args)
         _check_payload_input_args(parser, args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
@@ -1289,6 +1296,7 @@ def refine_args(
         _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.value:
         args = _infer_prompt_source(args)
+        args = _infer_tokenizer(args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
