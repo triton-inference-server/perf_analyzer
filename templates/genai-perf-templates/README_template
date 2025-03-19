@@ -532,7 +532,8 @@ when `--output-tokens-mean` is provided. (default: `0`)
 
 ##### `--random-seed <int>`
 
-The seed used to generate random values.
+The seed used to generate random values. If not provided, a random seed will be
+used.
 
 ##### `--request-count <int>`
 ##### `--num-requests <int>`

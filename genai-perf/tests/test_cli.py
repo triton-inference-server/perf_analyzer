@@ -1584,3 +1584,20 @@ class TestCLIArguments:
         assert config.tokenizer.name == "test_tokenizer"
         assert config.tokenizer.trust_remote_code
         assert config.tokenizer.revision == "test_revision"
+
+    def test_measurement_group_mutually_exclusive(self, monkeypatch, capsys):
+        combined_args = self.base_args + [
+            "--request-count",
+            "100",
+            "--measurement-interval",
+            "5000",
+        ]
+        monkeypatch.setattr("sys.argv", combined_args)
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code != 0
+        captured = capsys.readouterr()
+        expected_error = "argument --measurement-interval/-p: not allowed with argument --request-count/--num-requests"
+        assert expected_error in captured.err

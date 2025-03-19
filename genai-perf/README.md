@@ -494,6 +494,10 @@ Currently only 1 (mono) and 2 (stereo) are supported.
 
 The text batch size of the requests GenAI-Perf should send.
 (default: `1`)
+##### `--batch-size-text <int>
+
+The text batch size of the requests GenAI-Perf should send.
+(default: `1`)
 
 ##### `--batch-size-audio <int>`
 
@@ -572,7 +576,8 @@ when `--output-tokens-mean` is provided. (default: `0`)
 
 ##### `--random-seed <int>`
 
-The seed used to generate random values.
+The seed used to generate random values. If not provided, a random seed will be
+used.
 
 ##### `--request-count <int>`
 ##### `--num-requests <int>`

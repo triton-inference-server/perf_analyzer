@@ -254,8 +254,6 @@ def _check_conditional_args(
                 f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
             )
 
-    if args.random_seed is None:
-        args.random_seed = random.randint(0, sys.maxsize)
     return args
 
 
@@ -940,7 +938,8 @@ def _add_input_args(parser):
         "--random-seed",
         type=int,
         required=False,
-        help="The seed used to generate random values.",
+        help="The seed used to generate random values. If not provided, a "
+        "random seed will be used.",
     )
 
     input_group.add_argument(
@@ -1056,7 +1055,7 @@ def _add_profile_args(parser):
         "for 3*(measurement_interval) milliseconds.",
     )
 
-    profile_group.add_argument(
+    measurement_group.add_argument(
         "--request-count",
         "--num-requests",
         type=int,
