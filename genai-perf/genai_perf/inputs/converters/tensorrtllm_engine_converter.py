@@ -26,6 +26,7 @@
 
 from typing import Any, Dict, List
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import (
@@ -33,20 +34,19 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
-    def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+    def check_config(self, config: ConfigCommand) -> None:
+        if config.input.batch_size != DEFAULT_BATCH_SIZE:
             raise GenAIPerfException(
-                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                f"The --batch-size-text flag is not supported for {config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
@@ -69,23 +69,23 @@ class TensorRTLLMEngineConverter(BaseConverter):
         return request_body
 
     def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+        self, payload: Dict, config: ConfigCommand, optional_data: Dict[Any, Any]
     ) -> None:
-        if config.add_stream:
+        if config.endpoint.streaming:
             payload["streaming"] = [True]
-        if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+        if config.input.output_tokens.mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             num_tokens = int(
                 sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
+                    mean=config.input.output_tokens.mean,
+                    stddev=config.input.output_tokens.stddev,
                     lower=1,  # output token must be >= 1
                 )
             )
             payload["request_output_len"] = [num_tokens]
-            if config.output_tokens_deterministic:
+            if config.input.output_tokens.deterministic:
                 payload["min_length"] = [num_tokens]
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+        if config.input.extra:
+            for key, value in config.input.extra.items():
                 if key == "set_end_id":
                     payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
                 elif key == "apply_chat_template":
@@ -93,15 +93,15 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 else:
                     payload[key] = [value]
 
-    def _encode_tokens(self, prompt: str, config: InputsConfig) -> List[int]:
-        if "apply_chat_template" in config.extra_inputs:
+    def _encode_tokens(self, prompt: str, config: ConfigCommand) -> List[int]:
+        if "apply_chat_template" in config.input.extra:
             token_ids = self._encode_with_chat_template(prompt, config)
         else:
             token_ids = config.tokenizer.encode(prompt, add_special_tokens=False)
         return token_ids
 
     def _encode_with_chat_template(
-        self, prompt: str, config: InputsConfig
+        self, prompt: str, config: ConfigCommand
     ) -> List[int]:
         """
         Apply the default TRT-LLM engine chat template to the prompt

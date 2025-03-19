@@ -15,6 +15,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
@@ -65,11 +66,10 @@ class TestInputRetrieverFactory:
         """
         Test that PayloadInputRetriever is created and passed the correct config.
         """
-        config = InputsConfig(
-            input_type=PromptSource.PAYLOAD,
-            payload_input_filename="test_payload_data.jsonl",
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.payload_file = "test_payload_data.jsonl"
+        config.input.prompt_source = PromptSource.PAYLOAD
+
         with patch(
             "genai_perf.inputs.retrievers.payload_input_retriever.PayloadInputRetriever.__init__",
             return_value=None,

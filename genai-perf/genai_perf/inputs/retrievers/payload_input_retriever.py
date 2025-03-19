@@ -150,9 +150,11 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
         input_length = data.get("input_length")
         prompt_tokens_mean = (
-            input_length if input_length else self.config.prompt_tokens_mean
+            input_length if input_length else self.config.input.synthetic_tokens.mean
         )
-        prompt_tokens_stddev = 0 if input_length else self.config.prompt_tokens_stddev
+        prompt_tokens_stddev = (
+            0 if input_length else self.config.input.synthetic_tokens.stddev
+        )
         hash_ids = data.get("hash_ids", None)
         prompt = data.get("text")
         prompt_alt = data.get("text_input")
@@ -164,7 +166,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         # If none of the keys are provided, generate a synthetic prompt
         if not prompt and not prompt_alt:
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                self.config.tokenizer,
+                self.tokenizer,
                 prompt_tokens_mean,
                 prompt_tokens_stddev,
                 hash_ids,

@@ -27,12 +27,12 @@
 import random
 from typing import Any, Dict
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     ModelSelectionStrategy,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
@@ -43,7 +43,7 @@ class BaseConverter:
     and convert them to endpoint-specific payloads.
     """
 
-    def check_config(self, config: InputsConfig) -> None:
+    def check_config(self, config: ConfigCommand) -> None:
         """
         Check whether the provided configuration is valid for this converter.
 
@@ -52,25 +52,28 @@ class BaseConverter:
         pass
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         """
         Construct a request body using the endpoint specific request format.
         """
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-    def _select_model_name(self, config: InputsConfig, index: int) -> str:
-        if config.model_selection_strategy == ModelSelectionStrategy.ROUND_ROBIN:
-            return config.model_name[index % len(config.model_name)]
-        elif config.model_selection_strategy == ModelSelectionStrategy.RANDOM:
-            return random.choice(config.model_name)
+    def _select_model_name(self, config: ConfigCommand, index: int) -> str:
+        if (
+            config.endpoint.model_selection_strategy
+            == ModelSelectionStrategy.ROUND_ROBIN
+        ):
+            return config.model_names[index % len(config.model_name)]
+        elif config.endpoint.model_selection_strategy == ModelSelectionStrategy.RANDOM:
+            return random.choice(config.model_names)
         else:
             raise GenAIPerfException(
-                f"Model selection strategy '{config.model_selection_strategy}' is unsupported"
+                f"Model selection strategy '{config.endpoint.model_selection_strategy}' is unsupported"
             )
 
     def _get_max_tokens(
-        self, config: InputsConfig, optional_data: Dict[Any, Any]
+        self, config: ConfigCommand, optional_data: Dict[Any, Any]
     ) -> int:
         """
         Return the `max_tokens` value to be added in the payload.
@@ -80,11 +83,11 @@ class BaseConverter:
         """
         if "max_tokens" in optional_data:
             return optional_data["max_tokens"]
-        elif config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+        elif config.input.output_tokens.mean != DEFAULT_OUTPUT_TOKENS_MEAN:
             return int(
                 sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
+                    mean=config.input.output_tokens.mean,
+                    stddev=config.input.output_tokens_stddev,
                     lower=1,  # output token must be >= 1
                 )
             )
@@ -93,11 +96,11 @@ class BaseConverter:
     def _add_request_params(
         self,
         payload: Dict[Any, Any],
-        config: InputsConfig,
+        config: ConfigCommand,
         optional_data: Dict[Any, Any],
     ) -> None:
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+        if config.input.extra:
+            for key, value in config.input.extra.items():
                 payload[key] = value
 
     def _add_payload_optional_data(self, payload: Dict[Any, Any], row: DataRow) -> None:
@@ -111,7 +114,7 @@ class BaseConverter:
     def _finalize_payload(
         self,
         payload: Dict[Any, Any],
-        config: InputsConfig,
+        config: ConfigCommand,
         row: DataRow,
         triton_format=False,
     ) -> Dict[str, Any]:

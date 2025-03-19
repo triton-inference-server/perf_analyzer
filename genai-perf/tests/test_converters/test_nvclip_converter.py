@@ -131,7 +131,7 @@ class TestNVClipConverter:
 
         extra_inputs = {"encoding_format": "base64"}
         config = deepcopy(default_config)
-        config.extra_inputs.update(extra_inputs)
+        config.input.extra.update(extra_inputs)
 
         nv_clip_converter = NVClipConverter()
         result = nv_clip_converter.convert(generic_dataset, config)

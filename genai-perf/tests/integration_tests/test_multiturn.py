@@ -28,6 +28,7 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import PromptSource
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
@@ -41,13 +42,8 @@ class TestIntegrationMultiTurn:
         class MockConfig(InputsConfig):
             def __init__(self):
                 self.tokenizer = get_empty_tokenizer()
-                self.model_name = ["test_model"]
-                self.payload_input_filename = Path("test_input.jsonl")
-                self.output_dir = Path("./test_output")
-                self.random_seed = 42
-                self.prompt_tokens_mean = 10
-                self.input_type = PromptSource.PAYLOAD
-                self.extra_inputs = {}
+                self.config = ConfigCommand({"model_name": "test_model"})
+                self.output_directory = Path("test_output")
 
         return MockConfig()
 
@@ -64,7 +60,7 @@ class TestIntegrationMultiTurn:
         mock_file_open = mock_open(read_data=input_data)
 
         inputs = Inputs(mock_config)
-        output_file_path = mock_config.output_dir / "inputs.json"
+        output_file_path = mock_config.output_directory / "inputs.json"
 
         with patch("builtins.open", mock_file_open) as mocked_open, patch(
             "pathlib.Path.exists", return_value=True

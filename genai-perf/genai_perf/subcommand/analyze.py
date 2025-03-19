@@ -39,6 +39,7 @@ from genai_perf.config.input.config_command import ConfigCommand, Range, Subcomm
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
+from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.record.types.energy_consumption_p99 import GpuEnergyConsumptionP99
@@ -56,7 +57,6 @@ from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
 from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
 from genai_perf.subcommand.common import (
     calculate_metrics,
-    convert_config_to_inputs_config,
     create_artifact_directory,
     create_plot_directory,
     create_telemetry_data_collectors,
@@ -185,10 +185,12 @@ class Analyze:
                 )
 
                 tokenizer = get_tokenizer(self._config)
-                input_config_options = convert_config_to_inputs_config(
-                    self._config, perf_analyzer_config, tokenizer
+                inputs_config = InputsConfig(
+                    config=self._config,
+                    tokenizer=tokenizer,
+                    output_directory=perf_analyzer_config.get_artifact_directory(),
                 )
-                generate_inputs(input_config_options)
+                generate_inputs(inputs_config)
 
                 #
                 # Run PA

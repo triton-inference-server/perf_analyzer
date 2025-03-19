@@ -27,27 +27,27 @@
 import json
 from typing import Any, Dict
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_BATCH_SIZE,
     DEFAULT_OUTPUT_TOKENS_MEAN,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
 class VLLMConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+    def check_config(self, config: ConfigCommand) -> None:
+        if config.input.batch_size != DEFAULT_BATCH_SIZE:
             raise GenAIPerfException(
-                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                f"The --batch-size-text flag is not supported for {config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
@@ -68,19 +68,19 @@ class VLLMConverter(BaseConverter):
         return request_body
 
     def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+        self, payload: Dict, config: ConfigCommand, optional_data: Dict[Any, Any]
     ) -> None:
-        if config.add_stream:
+        if config.endpoint.streaming:
             payload["stream"] = [True]
         number_of_tokens = self._get_max_tokens(config, optional_data)
         if number_of_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
             sampling_parameters = {
                 "max_tokens": f"{number_of_tokens}",
             }
-            if config.output_tokens_deterministic:
+            if config.input.output_tokens.deterministic:
                 sampling_parameters["min_tokens"] = f"{number_of_tokens}"
             sampling_parameters_str = json.dumps(sampling_parameters)
             payload["sampling_parameters"] = [sampling_parameters_str]
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+        if config.input.extra:
+            for key, value in config.input.extra.items():
                 payload[key] = [value]

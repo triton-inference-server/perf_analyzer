@@ -26,28 +26,28 @@
 
 from typing import Any, Dict
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class ImageRetrievalConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            if config.add_stream:
+    def check_config(self, config: ConfigCommand) -> None:
+        if config.endpoint.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            if config.endpoint.streaming:
                 raise GenAIPerfException(
-                    f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+                    f"The --streaming option is not supported for {config.endpoint.output_format.to_lowercase()}."
                 )
         else:
             raise GenAIPerfException(
-                f"Output format {config.output_format} is not supported"
+                f"Output format {config.endpoint.output_format} is not supported"
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 

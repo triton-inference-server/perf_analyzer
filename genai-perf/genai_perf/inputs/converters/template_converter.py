@@ -29,9 +29,9 @@ import os
 from typing import Any, Dict, cast
 
 import jinja2
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 NAMED_TEMPLATES = {
@@ -73,20 +73,20 @@ class TemplateConverter(BaseConverter):
         environment = jinja2.Environment(autoescape=True)
         return environment.from_string(template_content)
 
-    def check_config(self, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
+    def check_config(self, config: ConfigCommand) -> None:
+        for key, value in config.input.extra.items():
             if key != "payload_template":
                 raise GenAIPerfException(
                     "Template only supports the extra input 'payload_template'. "
                 )
 
-        payload_template = config.extra_inputs.get("payload_template")
+        payload_template = config.input.extra.get("payload_template")
         if not payload_template:
             raise GenAIPerfException(
                 "The template converter requires the "
                 "extra input payload_template, only "
                 "detected the following --extra-inputs: "
-                f"{list(config.extra_inputs.keys())}."
+                f"{list(config.input.extra.keys())}."
             )
         try:
             template = self.resolve_template(payload_template)
@@ -102,9 +102,9 @@ class TemplateConverter(BaseConverter):
             raise GenAIPerfException(e)
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
-        payload_template = config.extra_inputs.get("payload_template")
+        payload_template = config.input.extra.get("payload_template")
         payload_template = cast(str, payload_template)
         template = self.resolve_template(payload_template)
 

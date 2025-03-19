@@ -27,6 +27,7 @@
 from typing import Any, Dict, List
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import OpenAIChatCompletionsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.inputs_config import InputsConfig
@@ -311,15 +312,10 @@ class TestOpenAIChatCompletionsConverter:
         Test multi-modal format of OpenAI Chat API
         """
         generic_dataset = self.create_generic_dataset(rows)
-
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_MULTIMODAL,
-            add_stream=True,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_MULTIMODAL
+        config.endpoint.streaming = True
 
         chat_converter = OpenAIChatCompletionsConverter()
         result = chat_converter.convert(generic_dataset, config)

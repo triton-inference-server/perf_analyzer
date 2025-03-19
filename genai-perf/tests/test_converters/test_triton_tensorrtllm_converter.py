@@ -128,8 +128,8 @@ class TestTensorRTLLMConverter:
         }
 
         config = copy.deepcopy(default_config)
-        config.add_stream = True
-        config.extra_inputs.update(extra_inputs)
+        config.endpoint.streaming = True
+        config.input.extra.update(extra_inputs)
 
         trtllm_converter = TensorRTLLMConverter()
         result = trtllm_converter.convert(generic_dataset, config)

@@ -26,22 +26,22 @@
 
 from typing import Any, Dict, List, Union
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class RankingsConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.add_stream:
+    def check_config(self, config: ConfigCommand) -> None:
+        if config.endpoint.streaming:
             raise GenAIPerfException(
-                f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+                f"The --streaming option is not supported for {config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         provided_filenames = list(generic_dataset.files_data.keys())
         if "queries" not in provided_filenames or "passages" not in provided_filenames:
@@ -85,19 +85,19 @@ class RankingsConverter(BaseConverter):
 
         return request_body
 
-    def _is_rankings_tei(self, config: InputsConfig) -> bool:
+    def _is_rankings_tei(self, config: ConfigCommand) -> bool:
         """
         Check if user specified that they are using the Hugging Face
         Text Embeddings Interface for ranking models
         """
-        if config.extra_inputs.get("rankings") == "tei":
+        if config.input.extra.get("rankings") == "tei":
             return True
         return False
 
     def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+        self, payload: Dict, config: ConfigCommand, optional_data: Dict[Any, Any]
     ) -> None:
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+        if config.input.extra:
+            for key, value in config.input.extra.items():
                 if not (key == "rankings" and value == "tei"):
                     payload[key] = value

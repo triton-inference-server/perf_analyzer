@@ -26,6 +26,7 @@
 
 from typing import Any, Dict, List, Union
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import (
@@ -33,29 +34,28 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     OutputFormat,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
 class OpenAIChatCompletionsConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
+    def check_config(self, config: ConfigCommand) -> None:
         if (
-            config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
-            or config.output_format == OutputFormat.OPENAI_MULTIMODAL
+            config.endpoint.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
+            or config.endpoint.output_format == OutputFormat.OPENAI_MULTIMODAL
         ):
-            if config.batch_size_text != DEFAULT_BATCH_SIZE:
+            if config.input.batch_size != DEFAULT_BATCH_SIZE:
                 raise GenAIPerfException(
-                    f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                    f"The --batch-size-text flag is not supported for {config.endpoint.output_format.to_lowercase()}."
                 )
-            if config.batch_size_image != DEFAULT_BATCH_SIZE:
+            if config.input.image.batch_sizee != DEFAULT_BATCH_SIZE:
                 raise GenAIPerfException(
-                    f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}."
+                    f"The --batch-size-image flag is not supported for {config.endpoint.output_format.to_lowercase()}."
                 )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
@@ -69,7 +69,7 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         return request_body
 
     def _create_payload(
-        self, index: int, row: DataRow, config: InputsConfig
+        self, index: int, row: DataRow, config: ConfigCommand
     ) -> Dict[Any, Any]:
         model_name = self._select_model_name(config, index)
         content = self._retrieve_content(row, config)
@@ -87,16 +87,16 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         return payload
 
     def _retrieve_content(
-        self, row: DataRow, config: InputsConfig
+        self, row: DataRow, config: ConfigCommand
     ) -> Union[str, List[Dict[Any, Any]]]:
         content: Union[str, List[Dict[Any, Any]]] = ""
-        if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
+        if config.endpoint.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
             content = row.texts[0]
-        elif config.output_format == OutputFormat.OPENAI_MULTIMODAL:
+        elif config.endpoint.output_format == OutputFormat.OPENAI_MULTIMODAL:
             content = self._add_multi_modal_content(row)
         else:
             raise GenAIPerfException(
-                f"Output format {config.output_format} is not supported"
+                f"Output format {config.endpoint.output_format} is not supported"
             )
         return content
 
@@ -132,13 +132,13 @@ class OpenAIChatCompletionsConverter(BaseConverter):
         return content
 
     def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+        self, payload: Dict, config: ConfigCommand, optional_data: Dict[Any, Any]
     ) -> None:
-        if config.add_stream:
+        if config.endpoint.streaming:
             payload["stream"] = True
         max_tokens = self._get_max_tokens(config, optional_data)
         if max_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
             payload["max_tokens"] = max_tokens
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+        if config.input.extra:
+            for key, value in config.input.extra.items():
                 payload[key] = value

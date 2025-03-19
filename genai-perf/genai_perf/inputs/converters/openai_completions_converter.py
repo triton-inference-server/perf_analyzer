@@ -26,9 +26,9 @@
 
 from typing import Any, Dict
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
@@ -36,7 +36,7 @@ from genai_perf.utils import sample_bounded_normal
 class OpenAICompletionsConverter(BaseConverter):
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
@@ -56,13 +56,13 @@ class OpenAICompletionsConverter(BaseConverter):
         return request_body
 
     def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
+        self, payload: Dict, config: ConfigCommand, optional_data: Dict[Any, Any]
     ) -> None:
-        if config.add_stream:
+        if config.endpoint.streaming:
             payload["stream"] = True
         max_tokens = self._get_max_tokens(config, optional_data)
         if max_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
             payload["max_tokens"] = max_tokens
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+        if config.input.extra:
+            for key, value in config.input.extra.items():
                 payload[key] = value

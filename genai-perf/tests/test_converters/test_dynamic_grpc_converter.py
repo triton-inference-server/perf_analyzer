@@ -81,7 +81,7 @@ def test_convert(converter, sample_dataset, valid_config):
 
 
 def test_convert_with_extra_inputs(converter, sample_dataset, valid_config, mocker):
-    valid_config.extra_inputs = {"extra_key": "extra_value"}
+    valid_config.input.extra = {"extra_key": "extra_value"}
     mock_add_request_params = mocker.patch.object(
         converter, "_add_request_params", wraps=converter._add_request_params
     )
@@ -141,7 +141,7 @@ def test_check_config_valid(converter, valid_config):
 
 
 def test_check_config_invalid_batch_size(converter, valid_config):
-    valid_config.batch_size_text = [2]
+    valid_config.input.batch_size = [2]
     with pytest.raises(
         GenAIPerfException, match="The --batch-size-text flag is not supported"
     ):
@@ -149,7 +149,7 @@ def test_check_config_invalid_batch_size(converter, valid_config):
 
 
 def test_check_config_missing_input_filename(converter, valid_config):
-    valid_config.input_filename = ""
+    valid_config.input.file = ""
     with pytest.raises(
         GenAIPerfException,
         match="The dynamic GRPC converter only supports the input file path.",

@@ -26,27 +26,27 @@
 
 from typing import Any, Dict
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class DynamicGRPCConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+    def check_config(self, config: ConfigCommand) -> None:
+        if config.input.batch_size != DEFAULT_BATCH_SIZE:
             raise GenAIPerfException(
-                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                f"The --batch-size-text flag is not supported for {config.endpoint.output_format.to_lowercase()}."
             )
-        if config.input_filename == "":
+        if config.input.file == "":
             raise GenAIPerfException(
                 f"The dynamic GRPC converter only supports the input file path."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset, config: ConfigCommand
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
