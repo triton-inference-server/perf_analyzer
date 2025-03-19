@@ -63,7 +63,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
 
         files_data: Dict[str, FileData] = {}
-        input_file = self.config.payload_input_filename
+        input_file = self.config.input.payload_file
         if input_file is None:
             raise ValueError("Input file cannot be None")
         file_data = self._get_input_dataset_from_file(input_file)

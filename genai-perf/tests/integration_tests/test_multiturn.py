@@ -43,6 +43,10 @@ class TestIntegrationMultiTurn:
             def __init__(self):
                 self.tokenizer = get_empty_tokenizer()
                 self.config = ConfigCommand({"model_name": "test_model"})
+                self.config.input.payload_file = Path("test_input.jsonl")
+                self.config.input.random_seed = 42
+                self.config.input.synthetic_tokens.mean = 10
+                self.config.input.prompt_source = PromptSource.PAYLOAD
                 self.output_directory = Path("test_output")
 
         return MockConfig()

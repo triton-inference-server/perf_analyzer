@@ -64,7 +64,7 @@ class BaseConverter:
             config.endpoint.model_selection_strategy
             == ModelSelectionStrategy.ROUND_ROBIN
         ):
-            return config.model_names[index % len(config.model_name)]
+            return config.model_names[index % len(config.model_names)]
         elif config.endpoint.model_selection_strategy == ModelSelectionStrategy.RANDOM:
             return random.choice(config.model_names)
         else:
@@ -83,11 +83,11 @@ class BaseConverter:
         """
         if "max_tokens" in optional_data:
             return optional_data["max_tokens"]
-        elif config.input.output_tokens.mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+        elif config.input.output_tokens.get_field("mean").is_set_by_user:
             return int(
                 sample_bounded_normal(
                     mean=config.input.output_tokens.mean,
-                    stddev=config.input.output_tokens_stddev,
+                    stddev=config.input.output_tokens.stddev,
                     lower=1,  # output token must be >= 1
                 )
             )
