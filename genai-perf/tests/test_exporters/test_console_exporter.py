@@ -27,7 +27,7 @@
 from unittest.mock import patch
 
 import pytest
-from genai_perf import parser
+from genai_perf import logging, parser
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.metrics import (
@@ -525,6 +525,7 @@ class TestConsoleExporter:
         assert expected_content in returned_data
 
     def test_missing_data(self, monkeypatch, capsys) -> None:
+        logging.init_logging()
         argv = [
             "genai-perf",
             "profile",
