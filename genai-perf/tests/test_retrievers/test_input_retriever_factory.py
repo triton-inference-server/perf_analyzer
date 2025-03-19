@@ -28,17 +28,22 @@ from genai_perf.tokenizer import get_empty_tokenizer
 class TestInputRetrieverFactory:
 
     def test_create_file_retriever(self):
-        config = InputsConfig(
-            input_type=PromptSource.FILE,
-            input_filename=Path("input_data.jsonl"),
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.file = "input_data.jsonl"
+        config.input.prompt_source = PromptSource.FILE
+
+        inputs_config = InputsConfig(
+            config=config,
             tokenizer=get_empty_tokenizer(),
+            output_directory=Path("output"),
         )
+
         with patch(
             "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever.__init__",
             return_value=None,
         ) as mock_init:
-            retriever = InputRetrieverFactory.create(config)
-            mock_init.assert_called_once_with(config)
+            retriever = InputRetrieverFactory.create(inputs_config)
+            mock_init.assert_called_once_with(inputs_config)
             assert isinstance(
                 retriever, FileInputRetriever
             ), "Should return a FileInputRetriever"
@@ -47,17 +52,22 @@ class TestInputRetrieverFactory:
         """
         Test that SyntheticDataRetriever is created and passed the correct config.
         """
-        config = InputsConfig(
-            input_type=PromptSource.SYNTHETIC,
-            num_dataset_entries=10,
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.prompt_source = PromptSource.SYNTHETIC
+        config.input.num_dataset_entries = 10
+
+        inputs_config = InputsConfig(
+            config=config,
             tokenizer=get_empty_tokenizer(),
+            output_directory=Path("output"),
         )
+
         with patch(
             "genai_perf.inputs.retrievers.synthetic_data_retriever.SyntheticDataRetriever.__init__",
             return_value=None,
         ) as mock_init:
-            retriever = InputRetrieverFactory.create(config)
-            mock_init.assert_called_once_with(config)
+            retriever = InputRetrieverFactory.create(inputs_config)
+            mock_init.assert_called_once_with(inputs_config)
             assert isinstance(
                 retriever, SyntheticDataRetriever
             ), "Should return a SyntheticDataRetriever"
@@ -70,12 +80,18 @@ class TestInputRetrieverFactory:
         config.input.payload_file = "test_payload_data.jsonl"
         config.input.prompt_source = PromptSource.PAYLOAD
 
+        inputs_config = InputsConfig(
+            config=config,
+            tokenizer=get_empty_tokenizer(),
+            output_directory=Path("output"),
+        )
+
         with patch(
             "genai_perf.inputs.retrievers.payload_input_retriever.PayloadInputRetriever.__init__",
             return_value=None,
         ) as mock_init:
-            retriever = InputRetrieverFactory.create(config)
-            mock_init.assert_called_once_with(config)
+            retriever = InputRetrieverFactory.create(inputs_config)
+            mock_init.assert_called_once_with(inputs_config)
             assert isinstance(
                 retriever, PayloadInputRetriever
             ), "Should return a PayloadInputRetriever"

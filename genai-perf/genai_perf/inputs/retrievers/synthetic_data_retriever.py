@@ -98,8 +98,8 @@ class SyntheticDataRetriever(BaseInputRetriever):
 
                 if turn_idx < num_turns - 1:
                     session_delay = sample_bounded_normal_int(
-                        self.config.session_turn_delay_mean,
-                        self.config.session_turn_delay_stddev,
+                        self.config.input.sessions.turn_delay.mean,
+                        self.config.input.sessions.turn_delay.stddev,
                         lower=0,
                     )
                     row.payload_metadata["delay"] = session_delay
@@ -166,7 +166,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
         """
         audios = []
         if self._include_audio:
-            for _ in range(self.config.batch_size_audio):
+            for _ in range(self.config.input.audio.batch_size):
                 audios.append(
                     SyntheticAudioGenerator.create_synthetic_audio(
                         self.config.input.audio

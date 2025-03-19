@@ -89,11 +89,11 @@ class FileInputRetriever(BaseFileInputRetriever):
             The dataset in the required format with the content
             read from the files.
         """
-        self.config.input_filename = cast(Path, self.config.input_filename)
-        jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
+        self.config.input.file = cast(Path, self.config.input.file)
+        jsonl_files = list(self.config.input.file.glob("*.jsonl"))
         if not jsonl_files:
             raise ValueError(
-                f"No JSONL files found in directory '{self.config.input_filename}'."
+                f"No JSONL files found in directory '{self.config.input.file}'."
             )
 
         files_data: Dict[str, FileData] = {}

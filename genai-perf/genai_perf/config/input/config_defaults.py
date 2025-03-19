@@ -94,16 +94,17 @@ class PerfAnalyzerMeasurementDefaults:
 @dataclass(frozen=True)
 class ImageDefaults:
     BATCH_SIZE = 1
-    WIDTH_MEAN = 100
+    WIDTH_MEAN = 0
     WIDTH_STDDEV = 0
-    HEIGHT_MEAN = 100
+    HEIGHT_MEAN = 0
     HEIGHT_STDDEV = 0
     FORMAT = ImageFormat.PNG
 
 
 @dataclass(frozen=True)
 class AudioDefaults:
-    LENGTH_MEAN = 100
+    BATCH_SIZE = 1
+    LENGTH_MEAN = 0
     LENGTH_STDDEV = 0
     FORMAT = AudioFormat.WAV
     DEPTHS = [16]

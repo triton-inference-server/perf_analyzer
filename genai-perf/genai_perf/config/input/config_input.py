@@ -217,6 +217,12 @@ class ConfigAudio(BaseConfig):
 
     def __init__(self) -> None:
         super().__init__()
+        self.batch_size: Any = ConfigField(
+            default=AudioDefaults.BATCH_SIZE,
+            bounds={"min": 0},
+            verbose_template_comment="The audio batch size of the requests GenAI-Perf should send.\
+                \nThis is currently supported with the OpenAI `multimodal` endpoint type.",
+        )
         self.length = ConfigAudioLength()
         self.format: Any = ConfigField(
             default=AudioDefaults.FORMAT,
@@ -239,7 +245,9 @@ class ConfigAudio(BaseConfig):
 
     def parse(self, audio: Dict[str, Any]) -> None:
         for key, value in audio.items():
-            if key == "length":
+            if key == "batch_size":
+                self.batch_size = value
+            elif key == "length":
                 self.length.parse(value)
             elif key == "format":
                 if value:
