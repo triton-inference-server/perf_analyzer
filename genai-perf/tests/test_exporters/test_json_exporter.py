@@ -82,8 +82,6 @@ class TestJsonExporter:
             "test_model",
             "--artifact-dir",
             "/tmp/test_artifact",
-            "--tokenizer",
-            "gpt2",
         ]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
@@ -104,8 +102,6 @@ class TestJsonExporter:
             "/tmp/test_artifact",
             "--profile-export-file",
             "custom_export.json",
-            "--tokenizer",
-            "gpt2",
         ]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
@@ -140,7 +136,7 @@ class TestJsonExporter:
             },
         }
 
-        cli_cmd = ["genai-perf", "profile", "-m", "test_model", "--tokenizer", "gpt2"]
+        cli_cmd = ["genai-perf", "profile", "-m", "test_model"]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats)
         json_exporter.export()
 
@@ -158,8 +154,6 @@ class TestJsonExporter:
             "profile",
             "-m",
             "test_model",
-            "--tokenizer",
-            "gpt2",
         ]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
@@ -207,8 +201,6 @@ class TestJsonExporter:
             "some_metric_1:8.0",
             "some_metric_2:2.0",
             "some_metric_3:650.0",
-            "--tokenizer",
-            "gpt2",
         ]
         json_exporter = self.create_json_exporter(
             monkeypatch, cli_cmd, stats=goodput_stats
@@ -260,8 +252,6 @@ class TestJsonExporter:
             "triton",
             "--server-metrics-url",
             "http://tritonmetrics:8002/metrics",
-            "--tokenizer",
-            "gpt2",
         ]
 
         json_exporter = self.create_json_exporter(
@@ -308,8 +298,6 @@ class TestJsonExporter:
             "openai",
             "--endpoint-type",
             "chat",
-            "--tokenizer",
-            "gpt2",
         ]
         json_exporter = self.create_json_exporter(
             monkeypatch, cli_cmd, stats={}, session_stats=session_stats

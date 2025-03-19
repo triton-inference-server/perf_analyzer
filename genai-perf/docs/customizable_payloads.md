@@ -60,7 +60,6 @@ Run the following command:
 ```bash
 genai-perf profile \
   --model MY_MODEL \
-  --tokenizer MY_MODEL \
   --service-kind triton \
   --endpoint-type template \
   --num-payloads 2 \
@@ -108,7 +107,6 @@ you can run the command:
 ```bash
 genai-perf profile \
   --model MY_MODEL \
-  --tokenizer MY_MODEL \
   --service-kind triton \
   --endpoint-type template \
   --num-payloads 2 \

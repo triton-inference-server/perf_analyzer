@@ -61,7 +61,6 @@ input and response lengths.
 ```bash
 genai-perf profile \
   -m TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
-  --tokenizer TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
   --service-kind openai \
   --endpoint-type chat \
   --num-sessions 10 \
@@ -138,7 +137,6 @@ than have it be synthetically generated.
 ```bash
 genai-perf profile \
   -m TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
-  --tokenizer TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
   --service-kind openai \
   --endpoint-type chat \
   --input-file payload:inputs.jsonl \

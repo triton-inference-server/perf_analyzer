@@ -79,8 +79,6 @@ class TestIntegrationTelemetry:
             "profile",
             "--model",
             "test_model",
-            "--tokenizer",
-            "gpt2",
             "-v",
         ]
         monkeypatch.setattr("sys.argv", test_args)
