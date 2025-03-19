@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@ class TestLLMMetrics:
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughputs_per_request=[7, 8, 9],
+            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -67,7 +67,7 @@ class TestLLMMetrics:
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughputs_per_request=[7, 8, 9],
+            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -90,7 +90,7 @@ class TestLLMMetrics:
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughputs_per_request=[7, 8, 9],
+            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -108,7 +108,7 @@ class TestLLMMetrics:
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughputs_per_request=[7, 8, 9],
+            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -135,7 +135,7 @@ class TestLLMMetrics:
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughputs_per_request=[7, 8, 9],
+            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -143,7 +143,7 @@ class TestLLMMetrics:
         assert metrics.get_base_name("time_to_first_tokens") == "time_to_first_token"
         assert metrics.get_base_name("inter_token_latencies") == "inter_token_latency"
         assert (
-            metrics.get_base_name("output_token_throughputs_per_request")
+            metrics.get_base_name("output_token_throughput_per_user")
             == "output_token_throughput_per_request"
         )
         assert (

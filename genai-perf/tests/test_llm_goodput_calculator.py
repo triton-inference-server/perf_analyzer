@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -70,7 +70,7 @@ class TestLLMGoodputCalculator:
         assert gc.get_slo_name("time_to_first_token") == "time_to_first_tokens"
         assert gc.get_slo_name("inter_token_latency") == "inter_token_latencies"
         assert gc.get_slo_name("output_token_throughput_per_request") == (
-            "output_token_throughputs_per_request"
+            "output_token_throughput_per_user"
         )
         with pytest.raises(KeyError):
             gc.get_slo_name("hello1234")
@@ -117,7 +117,7 @@ class TestLLMGoodputCalculator:
         test_llm_metrics_1 = LLMMetrics(
             time_to_first_tokens=[2, 2],
             inter_token_latencies=[2, 1],
-            output_token_throughputs_per_request=[3 / ns_to_sec(7), 6 / ns_to_sec(9)],
+            output_token_throughput_per_user=[3 / ns_to_sec(7), 6 / ns_to_sec(9)],
         )
 
         gc_1 = LLMGoodputCalculator(
@@ -133,7 +133,7 @@ class TestLLMGoodputCalculator:
         test_llm_metrics_2 = LLMMetrics(
             time_to_first_tokens=[2, 3],
             inter_token_latencies=[4, 1],
-            output_token_throughputs_per_request=[4 / ns_to_sec(13), 6 / ns_to_sec(8)],
+            output_token_throughput_per_user=[4 / ns_to_sec(13), 6 / ns_to_sec(8)],
         )
 
         gc_2 = LLMGoodputCalculator(

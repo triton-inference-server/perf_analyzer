@@ -45,8 +45,8 @@ def check_llm_metrics(m1: LLMMetrics, m2: LLMMetrics) -> None:
     assert m1.time_to_first_tokens == m2.time_to_first_tokens
     assert m1.time_to_second_tokens == m2.time_to_second_tokens
     assert m1.inter_token_latencies == m2.inter_token_latencies
-    assert m1.output_token_throughputs_per_request == pytest.approx(
-        m2.output_token_throughputs_per_request
+    assert m1.output_token_throughput_per_user == pytest.approx(
+        m2.output_token_throughput_per_user
     )
     assert m1.output_token_throughputs == pytest.approx(m2.output_token_throughputs)
     assert m1.output_sequence_lengths == m2.output_sequence_lengths
@@ -138,10 +138,7 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 2],
                     "time_to_second_tokens": [2, 3],
                     "inter_token_latencies": [2, 1],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(7),
-                        2 / ns_to_sec(3),
-                    ],
+                    "output_token_throughput_per_user": [0.5, 1],
                     "output_token_throughputs": [9 / ns_to_sec(10)],
                     "output_sequence_lengths": [3, 6],
                     "input_sequence_lengths": [3, 4],
@@ -156,10 +153,7 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 3],
                     "time_to_second_tokens": [1, 2],
                     "inter_token_latencies": [4, 1],
-                    "output_token_throughputs_per_request": [
-                        4 / ns_to_sec(13),
-                        6 / ns_to_sec(8),
-                    ],
+                    "output_token_throughput_per_user": [0.25, 1],
                     "output_token_throughputs": [2 / ns_to_sec(3)],
                     "output_sequence_lengths": [4, 6],
                     "input_sequence_lengths": [3, 4],
@@ -380,10 +374,7 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [4, 5],
                     "time_to_second_tokens": [3, 4],
                     "inter_token_latencies": [4, 2],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(11),
-                        6 / ns_to_sec(13),
-                    ],
+                    "output_token_throughput_per_user": [0.25, 0.5],
                     "output_token_throughputs": [9 / ns_to_sec(14)],
                     "output_sequence_lengths": [3, 6],
                     "input_sequence_lengths": [3, 4],
@@ -529,10 +520,7 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [4, 5],
                     "time_to_second_tokens": [3, 4],
                     "inter_token_latencies": [4, 2],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(11),
-                        6 / ns_to_sec(13),
-                    ],
+                    "output_token_throughput_per_user": [0.25, 0.5],
                     "output_token_throughputs": [9 / ns_to_sec(14)],
                     "output_sequence_lengths": [3, 6],
                     "input_sequence_lengths": [3, 4],
@@ -755,10 +743,7 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 2],
                     "time_to_second_tokens": [2, 3],
                     "inter_token_latencies": [2, 4],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(7),
-                        1 / ns_to_sec(3),
-                    ],
+                    "output_token_throughput_per_user": [0.5, 0.25],
                     "output_token_throughputs": [3 / ns_to_sec(5)],
                     "output_sequence_lengths": [3, 3],
                     "input_sequence_lengths": [3, 4],
@@ -773,10 +758,7 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 3],
                     "time_to_second_tokens": [1, 2],
                     "inter_token_latencies": [4, 2],
-                    "output_token_throughputs_per_request": [
-                        4 / ns_to_sec(13),
-                        3 / ns_to_sec(8),
-                    ],
+                    "output_token_throughput_per_user": [0.25, 0.5],
                     "output_token_throughputs": [7 / ns_to_sec(15)],
                     "output_sequence_lengths": [4, 3],
                     "input_sequence_lengths": [3, 4],
@@ -1322,15 +1304,10 @@ class TestLLMProfileDataParser:
             "request_throughputs": [2 / ns_to_sec(16)],
             # Same as request_latencies
             "time_to_first_tokens": [4, 3],
-            # N/A
+            # N/A (not streaming)
             "time_to_second_tokens": [],
-            # [((5 - 1) - 4)/(4 - 1), ((17 - 14) - 3)/(4 - 1)]
-            "inter_token_latencies": [0, 0],
-            # [4/(5 - 1), 4/(17 - 14)]
-            "output_token_throughputs_per_request": [
-                4 / ns_to_sec(4),
-                4 / ns_to_sec(3),
-            ],
+            "inter_token_latencies": [],
+            "output_token_throughput_per_user": [],
             # [(4 + 4)/(17 - 1)]
             "output_token_throughputs": [8 / ns_to_sec(16)],
             # [4, 4]
