@@ -112,14 +112,12 @@ class ConfigCommand(BaseConfig):
         else:
             raise ValueError("User Config: model_names must be a string or list")
 
-        if len(self.model_names) > 1:
-            self.model_names = [self.model_names[0] + "_multi"]
-
     ###########################################################################
     # Infer Methods
     ###########################################################################
     def _infer_settings(self) -> None:
-        self.endpoint.infer_settings(model_name=self.model_names[0])
+        model_name = self.model_names[0] if self.model_names else ""
+        self.endpoint.infer_settings(model_name)
         self.input.infer_settings()
         self.perf_analyzer.infer_settings()
         self.tokenizer.infer_settings(model_name=self.model_names[0])

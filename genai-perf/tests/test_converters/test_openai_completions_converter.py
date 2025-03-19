@@ -24,13 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import OpenAICompletionsConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     ModelSelectionStrategy,
     OutputFormat,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -85,13 +85,9 @@ class TestOpenAICompletionsConverter:
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
         completions_converter = OpenAICompletionsConverter()
         result = completions_converter.convert(generic_dataset, config)
@@ -127,15 +123,12 @@ class TestOpenAICompletionsConverter:
             "additional_key": "additional_value",
         }
 
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            add_stream=True,
-            output_tokens_mean=1234,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
+        config.endpoint.streaming = True
+        config.input.output_tokens.mean = 1234
+        config.input.extra = extra_inputs
 
         completions_converter = OpenAICompletionsConverter()
         result = completions_converter.convert(generic_dataset, config)
@@ -174,14 +167,9 @@ class TestOpenAICompletionsConverter:
     def test_convert_with_default_token_parameters(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            output_tokens_mean=DEFAULT_OUTPUT_TOKENS_MEAN,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
         completions_converter = OpenAICompletionsConverter()
         result = completions_converter.convert(generic_dataset, config)
@@ -212,14 +200,10 @@ class TestOpenAICompletionsConverter:
     def test_convert_with_streaming(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            add_stream=True,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
+        config.endpoint.streaming = True
 
         completions_converter = OpenAICompletionsConverter()
         result = completions_converter.convert(generic_dataset, config)
@@ -252,13 +236,9 @@ class TestOpenAICompletionsConverter:
     def test_convert_with_multiple_models(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["model_a", "model_b"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_names": "model_a,model_b"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
         completions_converter = OpenAICompletionsConverter()
         result = completions_converter.convert(generic_dataset, config)
@@ -289,13 +269,9 @@ class TestOpenAICompletionsConverter:
     def test_convert_with_payload_parameters(self):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_COMPLETIONS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
         completions_converter = OpenAICompletionsConverter()
         result = completions_converter.convert(generic_dataset, config)

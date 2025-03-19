@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
@@ -34,6 +34,7 @@ from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
 )
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
+from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import sample_bounded_normal
 
 
@@ -52,7 +53,10 @@ class BaseConverter:
         pass
 
     def convert(
-        self, generic_dataset: GenericDataset, config: ConfigCommand
+        self,
+        generic_dataset: GenericDataset,
+        config: ConfigCommand,
+        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
         """
         Construct a request body using the endpoint specific request format.

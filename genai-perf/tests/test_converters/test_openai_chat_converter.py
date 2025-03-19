@@ -30,7 +30,6 @@ import pytest
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import OpenAIChatCompletionsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -77,13 +76,9 @@ class TestOpenAIChatCompletionsConverter:
             [{"text": "text input one"}, {"text": "text input two"}]
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_CHAT_COMPLETIONS
 
         chat_converter = OpenAIChatCompletionsConverter()
         result = chat_converter.convert(generic_dataset, config)
@@ -132,14 +127,11 @@ class TestOpenAIChatCompletionsConverter:
             "additional_key": "additional_value",
         }
 
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
-            tokenizer=get_empty_tokenizer(),
-            add_stream=True,
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_CHAT_COMPLETIONS
+        config.endpoint.streaming = True
+        config.input.extra = extra_inputs
 
         chat_converter = OpenAIChatCompletionsConverter()
         result = chat_converter.convert(generic_dataset, config)
@@ -368,13 +360,10 @@ class TestOpenAIChatCompletionsConverter:
             ]
         )
 
-        config = InputsConfig(
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_CHAT_COMPLETIONS,
-            tokenizer=get_empty_tokenizer(),
-            add_stream=True,
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_CHAT_COMPLETIONS
+        config.endpoint.streaming = True
 
         chat_converter = OpenAIChatCompletionsConverter()
         result = chat_converter.convert(generic_dataset, config)

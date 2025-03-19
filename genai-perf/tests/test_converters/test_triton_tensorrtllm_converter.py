@@ -27,19 +27,18 @@
 import copy
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import TensorRTLLMConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
     ModelSelectionStrategy,
     OutputFormat,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestTensorRTLLMConverter:
@@ -87,13 +86,11 @@ class TestTensorRTLLMConverter:
 
     @pytest.fixture
     def default_config(self):
-        yield InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.TENSORRTLLM
+
+        yield config
 
     def test_convert_default(self, default_config):
         generic_dataset = self.create_generic_dataset()
@@ -127,9 +124,9 @@ class TestTensorRTLLMConverter:
             "additional_key": "additional_value",
         }
 
-        config = copy.deepcopy(default_config)
+        config = default_config
+        config.input.extra = extra_inputs
         config.endpoint.streaming = True
-        config.input.extra.update(extra_inputs)
 
         trtllm_converter = TensorRTLLMConverter()
         result = trtllm_converter.convert(generic_dataset, config)

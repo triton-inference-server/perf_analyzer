@@ -24,12 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.tokenizer import Tokenizer
 
 
 class RankingsConverter(BaseConverter):
@@ -41,7 +42,10 @@ class RankingsConverter(BaseConverter):
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: ConfigCommand
+        self,
+        generic_dataset: GenericDataset,
+        config: ConfigCommand,
+        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
         provided_filenames = list(generic_dataset.files_data.keys())
         if "queries" not in provided_filenames or "passages" not in provided_filenames:
@@ -90,7 +94,7 @@ class RankingsConverter(BaseConverter):
         Check if user specified that they are using the Hugging Face
         Text Embeddings Interface for ranking models
         """
-        if config.input.extra.get("rankings") == "tei":
+        if config.input.extra and config.input.extra.get("rankings") == "tei":
             return True
         return False
 

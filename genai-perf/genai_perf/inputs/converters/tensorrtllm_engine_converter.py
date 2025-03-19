@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
@@ -35,6 +35,7 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
 )
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import sample_bounded_normal
 
 
@@ -46,13 +47,16 @@ class TensorRTLLMEngineConverter(BaseConverter):
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: ConfigCommand
+        self,
+        generic_dataset: GenericDataset,
+        config: ConfigCommand,
+        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = self._encode_tokens(row.texts[0], config)
+                token_ids = self._encode_tokens(row.texts[0], config, tokenizer)
                 payload = {
                     "input_ids": {
                         "content": token_ids,
@@ -73,7 +77,7 @@ class TensorRTLLMEngineConverter(BaseConverter):
     ) -> None:
         if config.endpoint.streaming:
             payload["streaming"] = [True]
-        if config.input.output_tokens.mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+        if config.input.output_tokens.get_field("mean").is_set_by_user:
             num_tokens = int(
                 sample_bounded_normal(
                     mean=config.input.output_tokens.mean,
@@ -93,15 +97,19 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 else:
                     payload[key] = [value]
 
-    def _encode_tokens(self, prompt: str, config: ConfigCommand) -> List[int]:
-        if "apply_chat_template" in config.input.extra:
-            token_ids = self._encode_with_chat_template(prompt, config)
+    def _encode_tokens(
+        self, prompt: str, config: ConfigCommand, tokenizer: Optional[Tokenizer] = None
+    ) -> List[int]:
+        assert Tokenizer is not None, "Tokenizer is required for encoding tokens"
+
+        if config.input.extra and "apply_chat_template" in config.input.extra:
+            token_ids = self._encode_with_chat_template(prompt, config, tokenizer)  # type: ignore
         else:
-            token_ids = config.tokenizer.encode(prompt, add_special_tokens=False)
+            token_ids = tokenizer.encode(prompt, add_special_tokens=False)  # type: ignore
         return token_ids
 
     def _encode_with_chat_template(
-        self, prompt: str, config: ConfigCommand
+        self, prompt: str, config: ConfigCommand, tokenizer: Tokenizer
     ) -> List[int]:
         """
         Apply the default TRT-LLM engine chat template to the prompt
@@ -109,8 +117,8 @@ class TensorRTLLMEngineConverter(BaseConverter):
         import jinja2
 
         default_template = self._construct_default_template(prompt)
-        return config.tokenizer.encode(
-            config.tokenizer._tokenizer.apply_chat_template(
+        return tokenizer.encode(
+            tokenizer._tokenizer.apply_chat_template(
                 default_template, tokenize=False, add_special_tokens=False
             )
         )

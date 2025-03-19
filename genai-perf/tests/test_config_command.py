@@ -74,7 +74,7 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.model_names, ["gpt2_multi"])
+        self.assertEqual(config.model_names, ["gpt2", "bert"])
 
     def test_multi_model_name_list(self):
         """
@@ -91,7 +91,7 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.model_names, ["gpt2_multi"])
+        self.assertEqual(config.model_names, ["gpt2", "bert"])
 
     ###########################################################################
     # Test Analyze Subcommand

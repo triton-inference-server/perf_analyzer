@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
@@ -35,6 +35,7 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
 )
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
+from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import sample_bounded_normal
 
 
@@ -55,7 +56,10 @@ class OpenAIChatCompletionsConverter(BaseConverter):
                 )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: ConfigCommand
+        self,
+        generic_dataset: GenericDataset,
+        config: ConfigCommand,
+        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 

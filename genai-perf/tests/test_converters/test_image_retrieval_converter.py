@@ -25,9 +25,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import ImageRetrievalConverter
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -72,11 +72,8 @@ class TestImageRetrievalConverter:
         """
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
-            extra_inputs={},
-            output_format=OutputFormat.IMAGE_RETRIEVAL,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.IMAGE_RETRIEVAL
 
         image_retrieval_converter = ImageRetrievalConverter()
         result = image_retrieval_converter.convert(generic_dataset, config)
@@ -101,11 +98,8 @@ class TestImageRetrievalConverter:
     def test_convert_with_payload_parameters(self):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        config = InputsConfig(
-            extra_inputs={},
-            output_format=OutputFormat.IMAGE_RETRIEVAL,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.IMAGE_RETRIEVAL
 
         image_retrieval_converter = ImageRetrievalConverter()
         result = image_retrieval_converter.convert(generic_dataset, config)

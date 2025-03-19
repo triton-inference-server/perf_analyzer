@@ -24,19 +24,23 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import sample_bounded_normal
 
 
 class OpenAICompletionsConverter(BaseConverter):
 
     def convert(
-        self, generic_dataset: GenericDataset, config: ConfigCommand
+        self,
+        generic_dataset: GenericDataset,
+        config: ConfigCommand,
+        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 

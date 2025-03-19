@@ -14,6 +14,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from typing import Any, Dict
 
 from genai_perf.inputs.input_constants import (
     AudioFormat,
@@ -132,7 +133,7 @@ class PrefixPromptDefaults:
 @dataclass(frozen=True)
 class InputDefaults:
     BATCH_SIZE = 1
-    EXTRA = ""
+    EXTRA = None
     GOODPUT = ""
     HEADER = ""
     FILE = ""

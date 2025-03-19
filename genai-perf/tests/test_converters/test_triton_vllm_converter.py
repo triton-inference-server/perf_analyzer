@@ -25,16 +25,15 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import VLLMConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestVLLMConverter:
@@ -83,13 +82,9 @@ class TestVLLMConverter:
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.VLLM,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.VLLM
 
         vllm_converter = VLLMConverter()
         result = vllm_converter.convert(generic_dataset, config)
@@ -121,14 +116,11 @@ class TestVLLMConverter:
             "additional_key": "additional_value",
         }
 
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.VLLM,
-            add_stream=True,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.VLLM
+        config.endpoint.streaming = True
+        config.input.extra = extra_inputs
 
         vllm_converter = VLLMConverter()
         result = vllm_converter.convert(generic_dataset, config)
@@ -161,15 +153,11 @@ class TestVLLMConverter:
     def test_convert_with_sampling_parameters(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.VLLM,
-            output_tokens_mean=1234,
-            output_tokens_deterministic=True,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.VLLM
+        config.input.output_tokens.mean = 1234
+        config.input.output_tokens.deterministic = True
 
         vllm_converter = VLLMConverter()
         result = vllm_converter.convert(generic_dataset, config)
@@ -198,14 +186,10 @@ class TestVLLMConverter:
         assert result == expected_result
 
     def test_check_config_invalid_batch_size(self):
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.VLLM,
-            batch_size_text=5,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.VLLM
+        config.input.batch_size = 5
 
         vllm_converter = VLLMConverter()
 
@@ -219,13 +203,9 @@ class TestVLLMConverter:
     def test_convert_empty_dataset(self):
         generic_dataset = GenericDataset(files_data={})
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.VLLM,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.VLLM
 
         vllm_converter = VLLMConverter()
         result = vllm_converter.convert(generic_dataset, config)
@@ -236,13 +216,9 @@ class TestVLLMConverter:
     def test_convert_with_payload_parameters(self):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.VLLM,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.VLLM
 
         vllm_converter = VLLMConverter()
         result = vllm_converter.convert(generic_dataset, config)

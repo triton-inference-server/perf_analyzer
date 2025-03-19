@@ -27,10 +27,10 @@
 from copy import deepcopy
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import NVClipConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -47,12 +47,10 @@ class TestNVClipConverter:
 
     @pytest.fixture
     def default_config(self):
-        yield InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+
+        yield config
 
     def test_convert_default(self, default_config):
         generic_dataset = self.create_generic_dataset(
@@ -130,8 +128,8 @@ class TestNVClipConverter:
         )
 
         extra_inputs = {"encoding_format": "base64"}
-        config = deepcopy(default_config)
-        config.input.extra.update(extra_inputs)
+        config = default_config
+        config.input.extra = extra_inputs
 
         nv_clip_converter = NVClipConverter()
         result = nv_clip_converter.convert(generic_dataset, config)
@@ -153,7 +151,8 @@ class TestNVClipConverter:
         assert result == expected_result
 
     def test_check_config_raises_exception_for_streaming(self):
-        config = InputsConfig(add_stream=True, tokenizer=get_empty_tokenizer())
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.streaming = True
 
         nv_clip_converter = NVClipConverter()
 

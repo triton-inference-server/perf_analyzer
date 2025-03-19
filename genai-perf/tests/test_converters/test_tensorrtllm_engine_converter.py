@@ -35,7 +35,6 @@ from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -120,18 +119,14 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = "mock_tokenizer"
-        inputs_config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=self.mock_tokenizer,
-        )
+        config = ConfigCommand({"model_names": ["test_model"]})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
 
-        trtllm_engine_converter = TensorRTLLMEngineConverter()
-        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
+        trtllm_engine_converter = TensorRTLLMEngineConverter(
+            config, self.mock_tokenizer
+        )
+        result = trtllm_engine_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -157,24 +152,35 @@ class TestTensorRTLLMEngineConverter:
         assert result == expected_result
 
     def test_convert_with_chat_template(self):
-        generic_dataset = self.create_generic_dataset()
-        config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = "mock_tokenizer"
-        inputs_config = InputsConfig(
-            extra_inputs={"apply_chat_template": True},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=self.mock_tokenizer,
-        )
+        config = ConfigCommand({"model_names": ["test_model"]})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
+        config.input.extra = {"apply_chat_template": True}
 
         # Set up mock for chat template encoding
         self.mock_tokenizer.encode.side_effect = lambda text: (
             MOCK_CHAT_TOKENIZED_ONE if "chat_one" in text else MOCK_CHAT_TOKENIZED_TWO
         )
 
-        trtllm_engine_converter = TensorRTLLMEngineConverter()
-        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
+        trtllm_engine_converter = TensorRTLLMEngineConverter(
+            config, self.mock_tokenizer
+        )
+
+        result = trtllm_engine_converter.convert(generic_dataset)
+
+        expected_texts = [
+            tokenizer._tokenizer.apply_chat_template(
+                [{"role": "user", "content": "text input one"}],
+                tokenize=False,
+                add_special_tokens=False,
+            ),
+            tokenizer._tokenizer.apply_chat_template(
+                [{"role": "user", "content": "text input two"}],
+                tokenize=False,
+                add_special_tokens=False,
+            ),
+        ]
+        expected_tokenized = [tokenizer.encode(text) for text in expected_texts]
 
         assert "data" in result
         assert isinstance(result["data"], list)
@@ -192,23 +198,18 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_with_request_parameters(self):
         generic_dataset = self.create_generic_dataset()
 
-        extra_inputs = {"additional_key": "additional_value"}
+        config = ConfigCommand({"model_names": ["test_model"]})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
+        config.endpoint.streaming = True
+        config.input.output_tokens.mean = 1234
+        config.input.output_tokens.deterministic = True
+        config.input.extra = {"additional_key": "additional_value"}
 
-        config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = "mock_tokenizer"
-        inputs_config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=self.mock_tokenizer,
-            add_stream=True,
-            output_tokens_mean=1234,
-            output_tokens_deterministic=True,
+        trtllm_engine_converter = TensorRTLLMEngineConverter(
+            config, self.mock_tokenizer
         )
-
-        trtllm_engine_converter = TensorRTLLMEngineConverter()
-        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
+        result = trtllm_engine_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -240,14 +241,10 @@ class TestTensorRTLLMEngineConverter:
         assert result == expected_result
 
     def test_check_config_invalid_batch_size(self):
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            batch_size_text=5,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_names": ["test_model"]})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
+        config.input.batch_size = 5
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
 
@@ -261,18 +258,15 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_with_payload_parameters(self):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = "mock_tokenizer"
-        inputs_config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=self.mock_tokenizer,
-        )
+        config = ConfigCommand({"model_names": ["test_model"]})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
 
-        trtllm_engine_converter = TensorRTLLMEngineConverter()
-        result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
+        tokenizer = get_tokenizer(config)
+        trtllm_engine_converter = TensorRTLLMEngineConverter(
+            config, self.mock_tokenizer
+        )
+        result = trtllm_engine_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

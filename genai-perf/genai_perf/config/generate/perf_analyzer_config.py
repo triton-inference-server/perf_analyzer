@@ -149,7 +149,10 @@ class PerfAnalyzerConfig:
         return artifact_paths
 
     def _get_artifact_model_name(self, config: ConfigCommand) -> str:
-        model_name: str = config.model_names[0]
+        if len(config.model_names) > 1:
+            model_name: str = config.model_names[0] + "_multi"
+        else:
+            model_name = config.model_names[0]
 
         # Preprocess Huggingface model names that include '/' in their model name.
         if (model_name is not None) and ("/" in model_name):

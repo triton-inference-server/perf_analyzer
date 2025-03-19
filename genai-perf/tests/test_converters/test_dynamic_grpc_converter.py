@@ -27,10 +27,10 @@
 from pathlib import Path
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.dynamic_grpc_converter import DynamicGRPCConverter
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -55,11 +55,10 @@ def sample_dataset():
 
 @pytest.fixture
 def valid_config():
-    return InputsConfig(
-        tokenizer=get_empty_tokenizer(),
-        batch_size_text=DEFAULT_BATCH_SIZE,
-        input_filename=Path("test_input.txt"),
-    )
+    config = ConfigCommand({"model_name": "test_model"})
+    config.input.file = Path("test_input.txt")
+
+    return config
 
 
 @pytest.fixture

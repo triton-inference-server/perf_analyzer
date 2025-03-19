@@ -27,10 +27,10 @@
 from unittest.mock import mock_open, patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import TemplateConverter
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -53,11 +53,9 @@ class TestTemplateConverter:
         fake_template_path = "/fake/path/template.jinja2"
 
         with patch("os.path.isfile", return_value=True):
-            config = InputsConfig(
-                output_format=OutputFormat.TEMPLATE,
-                tokenizer=get_empty_tokenizer(),
-                extra_inputs={"payload_template": fake_template_path},
-            )
+            config = ConfigCommand({"model_name": "test_model"})
+            config.endpoint.output_format = OutputFormat.TEMPLATE
+            config.input.extra = {"payload_template": fake_template_path}
 
             converter = TemplateConverter()
             converter.check_config(config)
@@ -69,11 +67,10 @@ class TestTemplateConverter:
     )
     def test_check_config_invalid_template(self, mock_open_fn):
         fake_template_path = "/fake/path/invalid_template.jinja2"
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
 
         template_converter = TemplateConverter()
 
@@ -89,11 +86,9 @@ class TestTemplateConverter:
     def test_check_config_invalid_type_conversion(self, mock_open_fn):
         fake_template_path = "/fake/path/invalid_template.jinja2"
 
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
 
         converter = TemplateConverter()
 
@@ -105,11 +100,8 @@ class TestTemplateConverter:
                 converter.check_config(config)
 
     def test_check_config_missing_payload_template(self):
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={},  # Missing 'payload_template'
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
 
         converter = TemplateConverter()
 
@@ -120,11 +112,9 @@ class TestTemplateConverter:
             converter.check_config(config)
 
     def test_check_config_with_named_template(self):
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": "nv-embedqa"},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": "nv-embedqa"}
 
         converter = TemplateConverter()
         converter.check_config(config)
@@ -132,11 +122,9 @@ class TestTemplateConverter:
     def test_check_config_with_nonexistent_template_file(self):
         fake_template_path = "/nonexistent/path/template.jinja2"
 
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
 
         converter = TemplateConverter()
 
@@ -151,11 +139,9 @@ class TestTemplateConverter:
     def test_check_config_with_unreadable_template_file(self, mock_open_fn):
         fake_template_path = "/fake/path/template.jinja2"
 
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
 
         converter = TemplateConverter()
 
@@ -171,14 +157,12 @@ class TestTemplateConverter:
         read_data='{ "invalid_format": {{ texts|tojson }} }',
     )
     def test_check_config_with_invalid_extra_inputs(self, mock_open_fn):
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={
-                "invalid_key": "value",
-                "payload_template": "template.jinja2",
-            },
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {
+            "invalid_key": "value",
+            "payload_template": "template.jinja2",
+        }
 
         converter = TemplateConverter()
 
@@ -203,11 +187,9 @@ class TestTemplateConverter:
                 ]
             )
 
-            config = InputsConfig(
-                output_format=OutputFormat.TEMPLATE,
-                tokenizer=get_empty_tokenizer(),
-                extra_inputs={"payload_template": fake_template_path},
-            )
+            config = ConfigCommand({"model_name": "test_model"})
+            config.endpoint.output_format = OutputFormat.TEMPLATE
+            config.input.extra = {"payload_template": fake_template_path}
 
             converter = TemplateConverter()
             result = converter.convert(generic_dataset, config)
@@ -230,11 +212,11 @@ class TestTemplateConverter:
                 DataRow(texts=["sample_prompt_2", "sample_prompt_3"]),
             ]
         )
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": "nv-embedqa"},
-        )
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": "nv-embedqa"}
+
         converter = TemplateConverter()
         result = converter.convert(generic_dataset, config)
         expected_result = {
