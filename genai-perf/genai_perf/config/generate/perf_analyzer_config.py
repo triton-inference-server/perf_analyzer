@@ -277,7 +277,7 @@ class PerfAnalyzerConfig:
         dynamic_grpc_args = []
 
         if config.endpoint.service_kind == "dynamic_grpc":
-            dynamic_grpc_args += ["--dynamic-grpc", f"{config.endpoint.grpc_method}"]
+            dynamic_grpc_args += ["--grpc-method", f"{config.endpoint.grpc_method}"]
 
         return dynamic_grpc_args
 
