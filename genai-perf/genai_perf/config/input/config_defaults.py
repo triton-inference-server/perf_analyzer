@@ -122,7 +122,7 @@ class PrefixPromptDefaults:
 
 @dataclass(frozen=True)
 class RequestCountDefaults:
-    NUM = 0
+    NUM = 10
     WARMUP = 0
 
 
@@ -153,6 +153,7 @@ class SessionTurnsDefaults:
 class SessionTurnDelayDefaults:
     MEAN = 0
     STDDEV = 0
+    RATIO = 1.0
 
 
 @dataclass(frozen=True)

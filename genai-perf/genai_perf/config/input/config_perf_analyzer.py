@@ -84,6 +84,26 @@ class ConfigPerfAnalyzer(BaseConfig):
                     f"User Config: {key} is not a valid perf_analyzer parameter"
                 )
 
+        self._validate_measurement_options()
+
+    def _validate_measurement_options(self) -> None:
+        """
+        Validates the measurement options:
+        1. Measurement_interval and request_count are mutually exclusive.
+        2. If neither is set, default to request_count=1.
+        """
+        measurement_interval_set = self.get_field("measurement_interval").is_set_by_user
+        request_count_set = self.request_count.get_field("num").is_set_by_user
+
+        if measurement_interval_set:
+            if request_count_set:
+                raise ValueError(
+                    "The measurement_interval and request_count options are mutually exclusive."
+                )
+            else:
+                self.request_count.num = 0
+                self.request_count.get_field("num").is_set_by_user = True
+
 
 class ConfigRequestCount(BaseConfig):
     def __init__(self) -> None:
