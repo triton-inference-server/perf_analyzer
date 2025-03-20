@@ -1026,6 +1026,16 @@ def add_cli_options_to_config(
 
         config.analyze.parse(sweep_parameters)
 
+    # Process Export Files
+    elif args.subcommand == "process-export-files":
+        config.input.path = ConfigField(
+            default=None, value=args.input_path[0], required=True
+        )
+        config.output.artifact_directory = args.artifact_dir
+        config.output.profile_export_file = args.profile_export_file
+        config.output.generate_plots = args.generate_plots
+        return config
+
     # Endpoint
     config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
         args.model_selection_strategy.upper()
@@ -1168,7 +1178,8 @@ def parse_args():
             config = _create_template_config(args, argv)
             return args, config, None
         elif args.subcommand == Subcommand.PROCESS.value:
-            config = _create_process_export_files_config(args)
+            config = ConfigCommand({"model_name": ""})
+            config = add_cli_options_to_config(config, args)
             return args, config, None
         else:
             # For all other subcommands, parse the CLI fully (no config file)
@@ -1236,21 +1247,6 @@ def _create_template_config(args: argparse.Namespace, argv: List[str]) -> Config
         default=TemplateDefaults.FILENAME, value=filename, add_to_template=False
     )
 
-    return config
-
-
-def _create_process_export_files_config(args: argparse.Namespace) -> ConfigCommand:
-    config = ConfigCommand({"model_name": ""})
-
-    config.subcommand = ConfigField(default=None, value=args.subcommand, required=True)
-    config.input.path = ConfigField(
-        default=None, value=args.input_path[0], required=True
-    )
-    config.output.artifact_directory = args.artifact_dir
-    config.output.profile_export_file = args.profile_export_file
-    config.output.generate_plots = args.generate_plots
-
-    config.verbose = ConfigField(default=False, value=args.verbose)
     return config
 
 
