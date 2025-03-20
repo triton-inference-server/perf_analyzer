@@ -116,7 +116,9 @@ class ConfigCommand(BaseConfig):
     # Infer Methods
     ###########################################################################
     def _infer_settings(self) -> None:
+        # covers the template creation case
         model_name = self.model_names[0] if self.model_names else ""
+
         self.endpoint.infer_settings(model_name)
         self.input.infer_settings()
         self.perf_analyzer.infer_settings()
