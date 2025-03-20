@@ -114,14 +114,6 @@ class ConsoleExporter:
         if self._config.endpoint.type == "embeddings":
             return False  # skip nothing
 
-        # TODO (TMA-1712): need to decide if we need this metric. Remove
-        # from statistics display for now.
-        # TODO (TMA-1678): output_token_throughput_per_request is treated
-        # separately since the current code treats all throughput metrics to
-        # be displayed outside of the statistics table.
-        if metric_name == "output_token_throughput_per_request":
-            return True
-
         # When non-streaming, skip ITL and TTFT
         streaming_metrics = [
             "inter_token_latency",
