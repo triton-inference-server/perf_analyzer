@@ -1236,7 +1236,7 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
     process_export_files = subparsers.add_parser(
-        Subcommand.PROCESS_EXPORT_FILES.to_cli_format(),
+        Subcommand.PROCESS.value,
         description="Subcommand to process export files and aggregate the results.",
     )
     _add_process_export_files_args(process_export_files)
@@ -1316,12 +1316,21 @@ def refine_args(
         args = _check_compare_args(parser, args)
     elif args.subcommand == Subcommand.TEMPLATE.value:
         pass
-    elif args.subcommand == Subcommand.PROCESS_EXPORT_FILES.to_cli_format():
+    elif args.subcommand == Subcommand.PROCESS.value:
         pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
 
     return args
+
+
+def _set_output_config(config: ConfigCommand, args: argparse.Namespace) -> None:
+    """
+    Set the output-related fields in the config file.
+    """
+    config.output.artifact_directory = args.artifact_dir
+    config.output.profile_export_file = args.profile_export_file
+    config.output.generate_plots = args.generate_plots
 
 
 def add_cli_options_to_config(
@@ -1332,6 +1341,14 @@ def add_cli_options_to_config(
         default="profile", value=args.subcommand, required=True
     )
     config.verbose = ConfigField(default=False, value=args.verbose)
+
+    # Process Export Files
+    if args.subcommand == "process-export-files":
+        config.input.path = ConfigField(
+            default=None, value=args.input_path[0], required=True
+        )
+        _set_output_config(config, args)
+        return config
 
     # Analyze
     if args.subcommand == "analyze":
@@ -1427,10 +1444,8 @@ def add_cli_options_to_config(
     config.input.sessions.turns.stddev = args.session_turns_stddev
 
     # Output
-    config.output.artifact_directory = args.artifact_dir
     # config.output.checkpoint_directory - There is no equivalent setting in the CLI
-    config.output.profile_export_file = args.profile_export_file
-    config.output.generate_plots = args.generate_plots
+    _set_output_config(config, args)
 
     # Tokenizer
     config.tokenizer.name = args.tokenizer
@@ -1476,7 +1491,10 @@ def parse_args():
 
         if args.subcommand == Subcommand.TEMPLATE.value:
             config = _create_template_config(args, argv)
-
+            return args, config, None
+        elif args.subcommand == Subcommand.PROCESS.value:
+            config = ConfigCommand({"model_name": ""})
+            config = add_cli_options_to_config(config, args)
             return args, config, None
         else:
             # For all other subcommands, parse the CLI fully (no config file)
