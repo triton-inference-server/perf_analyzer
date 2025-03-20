@@ -1003,6 +1003,15 @@ def refine_args(
     return args
 
 
+def _set_output_config(config: ConfigCommand, args: argparse.Namespace) -> None:
+    """
+    Set the output-related fields in the config file.
+    """
+    config.output.artifact_directory = args.artifact_dir
+    config.output.profile_export_file = args.profile_export_file
+    config.output.generate_plots = args.generate_plots
+
+
 def add_cli_options_to_config(
     config: ConfigCommand, args: argparse.Namespace
 ) -> ConfigCommand:
@@ -1011,6 +1020,14 @@ def add_cli_options_to_config(
         default="profile", value=args.subcommand, required=True
     )
     config.verbose = ConfigField(default=False, value=args.verbose)
+
+    # Process Export Files
+    if args.subcommand == "process-export-files":
+        config.input.path = ConfigField(
+            default=None, value=args.input_path[0], required=True
+        )
+        _set_output_config(config, args)
+        return config
 
     # Analyze
     if args.subcommand == "analyze":
@@ -1025,16 +1042,6 @@ def add_cli_options_to_config(
                 sweep_parameters[args.sweep_type]["step"] = args.sweep_step
 
         config.analyze.parse(sweep_parameters)
-
-    # Process Export Files
-    elif args.subcommand == "process-export-files":
-        config.input.path = ConfigField(
-            default=None, value=args.input_path[0], required=True
-        )
-        config.output.artifact_directory = args.artifact_dir
-        config.output.profile_export_file = args.profile_export_file
-        config.output.generate_plots = args.generate_plots
-        return config
 
     # Endpoint
     config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
@@ -1131,10 +1138,8 @@ def add_cli_options_to_config(
     config.input.sessions.turns.stddev = args.session_turns_stddev
 
     # Output
-    config.output.artifact_directory = args.artifact_dir
     # config.output.checkpoint_directory - There is no equivalent setting in the CLI
-    config.output.profile_export_file = args.profile_export_file
-    config.output.generate_plots = args.generate_plots
+    _set_output_config(config, args)
 
     # Tokenizer
     config.tokenizer.name = args.tokenizer
