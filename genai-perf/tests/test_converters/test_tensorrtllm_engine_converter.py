@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from unittest.mock import Mock, patch
+
 import pytest
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
@@ -39,10 +41,40 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer, get_tokenizer
+from genai_perf.tokenizer import get_empty_tokenizer
+
+# Mock tokenizer outputs
+MOCK_TOKENIZED_ONE = [1426, 1881, 697]  # "text input one"
+MOCK_TOKENIZED_TWO = [1426, 1881, 1023]  # "text input two"
+MOCK_CHAT_TOKENIZED_ONE = [1111, 2222, 3333]  # chat template for "text input one"
+MOCK_CHAT_TOKENIZED_TWO = [4444, 5555, 6666]  # chat template for "text input two"
 
 
 class TestTensorRTLLMEngineConverter:
+    @pytest.fixture(autouse=True)
+    def setup_mocks(self):
+        # Create mock tokenizer
+        self.mock_tokenizer = Mock()
+        self.mock_tokenizer.encode.side_effect = lambda text, **kwargs: (
+            MOCK_TOKENIZED_ONE if "one" in text else MOCK_TOKENIZED_TWO
+        )
+
+        # Create mock inner tokenizer for chat templates
+        self.mock_inner_tokenizer = Mock()
+        self.mock_inner_tokenizer.apply_chat_template.side_effect = (
+            lambda messages, **kwargs: (
+                "chat_one" if "one" in messages[0]["content"] else "chat_two"
+            )
+        )
+        self.mock_tokenizer._tokenizer = self.mock_inner_tokenizer
+
+        # Patch the get_tokenizer function
+        self.get_tokenizer_patcher = patch(
+            "genai_perf.tokenizer.get_tokenizer", return_value=self.mock_tokenizer
+        )
+        self.mock_get_tokenizer = self.get_tokenizer_patcher.start()
+        yield
+        self.get_tokenizer_patcher.stop()
 
     @staticmethod
     def create_generic_dataset() -> GenericDataset:
@@ -88,13 +120,14 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset()
 
-        config = ConfigCommand({"model_names": ["test_model"]})
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "mock_tokenizer"
         inputs_config = InputsConfig(
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=get_tokenizer(config),
+            tokenizer=self.mock_tokenizer,
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
@@ -104,7 +137,7 @@ class TestTensorRTLLMEngineConverter:
             "data": [
                 {
                     "input_ids": {
-                        "content": [1426, 1881, 697],
+                        "content": MOCK_TOKENIZED_ONE,
                         "shape": [3],
                     },
                     "input_lengths": [3],
@@ -112,7 +145,7 @@ class TestTensorRTLLMEngineConverter:
                 },
                 {
                     "input_ids": {
-                        "content": [1426, 1881, 1023],
+                        "content": MOCK_TOKENIZED_TWO,
                         "shape": [3],
                     },
                     "input_lengths": [3],
@@ -125,45 +158,35 @@ class TestTensorRTLLMEngineConverter:
 
     def test_convert_with_chat_template(self):
         generic_dataset = self.create_generic_dataset()
-        config = ConfigCommand({"model_names": ["test_model"]})
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "mock_tokenizer"
         inputs_config = InputsConfig(
             extra_inputs={"apply_chat_template": True},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=get_tokenizer(config),
+            tokenizer=self.mock_tokenizer,
+        )
+
+        # Set up mock for chat template encoding
+        self.mock_tokenizer.encode.side_effect = lambda text: (
+            MOCK_CHAT_TOKENIZED_ONE if "chat_one" in text else MOCK_CHAT_TOKENIZED_TWO
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
-
         result = trtllm_engine_converter.convert(generic_dataset, inputs_config)
-
-        expected_texts = [
-            inputs_config.tokenizer._tokenizer.apply_chat_template(
-                [{"role": "user", "content": "text input one"}],
-                tokenize=False,
-                add_special_tokens=False,
-            ),
-            inputs_config.tokenizer._tokenizer.apply_chat_template(
-                [{"role": "user", "content": "text input two"}],
-                tokenize=False,
-                add_special_tokens=False,
-            ),
-        ]
-        expected_tokenized = [
-            inputs_config.tokenizer.encode(text) for text in expected_texts
-        ]
 
         assert "data" in result
         assert isinstance(result["data"], list)
         assert len(result["data"]) == 2
 
+        expected_contents = [MOCK_CHAT_TOKENIZED_ONE, MOCK_CHAT_TOKENIZED_TWO]
         for i, payload in enumerate(result["data"]):
             assert "input_ids" in payload
             assert "content" in payload["input_ids"]
-            assert payload["input_ids"]["content"] == expected_tokenized[i], (
+            assert payload["input_ids"]["content"] == expected_contents[i], (
                 f"Mismatch in tokenized content for row {i}: "
-                f"Expected {expected_tokenized[i]}, but got {payload['input_ids']['content']}"
+                f"Expected {expected_contents[i]}, but got {payload['input_ids']['content']}"
             )
 
     def test_convert_with_request_parameters(self):
@@ -171,13 +194,14 @@ class TestTensorRTLLMEngineConverter:
 
         extra_inputs = {"additional_key": "additional_value"}
 
-        config = ConfigCommand({"model_names": ["test_model"]})
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "mock_tokenizer"
         inputs_config = InputsConfig(
             extra_inputs=extra_inputs,
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=get_tokenizer(config),
+            tokenizer=self.mock_tokenizer,
             add_stream=True,
             output_tokens_mean=1234,
             output_tokens_deterministic=True,
@@ -190,7 +214,7 @@ class TestTensorRTLLMEngineConverter:
             "data": [
                 {
                     "input_ids": {
-                        "content": [1426, 1881, 697],
+                        "content": MOCK_TOKENIZED_ONE,
                         "shape": [3],
                     },
                     "input_lengths": [3],
@@ -201,7 +225,7 @@ class TestTensorRTLLMEngineConverter:
                 },
                 {
                     "input_ids": {
-                        "content": [1426, 1881, 1023],
+                        "content": MOCK_TOKENIZED_TWO,
                         "shape": [3],
                     },
                     "input_lengths": [3],
@@ -237,13 +261,14 @@ class TestTensorRTLLMEngineConverter:
     def test_convert_with_payload_parameters(self):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        config = ConfigCommand({"model_names": ["test_model"]})
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "mock_tokenizer"
         inputs_config = InputsConfig(
             extra_inputs={},
             model_name=["test_model"],
             model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
             output_format=OutputFormat.TENSORRTLLM_ENGINE,
-            tokenizer=get_tokenizer(config),
+            tokenizer=self.mock_tokenizer,
         )
 
         trtllm_engine_converter = TensorRTLLMEngineConverter()
@@ -253,7 +278,7 @@ class TestTensorRTLLMEngineConverter:
             "data": [
                 {
                     "input_ids": {
-                        "content": [1426, 1881, 697],
+                        "content": MOCK_TOKENIZED_ONE,
                         "shape": [3],
                     },
                     "input_lengths": [3],
@@ -263,7 +288,7 @@ class TestTensorRTLLMEngineConverter:
                 },
                 {
                     "input_ids": {
-                        "content": [1426, 1881, 1023],
+                        "content": MOCK_TOKENIZED_TWO,
                         "shape": [3],
                     },
                     "input_lengths": [3],
