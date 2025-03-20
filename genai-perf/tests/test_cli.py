@@ -1510,9 +1510,10 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
 
         assert args.artifact_dir == Path(expected_path)
+        assert config.output.artifact_directory == Path(expected_path)
 
     @pytest.mark.parametrize(
         "arg, expected_path",
@@ -1533,9 +1534,10 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
 
         assert args.profile_export_file == Path(expected_path)
+        assert config.output.profile_export_file == Path(expected_path)
 
     def test_process_export_files_unrecognized_arg(self, monkeypatch, capsys):
         monkeypatch.setattr("genai_perf.parser.directory", Path)

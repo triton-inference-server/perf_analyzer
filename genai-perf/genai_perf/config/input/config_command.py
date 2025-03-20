@@ -39,6 +39,7 @@ class Subcommand(Enum):
     PROFILE = "profile"
     ANALYZE = "analyze"
     TEMPLATE = "create-template"
+    PROCESS = "process-export-files"
 
 
 ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
