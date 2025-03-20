@@ -85,9 +85,6 @@ class ConfigPerfAnalyzer(BaseConfig):
                     f"User Config: {key} is not a valid perf_analyzer parameter"
                 )
 
-    ###########################################################################
-    # Infer Methods
-    ###########################################################################
     def infer_settings(self) -> None:
         self.measurement._infer_measurement_num_based_on_mode()
 
