@@ -1475,6 +1475,9 @@ def parse_args():
             config = _create_template_config(args, argv)
 
             return args, config, None
+        elif args.subcommand == Subcommand.COMPARE.value:
+            # this subcommand is deprecated and is not supported in the config file
+            return args, None, argv[passthrough_index + 1 :]
         else:
             # For all other subcommands, parse the CLI fully (no config file)
             config = ConfigCommand({"model_name": args.formatted_model_name})
