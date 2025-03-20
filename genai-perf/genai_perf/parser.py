@@ -1236,7 +1236,7 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
     process_export_files = subparsers.add_parser(
-        Subcommand.PROCESS_EXPORT_FILES.to_cli_format(),
+        Subcommand.PROCESS.value,
         description="Subcommand to process export files and aggregate the results.",
     )
     _add_process_export_files_args(process_export_files)
@@ -1316,7 +1316,7 @@ def refine_args(
         args = _check_compare_args(parser, args)
     elif args.subcommand == Subcommand.TEMPLATE.value:
         pass
-    elif args.subcommand == Subcommand.PROCESS_EXPORT_FILES.to_cli_format():
+    elif args.subcommand == Subcommand.PROCESS.value:
         pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
@@ -1478,6 +1478,9 @@ def parse_args():
             config = _create_template_config(args, argv)
 
             return args, config, None
+        if args.subcommand == Subcommand.PROCESS.value:
+            config = _create_process_export_files_config(args)
+            return args, config, None
         else:
             # For all other subcommands, parse the CLI fully (no config file)
             config = ConfigCommand({"model_name": args.formatted_model_name})
@@ -1539,6 +1542,23 @@ def _create_template_config(args: argparse.Namespace, argv: List[str]) -> Config
         default=TemplateDefaults.FILENAME, value=filename, add_to_template=False
     )
 
+    return config
+
+
+def _create_process_export_files_config(args: argparse.Namespace) -> ConfigCommand:
+    config = ConfigCommand({"model_name": ""})
+
+    config.subcommand = ConfigField(
+        default="process-export-files", value=args.subcommand, required=True
+    )
+    config.input.path = ConfigField(
+        default=None, value=args.input_path[0], required=True
+    )
+    config.output.artifact_directory = args.artifact_dir
+    config.output.profile_export_file = args.profile_export_file
+    config.output.generate_plots = args.generate_plots
+
+    config.verbose = ConfigField(default=False, value=args.verbose)
     return config
 
 
