@@ -20,6 +20,7 @@ from genai_perf.inputs.input_constants import (
     ImageFormat,
     ModelSelectionStrategy,
     OutputFormat,
+    PerfAnalyzerMeasurementMode,
 )
 
 
@@ -78,7 +79,15 @@ class PerfAnalyzerDefaults:
     VERBOSE = False
     STIMULUS = {"concurrency": 1}
     STABILITY_PERCENTAGE = 999
-    MEASUREMENT_INTERVAL = 10000
+    WARMUP_REQUEST_COUNT = 0
+
+
+@dataclass(frozen=True)
+class PerfAnalyzerMeasurementDefaults:
+    MODE = PerfAnalyzerMeasurementMode.REQUEST_COUNT
+    NUM = None
+    INTERVAL = 10000
+    REQUEST_COUNT = 10
 
 
 @dataclass(frozen=True)
@@ -121,12 +130,6 @@ class PrefixPromptDefaults:
 
 
 @dataclass(frozen=True)
-class RequestCountDefaults:
-    NUM = 10
-    WARMUP = 0
-
-
-@dataclass(frozen=True)
 class InputDefaults:
     BATCH_SIZE = 1
     EXTRA = ""
@@ -166,7 +169,7 @@ class OutputDefaults:
 
 @dataclass(frozen=True)
 class TokenizerDefaults:
-    NAME = "hf-internal-testing/llama-tokenizer"
+    NAME = ""
     REVISION = "main"
     TRUST_REMOTE_CODE = False
 

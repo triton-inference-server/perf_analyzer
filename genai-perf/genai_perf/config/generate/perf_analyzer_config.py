@@ -26,6 +26,7 @@ from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import (
     DEFAULT_INPUT_DATA_JSON,
     OutputFormat,
+    PerfAnalyzerMeasurementMode,
     PromptSource,
 )
 from genai_perf.logging import logging
@@ -248,13 +249,21 @@ class PerfAnalyzerConfig:
             perf_analyzer_args += [
                 f"--stability-percentage",
                 f"{config.perf_analyzer.stability_percentage}",
-                f"--measurement-interval",
-                f"{config.perf_analyzer.measurement_interval}",
-                f"--request-count",
-                f"{config.perf_analyzer.request_count.num}",
                 f"--warmup-request-count",
-                f"{config.perf_analyzer.request_count.warmup}",
+                f"{config.perf_analyzer.warmup_request_count}",
             ]
+
+            mode = config.perf_analyzer.measurement.mode
+            if mode == PerfAnalyzerMeasurementMode.REQUEST_COUNT:
+                perf_analyzer_args += [
+                    "--request-count",
+                    f"{config.perf_analyzer.measurement.num}",
+                ]
+            elif mode == PerfAnalyzerMeasurementMode.INTERVAL:
+                perf_analyzer_args += [
+                    f"--measurement-interval",
+                    f"{config.perf_analyzer.measurement.num}",
+                ]
 
         return perf_analyzer_args
 

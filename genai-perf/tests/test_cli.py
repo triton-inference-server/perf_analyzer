@@ -246,7 +246,7 @@ class TestCLIArguments:
             (
                 ["--measurement-interval", "100"],
                 {"measurement_interval": 100},
-                {"perf_analyzer.measurement_interval": 100},
+                {"perf_analyzer.measurement.num": 100},
             ),
             (
                 ["--model-selection-strategy", "random"],
@@ -291,7 +291,7 @@ class TestCLIArguments:
             (
                 ["-p", "100"],
                 {"measurement_interval": 100},
-                {"perf_analyzer.measurement_interval": 100},
+                {"perf_analyzer.measurement.num": 100},
             ),
             (
                 ["--profile-export-file", "test.json"],
@@ -302,22 +302,22 @@ class TestCLIArguments:
             (
                 ["--request-count", "100"],
                 {"request_count": 100},
-                {"perf_analyzer.request_count.num": 100},
+                {"perf_analyzer.measurement.num": 100},
             ),
             (
                 ["--num-requests", "100"],
                 {"request_count": 100},
-                {"perf_analyzer.request_count.num": 100},
+                {"perf_analyzer.measurement.num": 100},
             ),
             (
                 ["--warmup-request-count", "100"],
                 {"warmup_request_count": 100},
-                {"perf_analyzer.request_count.warmup": 100},
+                {"perf_analyzer.warmup_request_count": 100},
             ),
             (
                 ["--num-warmup-requests", "100"],
                 {"warmup_request_count": 100},
-                {"perf_analyzer.request_count.warmup": 100},
+                {"perf_analyzer.warmup_request_count": 100},
             ),
             (
                 ["--request-rate", "9.0"],

@@ -31,14 +31,16 @@ class ConfigTokenizer(BaseConfig):
         super().__init__()
         self.name: Any = ConfigField(
             default=TokenizerDefaults.NAME,
+            template_comment="By default this is the model's name",
             verbose_template_comment="The HuggingFace tokenizer to use to interpret token metrics\
                 \nfrom prompts and responses. The value can be the\
-                \nname of a tokenizer or the filepath of the tokenizer.",
+                \nname of a tokenizer or the filepath of the tokenizer.\
+                \nThe default value is the model name.",
         )
         self.revision: Any = ConfigField(
             default=TokenizerDefaults.REVISION,
             verbose_template_comment="The specific model version to use.\
-                                             \nIt can be a branch name, tag name, or commit ID.",
+                                    \nIt can be a branch name, tag name, or commit ID.",
         )
         self.trust_remote_code: Any = ConfigField(
             default=TokenizerDefaults.TRUST_REMOTE_CODE,

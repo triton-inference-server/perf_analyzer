@@ -21,13 +21,11 @@ from unittest.mock import MagicMock, patch
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
 from genai_perf.config.input.config_command import ConfigCommand, ConfigInput, Range
-from genai_perf.config.input.config_defaults import (
-    PerfAnalyzerDefaults,
-    RequestCountDefaults,
-)
+from genai_perf.config.input.config_defaults import PerfAnalyzerDefaults
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
+    PerfAnalyzerMeasurementMode,
     PromptSource,
 )
 from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
@@ -192,9 +190,11 @@ class TestConfigCommand(unittest.TestCase):
                 stimulus:
                     concurrency: 64
                 stability_percentage: 500
-                request_count:
-                    num: 100
-                    warmup: 200
+                warmup_request_count: 200
+
+                measurement:
+                  mode: request_count
+                  num: 100
             """)
         # yapf: enable
 
@@ -205,64 +205,12 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.perf_analyzer.verbose, True)
         self.assertEqual(config.perf_analyzer.stimulus, {"concurrency": 64})
         self.assertEqual(config.perf_analyzer.stability_percentage, 500)
-        self.assertEqual(config.perf_analyzer.request_count.num, 100)
-        self.assertEqual(config.perf_analyzer.request_count.warmup, 200)
-
-    def test_perf_analyzer_config_measurement_group(self):
-        """
-        Test that measurement_interval and request_count are mutually exclusive
-        """
-        # Test that both options cannot be specified
-        yaml_str = """
-            model_name: gpt2
-
-            perf_analyzer:
-                measurement_interval: 1000
-                request_count:
-                    num: 100
-            """
-        user_config = yaml.safe_load(yaml_str)
-        with self.assertRaises(ValueError) as cm:
-            ConfigCommand(user_config)
-        self.assertIn("mutually exclusive", str(cm.exception))
-
-        # Test that setting neither option defaults to default request count
-        yaml_str = """
-            model_name: gpt2
-
-            perf_analyzer:
-                path: test_path
-            """
-        user_config = yaml.safe_load(yaml_str)
-        config = ConfigCommand(user_config)
         self.assertEqual(
-            config.perf_analyzer.request_count.num, RequestCountDefaults.NUM
+            config.perf_analyzer.measurement.mode,
+            PerfAnalyzerMeasurementMode.REQUEST_COUNT,
         )
-
-    def test_perf_analyzer_config_measurement_interval_alone(self):
-        """
-        Test that measurement_interval can be used without request_count
-        """
-        # yapf: disable
-        yaml_str = ("""
-            model_name: gpt2
-
-            perf_analyzer:
-                path: test_path
-                verbose: True
-                stimulus:
-                    concurrency: 64
-                stability_percentage: 500
-                measurement_interval: 1000
-            """)
-        # yapf: enable
-
-        user_config = yaml.safe_load(yaml_str)
-        config = ConfigCommand(user_config)
-
-        self.assertEqual(config.perf_analyzer.measurement_interval, 1000)
-        self.assertEqual(config.perf_analyzer.request_count.num, 0)
-        self.assertEqual(config.perf_analyzer.request_count.warmup, 0)
+        self.assertEqual(config.perf_analyzer.measurement.num, 100)
+        self.assertEqual(config.perf_analyzer.warmup_request_count, 200)
 
     def test_session_turn_delay_ratio(self):
         """

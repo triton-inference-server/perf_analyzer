@@ -48,6 +48,11 @@ class ImageFormat(Enum):
     JPEG = "JPEG"
 
 
+class PerfAnalyzerMeasurementMode(Enum):
+    REQUEST_COUNT = "REQUEST_COUNT"
+    INTERVAL = "INTERVAL"
+
+
 class OutputFormat(Enum):
     ################################################################
     # Triton backends

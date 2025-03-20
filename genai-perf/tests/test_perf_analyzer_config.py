@@ -29,7 +29,11 @@ from genai_perf.config.generate.perf_analyzer_config import (
 from genai_perf.config.generate.search_parameters import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
 from genai_perf.constants import DEFAULT_GRPC_URL
-from genai_perf.inputs.input_constants import OutputFormat, PromptSource
+from genai_perf.inputs.input_constants import (
+    OutputFormat,
+    PerfAnalyzerMeasurementMode,
+    PromptSource,
+)
 
 
 class TestPerfAnalyzerConfig(unittest.TestCase):
@@ -102,12 +106,10 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             "text_input:1",
             "--service-kind",
             "triton",
-            "--measurement-interval",
-            "10000",
             "--stability-percentage",
             "999",
             "--request-count",
-            "0",
+            "10",
             "--warmup-request-count",
             "0",
             "--input-data",
@@ -119,6 +121,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             "--concurrency-range",
             "64",
         }
+        foo = self._default_perf_analyzer_config.create_command()
         actual_command = set(self._default_perf_analyzer_config.create_command())
 
         for field in expected_command:
@@ -140,10 +143,8 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 "--async",
                 "--stability-percentage",
                 "999",
-                "--measurement-interval",
-                "10000",
                 "--request-count",
-                "0",
+                "10",
                 "--warmup-request-count",
                 "0",
                 "--streaming",
@@ -272,20 +273,20 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         when prompt_source is not PAYLOAD
         """
         self._config.input.prompt_source = PromptSource.FILE
-        self._config.perf_analyzer.stability_percentage = 999
-        self._config.perf_analyzer.measurement_interval = 10000
-        self._config.perf_analyzer.request_count.num = 0
-        self._config.perf_analyzer.request_count.warmup = 0
+        self._config.perf_analyzer.stability_percentage = 567
+        self._config.perf_analyzer.measurement.mode = (
+            PerfAnalyzerMeasurementMode.INTERVAL
+        )
+        self._config.perf_analyzer.measurement.num = 5000
+        self._config.perf_analyzer.warmup_request_count = 30
 
         expected_args = [
             "--stability-percentage",
-            "999",
-            "--measurement-interval",
-            "10000",
-            "--request-count",
-            "0",
+            "567",
             "--warmup-request-count",
-            "0",
+            "30",
+            "--measurement-interval",
+            "5000",
         ]
 
         actual_args = self._default_perf_analyzer_config._add_perf_analyzer_args(

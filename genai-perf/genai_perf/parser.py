@@ -1370,9 +1370,21 @@ def add_cli_options_to_config(
         config.perf_analyzer.stimulus = stimulus
 
     config.perf_analyzer.stability_percentage = args.stability_percentage
-    config.perf_analyzer.measurement_interval = args.measurement_interval
-    config.perf_analyzer.request_count.warmup = args.warmup_request_count
-    config.perf_analyzer.request_count.num = args.request_count
+    config.perf_analyzer.warmup_request_count = args.warmup_request_count
+
+    if args.measurement_interval:
+        config.perf_analyzer.measurement.mode = ic.PerfAnalyzerMeasurementMode.INTERVAL
+        config.perf_analyzer.measurement.num = args.measurement_interval
+    elif args.request_count:
+        config.perf_analyzer.measurement.mode = (
+            ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
+        )
+        config.perf_analyzer.measurement.num = args.request_count
+    else:
+        config.perf_analyzer.measurement.mode = (
+            ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
+        )
+        config.perf_analyzer.measurement.num = ic.DEFAULT_REQUEST_COUNT
 
     # Input
     config.input.batch_size = args.batch_size_text

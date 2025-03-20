@@ -112,6 +112,7 @@ class ConfigCommand(BaseConfig):
     def _infer_settings(self) -> None:
         self.endpoint.infer_settings(model_name=self.model_names[0])
         self.input.infer_settings()
+        self.perf_analyzer.infer_settings()
         self.tokenizer.infer_settings(model_name=self.model_names[0])
 
     ###########################################################################
