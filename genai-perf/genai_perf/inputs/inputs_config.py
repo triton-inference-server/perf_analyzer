@@ -34,7 +34,6 @@ from genai_perf.tokenizer import Tokenizer
 
 
 @dataclass
-@dataclass
 class InputsConfig:
     config: ConfigCommand
     tokenizer: Tokenizer
