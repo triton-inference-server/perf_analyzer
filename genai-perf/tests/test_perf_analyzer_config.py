@@ -121,7 +121,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             "--concurrency-range",
             "64",
         }
-        foo = self._default_perf_analyzer_config.create_command()
         actual_command = set(self._default_perf_analyzer_config.create_command())
 
         for field in expected_command:

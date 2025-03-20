@@ -21,7 +21,6 @@ from unittest.mock import MagicMock, patch
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
 from genai_perf.config.input.config_command import ConfigCommand, ConfigInput, Range
-from genai_perf.config.input.config_defaults import PerfAnalyzerDefaults
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
