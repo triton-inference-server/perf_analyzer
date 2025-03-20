@@ -1527,7 +1527,7 @@ def parse_args():
 
 
 def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
-    config = ConfigCommand({"model_name": ""})
+    config = ConfigCommand({"model_name": ""}, create_template=True)
 
     config.verbose = ConfigField(
         default=False, value=args.verbose, add_to_template=False
