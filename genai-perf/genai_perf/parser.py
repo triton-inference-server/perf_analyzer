@@ -1166,9 +1166,8 @@ def parse_args():
 
         if args.subcommand == Subcommand.TEMPLATE.value:
             config = _create_template_config(args, argv)
-
             return args, config, None
-        if args.subcommand == Subcommand.PROCESS.value:
+        elif args.subcommand == Subcommand.PROCESS.value:
             config = _create_process_export_files_config(args)
             return args, config, None
         else:
@@ -1243,9 +1242,7 @@ def _create_template_config(args: argparse.Namespace, argv: List[str]) -> Config
 def _create_process_export_files_config(args: argparse.Namespace) -> ConfigCommand:
     config = ConfigCommand({"model_name": ""})
 
-    config.subcommand = ConfigField(
-        default="process-export-files", value=args.subcommand, required=True
-    )
+    config.subcommand = ConfigField(default=None, value=args.subcommand, required=True)
     config.input.path = ConfigField(
         default=None, value=args.input_path[0], required=True
     )
