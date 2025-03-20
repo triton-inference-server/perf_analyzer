@@ -53,8 +53,8 @@ class TestLLMMetrics:
         assert req_metrics[2].unit == "ms"
         assert req_metrics[3].name == "inter_token_latency"
         assert req_metrics[3].unit == "ms"
-        assert req_metrics[4].name == "output_token_throughput_per_request"
-        assert req_metrics[4].unit == "tokens/sec"
+        assert req_metrics[4].name == "output_token_throughput_per_user"
+        assert req_metrics[4].unit == "tokens/sec/user"
         assert req_metrics[5].name == "output_sequence_length"
         assert req_metrics[5].unit == "tokens"
         assert req_metrics[6].name == "input_sequence_length"
@@ -97,8 +97,8 @@ class TestLLMMetrics:
         )
         req_metrics = m.request_throughput_metrics
         assert len(req_metrics) == 1
-        assert req_metrics[0].name == "output_token_throughput_per_request"
-        assert req_metrics[0].unit == "tokens/sec"
+        assert req_metrics[0].name == "output_token_throughput_per_user"
+        assert req_metrics[0].unit == "tokens/sec/user"
 
     def test_llm_metric_system_metrics(self) -> None:
         """Test system_metrics property."""
@@ -144,7 +144,7 @@ class TestLLMMetrics:
         assert metrics.get_base_name("inter_token_latencies") == "inter_token_latency"
         assert (
             metrics.get_base_name("output_token_throughput_per_user")
-            == "output_token_throughput_per_request"
+            == "output_token_throughput_per_user"
         )
         assert (
             metrics.get_base_name("output_sequence_lengths") == "output_sequence_length"

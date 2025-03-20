@@ -64,7 +64,7 @@ class TestStatistics:
                     "time_to_first_token": "ms",
                     "inter_token_latency": "ms",
                     "output_token_throughput": "tokens/sec",
-                    "output_token_throughput_per_request": "tokens/sec",
+                    "output_token_throughput_per_user": "tokens/sec/user",
                     "output_sequence_length": "tokens",
                     "input_sequence_length": "tokens",
                 },

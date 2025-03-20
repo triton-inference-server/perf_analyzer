@@ -493,18 +493,18 @@ class TestCLIArguments:
                 [
                     "--goodput",
                     "time_to_first_token:5",
-                    "output_token_throughput_per_request:6",
+                    "output_token_throughput_per_user:6",
                 ],
                 {
                     "goodput": {
                         "time_to_first_token": 5,
-                        "output_token_throughput_per_request": 6,
+                        "output_token_throughput_per_user": 6,
                     }
                 },
                 {
                     "input.goodput": {
                         "time_to_first_token": 5,
-                        "output_token_throughput_per_request": 6,
+                        "output_token_throughput_per_user": 6,
                     }
                 },
             ),

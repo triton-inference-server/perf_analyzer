@@ -857,7 +857,7 @@ def _add_input_args(parser):
         "Specify goodput constraints as 'key:value' pairs, where the key is a "
         "valid metric name, and the value is a number representing "
         "either milliseconds or a throughput value per second. For example, "
-        "'request_latency:300' or 'output_token_throughput_per_request:600'. "
+        "'request_latency:300' or 'output_token_throughput_per_user:600'. "
         "Multiple key:value pairs can be provided, separated by spaces. ",
     )
 

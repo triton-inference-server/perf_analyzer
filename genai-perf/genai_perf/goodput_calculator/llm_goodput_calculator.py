@@ -71,7 +71,7 @@ class LLMGoodputCalculator(GoodputCalculator):
         self._slo_names["time_to_first_token"] = "time_to_first_tokens"  # nosec
         self._slo_names["time_to_second_token"] = "time_to_second_tokens"  # nosec
         self._slo_names["inter_token_latency"] = "inter_token_latencies"  # nosec
-        self._slo_names["output_token_throughput_per_request"] = (  # nosec
+        self._slo_names["output_token_throughput_per_user"] = (  # nosec
             "output_token_throughput_per_user"
         )
         self._slo_names["image_throughput"] = "image_throughputs"

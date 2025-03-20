@@ -41,7 +41,7 @@ class LLMMetrics(Metrics):
     ]
 
     LLM_REQUEST_THROUGHPUT_METRICS = [
-        MetricMetadata("output_token_throughput_per_request", "tokens/sec"),
+        MetricMetadata("output_token_throughput_per_user", "tokens/sec/user"),
     ]
 
     LLM_REQUEST_OTHER_METRICS = [
@@ -57,7 +57,7 @@ class LLMMetrics(Metrics):
 
     LLM_SYSTEM_METRICS = [
         # (TMA-1977) Make the unit consistent with statistics dict (e.g. tokens/sec)
-        MetricMetadata("output_token_throughput", "per sec"),
+        MetricMetadata("output_token_throughput", "tokens/sec"),
     ]
 
     def __init__(
@@ -95,7 +95,7 @@ class LLMMetrics(Metrics):
             "output_token_throughput"
         )
         self._base_names["output_token_throughput_per_user"] = (  # nosec
-            "output_token_throughput_per_request"
+            "output_token_throughput_per_user"
         )
         self._base_names["output_sequence_lengths"] = "output_sequence_length"
         self._base_names["input_sequence_lengths"] = "input_sequence_length"
