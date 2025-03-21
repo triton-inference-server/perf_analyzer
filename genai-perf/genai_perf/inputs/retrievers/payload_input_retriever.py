@@ -63,7 +63,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
 
         files_data: Dict[str, FileData] = {}
-        input_file = self.config.payload_input_filename
+        input_file = self.config.input.payload_file
         if input_file is None:
             raise ValueError("Input file cannot be None")
         file_data = self._get_input_dataset_from_file(input_file)
@@ -150,9 +150,11 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
         input_length = data.get("input_length")
         prompt_tokens_mean = (
-            input_length if input_length else self.config.prompt_tokens_mean
+            input_length if input_length else self.config.input.synthetic_tokens.mean
         )
-        prompt_tokens_stddev = 0 if input_length else self.config.prompt_tokens_stddev
+        prompt_tokens_stddev = (
+            0 if input_length else self.config.input.synthetic_tokens.stddev
+        )
         hash_ids = data.get("hash_ids", None)
         prompt = data.get("text")
         prompt_alt = data.get("text_input")
@@ -164,7 +166,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         # If none of the keys are provided, generate a synthetic prompt
         if not prompt and not prompt_alt:
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                self.config.tokenizer,
+                self.tokenizer,
                 prompt_tokens_mean,
                 prompt_tokens_stddev,
                 hash_ids,
@@ -184,8 +186,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             if key in data
         }
 
-        if "delay" in metadata and self.config.session_delay_ratio != 1.0:
-            metadata["delay"] = int(metadata["delay"] * self.config.session_delay_ratio)
+        if "delay" in metadata and self.config.input.sessions.turn_delay.ratio != 1.0:
+            metadata["delay"] = int(
+                metadata["delay"] * self.config.input.sessions.turn_delay.ratio
+            )
 
         return metadata
 

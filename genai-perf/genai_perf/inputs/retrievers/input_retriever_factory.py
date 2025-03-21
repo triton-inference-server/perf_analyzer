@@ -40,13 +40,13 @@ class InputRetrieverFactory:
     """
 
     @staticmethod
-    def create(config: InputsConfig) -> BaseInputRetriever:
+    def create(inputs_config: InputsConfig) -> BaseInputRetriever:
         retrievers = {
             PromptSource.SYNTHETIC: SyntheticDataRetriever,
             PromptSource.FILE: FileInputRetriever,
             PromptSource.PAYLOAD: PayloadInputRetriever,
         }
-        input_type = config.input_type
+        input_type = inputs_config.config.input.prompt_source
         if input_type not in retrievers:
             raise GenAIPerfException(f"Input source '{input_type}' is not recognized.")
-        return retrievers[input_type](config)
+        return retrievers[input_type](inputs_config)

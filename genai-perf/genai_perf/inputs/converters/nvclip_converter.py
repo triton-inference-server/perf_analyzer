@@ -28,25 +28,25 @@ from typing import Any, Dict
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class NVClipConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.add_stream:
+    def check_config(self) -> None:
+        if self.config.endpoint.streaming:
             raise GenAIPerfException(
-                f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+                f"The --streaming option is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                model_name = self._select_model_name(config, index)
+                model_name = self._select_model_name(index)
                 input_items = []
 
                 if row.texts:
@@ -60,8 +60,6 @@ class NVClipConverter(BaseConverter):
                     "input": input_items,
                 }
 
-                request_body["data"].append(
-                    self._finalize_payload(payload, config, row)
-                )
+                request_body["data"].append(self._finalize_payload(payload, row))
 
         return request_body

@@ -45,18 +45,19 @@ from genai_perf.utils import sample_bounded_normal_int
 
 class SyntheticDataRetriever(BaseInputRetriever):
 
-    def __init__(self, config: InputsConfig):
-        super().__init__(config)
+    def __init__(self, inputs_config: InputsConfig):
+        super().__init__(inputs_config)
         self._include_image: bool = (
-            config.image_width_mean > 0 and config.image_height_mean > 0
+            self.config.input.image.width.mean > 0
+            and self.config.input.image.height.mean > 0
         )
-        self._include_audio: bool = config.audio_length_mean > 0
+        self._include_audio: bool = self.config.input.audio.length.mean > 0
 
     def retrieve_data(self) -> GenericDataset:
-        files = self.config.synthetic_input_filenames or [DEFAULT_SYNTHETIC_FILENAME]
+        files = self.config.input.synthetic_files or [DEFAULT_SYNTHETIC_FILENAME]
         synthetic_dataset = GenericDataset(files_data={})
 
-        use_prefix_prompts = self.config.num_prefix_prompts > 0
+        use_prefix_prompts = self.config.input.prefix_prompt.num > 0
         if use_prefix_prompts:
             self._initialize_prefix_prompts()
 
@@ -68,23 +69,23 @@ class SyntheticDataRetriever(BaseInputRetriever):
 
     def _initialize_prefix_prompts(self) -> None:
         SyntheticPromptGenerator.create_prefix_prompts_pool(
-            self.config.tokenizer,
-            self.config.num_prefix_prompts,
-            self.config.prefix_prompt_length,
+            self.tokenizer,
+            self.config.input.prefix_prompt.num,
+            self.config.input.prefix_prompt.length,
         )
 
     def _generate_data_rows(self, use_prefix_prompts: bool) -> List[DataRow]:
-        if self.config.num_sessions > 0:
+        if self.config.input.sessions.num > 0:
             return self._generate_multi_turn_sessions(use_prefix_prompts)
         return self._generate_stateless_entries(use_prefix_prompts)
 
     def _generate_multi_turn_sessions(self, use_prefix_prompts: bool) -> List[DataRow]:
         data_rows = []
 
-        for _ in range(self.config.num_sessions):
+        for _ in range(self.config.input.sessions.num):
             num_turns = sample_bounded_normal_int(
-                self.config.session_turns_mean,
-                self.config.session_turns_stddev,
+                self.config.input.sessions.turns.mean,
+                self.config.input.sessions.turns.stddev,
                 lower=1,
             )
             session_id = str(uuid.uuid4())
@@ -97,8 +98,8 @@ class SyntheticDataRetriever(BaseInputRetriever):
 
                 if turn_idx < num_turns - 1:
                     session_delay = sample_bounded_normal_int(
-                        self.config.session_turn_delay_mean,
-                        self.config.session_turn_delay_stddev,
+                        self.config.input.sessions.turn_delay.mean,
+                        self.config.input.sessions.turn_delay.stddev,
                         lower=0,
                     )
                     row.payload_metadata["delay"] = session_delay
@@ -110,7 +111,7 @@ class SyntheticDataRetriever(BaseInputRetriever):
     def _generate_stateless_entries(self, use_prefix_prompts: bool) -> List[DataRow]:
         data_rows = []
 
-        for _ in range(self.config.num_dataset_entries):
+        for _ in range(self.config.input.num_dataset_entries):
             row = self._create_data_row()
             row.texts = self._generate_prompts(use_prefix_prompts)
             row.images = self._generate_images()
@@ -128,11 +129,11 @@ class SyntheticDataRetriever(BaseInputRetriever):
 
     def _generate_prompts(self, use_prefix_prompts: bool) -> List[str]:
         prompts = []
-        for _ in range(self.config.batch_size_text):
+        for _ in range(self.config.input.batch_size):
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                self.config.tokenizer,
-                self.config.prompt_tokens_mean,
-                self.config.prompt_tokens_stddev,
+                self.tokenizer,
+                self.config.input.synthetic_tokens.mean,
+                self.config.input.synthetic_tokens.stddev,
             )
             if use_prefix_prompts:
                 prefix_prompt = SyntheticPromptGenerator.get_random_prefix_prompt()
@@ -147,14 +148,14 @@ class SyntheticDataRetriever(BaseInputRetriever):
         """
         images = []
         if self._include_image:
-            for _ in range(self.config.batch_size_image):
+            for _ in range(self.config.input.image.batch_size):
                 images.append(
                     SyntheticImageGenerator.create_synthetic_image(
-                        image_width_mean=self.config.image_width_mean,
-                        image_width_stddev=self.config.image_width_stddev,
-                        image_height_mean=self.config.image_height_mean,
-                        image_height_stddev=self.config.image_height_stddev,
-                        image_format=self.config.image_format,
+                        image_width_mean=self.config.input.image.width.mean,
+                        image_width_stddev=self.config.input.image.width.stddev,
+                        image_height_mean=self.config.input.image.height.mean,
+                        image_height_stddev=self.config.input.image.height.stddev,
+                        image_format=self.config.input.image.format,
                     )
                 )
         return images
@@ -165,15 +166,10 @@ class SyntheticDataRetriever(BaseInputRetriever):
         """
         audios = []
         if self._include_audio:
-            for _ in range(self.config.batch_size_audio):
+            for _ in range(self.config.input.audio.batch_size):
                 audios.append(
                     SyntheticAudioGenerator.create_synthetic_audio(
-                        audio_length_mean=self.config.audio_length_mean,
-                        audio_length_stddev=self.config.audio_length_stddev,
-                        sampling_rates_khz=self.config.audio_sample_rates,
-                        bit_depths=self.config.audio_depths,
-                        audio_format=self.config.audio_format,
-                        channels=self.config.audio_num_channels,
+                        self.config.input.audio
                     )
                 )
         return audios

@@ -27,16 +27,15 @@
 from pathlib import Path
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.dynamic_grpc_converter import DynamicGRPCConverter
 from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 @pytest.fixture
@@ -55,20 +54,15 @@ def sample_dataset():
 
 @pytest.fixture
 def valid_config():
-    return InputsConfig(
-        tokenizer=get_empty_tokenizer(),
-        batch_size_text=DEFAULT_BATCH_SIZE,
-        input_filename=Path("test_input.txt"),
-    )
+    config = ConfigCommand({"model_name": "test_model"})
+    config.input.file = Path("test_input.txt")
+
+    return config
 
 
-@pytest.fixture
-def converter():
-    return DynamicGRPCConverter()
-
-
-def test_convert(converter, sample_dataset, valid_config):
-    result = converter.convert(sample_dataset, valid_config)
+def test_convert(sample_dataset, valid_config):
+    converter = DynamicGRPCConverter(valid_config)
+    result = converter.convert(sample_dataset)
 
     expected_result = {
         "data": [
@@ -80,13 +74,14 @@ def test_convert(converter, sample_dataset, valid_config):
     assert result == expected_result
 
 
-def test_convert_with_extra_inputs(converter, sample_dataset, valid_config, mocker):
-    valid_config.extra_inputs = {"extra_key": "extra_value"}
+def test_convert_with_extra_inputs(sample_dataset, valid_config, mocker):
+    valid_config.input.extra = {"extra_key": "extra_value"}
+    converter = DynamicGRPCConverter(valid_config)
     mock_add_request_params = mocker.patch.object(
         converter, "_add_request_params", wraps=converter._add_request_params
     )
 
-    result = converter.convert(sample_dataset, valid_config)
+    result = converter.convert(sample_dataset)
 
     assert (
         mock_add_request_params.call_count == 2
@@ -102,19 +97,20 @@ def test_convert_with_extra_inputs(converter, sample_dataset, valid_config, mock
 
 
 @pytest.mark.parametrize("input_texts", [["hello"], ["long sentence example"], [""]])
-def test_convert_varied_inputs(converter, valid_config, input_texts):
+def test_convert_varied_inputs(valid_config, input_texts):
     dataset = GenericDataset(
         files_data={"file1": FileData(rows=[DataRow(texts=input_texts)])}
     )
 
-    result = converter.convert(dataset, valid_config)
+    converter = DynamicGRPCConverter(valid_config)
+    result = converter.convert(dataset)
 
     expected_result = {"data": [{"message_generator": text} for text in input_texts]}
 
     assert result == expected_result
 
 
-def test_convert_large_dataset(converter, valid_config):
+def test_convert_large_dataset(valid_config):
     """Test behavior with a large dataset."""
     large_dataset = GenericDataset(
         files_data={
@@ -122,7 +118,8 @@ def test_convert_large_dataset(converter, valid_config):
         }
     )
 
-    result = converter.convert(large_dataset, valid_config)
+    converter = DynamicGRPCConverter(valid_config)
+    result = converter.convert(large_dataset)
 
     assert len(result["data"]) == 1000, "Large dataset should generate 1000 entries."
     assert result["data"][0] == {
@@ -133,25 +130,28 @@ def test_convert_large_dataset(converter, valid_config):
     }, "Last entry does not match expected."
 
 
-def test_check_config_valid(converter, valid_config):
+def test_check_config_valid(valid_config):
     try:
-        converter.check_config(valid_config)
+        converter = DynamicGRPCConverter(valid_config)
+        converter.check_config()
     except GenAIPerfException as e:
         pytest.fail(f"check_config() raised an unexpected GenAIPerfException: {e}")
 
 
-def test_check_config_invalid_batch_size(converter, valid_config):
-    valid_config.batch_size_text = [2]
+def test_check_config_invalid_batch_size(valid_config):
+    valid_config.input.batch_size = [2]
     with pytest.raises(
         GenAIPerfException, match="The --batch-size-text flag is not supported"
     ):
-        converter.check_config(valid_config)
+        converter = DynamicGRPCConverter(valid_config)
+        converter.check_config()
 
 
-def test_check_config_missing_input_filename(converter, valid_config):
-    valid_config.input_filename = ""
+def test_check_config_missing_input_filename(valid_config):
+    valid_config.input.file = ""
     with pytest.raises(
         GenAIPerfException,
         match="The dynamic GRPC converter only supports the input file path.",
     ):
-        converter.check_config(valid_config)
+        converter = DynamicGRPCConverter(valid_config)
+        converter.check_config()

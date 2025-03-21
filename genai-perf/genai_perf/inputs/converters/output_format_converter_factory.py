@@ -24,9 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from typing import Optional
+
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import *
 from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.tokenizer import Tokenizer
 
 
 class OutputFormatConverterFactory:
@@ -36,7 +40,11 @@ class OutputFormatConverterFactory:
     """
 
     @staticmethod
-    def create(output_format: OutputFormat):
+    def create(
+        output_format: OutputFormat,
+        config: ConfigCommand,
+        tokenizer: Optional[Tokenizer] = None,
+    ):
         converters = {
             OutputFormat.DYANMIC_GRPC: DynamicGRPCConverter,
             OutputFormat.IMAGE_RETRIEVAL: ImageRetrievalConverter,
@@ -54,4 +62,4 @@ class OutputFormatConverterFactory:
         }
         if output_format not in converters:
             raise GenAIPerfException(f"Output format {output_format} is not supported")
-        return converters[output_format]()
+        return converters[output_format](config, tokenizer)

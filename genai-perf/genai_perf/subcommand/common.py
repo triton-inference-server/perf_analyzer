@@ -62,8 +62,8 @@ Contains methods that are used by multiple subcommands
 """
 
 
-def generate_inputs(config_options: InputsConfig) -> None:
-    inputs = Inputs(config_options)
+def generate_inputs(inputs_config: InputsConfig) -> None:
+    inputs = Inputs(inputs_config)
     inputs.create_inputs()
 
 
@@ -171,61 +171,6 @@ def create_plot_directory(config: ConfigCommand, artifact_directory: Path) -> No
     if config.output.generate_plots:
         plot_dir = artifact_directory / "plots"
         os.makedirs(plot_dir, exist_ok=True)
-
-
-def convert_config_to_inputs_config(
-    config: ConfigCommand,
-    perf_analyzer_config: PerfAnalyzerConfig,
-    tokenizer: Optional[Tokenizer] = None,
-) -> InputsConfig:
-    if config.input.output_tokens.get_field("mean").is_set_by_user:
-        output_tokens_mean = config.input.output_tokens.mean
-    else:
-        output_tokens_mean = DEFAULT_OUTPUT_TOKENS_MEAN
-
-    return InputsConfig(
-        audio_length_mean=config.input.audio.length.mean,
-        audio_length_stddev=config.input.audio.length.stddev,
-        audio_sample_rates=config.input.audio.sample_rates,
-        audio_depths=config.input.audio.depths,
-        audio_num_channels=config.input.audio.num_channels,
-        audio_format=config.input.audio.format,
-        input_type=config.input.prompt_source,
-        output_format=config.endpoint.output_format,
-        model_name=config.model_names,
-        model_selection_strategy=config.endpoint.model_selection_strategy,
-        input_filename=config.input.file,
-        payload_input_filename=config.input.payload_file,
-        synthetic_input_filenames=config.input.synthetic_files,
-        starting_index=DEFAULT_STARTING_INDEX,
-        length=config.input.num_dataset_entries,
-        prompt_tokens_mean=config.input.synthetic_tokens.mean,
-        prompt_tokens_stddev=config.input.synthetic_tokens.stddev,
-        output_tokens_mean=output_tokens_mean,
-        output_tokens_stddev=config.input.output_tokens.stddev,
-        output_tokens_deterministic=config.input.output_tokens.deterministic,
-        image_width_mean=config.input.image.width.mean,
-        image_width_stddev=config.input.image.width.stddev,
-        image_height_mean=config.input.image.height.mean,
-        image_height_stddev=config.input.image.height.stddev,
-        image_format=config.input.image.format,
-        random_seed=config.input.random_seed,
-        num_dataset_entries=config.input.num_dataset_entries,
-        add_stream=config.endpoint.streaming,
-        tokenizer=tokenizer,  # type: ignore
-        extra_inputs=config.input.extra,
-        batch_size_image=config.input.image.batch_size,
-        batch_size_text=config.input.batch_size,
-        output_dir=perf_analyzer_config.get_artifact_directory(),
-        num_prefix_prompts=config.input.prefix_prompt.num,
-        prefix_prompt_length=config.input.prefix_prompt.length,
-        num_sessions=config.input.sessions.num,
-        session_delay_ratio=config.input.sessions.turn_delay.ratio,
-        session_turns_mean=config.input.sessions.turns.mean,
-        session_turns_stddev=config.input.sessions.turns.stddev,
-        session_turn_delay_mean=config.input.sessions.turn_delay.mean,
-        session_turn_delay_stddev=config.input.sessions.turn_delay.stddev,
-    )
 
 
 def run_perf_analyzer(

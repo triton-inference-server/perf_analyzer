@@ -89,11 +89,11 @@ class FileInputRetriever(BaseFileInputRetriever):
             The dataset in the required format with the content
             read from the files.
         """
-        self.config.input_filename = cast(Path, self.config.input_filename)
-        jsonl_files = list(self.config.input_filename.glob("*.jsonl"))
+        self.config.input.file = cast(Path, self.config.input.file)
+        jsonl_files = list(self.config.input.file.glob("*.jsonl"))
         if not jsonl_files:
             raise ValueError(
-                f"No JSONL files found in directory '{self.config.input_filename}'."
+                f"No JSONL files found in directory '{self.config.input.file}'."
             )
 
         files_data: Dict[str, FileData] = {}
@@ -140,12 +140,12 @@ class FileInputRetriever(BaseFileInputRetriever):
         prompts = []
         images = []
 
-        use_prefix_prompts = self.config.num_prefix_prompts > 0
+        use_prefix_prompts = self.config.input.prefix_prompt.num > 0
         if use_prefix_prompts:
             SyntheticPromptGenerator.create_prefix_prompts_pool(
-                self.config.tokenizer,
-                self.config.num_prefix_prompts,
-                self.config.prefix_prompt_length,
+                self.tokenizer,
+                self.config.input.prefix_prompt.num,
+                self.config.input.prefix_prompt.length,
             )
 
         with open(filename, mode="r", newline=None) as file:
@@ -230,21 +230,23 @@ class FileInputRetriever(BaseFileInputRetriever):
         data_rows: List[DataRow] = []
 
         if prompts and images:
-            if self.config.batch_size_text > len(prompts):
+            if self.config.input.batch_size > len(prompts):
                 raise ValueError(
                     "Batch size for texts cannot be larger than the number of available texts"
                 )
-            if self.config.batch_size_image > len(images):
+            if self.config.input.image.batch_size > len(images):
                 raise ValueError(
                     "Batch size for images cannot be larger than the number of available images"
                 )
             if (
-                self.config.batch_size_image > DEFAULT_BATCH_SIZE
-                or self.config.batch_size_text > DEFAULT_BATCH_SIZE
+                self.config.input.image.batch_size > DEFAULT_BATCH_SIZE
+                or self.config.input.batch_size > DEFAULT_BATCH_SIZE
             ):
-                for _ in range(self.config.num_dataset_entries):
-                    sampled_texts = random.sample(prompts, self.config.batch_size_text)
-                    sampled_images = random.sample(images, self.config.batch_size_image)
+                for _ in range(self.config.input.num_dataset_entries):
+                    sampled_texts = random.sample(prompts, self.config.input.batch_size)
+                    sampled_images = random.sample(
+                        images, self.config.input.image.batch_size
+                    )
                     data_rows.append(
                         DataRow(texts=sampled_texts, images=sampled_images)
                     )
@@ -252,26 +254,28 @@ class FileInputRetriever(BaseFileInputRetriever):
                 for prompt, image in zip(prompts, images):
                     data_rows.append(DataRow(texts=[prompt], images=[image]))
         elif prompts:
-            if self.config.batch_size_text > len(prompts):
+            if self.config.input.batch_size > len(prompts):
                 raise ValueError(
                     "Batch size for texts cannot be larger than the number of available texts"
                 )
-            if self.config.batch_size_text > DEFAULT_BATCH_SIZE:
-                for _ in range(self.config.num_dataset_entries):
-                    sampled_texts = random.sample(prompts, self.config.batch_size_text)
+            if self.config.input.batch_size > DEFAULT_BATCH_SIZE:
+                for _ in range(self.config.input.num_dataset_entries):
+                    sampled_texts = random.sample(prompts, self.config.input.batch_size)
                     data_rows.append(DataRow(texts=sampled_texts, images=[]))
             else:
                 for prompt in prompts:
                     data_rows.append(DataRow(texts=[prompt], images=[]))
         elif images:
-            if self.config.batch_size_image > len(images):
+            if self.config.input.image.batch_size > len(images):
                 raise ValueError(
                     "Batch size for images cannot be larger than the number of available images"
                 )
 
-            if self.config.batch_size_image > DEFAULT_BATCH_SIZE:
-                for _ in range(self.config.num_dataset_entries):
-                    sampled_images = random.sample(images, self.config.batch_size_image)
+            if self.config.input.image.batch_size > DEFAULT_BATCH_SIZE:
+                for _ in range(self.config.input.num_dataset_entries):
+                    sampled_images = random.sample(
+                        images, self.config.input.image.batch_size
+                    )
                     data_rows.append(DataRow(texts=[], images=sampled_images))
             else:
                 for image in images:

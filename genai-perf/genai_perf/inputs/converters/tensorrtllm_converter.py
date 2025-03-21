@@ -33,27 +33,27 @@ from genai_perf.inputs.input_constants import (
     DEFAULT_OUTPUT_TOKENS_MEAN,
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
 class TensorRTLLMConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+    def check_config(self) -> None:
+        if self.config.input.batch_size != DEFAULT_BATCH_SIZE:
             raise GenAIPerfException(
-                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                model_name = self._select_model_name(config, index)
+                model_name = self._select_model_name(index)
                 text = row.texts[0]
 
                 payload = {
@@ -63,21 +63,19 @@ class TensorRTLLMConverter(BaseConverter):
                 }
 
                 request_body["data"].append(
-                    self._finalize_payload(payload, config, row, triton_format=True)
+                    self._finalize_payload(payload, row, triton_format=True)
                 )
 
         return request_body
 
-    def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
-    ) -> None:
-        if config.add_stream:
+    def _add_request_params(self, payload: Dict, optional_data: Dict[Any, Any]) -> None:
+        if self.config.endpoint.streaming:
             payload["stream"] = [True]
-        number_of_tokens = self._get_max_tokens(config, optional_data)
+        number_of_tokens = self._get_max_tokens(optional_data)
         if number_of_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
-            if config.output_tokens_deterministic:
+            if self.config.input.output_tokens.deterministic:
                 payload["min_length"] = [number_of_tokens]
             payload["max_tokens"] = [number_of_tokens]
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
                 payload[key] = [value]

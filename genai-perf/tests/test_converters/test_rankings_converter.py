@@ -27,15 +27,14 @@
 from typing import Any, Dict, List, Optional
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import RankingsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestRankingsConverter:
@@ -101,16 +100,12 @@ class TestRankingsConverter:
             passages_data=[["passage 1", "passage 2"], ["passage 3", "passage 4"]],
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.RANKINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -155,16 +150,13 @@ class TestRankingsConverter:
             "additional_key": "additional_value",
         }
 
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.RANKINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.RANKINGS
+        config.input.extra = extra_inputs
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -214,16 +206,13 @@ class TestRankingsConverter:
             "additional_key": "additional_value",
         }
 
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.RANKINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.RANKINGS
+        config.input.extra = extra_inputs
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -275,18 +264,14 @@ class TestRankingsConverter:
             queries_data=queries_data, passages_data=passages_data
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.RANKINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
+        rankings_converter = RankingsConverter(config)
 
         with pytest.raises(ValueError) as excinfo:
-            rankings_converter.convert(generic_dataset, config)
+            rankings_converter.convert(generic_dataset)
 
         assert str(excinfo.value) == expected_error
 
@@ -347,17 +332,13 @@ class TestRankingsConverter:
             queries_data=queries_data, passages_data=passages_data
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.RANKINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
+        rankings_converter = RankingsConverter(config)
 
-        result = rankings_converter.convert(generic_dataset, config)
+        result = rankings_converter.convert(generic_dataset)
 
         assert result == expected_result
 
@@ -375,16 +356,12 @@ class TestRankingsConverter:
             payload_metadata=[{"timestamp": 0}, {"timestamp": 2345}],
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.RANKINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

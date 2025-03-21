@@ -31,6 +31,7 @@ import random
 import numpy as np
 import pytest
 import soundfile as sf
+from genai_perf.config.input.config_input import ConfigAudio
 from genai_perf.inputs.input_constants import AudioFormat
 from genai_perf.inputs.retrievers.synthetic_audio_generator import (
     SyntheticAudioGenerator,
@@ -63,13 +64,14 @@ def decode_audio(data_uri: str) -> tuple[np.ndarray, int]:
     ],
 )
 def test_different_audio_length(expected_audio_length):
-    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
-        audio_length_mean=expected_audio_length,
-        audio_length_stddev=0,
-        sampling_rates_khz=[44],  # Fixed sampling rate for test
-        bit_depths=[16],  # Fixed bit depth for test
-        audio_format=AudioFormat.WAV,
-    )
+    config_audio = ConfigAudio()
+    config_audio.length.mean = expected_audio_length
+    config_audio.length.stddev = 0
+    config_audio.sample_rates = [44]  # Fixed sampling rate for test
+    config_audio.depths = [16]  # Fixed bit depth for test
+    config_audio.format = AudioFormat.WAV
+
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(config_audio)
 
     audio_data, sample_rate = decode_audio(data_uri)
     actual_length = len(audio_data) / sample_rate
@@ -80,13 +82,14 @@ def test_different_audio_length(expected_audio_length):
 
 def test_negative_length_raises_error():
     with pytest.raises(ValueError):
-        SyntheticAudioGenerator.create_synthetic_audio(
-            audio_length_mean=0.05,  # Below minimum of 0.1
-            audio_length_stddev=0,
-            sampling_rates_khz=[44],
-            bit_depths=[16],
-            audio_format=AudioFormat.WAV,
-        )
+        config_audio = ConfigAudio()
+        config_audio.length.mean = 0.05  # Below minimum of 0.1
+        config_audio.length.stddev = 0
+        config_audio.sample_rates = [44]
+        config_audio.depths = [16]
+        config_audio.format = AudioFormat.WAV
+
+        SyntheticAudioGenerator.create_synthetic_audio(config_audio)
 
 
 @pytest.mark.parametrize(
@@ -101,23 +104,19 @@ def test_generator_deterministic(
 ):
     np.random.seed(123)
     random.seed(123)
-    data_uri1 = SyntheticAudioGenerator.create_synthetic_audio(
-        audio_length_mean=length_mean,
-        audio_length_stddev=length_stddev,
-        sampling_rates_khz=[sampling_rate_khz],
-        bit_depths=[bit_depth],
-        audio_format=AudioFormat.WAV,
-    )
+
+    config_audio = ConfigAudio()
+    config_audio.length.mean = length_mean
+    config_audio.length.stddev = length_stddev
+    config_audio.sample_rates = [sampling_rate_khz]
+    config_audio.depths = [bit_depth]
+    config_audio.format = AudioFormat.WAV
+
+    data_uri1 = SyntheticAudioGenerator.create_synthetic_audio(config_audio)
 
     np.random.seed(123)
     random.seed(123)
-    data_uri2 = SyntheticAudioGenerator.create_synthetic_audio(
-        audio_length_mean=length_mean,
-        audio_length_stddev=length_stddev,
-        sampling_rates_khz=[sampling_rate_khz],
-        bit_depths=[bit_depth],
-        audio_format=AudioFormat.WAV,
-    )
+    data_uri2 = SyntheticAudioGenerator.create_synthetic_audio(config_audio)
 
     # Compare the actual audio data
     audio_data1, _ = decode_audio(data_uri1)
@@ -128,14 +127,14 @@ def test_generator_deterministic(
 @pytest.mark.parametrize("audio_format", [AudioFormat.WAV, AudioFormat.MP3])
 def test_audio_format(audio_format):
     # use sample rate supported by all formats (44.1kHz)
-    sampling_rate = 44.1
-    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
-        audio_length_mean=1.0,
-        audio_length_stddev=0,
-        sampling_rates_khz=[sampling_rate],
-        bit_depths=[16],
-        audio_format=audio_format,
-    )
+    config_audio = ConfigAudio()
+    config_audio.length.mean = 1.0
+    config_audio.length.stddev = 0
+    config_audio.sample_rates = [44.1]
+    config_audio.depths = [16]  # Fixed bit depth for test
+    config_audio.format = audio_format
+
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(config_audio)
 
     # Check data URI format
     assert data_uri.startswith(
@@ -149,26 +148,29 @@ def test_audio_format(audio_format):
 
 def test_unsupported_bit_depth():
     with pytest.raises(ValueError) as exc_info:
-        SyntheticAudioGenerator.create_synthetic_audio(
-            audio_length_mean=1.0,
-            audio_length_stddev=0,
-            sampling_rates_khz=[44],
-            bit_depths=[12],  # Unsupported bit depth
-            audio_format=AudioFormat.WAV,
-        )
+        config_audio = ConfigAudio()
+        config_audio.length.mean = 1.0
+        config_audio.length.stddev = 0
+        config_audio.sample_rates = [44]
+        config_audio.depths = [12]  # Unsupported bit depth
+        config_audio.format = AudioFormat.WAV
+
+        SyntheticAudioGenerator.create_synthetic_audio(config_audio)
+
     assert "Supported bit depths are:" in str(exc_info.value)
 
 
 @pytest.mark.parametrize("channels", [1, 2])
 def test_channels(channels):
-    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
-        audio_length_mean=1.0,
-        audio_length_stddev=0,
-        sampling_rates_khz=[44],
-        bit_depths=[16],
-        audio_format=AudioFormat.WAV,
-        channels=channels,
-    )
+    config_audio = ConfigAudio()
+    config_audio.length.mean = 1.0
+    config_audio.length.stddev = 0
+    config_audio.sample_rates = [44]
+    config_audio.depths = [16]
+    config_audio.format = AudioFormat.WAV
+    config_audio.num_channels = channels
+
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(config_audio)
 
     audio_data, _ = decode_audio(data_uri)
     if channels == 1:
@@ -176,19 +178,6 @@ def test_channels(channels):
     else:
         assert len(audio_data.shape) == 2, "stereo audio should be 2D array"
         assert audio_data.shape[1] == 2, "stereo audio should have 2 channels"
-
-
-def test_invalid_channels():
-    with pytest.raises(ValueError) as exc_info:
-        SyntheticAudioGenerator.create_synthetic_audio(
-            audio_length_mean=1.0,
-            audio_length_stddev=0,
-            sampling_rates_khz=[44],
-            bit_depths=[16],
-            audio_format=AudioFormat.WAV,
-            channels=3,  # Invalid number of channels
-        )
-    assert "Only mono (1) and stereo (2) channels are supported" in str(exc_info.value)
 
 
 @pytest.mark.parametrize(
@@ -200,13 +189,14 @@ def test_invalid_channels():
     ],
 )
 def test_audio_parameters(sampling_rate_khz, bit_depth):
-    data_uri = SyntheticAudioGenerator.create_synthetic_audio(
-        audio_length_mean=1.0,
-        audio_length_stddev=0,
-        sampling_rates_khz=[sampling_rate_khz],
-        bit_depths=[bit_depth],
-        audio_format=AudioFormat.WAV,
-    )
+    config_audio = ConfigAudio()
+    config_audio.length.mean = 1.0
+    config_audio.length.stddev = 0
+    config_audio.sample_rates = [sampling_rate_khz]
+    config_audio.depths = [bit_depth]
+    config_audio.format = AudioFormat.WAV
+
+    data_uri = SyntheticAudioGenerator.create_synthetic_audio(config_audio)
 
     _, sample_rate = decode_audio(data_uri)
     assert sample_rate == sampling_rate_khz * 1000, "unexpected sampling rate"
@@ -214,13 +204,14 @@ def test_audio_parameters(sampling_rate_khz, bit_depth):
 
 def test_mp3_unsupported_sampling_rate():
     with pytest.raises(ValueError) as exc_info:
-        SyntheticAudioGenerator.create_synthetic_audio(
-            audio_length_mean=1.0,
-            audio_length_stddev=0,
-            sampling_rates_khz=[96],  # 96kHz is not supported for MP3
-            bit_depths=[16],
-            audio_format=AudioFormat.MP3,
-        )
+        config_audio = ConfigAudio()
+        config_audio.length.mean = 1.0
+        config_audio.length.stddev = 0
+        config_audio.sample_rates = [96]  # 96kHz is not supported for MP3
+        config_audio.depths = [16]
+        config_audio.format = AudioFormat.MP3
+
+        SyntheticAudioGenerator.create_synthetic_audio(config_audio)
     assert "MP3 format only supports" in str(
         exc_info.value
     ), "error message should mention supported rates"

@@ -1399,6 +1399,7 @@ def add_cli_options_to_config(
     config.input.payload_file = args.payload_input_file
 
     # Input - Audio
+    config.input.audio.batch_size = args.batch_size_audio
     config.input.audio.length.mean = args.audio_length_mean
     config.input.audio.length.stddev = args.audio_length_stddev
     config.input.audio.format = args.audio_format

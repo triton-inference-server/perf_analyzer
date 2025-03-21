@@ -74,7 +74,7 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.model_names, ["gpt2_multi"])
+        self.assertEqual(config.model_names, ["gpt2", "bert"])
 
     def test_multi_model_name_list(self):
         """
@@ -91,7 +91,7 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.model_names, ["gpt2_multi"])
+        self.assertEqual(config.model_names, ["gpt2", "bert"])
 
     ###########################################################################
     # Test Analyze Subcommand
@@ -264,6 +264,7 @@ class TestConfigCommand(unittest.TestCase):
                 random_seed: 100
 
                 audio:
+                    batch_size: 8
                     length:
                         mean: 24
                         stddev: 25
@@ -340,6 +341,7 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.input.sessions.turns.stddev, 21)
         self.assertEqual(config.input.sessions.turn_delay.mean, 22)
         self.assertEqual(config.input.sessions.turn_delay.stddev, 23)
+        self.assertEqual(config.input.audio.batch_size, 8)
         self.assertEqual(config.input.audio.length.mean, 24)
         self.assertEqual(config.input.audio.length.stddev, 25)
         self.assertEqual(config.input.audio.format, AudioFormat.MP3)

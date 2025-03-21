@@ -14,6 +14,7 @@
 
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from genai_perf import parser
@@ -212,6 +213,26 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
 
         # Catchall in case something new is added
         self.assertEqual(pa_config_from_checkpoint, self._default_perf_analyzer_config)
+
+    ###########################################################################
+    # Test Multi-model artifact paths
+    ###########################################################################
+    def test_multi_model_artifact_paths(self):
+        """
+        Test that the artifact paths are created correctly
+        for multi-model scenarios
+        """
+        config = ConfigCommand({"model_names": "test_model_A,test_model_B"})
+
+        perf_analyzer_config = PerfAnalyzerConfig(
+            config=config, model_objective_parameters={}
+        )
+
+        artifact_directory = perf_analyzer_config.get_artifact_directory()
+        expected_artifact_directory = Path(
+            "artifacts/test_model_A_multi-triton-tensorrtllm-concurrency1"
+        )
+        self.assertEqual(expected_artifact_directory, artifact_directory)
 
     ###########################################################################
     # Test _add_required_args

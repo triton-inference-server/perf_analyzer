@@ -32,13 +32,13 @@ from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.inputs import input_constants as ic
+from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.profile_data_parser import ProfileDataParser
 from genai_perf.subcommand.common import (
     calculate_metrics,
-    convert_config_to_inputs_config,
     create_artifact_directory,
     create_plot_directory,
     create_telemetry_data_collectors,
@@ -62,8 +62,10 @@ def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> N
     create_plot_directory(config, perf_analyzer_config.get_artifact_directory())
 
     tokenizer = get_tokenizer(config)
-    inputs_config = convert_config_to_inputs_config(
-        config, perf_analyzer_config, tokenizer
+    inputs_config = InputsConfig(
+        config=config,
+        tokenizer=tokenizer,
+        output_directory=perf_analyzer_config.get_artifact_directory(),
     )
     generate_inputs(inputs_config)
 

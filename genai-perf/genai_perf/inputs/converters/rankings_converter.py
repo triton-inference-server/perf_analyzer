@@ -28,20 +28,20 @@ from typing import Any, Dict, List, Union
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class RankingsConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.add_stream:
+    def check_config(self) -> None:
+        if self.config.endpoint.streaming:
             raise GenAIPerfException(
-                f"The --streaming option is not supported for {config.output_format.to_lowercase()}."
+                f"The --streaming option is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
         provided_filenames = list(generic_dataset.files_data.keys())
         if "queries" not in provided_filenames or "passages" not in provided_filenames:
@@ -60,7 +60,7 @@ class RankingsConverter(BaseConverter):
             if query_index >= rows_of_passage_data:
                 break
 
-            model_name = self._select_model_name(config, query_index)
+            model_name = self._select_model_name(query_index)
             query = query_row.texts[0]
 
             passage_entry = passages_data.rows[query_index]
@@ -68,7 +68,7 @@ class RankingsConverter(BaseConverter):
             passages: Union[List[str], List[Dict[str, str]]]
             payload: Dict[str, Any]
 
-            if self._is_rankings_tei(config):
+            if self._is_rankings_tei():
                 passages = passage_entry.texts
                 payload = {"query": query, "texts": passages}
             else:
@@ -79,25 +79,21 @@ class RankingsConverter(BaseConverter):
                     "model": model_name,
                 }
 
-            request_body["data"].append(
-                self._finalize_payload(payload, config, passage_entry)
-            )
+            request_body["data"].append(self._finalize_payload(payload, passage_entry))
 
         return request_body
 
-    def _is_rankings_tei(self, config: InputsConfig) -> bool:
+    def _is_rankings_tei(self) -> bool:
         """
         Check if user specified that they are using the Hugging Face
         Text Embeddings Interface for ranking models
         """
-        if config.extra_inputs.get("rankings") == "tei":
+        if self.config.input.extra and self.config.input.extra.get("rankings") == "tei":
             return True
         return False
 
-    def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
-    ) -> None:
-        if config.extra_inputs:
-            for key, value in config.extra_inputs.items():
+    def _add_request_params(self, payload: Dict, optional_data: Dict[Any, Any]) -> None:
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
                 if not (key == "rankings" and value == "tei"):
                     payload[key] = value

@@ -49,17 +49,16 @@ converters for more code examples.
 ```python
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.exceptions import GenAIPerfException
 from typing import Any, Dict
 
 class NewConverter(BaseConverter):
-    def check_config(self, config: InputsConfig) -> None:
+    def check_config(self) -> None:
         # If applicable, any configuration checks go here
         # Else, omit this function
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self, generic_dataset: GenericDataset
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
