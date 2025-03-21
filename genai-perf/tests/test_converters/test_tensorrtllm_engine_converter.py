@@ -152,6 +152,7 @@ class TestTensorRTLLMEngineConverter:
         assert result == expected_result
 
     def test_convert_with_chat_template(self):
+        generic_dataset = self.create_generic_dataset()
         config = ConfigCommand({"model_names": ["test_model"]})
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
@@ -167,20 +168,6 @@ class TestTensorRTLLMEngineConverter:
         )
 
         result = trtllm_engine_converter.convert(generic_dataset)
-
-        expected_texts = [
-            tokenizer._tokenizer.apply_chat_template(
-                [{"role": "user", "content": "text input one"}],
-                tokenize=False,
-                add_special_tokens=False,
-            ),
-            tokenizer._tokenizer.apply_chat_template(
-                [{"role": "user", "content": "text input two"}],
-                tokenize=False,
-                add_special_tokens=False,
-            ),
-        ]
-        expected_tokenized = [tokenizer.encode(text) for text in expected_texts]
 
         assert "data" in result
         assert isinstance(result["data"], list)

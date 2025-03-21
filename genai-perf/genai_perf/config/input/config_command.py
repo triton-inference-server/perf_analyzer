@@ -122,7 +122,7 @@ class ConfigCommand(BaseConfig):
         self.endpoint.infer_settings(model_name)
         self.input.infer_settings()
         self.perf_analyzer.infer_settings()
-        self.tokenizer.infer_settings(model_name=self.model_names[0])
+        self.tokenizer.infer_settings(model_name)
 
     ###########################################################################
     # Illegal Combination Methods

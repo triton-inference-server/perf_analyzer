@@ -55,8 +55,10 @@ class TestPayloadInputRetriever:
                 )
                 self.config.input.synthetic_tokens.mean = 10
                 self.config.input.synthetic_tokens.stddev = 2
-                self.config.input.sessions.delay_ratio = 1.0
+                self.config.input.sessions.turn_delay.ratio = 1.0
                 self.config.input.payload_file = Path("test_input.jsonl")
+                self.tokenizer = get_empty_tokenizer()
+                self.output_directory = Path("test_output")
 
         return MockConfig()
 
@@ -208,7 +210,7 @@ class TestPayloadInputRetriever:
         self, retriever, delay, delay_ratio, expected_delay
     ):
         # Set the delay ratio in the config
-        retriever.config.session_delay_ratio = delay_ratio
+        retriever.config.input.sessions.turn_delay.ratio = delay_ratio
 
         # Create test data with a delay
         data = {"delay": delay}

@@ -186,8 +186,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             if key in data
         }
 
-        if "delay" in metadata and self.config.session_delay_ratio != 1.0:
-            metadata["delay"] = int(metadata["delay"] * self.config.session_delay_ratio)
+        if "delay" in metadata and self.config.input.sessions.turn_delay.ratio != 1.0:
+            metadata["delay"] = int(
+                metadata["delay"] * self.config.input.sessions.turn_delay.ratio
+            )
 
         return metadata
 
