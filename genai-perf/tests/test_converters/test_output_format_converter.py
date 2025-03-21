@@ -21,7 +21,6 @@ from genai_perf.inputs.converters.output_format_converter_factory import (
     OutputFormatConverterFactory,
 )
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOutputFormatConverter:
@@ -68,7 +67,7 @@ class TestOutputFormatConverter:
         ],
     )
     def test_create(self, format, expected_converter):
-        converter = OutputFormatConverterFactory.create(format)
+        converter = OutputFormatConverterFactory.create(format, ConfigCommand())
         assert isinstance(converter, expected_converter)
 
     @pytest.mark.parametrize(
@@ -149,6 +148,8 @@ class TestOutputFormatConverter:
         config.endpoint.model_selection_strategy = model_selection_strategy
         config.endpoint.random_seed = seed
 
-        converter = OutputFormatConverterFactory.create(OutputFormat.IMAGE_RETRIEVAL)
-        actual_model = converter._select_model_name(config, index)
+        converter = OutputFormatConverterFactory.create(
+            OutputFormat.IMAGE_RETRIEVAL, config
+        )
+        actual_model = converter._select_model_name(index)
         assert actual_model == expected_model

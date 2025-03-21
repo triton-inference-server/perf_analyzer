@@ -36,7 +36,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestNVClipConverter:
@@ -61,8 +60,8 @@ class TestNVClipConverter:
             ]
         )
 
-        nv_clip_converter = NVClipConverter()
-        result = nv_clip_converter.convert(generic_dataset, default_config)
+        nv_clip_converter = NVClipConverter(default_config)
+        result = nv_clip_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -102,8 +101,8 @@ class TestNVClipConverter:
             ]
         )
 
-        nv_clip_converter = NVClipConverter()
-        result = nv_clip_converter.convert(generic_dataset, default_config)
+        nv_clip_converter = NVClipConverter(default_config)
+        result = nv_clip_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -131,8 +130,8 @@ class TestNVClipConverter:
         config = default_config
         config.input.extra = extra_inputs
 
-        nv_clip_converter = NVClipConverter()
-        result = nv_clip_converter.convert(generic_dataset, config)
+        nv_clip_converter = NVClipConverter(config)
+        result = nv_clip_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -154,12 +153,12 @@ class TestNVClipConverter:
         config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.streaming = True
 
-        nv_clip_converter = NVClipConverter()
+        nv_clip_converter = NVClipConverter(config)
 
         with pytest.raises(
             GenAIPerfException, match="The --streaming option is not supported"
         ):
-            nv_clip_converter.check_config(config)
+            nv_clip_converter.check_config()
 
     def test_convert_with_payload_parameters(self, default_config):
         optional_data = {"session_id": "abcd"}
@@ -174,8 +173,8 @@ class TestNVClipConverter:
             ]
         )
 
-        nv_clip_converter = NVClipConverter()
-        result = nv_clip_converter.convert(generic_dataset, default_config)
+        nv_clip_converter = NVClipConverter(default_config)
+        result = nv_clip_converter.convert(generic_dataset)
         expected_result = {
             "data": [
                 {

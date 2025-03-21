@@ -26,40 +26,34 @@
 
 from typing import Any, Dict, Optional
 
-from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.tokenizer import Tokenizer
 
 
 class OpenAIEmbeddingsConverter(BaseConverter):
 
-    def check_config(self, config: ConfigCommand) -> None:
-        if config.endpoint.streaming:
+    def check_config(self) -> None:
+        if self.config.endpoint.streaming:
             raise GenAIPerfException(
-                f"The --streaming option is not supported for {config.endpoint.output_format.to_lowercase()}."
+                f"The --streaming option is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
         self,
         generic_dataset: GenericDataset,
-        config: ConfigCommand,
-        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                model_name = self._select_model_name(config, index)
+                model_name = self._select_model_name(index)
 
                 payload = {
                     "model": model_name,
                     "input": row.texts,
                 }
 
-                request_body["data"].append(
-                    self._finalize_payload(payload, config, row)
-                )
+                request_body["data"].append(self._finalize_payload(payload, row))
 
         return request_body

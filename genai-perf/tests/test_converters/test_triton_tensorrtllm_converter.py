@@ -95,8 +95,8 @@ class TestTensorRTLLMConverter:
     def test_convert_default(self, default_config):
         generic_dataset = self.create_generic_dataset()
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, default_config)
+        trtllm_converter = TensorRTLLMConverter(default_config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -128,8 +128,8 @@ class TestTensorRTLLMConverter:
         config.input.extra = extra_inputs
         config.endpoint.streaming = True
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, config)
+        trtllm_converter = TensorRTLLMConverter(config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -157,8 +157,8 @@ class TestTensorRTLLMConverter:
     def test_convert_empty_dataset(self, default_config):
         generic_dataset = GenericDataset(files_data={})
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, default_config)
+        trtllm_converter = TensorRTLLMConverter(default_config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {"data": []}
         assert result == expected_result
@@ -166,8 +166,8 @@ class TestTensorRTLLMConverter:
     def test_convert_with_payload_parameters(self, default_config):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, default_config)
+        trtllm_converter = TensorRTLLMConverter(default_config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

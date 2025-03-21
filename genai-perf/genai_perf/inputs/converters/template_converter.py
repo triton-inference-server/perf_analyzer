@@ -29,11 +29,9 @@ import os
 from typing import Any, Dict, Optional, cast
 
 import jinja2
-from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.tokenizer import Tokenizer
 
 NAMED_TEMPLATES = {
     "nv-embedqa": """[
@@ -74,19 +72,23 @@ class TemplateConverter(BaseConverter):
         environment = jinja2.Environment(autoescape=True)
         return environment.from_string(template_content)
 
-    def check_config(self, config: ConfigCommand) -> None:
-        if config.input.extra:
-            for key, value in config.input.extra.items():
+    def check_config(self) -> None:
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
                 if key != "payload_template":
                     raise GenAIPerfException(
                         "Template only supports the extra input 'payload_template'. "
                     )
 
         payload_template = (
-            config.input.extra.get("payload_template") if config.input.extra else None
+            self.config.input.extra.get("payload_template")
+            if self.config.input.extra
+            else None
         )
         if not payload_template:
-            keys = list(config.input.extra.keys()) if config.input.extra else []
+            keys = (
+                list(self.config.input.extra.keys()) if self.config.input.extra else []
+            )
             raise GenAIPerfException(
                 "The template converter requires the "
                 "extra input payload_template, only "
@@ -109,10 +111,8 @@ class TemplateConverter(BaseConverter):
     def convert(
         self,
         generic_dataset: GenericDataset,
-        config: ConfigCommand,
-        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
-        payload_template = config.input.extra.get("payload_template")
+        payload_template = self.config.input.extra.get("payload_template")
         payload_template = cast(str, payload_template)
         template = self.resolve_template(payload_template)
 

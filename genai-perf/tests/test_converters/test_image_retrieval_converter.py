@@ -33,7 +33,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestImageRetrievalConverter:
@@ -75,8 +74,8 @@ class TestImageRetrievalConverter:
         config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.output_format = OutputFormat.IMAGE_RETRIEVAL
 
-        image_retrieval_converter = ImageRetrievalConverter()
-        result = image_retrieval_converter.convert(generic_dataset, config)
+        image_retrieval_converter = ImageRetrievalConverter(config)
+        result = image_retrieval_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -101,8 +100,8 @@ class TestImageRetrievalConverter:
         config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.output_format = OutputFormat.IMAGE_RETRIEVAL
 
-        image_retrieval_converter = ImageRetrievalConverter()
-        result = image_retrieval_converter.convert(generic_dataset, config)
+        image_retrieval_converter = ImageRetrievalConverter(config)
+        result = image_retrieval_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

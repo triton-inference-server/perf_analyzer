@@ -35,7 +35,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOpenAIChatCompletionsConverter:
@@ -80,8 +79,8 @@ class TestOpenAIChatCompletionsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.OPENAI_CHAT_COMPLETIONS
 
-        chat_converter = OpenAIChatCompletionsConverter()
-        result = chat_converter.convert(generic_dataset, config)
+        chat_converter = OpenAIChatCompletionsConverter(config)
+        result = chat_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -133,8 +132,8 @@ class TestOpenAIChatCompletionsConverter:
         config.endpoint.streaming = True
         config.input.extra = extra_inputs
 
-        chat_converter = OpenAIChatCompletionsConverter()
-        result = chat_converter.convert(generic_dataset, config)
+        chat_converter = OpenAIChatCompletionsConverter(config)
+        result = chat_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -309,8 +308,8 @@ class TestOpenAIChatCompletionsConverter:
         config.endpoint.output_format = OutputFormat.OPENAI_MULTIMODAL
         config.endpoint.streaming = True
 
-        chat_converter = OpenAIChatCompletionsConverter()
-        result = chat_converter.convert(generic_dataset, config)
+        chat_converter = OpenAIChatCompletionsConverter(config)
+        result = chat_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -365,8 +364,8 @@ class TestOpenAIChatCompletionsConverter:
         config.endpoint.output_format = OutputFormat.OPENAI_CHAT_COMPLETIONS
         config.endpoint.streaming = True
 
-        chat_converter = OpenAIChatCompletionsConverter()
-        result = chat_converter.convert(generic_dataset, config)
+        chat_converter = OpenAIChatCompletionsConverter(config)
+        result = chat_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

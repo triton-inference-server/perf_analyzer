@@ -35,7 +35,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestRankingsConverter:
@@ -105,8 +104,8 @@ class TestRankingsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -156,8 +155,8 @@ class TestRankingsConverter:
         config.endpoint.output_format = OutputFormat.RANKINGS
         config.input.extra = extra_inputs
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -212,8 +211,8 @@ class TestRankingsConverter:
         config.endpoint.output_format = OutputFormat.RANKINGS
         config.input.extra = extra_inputs
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -269,10 +268,10 @@ class TestRankingsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
+        rankings_converter = RankingsConverter(config)
 
         with pytest.raises(ValueError) as excinfo:
-            rankings_converter.convert(generic_dataset, config)
+            rankings_converter.convert(generic_dataset)
 
         assert str(excinfo.value) == expected_error
 
@@ -337,9 +336,9 @@ class TestRankingsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
+        rankings_converter = RankingsConverter(config)
 
-        result = rankings_converter.convert(generic_dataset, config)
+        result = rankings_converter.convert(generic_dataset)
 
         assert result == expected_result
 
@@ -361,8 +360,8 @@ class TestRankingsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.RANKINGS
 
-        rankings_converter = RankingsConverter()
-        result = rankings_converter.convert(generic_dataset, config)
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

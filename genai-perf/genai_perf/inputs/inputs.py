@@ -44,9 +44,9 @@ class Inputs:
         self.output_directory = inputs_config.output_directory
 
         self.converter = OutputFormatConverterFactory.create(
-            self.config.endpoint.output_format
+            self.config.endpoint.output_format, self.config, self.tokenizer
         )
-        self.converter.check_config(self.config)
+        self.converter.check_config()
 
         random.seed(self.config.input.random_seed)
 
@@ -69,7 +69,7 @@ class Inputs:
         self._check_for_valid_length()
 
     def _convert_generic_dataset_to_output_format(self, generic_dataset) -> Dict:
-        return self.converter.convert(generic_dataset, self.config)
+        return self.converter.convert(generic_dataset)
 
     def _write_json_to_file(self, json_in_pa_format: Dict) -> None:
         filename = self.output_directory / DEFAULT_INPUT_DATA_JSON

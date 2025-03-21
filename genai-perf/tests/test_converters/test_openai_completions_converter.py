@@ -36,7 +36,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOpenAICompletionsConverter:
@@ -89,8 +88,8 @@ class TestOpenAICompletionsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
-        completions_converter = OpenAICompletionsConverter()
-        result = completions_converter.convert(generic_dataset, config)
+        completions_converter = OpenAICompletionsConverter(config)
+        result = completions_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -130,8 +129,8 @@ class TestOpenAICompletionsConverter:
         config.input.output_tokens.mean = 1234
         config.input.extra = extra_inputs
 
-        completions_converter = OpenAICompletionsConverter()
-        result = completions_converter.convert(generic_dataset, config)
+        completions_converter = OpenAICompletionsConverter(config)
+        result = completions_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -171,8 +170,8 @@ class TestOpenAICompletionsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
-        completions_converter = OpenAICompletionsConverter()
-        result = completions_converter.convert(generic_dataset, config)
+        completions_converter = OpenAICompletionsConverter(config)
+        result = completions_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -205,8 +204,8 @@ class TestOpenAICompletionsConverter:
         config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
         config.endpoint.streaming = True
 
-        completions_converter = OpenAICompletionsConverter()
-        result = completions_converter.convert(generic_dataset, config)
+        completions_converter = OpenAICompletionsConverter(config)
+        result = completions_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -240,8 +239,8 @@ class TestOpenAICompletionsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
-        completions_converter = OpenAICompletionsConverter()
-        result = completions_converter.convert(generic_dataset, config)
+        completions_converter = OpenAICompletionsConverter(config)
+        result = completions_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -273,8 +272,8 @@ class TestOpenAICompletionsConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
 
-        completions_converter = OpenAICompletionsConverter()
-        result = completions_converter.convert(generic_dataset, config)
+        completions_converter = OpenAICompletionsConverter(config)
+        result = completions_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

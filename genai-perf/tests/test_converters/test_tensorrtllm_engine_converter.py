@@ -246,10 +246,10 @@ class TestTensorRTLLMEngineConverter:
         config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
         config.input.batch_size = 5
 
-        trtllm_engine_converter = TensorRTLLMEngineConverter()
+        trtllm_engine_converter = TensorRTLLMEngineConverter(config)
 
         with pytest.raises(GenAIPerfException) as exc_info:
-            trtllm_engine_converter.check_config(config)
+            trtllm_engine_converter.check_config()
 
         assert str(exc_info.value) == (
             "The --batch-size-text flag is not supported for tensorrtllm_engine."
@@ -262,7 +262,6 @@ class TestTensorRTLLMEngineConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.TENSORRTLLM_ENGINE
 
-        tokenizer = get_tokenizer(config)
         trtllm_engine_converter = TensorRTLLMEngineConverter(
             config, self.mock_tokenizer
         )

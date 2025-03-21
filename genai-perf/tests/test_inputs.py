@@ -75,7 +75,7 @@ class TestInputs:
         inputs.create_inputs()
 
         mock_retriever_factory.return_value.retrieve_data.assert_called_once()
-        mock_converter.convert.assert_called_once_with(generic_dataset, inputs.config)
+        mock_converter.convert.assert_called_once_with(generic_dataset)
 
         mock_open_fn.assert_called_once_with(
             str(inputs.output_directory / "inputs.json"), "w"
@@ -125,7 +125,7 @@ class TestInputs:
 
         mock_retriever_factory.return_value.retrieve_data.assert_called_once()
         mock_converter_factory.return_value.convert.assert_called_once_with(
-            generic_dataset, inputs.config
+            generic_dataset
         )
 
         mock_open_fn.assert_called_once_with(

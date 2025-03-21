@@ -86,8 +86,8 @@ class TestVLLMConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.VLLM
 
-        vllm_converter = VLLMConverter()
-        result = vllm_converter.convert(generic_dataset, config)
+        vllm_converter = VLLMConverter(config)
+        result = vllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -122,8 +122,8 @@ class TestVLLMConverter:
         config.endpoint.streaming = True
         config.input.extra = extra_inputs
 
-        vllm_converter = VLLMConverter()
-        result = vllm_converter.convert(generic_dataset, config)
+        vllm_converter = VLLMConverter(config)
+        result = vllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -159,8 +159,8 @@ class TestVLLMConverter:
         config.input.output_tokens.mean = 1234
         config.input.output_tokens.deterministic = True
 
-        vllm_converter = VLLMConverter()
-        result = vllm_converter.convert(generic_dataset, config)
+        vllm_converter = VLLMConverter(config)
+        result = vllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -191,10 +191,10 @@ class TestVLLMConverter:
         config.endpoint.output_format = OutputFormat.VLLM
         config.input.batch_size = 5
 
-        vllm_converter = VLLMConverter()
+        vllm_converter = VLLMConverter(config)
 
         with pytest.raises(GenAIPerfException) as exc_info:
-            vllm_converter.check_config(config)
+            vllm_converter.check_config()
 
         assert str(exc_info.value) == (
             "The --batch-size-text flag is not supported for vllm."
@@ -207,8 +207,8 @@ class TestVLLMConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.VLLM
 
-        vllm_converter = VLLMConverter()
-        result = vllm_converter.convert(generic_dataset, config)
+        vllm_converter = VLLMConverter(config)
+        result = vllm_converter.convert(generic_dataset)
 
         expected_result = {"data": []}
         assert result == expected_result
@@ -220,8 +220,8 @@ class TestVLLMConverter:
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
         config.endpoint.output_format = OutputFormat.VLLM
 
-        vllm_converter = VLLMConverter()
-        result = vllm_converter.convert(generic_dataset, config)
+        vllm_converter = VLLMConverter(config)
+        result = vllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

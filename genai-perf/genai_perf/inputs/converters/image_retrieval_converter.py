@@ -26,32 +26,28 @@
 
 from typing import Any, Dict, Optional
 
-from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.tokenizer import Tokenizer
 
 
 class ImageRetrievalConverter(BaseConverter):
 
-    def check_config(self, config: ConfigCommand) -> None:
-        if config.endpoint.output_format == OutputFormat.IMAGE_RETRIEVAL:
-            if config.endpoint.streaming:
+    def check_config(self) -> None:
+        if self.config.endpoint.output_format == OutputFormat.IMAGE_RETRIEVAL:
+            if self.config.endpoint.streaming:
                 raise GenAIPerfException(
-                    f"The --streaming option is not supported for {config.endpoint.output_format.to_lowercase()}."
+                    f"The --streaming option is not supported for {self.config.endpoint.output_format.to_lowercase()}."
                 )
         else:
             raise GenAIPerfException(
-                f"Output format {config.endpoint.output_format} is not supported"
+                f"Output format {self.config.endpoint.output_format} is not supported"
             )
 
     def convert(
         self,
         generic_dataset: GenericDataset,
-        config: ConfigCommand,
-        tokenizer: Optional[Tokenizer] = None,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
@@ -61,8 +57,6 @@ class ImageRetrievalConverter(BaseConverter):
                     "input": [{"type": "image_url", "url": img} for img in row.images]
                 }
 
-                request_body["data"].append(
-                    self._finalize_payload(payload, config, row)
-                )
+                request_body["data"].append(self._finalize_payload(payload, row))
 
         return request_body
