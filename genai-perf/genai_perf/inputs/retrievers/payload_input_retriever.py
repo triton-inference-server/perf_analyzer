@@ -175,13 +175,19 @@ class PayloadInputRetriever(BaseFileInputRetriever):
     def _get_payload_metadata(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Retrieves and payload metadata from input data
+        and scales the delay if the delay_ratio is not 1.0
         """
 
-        return {
+        metadata = {
             key: (int(data[key]) if key in PAYLOAD_METADATA_INT_FIELDS else data[key])
             for key in PAYLOAD_METADATA_FIELDS
             if key in data
         }
+
+        if "delay" in metadata and self.config.session_delay_ratio != 1.0:
+            metadata["delay"] = int(metadata["delay"] * self.config.session_delay_ratio)
+
+        return metadata
 
     def _get_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """

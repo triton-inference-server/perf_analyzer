@@ -159,7 +159,6 @@ Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --streaming
@@ -210,7 +209,6 @@ by passing the `--generate-plots` option when running the benchmark:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --streaming \
@@ -490,6 +488,14 @@ Currently only 1 (mono) and 2 (stereo) are supported.
 
 ##### `-b <int>`
 ##### `--batch-size <int>`
+##### `--batch-size-text <int>
+
+The text batch size of the requests GenAI-Perf should send.
+(default: `1`)
+##### `--batch-size-text <int>
+
+The text batch size of the requests GenAI-Perf should send.
+(default: `1`)
 
 ##### `--batch-size-audio <int>`
 
@@ -568,14 +574,14 @@ when `--output-tokens-mean` is provided. (default: `0`)
 
 ##### `--random-seed <int>`
 
-The seed used to generate random values. (default: `0`)
+The seed used to generate random values. If not provided, a random seed will be
+used.
 
 ##### `--request-count <int>`
 ##### `--num-requests <int>`
 
 The number of requests to use for measurement.
-By default, the benchmark does not terminate based on request count.
-Instead, it continues until stabilization is detected. (default: `0`)
+(default: `10`)
 
 ##### `--synthetic-input-tokens-mean <int>`
 ##### `--isl`
@@ -634,9 +640,11 @@ The concurrency value to benchmark. (default: `None`)
 ##### `--measurement-interval <int>`
 ##### `-p <int>`
 
-The time interval used for each measurement in milliseconds. Perf Analyzer
-will sample a time interval specified and take measurement over the requests
-completed within that time interval. (default: `10000`)
+The time interval used for each measurement in milliseconds.
+Perf Analyzer will sample a time interval specified and take
+measurement over the requests completed within that time interval.
+When using the default stability percentage, GenAI-Perf will benchmark
+for 3*(measurement_interval) milliseconds.
 
 ##### `--request-rate <float>`
 
@@ -680,7 +688,13 @@ session data. (default: `0`)
 ##### `--session-concurrency <int>`
 
 The number of concurrent sessions to benchmark. This must be specified
-when using benchmarking sessions. (default: `0`)
+when benchmarking sessions. (default: `0`)
+
+##### `--session-delay-ratio <float>`
+
+A ratio to scale multi-turn delays when using a payload file. This allows adjusting
+the timing between turns in a session without changing the payload file.
+(default: `1.0`)
 
 ##### `--session-turn-delay-mean`
 
@@ -702,13 +716,14 @@ The mean number of turns per session.
 The standard deviation of the number of turns per session.
 (default: `0`)
 
-### Other Options
+### Tokenizer Options
 
 ##### `--tokenizer <str>`
 
 The HuggingFace tokenizer to use to interpret token metrics from prompts and
 responses. The value can be the name of a tokenizer or the filepath of the
-tokenizer. (default: `hf-internal-testing/llama-tokenizer`)
+tokenizer. The default value is the model name.
+(default: "<model_value>")
 
 ##### `--tokenizer-revision <str>`
 
@@ -720,6 +735,8 @@ name, tag name, or commit ID. (default: `main`)
 Allow custom tokenizer to be downloaded and executed. This carries security
 risks and should only be used for repositories you trust. This is only
 necessary for custom tokenizers stored in HuggingFace Hub.  (default: `False`)
+
+### Other Options
 
 ##### `-v`
 ##### `--verbose`

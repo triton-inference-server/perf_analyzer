@@ -24,6 +24,7 @@ from genai_perf.config.input.config_command import ConfigCommand, ConfigInput, R
 from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
+    PerfAnalyzerMeasurementMode,
     PromptSource,
 )
 from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
@@ -188,12 +189,11 @@ class TestConfigCommand(unittest.TestCase):
                 stimulus:
                     concurrency: 64
                 stability_percentage: 500
-                measurement_interval: 1000
+                warmup_request_count: 200
 
-                request_count:
+                measurement:
+                  mode: request_count
                   num: 100
-                  warmup: 200
-
             """)
         # yapf: enable
 
@@ -204,9 +204,41 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.perf_analyzer.verbose, True)
         self.assertEqual(config.perf_analyzer.stimulus, {"concurrency": 64})
         self.assertEqual(config.perf_analyzer.stability_percentage, 500)
-        self.assertEqual(config.perf_analyzer.measurement_interval, 1000)
-        self.assertEqual(config.perf_analyzer.request_count.num, 100)
-        self.assertEqual(config.perf_analyzer.request_count.warmup, 200)
+        self.assertEqual(
+            config.perf_analyzer.measurement.mode,
+            PerfAnalyzerMeasurementMode.REQUEST_COUNT,
+        )
+        self.assertEqual(config.perf_analyzer.measurement.num, 100)
+        self.assertEqual(config.perf_analyzer.warmup_request_count, 200)
+
+    def test_session_turn_delay_ratio(self):
+        """
+        Test that the session turn delay ratio is parsed correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            input:
+                sessions:
+                    turn_delay:
+                        ratio: 0.5
+                        mean: 100
+                        stddev: 20
+                    turns:
+                        mean: 3
+                        stddev: 1
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.input.sessions.turn_delay.ratio, 0.5)
+        self.assertEqual(config.input.sessions.turn_delay.mean, 100)
+        self.assertEqual(config.input.sessions.turn_delay.stddev, 20)
+        self.assertEqual(config.input.sessions.turns.mean, 3)
+        self.assertEqual(config.input.sessions.turns.stddev, 1)
 
     ###########################################################################
     # Test Input Config
@@ -573,6 +605,28 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.endpoint.custom, "v1/embeddings")
+
+    def test_infer_tokenizer(self):
+        """
+        Test that tokenizer is inferred from model name when not explicitly set
+        """
+        # Test case 1: No tokenizer set, should infer from model name
+        yaml_str = """
+            model_name: gpt2
+            """
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+        self.assertEqual(config.tokenizer.name, "gpt2")
+
+        # Test case 2: Tokenizer explicitly set, should not infer
+        yaml_str = """
+            model_name: gpt2
+            tokenizer:
+                name: t5-small
+            """
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+        self.assertEqual(config.tokenizer.name, "t5-small")
 
 
 if __name__ == "__main__":

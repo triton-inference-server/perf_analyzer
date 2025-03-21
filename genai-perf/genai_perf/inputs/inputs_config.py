@@ -126,6 +126,9 @@ class InputsConfig:
     # The number of sessions to generate
     num_sessions: int = ic.DEFAULT_NUM_SESSIONS
 
+    # The ratio to scale multi-turn delays when using a payload file
+    session_delay_ratio: float = ic.DEFAULT_SESSION_DELAY_RATIO
+
     # The mean number of turns per session
     session_turns_mean: int = ic.DEFAULT_SESSION_TURNS_MEAN
 

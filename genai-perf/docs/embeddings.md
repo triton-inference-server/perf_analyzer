@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -44,7 +44,6 @@ To profile embeddings models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
-    --tokenizer intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
     --endpoint-type embeddings \
     --batch-size-text 2
@@ -77,7 +76,6 @@ To profile embeddings models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
-    --tokenizer intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
     --endpoint-type embeddings \
     --batch-size-text 2 \
@@ -103,7 +101,6 @@ For example, you could use this command:
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
-    --tokenizer intfloat/e5-mistral-7b-instruct \
     --service-kind openai \
     --endpoint-type embeddings \
     --extra-inputs user:sample_user

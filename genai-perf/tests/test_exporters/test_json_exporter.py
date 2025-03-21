@@ -149,7 +149,12 @@ class TestJsonExporter:
     def test_generate_json_input_config(
         self, monkeypatch, mock_read_write: pytest.MonkeyPatch
     ) -> None:
-        cli_cmd = ["genai-perf", "profile", "-m", "test_model"]
+        cli_cmd = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+        ]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
 

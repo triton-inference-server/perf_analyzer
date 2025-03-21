@@ -50,7 +50,6 @@ Use GenAI-Perf to generate/send text and image request data to the server
 ```bash
 genai-perf profile \
     -m llava-hf/llava-v1.6-mistral-7b-hf \
-    --tokenizer llava-hf/llava-v1.6-mistral-7b-hf \
     --service-kind openai \
     --endpoint-type multimodal \
     --image-width-mean 50 \

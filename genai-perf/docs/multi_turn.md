@@ -61,7 +61,6 @@ input and response lengths.
 ```bash
 genai-perf profile \
   -m TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
-  --tokenizer TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
   --service-kind openai \
   --endpoint-type chat \
   --num-sessions 10 \
@@ -103,18 +102,28 @@ with the dataset.
 ### Example Input File
 
 ```bash
-echo '{"session_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6", "delay": 1, "input_length": 50, "output_length": 10}
-{"session_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6", "delay": 2, "input_length": 50, "output_length": 10}
+echo '{"session_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6", "delay": 1000, "input_length": 50, "output_length": 10}
+{"session_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6", "delay": 2000, "input_length": 50, "output_length": 10}
 {"session_id": "f81d4fae-7dec-11d0-a765-00a0c91e6bf6", "input_length": 100, "output_length": 10}
-{"session_id": "113059749145936325402354257176981405696", "delay": 0, "input_length": 25, "output_length": 20}
+{"session_id": "113059749145936325402354257176981405696", "delay": 1000, "input_length": 25, "output_length": 20}
 {"session_id": "113059749145936325402354257176981405696", "input_length": 20, "output_length": 20}' > inputs.jsonl
 ```
+
+### Understand Key Arguments
+
+Most of the arguments are the same as the synthetic data approach.
+The new ones are detailed below.
+
+#### Optional Arguments
+- `--session-delay-ratio`: Modifies the delays in the payload file. The delays
+are multiplied by this ratio. This makes it easier to tune delays to represent
+different scenarios.
 
 ### Understand Key Fields
 
 #### Required Fields
-- `delay`: Sets the delay to wait after receiving a response before
-sending the next request. This field is required except for the
+- `delay`: Sets the delay in milliseconds to wait after receiving a response
+before sending the next request. This field is required except for the
 last turn in a session.
 
 #### Optional Fields
@@ -131,7 +140,8 @@ genai-perf profile \
   --service-kind openai \
   --endpoint-type chat \
   --input-file payload:inputs.jsonl \
-  --session-concurrency 2
+  --session-concurrency 2 \
+  --session-delay-ratio 0.5
 ```
 
 ## Review the Output

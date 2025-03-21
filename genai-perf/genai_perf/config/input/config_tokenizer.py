@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
+import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_defaults import TokenizerDefaults
 from genai_perf.config.input.config_field import ConfigField
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigTokenizer(BaseConfig):
@@ -28,14 +31,16 @@ class ConfigTokenizer(BaseConfig):
         super().__init__()
         self.name: Any = ConfigField(
             default=TokenizerDefaults.NAME,
+            template_comment="By default this is the model's name",
             verbose_template_comment="The HuggingFace tokenizer to use to interpret token metrics\
                 \nfrom prompts and responses. The value can be the\
-                \nname of a tokenizer or the filepath of the tokenizer.",
+                \nname of a tokenizer or the filepath of the tokenizer.\
+                \nThe default value is the model name.",
         )
         self.revision: Any = ConfigField(
             default=TokenizerDefaults.REVISION,
             verbose_template_comment="The specific model version to use.\
-                                             \nIt can be a branch name, tag name, or commit ID.",
+                                    \nIt can be a branch name, tag name, or commit ID.",
         )
         self.trust_remote_code: Any = ConfigField(
             default=TokenizerDefaults.TRUST_REMOTE_CODE,
@@ -56,3 +61,14 @@ class ConfigTokenizer(BaseConfig):
                 raise ValueError(
                     f"User Config: {key} is not a valid tokenizer parameter"
                 )
+
+    def infer_settings(self, model_name: Optional[str] = None) -> None:
+        """
+        Infer settings that are not explicitly set by the user.
+
+        Args:
+            model_name: The model name to use for inferring tokenizer name if not set
+        """
+        if not self.get_field("name").is_set_by_user and model_name:
+            self.name = model_name
+            logger.debug(f"Inferred tokenizer from model name: {self.name}")

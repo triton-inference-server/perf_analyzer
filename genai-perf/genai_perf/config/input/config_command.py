@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import Enum, auto
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypeAlias, Union
 
@@ -47,7 +47,11 @@ class ConfigCommand(BaseConfig):
     Describes the top-level configuration options for GAP
     """
 
-    def __init__(self, user_config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        user_config: Optional[Dict[str, Any]] = None,
+        create_template: bool = False,
+    ):
         super().__init__()
 
         self.model_names: Any = ConfigField(
@@ -64,12 +68,16 @@ class ConfigCommand(BaseConfig):
         self.output = ConfigOutput()
         self.tokenizer = ConfigTokenizer()
 
-        self._parse_yaml(user_config)
+        self._parse_yaml(user_config, create_template)
 
     ###########################################################################
     # Top-Level Parsing Methods
     ###########################################################################
-    def _parse_yaml(self, user_config: Optional[Dict[str, Any]] = None) -> None:
+    def _parse_yaml(
+        self,
+        user_config: Optional[Dict[str, Any]] = None,
+        create_template: bool = False,
+    ) -> None:
         if user_config:
             for key, value in user_config.items():
                 if key == "model_name" or key == "model_names":
@@ -91,9 +99,10 @@ class ConfigCommand(BaseConfig):
                         f"User Config: {key} is not a valid top-level parameter"
                     )
 
-        self._infer_settings()
-        self._check_for_illegal_combinations()
-        self._check_profile_export_file()
+        if not create_template:
+            self._infer_settings()
+            self._check_for_illegal_combinations()
+            self._check_profile_export_file()
 
     def _parse_model_names(self, model_names: Any) -> None:
         if type(model_names) is str:
@@ -112,6 +121,8 @@ class ConfigCommand(BaseConfig):
     def _infer_settings(self) -> None:
         self.endpoint.infer_settings(model_name=self.model_names[0])
         self.input.infer_settings()
+        self.perf_analyzer.infer_settings()
+        self.tokenizer.infer_settings(model_name=self.model_names[0])
 
     ###########################################################################
     # Illegal Combination Methods

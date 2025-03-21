@@ -157,7 +157,7 @@ After implementing your converter, you can run it against your server to
 ensure it works:
 
 ```bash
-genai-perf profile -m TEST_MODEL --endpoint-type NEW-ENDPOINT
+genai-perf profile -m TEST_MODEL --tokenizer TEST_MODEL --endpoint-type NEW-ENDPOINT
 ```
 
 You can also write unit tests to ensure it works as expected.

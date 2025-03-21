@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -55,7 +55,6 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --tokenizer gpt2 \
   --service-kind triton \
   --backend tensorrtllm \
   --synthetic-input-tokens-mean 200 \
@@ -97,7 +96,6 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --tokenizer gpt2 \
   --service-kind triton \
   --backend vllm \
   --synthetic-input-tokens-mean 200 \
@@ -142,7 +140,6 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m HuggingFaceH4/zephyr-7b-beta \
-  --tokenizer HuggingFaceH4/zephyr-7b-beta \
   --service-kind openai \
   --endpoint-type chat \
   --synthetic-input-tokens-mean 200 \
@@ -186,7 +183,6 @@ Run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --tokenizer gpt2 \
   --service-kind openai \
   --endpoint-type completions \
   --synthetic-input-tokens-mean 200 \

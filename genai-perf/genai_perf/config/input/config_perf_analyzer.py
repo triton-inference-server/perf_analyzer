@@ -17,9 +17,10 @@ from typing import Any, Dict
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_defaults import (
     PerfAnalyzerDefaults,
-    RequestCountDefaults,
+    PerfAnalyzerMeasurementDefaults,
 )
 from genai_perf.config.input.config_field import ConfigField
+from genai_perf.inputs.input_constants import PerfAnalyzerMeasurementMode
 
 
 class ConfigPerfAnalyzer(BaseConfig):
@@ -55,15 +56,13 @@ class ConfigPerfAnalyzer(BaseConfig):
             \nfrom the recent 3 measurements is within (stability percentage)\
             \nin terms of both infer per second and latency.",
         )
-        self.measurement_interval: Any = ConfigField(
-            default=PerfAnalyzerDefaults.MEASUREMENT_INTERVAL,
-            bounds={"min": 1},
-            verbose_template_comment="The time interval used for each measurement in milliseconds.\
-                \nPerf Analyzer will sample a time interval specified and take measurement\
-                \nover the requests completed within that time interval.",
-        )
+        self.measurement = ConfigPerfAnalyzerMeasurement()
 
-        self.request_count = ConfigRequestCount()
+        self.warmup_request_count: Any = ConfigField(
+            default=PerfAnalyzerDefaults.WARMUP_REQUEST_COUNT,
+            bounds={"min": 0},
+            verbose_template_comment="The number of warmup requests to send before benchmarking.",
+        )
 
     def parse(self, perf_analyzer: Dict[str, Any]) -> None:
         for key, value in perf_analyzer.items():
@@ -77,37 +76,60 @@ class ConfigPerfAnalyzer(BaseConfig):
                 self.stability_percentage = value
             elif key == "measurement_interval":
                 self.measurement_interval = value
-            elif key == "request_count":
-                self.request_count.parse(value)
+            elif key == "warmup_request_count":
+                self.warmup_request_count = value
+            elif key == "measurement":
+                self.measurement.parse(value)
             else:
                 raise ValueError(
                     f"User Config: {key} is not a valid perf_analyzer parameter"
                 )
 
+    def infer_settings(self) -> None:
+        self.measurement._infer_measurement_num_based_on_mode()
 
-class ConfigRequestCount(BaseConfig):
+
+###########################################################################
+# Sub-Config Classes
+###########################################################################
+class ConfigPerfAnalyzerMeasurement(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
-        self.num: Any = ConfigField(
-            default=RequestCountDefaults.NUM,
-            bounds={"min": 0},
-            verbose_template_comment="The number of requests to use for measurement.\
-                \nBy default, the benchmark does not terminate based on request count.\
-                \nInstead, it continues until stabilization is detected.",
+
+        self.mode: Any = ConfigField(
+            default=PerfAnalyzerMeasurementDefaults.MODE,
+            choices=PerfAnalyzerMeasurementMode,
+            verbose_template_comment="The mode of measurement to use in PA: request_count or interval",
         )
-        self.warmup: Any = ConfigField(
-            default=RequestCountDefaults.WARMUP,
+        self.num: Any = ConfigField(
+            default=PerfAnalyzerMeasurementDefaults.NUM,
             bounds={"min": 0},
-            verbose_template_comment="The number of warmup requests to send before benchmarking.",
+            template_comment="If left unset, the default value will be inferred based on the mode.",
+            verbose_template_comment="The number to use for measurement. By default, this will be inferred based on the mode.",
         )
 
-    def parse(self, request_count: Dict[str, Any]) -> None:
-        for key, value in request_count.items():
-            if key == "num":
+    def parse(self, perf_analyzer_measurement: Dict[str, Any]) -> None:
+        for key, value in perf_analyzer_measurement.items():
+            if key == "mode":
+                if value:
+                    self.mode = PerfAnalyzerMeasurementMode(value.upper())
+            elif key == "num":
                 self.num = value
-            elif key == "warmup":
-                self.warmup = value
             else:
                 raise ValueError(
-                    f"User Config: {key} is not a valid request_count parameter"
+                    f"User Config: {key} is not a valid perf_analyzer_measurement parameter"
+                )
+
+    ###########################################################################
+    # Infer Methods
+    ###########################################################################
+    def _infer_measurement_num_based_on_mode(self) -> None:
+        if not self.get_field("num").is_set_by_user:
+            if self.mode == PerfAnalyzerMeasurementMode.REQUEST_COUNT:
+                self.num = PerfAnalyzerMeasurementDefaults.REQUEST_COUNT
+            elif self.mode == PerfAnalyzerMeasurementMode.INTERVAL:
+                self.num = PerfAnalyzerMeasurementDefaults.INTERVAL
+            else:
+                raise ValueError(
+                    f"User Config: {self.mode} is not a valid perf_analyzer_measurement mode"
                 )

@@ -37,11 +37,7 @@ from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.metrics import Statistics
 from genai_perf.plots.plot_config import PlotConfig, PlotType, ProfileRunData
 from genai_perf.profile_data_parser import LLMProfileDataParser
-from genai_perf.tokenizer import (
-    DEFAULT_TOKENIZER,
-    DEFAULT_TOKENIZER_REVISION,
-    get_tokenizer,
-)
+from genai_perf.tokenizer import get_tokenizer
 from genai_perf.utils import load_yaml, scale
 
 logger = logging.getLogger(__name__)

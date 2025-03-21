@@ -48,6 +48,11 @@ class ImageFormat(Enum):
     JPEG = "JPEG"
 
 
+class PerfAnalyzerMeasurementMode(Enum):
+    REQUEST_COUNT = "REQUEST_COUNT"
+    INTERVAL = "INTERVAL"
+
+
 class OutputFormat(Enum):
     ################################################################
     # Triton backends
@@ -78,8 +83,9 @@ class OutputFormat(Enum):
 ###########################
 DEFAULT_BATCH_SIZE = 1
 DEFAULT_INPUT_DATA_JSON = "inputs.json"
+DEFAULT_MEASUREMENT_INTERVAL = 0
 DEFAULT_RANDOM_SEED = 0
-DEFAULT_REQUEST_COUNT = 0
+DEFAULT_REQUEST_COUNT = 10
 DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
 DEFAULT_WARMUP_REQUEST_COUNT = 0
 DEFAULT_BACKEND = "tensorrtllm"
@@ -126,6 +132,7 @@ DEFAULT_IMAGE_HEIGHT_STDDEV = 0
 ###########################
 DEFAULT_NUM_SESSIONS = 0
 DEFAULT_SESSION_CONCURRENCY = 1
+DEFAULT_SESSION_DELAY_RATIO = 1.0
 DEFAULT_SESSION_TURN_DELAY_MEAN_MS = 0
 DEFAULT_SESSION_TURN_DELAY_STDDEV_MS = 0
 DEFAULT_SESSION_TURNS_MEAN = 1
