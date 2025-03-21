@@ -34,7 +34,6 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
 )
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
-from genai_perf.tokenizer import Tokenizer
 from genai_perf.utils import sample_bounded_normal
 
 
