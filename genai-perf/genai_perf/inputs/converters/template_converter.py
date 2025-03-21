@@ -26,7 +26,7 @@
 
 import json
 import os
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, cast
 
 import jinja2
 from genai_perf.exceptions import GenAIPerfException
