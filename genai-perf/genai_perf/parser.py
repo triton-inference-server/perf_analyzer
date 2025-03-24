@@ -61,26 +61,6 @@ class PathType(Enum):
 logger = logging.getLogger(__name__)
 
 
-def _check_payload_input_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> None:
-    """
-    Raise an error if any of the profiling options are set
-    when using payload input
-    """
-    if args.prompt_source == ic.PromptSource.PAYLOAD:
-        incompatible_args = [
-            "concurrency",
-            "request_rate",
-            "request_count",
-            "warmup_request_count",
-        ]
-        for arg in incompatible_args:
-            if getattr(args, arg, None):
-                formatted_arg = f"--{arg.replace('_', '-')}"
-                parser.error((f"{formatted_arg} cannot be used with payload input."))
-
-
 def _check_model_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
@@ -256,27 +236,6 @@ def _check_conditional_args(
     return args
 
 
-def _check_load_manager_args(args: argparse.Namespace) -> argparse.Namespace:
-    """
-    Check inference load args
-    """
-    if args.prompt_source == ic.PromptSource.PAYLOAD or args.session_concurrency:
-        return args
-    # If no concurrency or request rate is set, default to 1
-    if not args.concurrency and not args.request_rate:
-        args.concurrency = 1
-    return args
-
-
-def _check_measurement_args(args: argparse.Namespace) -> argparse.Namespace:
-    """
-    Check measurement args
-    """
-    if not args.measurement_interval and not args.request_count:
-        args.request_count = ic.DEFAULT_REQUEST_COUNT
-    return args
-
-
 def _check_goodput_args(args):
     """
     Parse and check goodput args
@@ -421,16 +380,16 @@ def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
         )
 
 
-def _print_warnings(args: argparse.Namespace) -> None:
-    if args.tokenizer_trust_remote_code:
+def _print_warnings(config: ConfigCommand) -> None:
+    if config.tokenizer.trust_remote_code:
         logger.warning(
             "--tokenizer-trust-remote-code is enabled. "
             "Custom tokenizer code can be executed. "
             "This should only be used with repositories you trust."
         )
     if (
-        args.prompt_source == ic.PromptSource.PAYLOAD
-        and args.output_tokens_mean != ic.DEFAULT_OUTPUT_TOKENS_MEAN
+        config.input.prompt_source == ic.PromptSource.PAYLOAD
+        and config.input.output_tokens.mean != ic.DEFAULT_OUTPUT_TOKENS_MEAN
     ):
         logger.warning(
             "--output-tokens-mean is incompatible with output_length"
@@ -468,53 +427,6 @@ def parse_goodput(values):
             f"or a throughput value per second."
         )
     return constraints
-
-
-def _infer_prompt_source(args: argparse.Namespace) -> argparse.Namespace:
-    args.synthetic_input_files = None
-    args.payload_input_file = None
-
-    if args.input_file:
-        input_file_str = str(args.input_file)
-        if input_file_str.startswith("synthetic:"):
-            args.prompt_source = ic.PromptSource.SYNTHETIC
-            synthetic_input_files_str = input_file_str.split(":", 1)[1]
-            args.synthetic_input_files = synthetic_input_files_str.split(",")
-            logger.debug(
-                f"Input source is synthetic data: {args.synthetic_input_files}"
-            )
-
-        elif input_file_str.startswith("payload:"):
-            args.prompt_source = ic.PromptSource.PAYLOAD
-            payload_file = Path(input_file_str.split(":", 1)[1])
-            if not payload_file:
-                raise ValueError("Invalid file path: Path is None or empty.")
-
-            if not payload_file.is_file():
-                raise ValueError(f"File not found: {payload_file}")
-
-            args.payload_input_file = payload_file
-
-            logger.debug(
-                f"Input source is a payload file with timing information in the following path: {args.payload_input_file}"
-            )
-
-        else:
-            args.prompt_source = ic.PromptSource.FILE
-            logger.debug(f"Input source is the following path: {args.input_file}")
-    else:
-        args.prompt_source = ic.PromptSource.SYNTHETIC
-    return args
-
-
-def _infer_tokenizer(args: argparse.Namespace) -> argparse.Namespace:
-    if not hasattr(args, "tokenizer") or args.tokenizer is None:
-        if not args.model:
-            raise ValueError(
-                "The --tokenizer option is required when not specifying a model."
-            )
-        args.tokenizer = args.model[0]
-    return args
 
 
 def _convert_str_to_enum_entry(args, option, enum):
@@ -1285,31 +1197,15 @@ def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     if args.subcommand == Subcommand.PROFILE.value:
-        args = _infer_prompt_source(args)
-        args = _infer_tokenizer(args)
-        _check_payload_input_args(parser, args)
         args = _check_model_args(parser, args)
         args = _check_conditional_args(parser, args)
         args = _check_image_input_args(parser, args)
         args = _check_audio_input_args(parser, args)
-        args = _check_load_manager_args(args)
-        args = _check_measurement_args(args)
         args = _check_server_metrics_url(parser, args)
         args = _check_goodput_args(args)
         args = _check_session_args(args)
-        _print_warnings(args)
     elif args.subcommand == Subcommand.ANALYZE.value:
-        args = _infer_prompt_source(args)
-        args = _infer_tokenizer(args)
-        args = _check_model_args(parser, args)
-        args = _check_conditional_args(parser, args)
-        args = _check_image_input_args(parser, args)
-        args = _check_audio_input_args(parser, args)
-        args = _check_server_metrics_url(parser, args)
-        args = _check_goodput_args(args)
-        args = _check_session_args(args)
         args = _process_sweep_args(args)
-        _print_warnings(args)
     elif args.subcommand == Subcommand.COMPARE.value:
         args = _check_compare_args(parser, args)
     elif args.subcommand == Subcommand.TEMPLATE.value:
@@ -1380,11 +1276,6 @@ def add_cli_options_to_config(
             ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
         )
         config.perf_analyzer.measurement.num = args.request_count
-    else:
-        config.perf_analyzer.measurement.mode = (
-            ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
-        )
-        config.perf_analyzer.measurement.num = ic.DEFAULT_REQUEST_COUNT
 
     # Input
     config.input.batch_size = args.batch_size_text
@@ -1394,9 +1285,6 @@ def add_cli_options_to_config(
     config.input.file = args.input_file
     config.input.num_dataset_entries = args.num_dataset_entries
     config.input.random_seed = args.random_seed
-    config.input.prompt_source = args.prompt_source
-    config.input.synthetic_files = args.synthetic_input_files
-    config.input.payload_file = args.payload_input_file
 
     # Input - Audio
     config.input.audio.batch_size = args.batch_size_audio
@@ -1495,6 +1383,8 @@ def parse_args():
             # For all other subcommands, parse the CLI fully (no config file)
             config = ConfigCommand({"model_name": args.formatted_model_name})
             config = add_cli_options_to_config(config, args)
+            config.infer_and_check_options()
+            _print_warnings(config)
 
             logger.info(f"Profiling these models: {', '.join(config.model_names)}")
             return args, config, argv[passthrough_index + 1 :]
@@ -1503,6 +1393,7 @@ def parse_args():
         # passthrough is the user config file
         user_config = utils.load_yaml(argv[passthrough_index - 1])
         config = ConfigCommand(user_config)
+        _print_warnings(config)
 
         # Set subcommand
         if config.analyze.get_field("sweep_parameters").is_set_by_user:

@@ -26,7 +26,11 @@ from genai_perf.config.input.config_input import ConfigInput
 from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
-from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.input_constants import (
+    OutputFormat,
+    PerfAnalyzerMeasurementMode,
+    PromptSource,
+)
 from genai_perf.utils import split_and_strip_whitespace
 
 
@@ -73,6 +77,14 @@ class ConfigCommand(BaseConfig):
     ###########################################################################
     # Top-Level Parsing Methods
     ###########################################################################
+    def infer_and_check_options(self) -> None:
+        """
+        Infers and checks the configuration options.
+        """
+        self._infer_settings()
+        self._check_for_illegal_combinations()
+        self._check_profile_export_file()
+
     def _parse_yaml(
         self,
         user_config: Optional[Dict[str, Any]] = None,
@@ -100,9 +112,7 @@ class ConfigCommand(BaseConfig):
                     )
 
         if not create_template:
-            self._infer_settings()
-            self._check_for_illegal_combinations()
-            self._check_profile_export_file()
+            self.infer_and_check_options()
 
     def _parse_model_names(self, model_names: Any) -> None:
         if type(model_names) is str:
@@ -130,6 +140,7 @@ class ConfigCommand(BaseConfig):
     def _check_for_illegal_combinations(self) -> None:
         self._check_output_tokens_and_service_kind()
         self._check_output_format_and_generate_plots()
+        self._check_payload_input()
 
         self.endpoint.check_for_illegal_combinations()
 
@@ -151,6 +162,28 @@ class ConfigCommand(BaseConfig):
                 raise ValueError(
                     "User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
                 )
+
+    def _check_payload_input(self) -> None:
+        if self.input.prompt_source != PromptSource.PAYLOAD:
+            return
+
+        if self.perf_analyzer.get_field("stimulus").is_set_by_user:
+            raise ValueError(
+                f"User Config: perf_analyzer.stimulus is not supported with the payload input source."
+            )
+
+        if self.perf_analyzer.get_field("warmup_request_count").is_set_by_user:
+            raise ValueError(
+                f"User Config: perf_analyzer.warmup_request_count is not supported with the payload input source."
+            )
+        if (
+            self.perf_analyzer.measurement.get_field("mode").is_set_by_user
+            and self.perf_analyzer.measurement.mode
+            == PerfAnalyzerMeasurementMode.REQUEST_COUNT
+        ):
+            raise ValueError(
+                f"User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source."
+            )
 
     ###########################################################################
     # Set Path Methods

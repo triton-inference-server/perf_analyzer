@@ -693,8 +693,8 @@ class TestCLIArguments:
     def test_default_load_level(self, monkeypatch, capsys):
         logging.init_logging()
         monkeypatch.setattr("sys.argv", self.base_args)
-        args, _, _ = parser.parse_args()
-        assert args.concurrency == 1
+        _, config, _ = parser.parse_args()
+        assert config.perf_analyzer.stimulus["concurrency"] == 1
 
     def test_load_manager_args_with_payload(self, monkeypatch, mocker):
         monkeypatch.setattr(
@@ -1216,8 +1216,6 @@ class TestCLIArguments:
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
         parsed_args, config, _ = parser.parse_args()
-        assert parsed_args.prompt_source == expected_prompt_source
-        assert parsed_args.payload_input_file == expected_input_file
         assert config.input.prompt_source == expected_prompt_source
         assert config.input.payload_file == expected_input_file
 
@@ -1293,19 +1291,19 @@ class TestCLIArguments:
         [
             (
                 ["--concurrency", "10"],
-                "--concurrency cannot be used with payload input.",
+                "User Config: perf_analyzer.stimulus is not supported with the payload input source.",
             ),
             (
                 ["--request-rate", "5"],
-                "--request-rate cannot be used with payload input.",
+                "User Config: perf_analyzer.stimulus is not supported with the payload input source.",
             ),
             (
                 ["--request-count", "3"],
-                "--request-count cannot be used with payload input.",
+                "User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source.",
             ),
             (
                 ["--warmup-request-count", "7"],
-                "--warmup-request-count cannot be used with payload input.",
+                "User Config: perf_analyzer.warmup_request_count is not supported with the payload input source.",
             ),
         ],
     )
@@ -1323,10 +1321,10 @@ class TestCLIArguments:
 
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", combined_args)
-        with pytest.raises(SystemExit):
+        with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
-        captured = capsys.readouterr()
-        assert expected_error_message in captured.err
+
+        assert expected_error_message == execinfo.value.args[0]
 
     def test_check_payload_input_args_valid(self, monkeypatch, mocker):
         valid_args = self.base_args + [
