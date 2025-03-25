@@ -64,11 +64,11 @@ class FileInputRetriever(BaseFileInputRetriever):
         """
 
         files_data: Dict[str, FileData] = {}
-        self.config.input_filename = cast(Path, self.config.input_filename)
-        if self.config.input_filename.is_dir():
+        self.config.input.file = cast(Path, self.config.input.file)
+        if self.config.input.file.is_dir():
             files_data = self._get_input_datasets_from_dir()
         else:
-            input_file = self.config.input_filename
+            input_file = self.config.input.file
             file_data = self._get_input_dataset_from_file(input_file)
             files_data = {str(input_file): file_data}
 
