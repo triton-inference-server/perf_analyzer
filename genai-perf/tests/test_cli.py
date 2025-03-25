@@ -1197,11 +1197,11 @@ class TestCLIArguments:
         [
             (
                 ["--concurrency", "10"],
-                "User Config: perf_analyzer.stimulus is not supported with the payload input source.",
+                "User Config: perf_analyzer.stimulus: concurrency is not supported with the payload input source.",
             ),
             (
                 ["--request-rate", "5"],
-                "User Config: perf_analyzer.stimulus is not supported with the payload input source.",
+                "User Config: perf_analyzer.stimulus: request_rate is not supported with the payload input source.",
             ),
             (
                 ["--request-count", "3"],

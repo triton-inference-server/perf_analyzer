@@ -169,9 +169,11 @@ class ConfigCommand(BaseConfig):
             return
 
         if self.perf_analyzer.get_field("stimulus").is_set_by_user:
-            raise ValueError(
-                f"User Config: perf_analyzer.stimulus is not supported with the payload input source."
-            )
+            for key in self.perf_analyzer.stimulus.keys():
+                if key in ["concurrency", "request_rate"]:
+                    raise ValueError(
+                        f"User Config: perf_analyzer.stimulus: {key} is not supported with the payload input source."
+                    )
 
         if self.perf_analyzer.get_field("warmup_request_count").is_set_by_user:
             raise ValueError(
