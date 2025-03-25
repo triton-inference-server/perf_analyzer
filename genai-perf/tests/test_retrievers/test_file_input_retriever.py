@@ -115,6 +115,38 @@ class TestFileInputRetriever:
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
+    def test_retrieve_data_multi_modal(
+        self, mock_file, mock_image, mock_encode_image, mock_exists
+    ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.input.file = Path("multi_modal.jsonl")
+
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                config=config,
+                tokenizer=get_empty_tokenizer(),
+                output_directory=Path("."),
+            )
+        )
+
+        data = file_retriever.retrieve_data()
+        assert len(data.files_data) == 1
+        assert "multi_modal.jsonl" in data.files_data
+
+        file_data = data.files_data["multi_modal.jsonl"]
+        assert len(file_data.rows) == 2
+        assert file_data.rows[0].texts[0] == "What is this image?"
+        assert file_data.rows[0].images[0] == "mock_base64_image"
+        assert file_data.rows[1].texts[0] == "Who is this person?"
+        assert file_data.rows[1].images[0] == "mock_base64_image"
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
+    @patch(
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
+        return_value="mock_base64_image",
+    )
+    @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_single_image(
         self, mock_file, mock_image, mock_encode_image, mock_exists
     ):
