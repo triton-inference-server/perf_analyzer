@@ -15,7 +15,6 @@
 import json
 import random
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from genai_perf.exceptions import GenAIPerfException
