@@ -35,6 +35,10 @@ from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
 from genai_perf.tokenizer import get_empty_tokenizer
 from PIL import Image
 
+FILE_INPUT_RETRIEVER_PREFIX = (
+    "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever"
+)
+
 
 class TestFileInputRetriever:
 
@@ -76,16 +80,38 @@ class TestFileInputRetriever:
 
     @staticmethod
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     def mock_encode_image(mock_encode_image):
         return mock_encode_image
 
     @patch("pathlib.Path.exists", return_value=True)
+    @patch("builtins.open", side_effect=open_side_effect)
+    def test_retrieve_data_single_prompt(self, mock_file, mock_exists):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.input.file = Path("single_prompt.jsonl")
+
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                config=config,
+                tokenizer=get_empty_tokenizer(),
+                output_directory=Path("."),
+            )
+        )
+
+        data = file_retriever.retrieve_data()
+        assert len(data.files_data) == 1
+        assert "single_prompt.jsonl" in data.files_data
+
+        file_data = data.files_data["single_prompt.jsonl"]
+        assert len(file_data.rows) == 1
+        assert file_data.rows[0].texts[0] == "What is the capital of France?"
+
+    @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
@@ -114,7 +140,7 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         side_effect=["mock_base64_image1", "mock_base64_image2", "mock_base64_image3"],
     )
     @patch("builtins.open", side_effect=open_side_effect)
@@ -202,7 +228,7 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
@@ -322,7 +348,7 @@ class TestFileInputRetriever:
     )
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
