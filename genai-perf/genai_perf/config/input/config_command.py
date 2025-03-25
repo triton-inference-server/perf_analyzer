@@ -54,7 +54,7 @@ class ConfigCommand(BaseConfig):
     def __init__(
         self,
         user_config: Optional[Dict[str, Any]] = None,
-        create_template: bool = False,
+        skip_inferencing_and_checking: bool = False,
     ):
         super().__init__()
 
@@ -72,7 +72,7 @@ class ConfigCommand(BaseConfig):
         self.output = ConfigOutput()
         self.tokenizer = ConfigTokenizer()
 
-        self._parse_yaml(user_config, create_template)
+        self._parse_yaml(user_config, skip_inferencing_and_checking)
 
     ###########################################################################
     # Top-Level Parsing Methods
@@ -88,7 +88,7 @@ class ConfigCommand(BaseConfig):
     def _parse_yaml(
         self,
         user_config: Optional[Dict[str, Any]] = None,
-        create_template: bool = False,
+        skip_inferencing_and_checking: bool = False,
     ) -> None:
         if user_config:
             for key, value in user_config.items():
@@ -111,7 +111,7 @@ class ConfigCommand(BaseConfig):
                         f"User Config: {key} is not a valid top-level parameter"
                     )
 
-        if not create_template:
+        if not skip_inferencing_and_checking:
             self.infer_and_check_options()
 
     def _parse_model_names(self, model_names: Any) -> None:
@@ -143,6 +143,7 @@ class ConfigCommand(BaseConfig):
         self._check_payload_input()
 
         self.endpoint.check_for_illegal_combinations()
+        self.input.check_for_illegal_combinations()
 
     def _check_output_tokens_and_service_kind(self) -> None:
         if self.endpoint.service_kind not in ["triton", "tensorrtllm_engine"]:
@@ -160,7 +161,7 @@ class ConfigCommand(BaseConfig):
         ]:
             if self.output.generate_plots:
                 raise ValueError(
-                    "User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
+                    f"User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
                 )
 
     def _check_payload_input(self) -> None:

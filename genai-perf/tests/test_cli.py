@@ -133,27 +133,27 @@ class TestCLIArguments:
             ),
             (
                 ["--endpoint-type", "completions", "--service-kind", "openai"],
-                {"endpoint": "v1/completions"},
+                {"endpoint": None},
                 {"endpoint.custom": "v1/completions"},
             ),
             (
                 ["--endpoint-type", "chat", "--service-kind", "openai"],
-                {"endpoint": "v1/chat/completions"},
+                {"endpoint": None},
                 {"endpoint.custom": "v1/chat/completions"},
             ),
             (
                 ["--endpoint-type", "multimodal", "--service-kind", "openai"],
-                {"endpoint": "v1/chat/completions"},
+                {"endpoint": None},
                 {"endpoint.custom": "v1/chat/completions"},
             ),
             (
                 ["--endpoint-type", "rankings", "--service-kind", "openai"],
-                {"endpoint": "v1/ranking"},
+                {"endpoint": None},
                 {"endpoint.custom": "v1/ranking"},
             ),
             (
                 ["--endpoint-type", "image_retrieval", "--service-kind", "openai"],
-                {"endpoint": "v1/infer"},
+                {"endpoint": None},
                 {"endpoint.custom": "v1/infer"},
             ),
             (
@@ -175,9 +175,9 @@ class TestCLIArguments:
                     "--service-kind",
                     "openai",
                     "--endpoint",
-                    "   /custom/address",
+                    "/custom/address",
                 ],
-                {"endpoint": "custom/address"},
+                {"endpoint": "/custom/address"},
                 {"endpoint.custom": "custom/address"},
             ),
             (
@@ -250,7 +250,7 @@ class TestCLIArguments:
             ),
             (
                 ["--model-selection-strategy", "random"],
-                {"model_selection_strategy": ModelSelectionStrategy.RANDOM},
+                {"model_selection_strategy": "random"},
                 {"endpoint.model_selection_strategy": ModelSelectionStrategy.RANDOM},
             ),
             (
@@ -338,7 +338,7 @@ class TestCLIArguments:
                 ],
                 {
                     "service_kind": "dynamic_grpc",
-                    "endpoint_type": "dynamic_grpc",
+                    "endpoint_type": None,
                     "grpc_method": "package.name.v1.ServiceName/MethodName",
                 },
                 {
@@ -359,7 +359,7 @@ class TestCLIArguments:
             ),
             (
                 ["--service-kind", "openai", "--endpoint-type", "chat"],
-                {"service_kind": "openai", "endpoint": "v1/chat/completions"},
+                {"service_kind": "openai", "endpoint": None},
                 {
                     "endpoint.service_kind": "openai",
                     "endpoint.custom": "v1/chat/completions",
@@ -447,7 +447,7 @@ class TestCLIArguments:
             ),
             (
                 ["--image-format", "png"],
-                {"image_format": ImageFormat.PNG},
+                {"image_format": "png"},
                 {"input.image.format": ImageFormat.PNG},
             ),
             (
@@ -462,7 +462,7 @@ class TestCLIArguments:
             ),
             (
                 ["--audio-format", "wav"],
-                {"audio_format": AudioFormat.WAV},
+                {"audio_format": "wav"},
                 {"input.audio.format": AudioFormat.WAV},
             ),
             (
@@ -536,48 +536,6 @@ class TestCLIArguments:
 
             assert value == expected_value
 
-    @pytest.mark.parametrize(
-        "models, expected_model_list, formatted_name",
-        [
-            (
-                ["--model", "test_model_A"],
-                {"model": ["test_model_A"]},
-                {"formatted_model_name": "test_model_A"},
-            ),
-            (
-                ["--model", "test_model_A", "test_model_B"],
-                {"model": ["test_model_A", "test_model_B"]},
-                {"formatted_model_name": "test_model_A_multi"},
-            ),
-            (
-                ["--model", "test_model_A", "test_model_B", "test_model_C"],
-                {"model": ["test_model_A", "test_model_B", "test_model_C"]},
-                {"formatted_model_name": "test_model_A_multi"},
-            ),
-            (
-                ["--model", "test_model_A:math", "test_model_B:embedding"],
-                {"model": ["test_model_A:math", "test_model_B:embedding"]},
-                {"formatted_model_name": "test_model_A:math_multi"},
-            ),
-        ],
-    )
-    def test_multiple_model_args(
-        self, monkeypatch, models, expected_model_list, formatted_name, capsys
-    ):
-        logging.init_logging()
-        combined_args = self.base_args + models
-        monkeypatch.setattr("sys.argv", combined_args)
-        args, config, _ = parser.parse_args()
-
-        # Check that models are handled correctly
-        for key, value in expected_model_list.items():
-            assert getattr(args, key) == value
-
-        # Check that the formatted_model_name is correctly generated
-        for key, value in formatted_name.items():
-            assert getattr(args, key) == value
-            assert config.model_names == [value]
-
     def test_file_flags_parsed(self, monkeypatch, mocker):
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = [
@@ -642,8 +600,9 @@ class TestCLIArguments:
         combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = ConfigCommand({"model_name": args.model})
         config = parser.add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
         perf_analyzer_config = PerfAnalyzerConfig(config)
 
         assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
@@ -684,8 +643,9 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
         args, _, _ = parser.parse_args()
 
-        config = ConfigCommand({"model_name": args.formatted_model_name})
+        config = ConfigCommand({"model_names": args.model})
         config = parser.add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
         perf_analyzer_config = PerfAnalyzerConfig(config)
 
         assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
@@ -767,7 +727,7 @@ class TestCLIArguments:
         assert expected_output in captured.err
 
     @pytest.mark.parametrize(
-        "args, expected_output",
+        "args, expected_error_message",
         [
             (
                 [
@@ -778,7 +738,7 @@ class TestCLIArguments:
                     "--service-kind",
                     "openai",
                 ],
-                "The --endpoint-type option is required when using the 'openai' service-kind.",
+                "User Config: type must be set when service_kind is 'openai'",
             ),
             (
                 [
@@ -791,7 +751,7 @@ class TestCLIArguments:
                     "--endpoint",
                     "custom/address",
                 ],
-                "The --endpoint-type option is required when using the 'openai' service-kind.",
+                "User Config: type must be set when service_kind is 'openai'",
             ),
             (
                 [
@@ -802,7 +762,7 @@ class TestCLIArguments:
                     "--service-kind",
                     "dynamic_grpc",
                 ],
-                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind.",
+                "User Config: service_kind 'dynamic_grpc' requires a grpc_method to be specified",
             ),
             (
                 [
@@ -813,7 +773,7 @@ class TestCLIArguments:
                     "--output-tokens-stddev",
                     "5",
                 ],
-                "The --output-tokens-mean option is required when using --output-tokens-stddev.",
+                "User Config: If output tokens stddev is set, mean must also be set",
             ),
             (
                 [
@@ -823,7 +783,7 @@ class TestCLIArguments:
                     "test_model",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic.",
+                "User Config: If output tokens deterministic is set, mean must also be set",
             ),
             (
                 [
@@ -833,7 +793,7 @@ class TestCLIArguments:
                     "test_model",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic.",
+                "User Config: If output tokens deterministic is set, mean must also be set",
             ),
             (
                 [
@@ -849,7 +809,7 @@ class TestCLIArguments:
                     "100",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean-deterministic option is only supported with the Triton and TensorRT-LLM Engine service-kind",
+                "User Config: input.output_tokens.deterministic is only supported with Triton or TensorRT-LLM Engine service kinds",
             ),
             (
                 [
@@ -863,7 +823,7 @@ class TestCLIArguments:
                     "embeddings",
                     "--generate-plots",
                 ],
-                "The --generate-plots option is not currently supported with the embeddings endpoint type",
+                "User Config: generate_plots is not supported with the OutputFormat.OPENAI_EMBEDDINGS output format",
             ),
             (
                 [
@@ -877,7 +837,7 @@ class TestCLIArguments:
                     "rankings",
                     "--generate-plots",
                 ],
-                "The --generate-plots option is not currently supported with the rankings endpoint type",
+                "User Config: generate_plots is not supported with the OutputFormat.RANKINGS output format",
             ),
             (
                 [
@@ -891,7 +851,7 @@ class TestCLIArguments:
                     "image_retrieval",
                     "--generate-plots",
                 ],
-                "The --generate-plots option is not currently supported with the image_retrieval endpoint type",
+                "User Config: generate_plots is not supported with the OutputFormat.IMAGE_RETRIEVAL output format",
             ),
             (
                 [
@@ -964,28 +924,6 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--num-dataset-entries",
-                    "0",
-                ],
-                "The value must be greater than zero.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--num-dataset-entries",
-                    "not_number",
-                ],
-                "The value must be an integer.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
                     "--service-kind",
                     "openai",
                     "--endpoint-type",
@@ -993,7 +931,7 @@ class TestCLIArguments:
                     "--backend",
                     "vllm",
                 ],
-                "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type.",
+                "The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'",
             ),
             (
                 [
@@ -1008,7 +946,7 @@ class TestCLIArguments:
                     "--backend",
                     "vllm",
                 ],
-                "Invalid endpoint-type 'rankings' for service-kind 'triton'.",
+                "The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'",
             ),
             (
                 [
@@ -1023,7 +961,7 @@ class TestCLIArguments:
                     "--backend",
                     "vllm",
                 ],
-                "Invalid endpoint-type 'rankings' for service-kind 'tensorrtllm_engine'.",
+                "The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'",
             ),
             (
                 [
@@ -1038,53 +976,20 @@ class TestCLIArguments:
                     "--backend",
                     "vllm",
                 ],
-                "Invalid endpoint-type 'kserve' for service-kind 'openai'.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "unknown_service",
-                ],
-                "--service-kind: invalid choice: 'unknown_service'",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--audio-format",
-                    "unknown_format",
-                ],
-                "--audio-format: invalid choice: 'unknown_format'",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--audio-num-channels",
-                    "3",
-                ],
-                "--audio-num-channels: invalid choice: 3",
+                "The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'",
             ),
         ],
     )
-    def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):
+    def test_conditional_errors(
+        self, args, expected_error_message, monkeypatch, capsys
+    ):
         logging.init_logging()
         monkeypatch.setattr("sys.argv", args)
 
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+        assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(
         "args, expected_format",
@@ -1127,12 +1032,11 @@ class TestCLIArguments:
     def test_inferred_output_format(self, monkeypatch, args, expected_format):
         monkeypatch.setattr("sys.argv", self.base_args + args)
 
-        parsed_args, config, _ = parser.parse_args()
-        assert parsed_args.output_format == expected_format
+        _, config, _ = parser.parse_args()
         assert config.endpoint.output_format == expected_format
 
     @pytest.mark.parametrize(
-        "args, expected_error",
+        "args, expected_error_message",
         [
             (
                 ["--extra-inputs", "hi:"],
@@ -1155,17 +1059,19 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_get_extra_inputs_as_dict_warning(self, monkeypatch, args, expected_error):
+    def test_get_extra_inputs_as_dict_warning(
+        self, monkeypatch, args, expected_error_message
+    ):
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(ValueError) as exc_info:
-            parsed_args, _, _ = parser.parse_args()
+        with pytest.raises(ValueError) as execinfo:
+            parser.parse_args()
 
-        assert str(exc_info.value) == expected_error
+        assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(
-        "args, expected_error",
+        "args, expected_error_message",
         [
             (
                 ["--goodput", "time_to_first_token:-1"],
@@ -1173,14 +1079,14 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_goodput_args_warning(self, monkeypatch, args, expected_error):
+    def test_goodput_args_warning(self, monkeypatch, args, expected_error_message):
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
 
-        assert str(exc_info.value) == expected_error
+        assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(
         "args, expected_prompt_source, expected_input_file",
@@ -1261,7 +1167,7 @@ class TestCLIArguments:
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(ValueError) as excinfo:
             parser.parse_args()
 
     @pytest.mark.parametrize(
@@ -1283,7 +1189,7 @@ class TestCLIArguments:
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(ValueError) as excinfo:
             parser.parse_args()
 
     @pytest.mark.parametrize(

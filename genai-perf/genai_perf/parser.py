@@ -61,27 +61,36 @@ class PathType(Enum):
 logger = logging.getLogger(__name__)
 
 
-def _check_model_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> argparse.Namespace:
+def _parse_goodput(values):
+    constraints = {}
+    try:
+        for item in values:
+            target_metric, target_val = item.split(":")
+            constraints[target_metric] = float(target_val)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"Invalid format found for goodput constraints. "
+            f"The expected format is 'key:value' pairs. The key should be a "
+            f"service level objective name (e.g. request_latency). The value "
+            f"should be a number representing either milliseconds "
+            f"or a throughput value per second."
+        )
+    return constraints
+
+
+def _check_goodput_args(args):
     """
-    Check arguments associated with the model and apply any necessary formatting.
+    Parse and check goodput args
     """
-    args = _convert_str_to_enum_entry(
-        args, "model_selection_strategy", ic.ModelSelectionStrategy
-    )
-    _generate_formatted_model_name(args)
+    if args.goodput:
+        args.goodput = _parse_goodput(args.goodput)
+        for target_metric, target_val in args.goodput.items():
+            if target_val < 0:
+                raise ValueError(
+                    f"Invalid value found, {target_metric}: {target_val}. "
+                    f"The goodput constraint value should be non-negative. "
+                )
     return args
-
-
-def _generate_formatted_model_name(args: argparse.Namespace) -> None:
-    if len(args.model) == 1:
-        args.formatted_model_name = args.model[0]
-    elif len(args.model) == 0:
-        args.model = None
-        args.formatted_model_name = None
-    else:
-        args.formatted_model_name = args.model[0] + "_multi"
 
 
 def _check_compare_args(
@@ -92,172 +101,6 @@ def _check_compare_args(
     """
     if not args.config and not args.files:
         parser.error("Either the --config or --files option must be specified.")
-    return args
-
-
-def _check_image_input_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> argparse.Namespace:
-    """
-    Sanity check the image input args
-    """
-    if args.image_width_mean < 0 or args.image_height_mean < 0:
-        parser.error(
-            "Both --image-width-mean and --image-height-mean values must be non-negative."
-        )
-    if args.image_width_stddev < 0 or args.image_height_stddev < 0:
-        parser.error(
-            "Both --image-width-stddev and --image-height-stddev values must be non-negative."
-        )
-
-    args = _convert_str_to_enum_entry(args, "image_format", ic.ImageFormat)
-    return args
-
-
-def _check_audio_input_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> argparse.Namespace:
-    """
-    Sanity check the audio input args
-    """
-    if args.audio_length_mean < 0:
-        parser.error("The --audio-length-mean value must be non-negative.")
-    if args.audio_length_stddev < 0:
-        parser.error("The --audio-length-stddev value must be non-negative.")
-    if any(r <= 0 for r in args.audio_sample_rates):
-        parser.error("The sample rate values in --audio-sample-rates must be positive.")
-    if any(d <= 0 for d in args.audio_depths):
-        parser.error("The bit depth values in --audio-depths must be positive.")
-
-    args = _convert_str_to_enum_entry(args, "audio_format", ic.AudioFormat)
-    return args
-
-
-def _check_conditional_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> argparse.Namespace:
-    """
-    Check for conditional args and raise an error if they are not set.
-    """
-
-    # Endpoint and output format checks
-    if args.service_kind == "openai":
-        if args.endpoint_type is None:
-            parser.error(
-                "The --endpoint-type option is required when using the 'openai' service-kind."
-            )
-
-        # TODO: Remove the check once we deprecate the vision endpoint.
-        if args.endpoint_type == "vision":
-            logger.warning(
-                "[Deprecation Warning] The 'vision' endpoint-type is deprecated "
-                "and will be removed in a future release. Please use 'multimodal' endpoint-type instead."
-            )
-
-    elif args.service_kind == "dynamic_grpc":
-        args.endpoint_type = "dynamic_grpc"
-        if args.grpc_method is None:
-            parser.error(
-                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind."
-            )
-    elif args.service_kind == "triton" and args.endpoint_type is None:
-        args.endpoint_type = "kserve"
-    elif args.service_kind == "tensorrtllm_engine" and args.endpoint_type is None:
-        args.endpoint_type = "tensorrtllm_engine"
-
-    if args.endpoint_type and args.endpoint_type not in endpoint_type_map:
-        parser.error(f"Invalid endpoint type {args.endpoint_type}")
-
-    endpoint_config = endpoint_type_map[args.endpoint_type]
-    args.output_format = endpoint_config.output_format
-
-    if endpoint_config.service_kind != args.service_kind:
-        parser.error(
-            f"Invalid endpoint-type '{args.endpoint_type}' for service-kind '{args.service_kind}'."
-        )
-
-    if args.endpoint is not None:
-        args.endpoint = args.endpoint.lstrip(" /")
-    else:
-        if args.model:
-            model_name = args.model[0]
-        else:
-            model_name = ""
-        if endpoint_config.endpoint:
-            args.endpoint = endpoint_config.endpoint.format(MODEL_NAME=model_name)
-
-    args = _convert_str_to_enum_entry(args, "backend", ic.OutputFormat)
-    if args.service_kind == "triton" and args.endpoint_type in ["kserve", "template"]:
-        if args.endpoint_type == "kserve":
-            args.output_format = args.backend
-    else:
-        if args.backend is not EndPointDefaults.BACKEND:
-            parser.error(
-                "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type."
-            )
-
-    if args.service_kind == "triton" and args.endpoint_type == "generate":
-        # TODO: infer service_kind from endpoint_type and deprecate service_kind argument
-        args.service_kind = "openai"
-
-    if args.service_kind == "tensorrtllm_engine":
-        args.output_format = ic.OutputFormat.TENSORRTLLM_ENGINE
-
-    # Output token distribution checks
-    if args.output_tokens_mean == ic.DEFAULT_OUTPUT_TOKENS_MEAN:
-        if args.output_tokens_stddev != ic.DEFAULT_OUTPUT_TOKENS_STDDEV:
-            parser.error(
-                "The --output-tokens-mean option is required when using --output-tokens-stddev."
-            )
-        if args.output_tokens_mean_deterministic:
-            parser.error(
-                "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic."
-            )
-
-    if args.service_kind not in ["triton", "tensorrtllm_engine"]:
-        if args.output_tokens_mean_deterministic:
-            parser.error(
-                "The --output-tokens-mean-deterministic option is only supported "
-                "with the Triton and TensorRT-LLM Engine service-kind."
-            )
-
-    if args.output_format in [
-        ic.OutputFormat.IMAGE_RETRIEVAL,
-        ic.OutputFormat.NVCLIP,
-        ic.OutputFormat.OPENAI_EMBEDDINGS,
-        ic.OutputFormat.RANKINGS,
-        ic.OutputFormat.TEMPLATE,
-    ]:
-        if args.generate_plots:
-            parser.error(
-                f"The --generate-plots option is not currently supported with the {args.endpoint_type} endpoint type."
-            )
-
-    return args
-
-
-def _check_goodput_args(args):
-    """
-    Parse and check goodput args
-    """
-    if args.goodput:
-        args.goodput = parse_goodput(args.goodput)
-        for target_metric, target_val in args.goodput.items():
-            if target_val < 0:
-                raise ValueError(
-                    f"Invalid value found, {target_metric}: {target_val}. "
-                    f"The goodput constraint value should be non-negative. "
-                )
-    return args
-
-
-def _check_session_args(args):
-
-    if args.num_sessions:
-        if args.session_concurrency is None:
-            raise argparse.ArgumentTypeError(
-                "--session-concurrency must be set when using session-based benchmarking."
-            )
     return args
 
 
@@ -338,48 +181,6 @@ def _create_sweep_list(args):
     ]
 
 
-def _is_valid_url(parser: argparse.ArgumentParser, url: str) -> None:
-    """
-    Validates a URL to ensure it meets the following criteria:
-    - The scheme must be 'http' or 'https'.
-    - The netloc (domain) must be present OR the URL must be a valid localhost
-    address.
-    - The path must contain '/metrics'.
-    - The port must be specified.
-
-    Raises:
-        `parser.error()` if the URL is invalid.
-
-    The URL structure is expected to follow:
-    <scheme>://<netloc>/<path>;<params>?<query>#<fragment>
-    """
-    parsed_url = urlparse(url)
-
-    if parsed_url.scheme not in ["http", "https"]:
-        parser.error(
-            f"Invalid scheme '{parsed_url.scheme}' in URL: {url}. Use 'http' "
-            "or 'https'."
-        )
-
-    valid_localhost = parsed_url.hostname in ["localhost", "127.0.0.1"]
-
-    if not parsed_url.netloc and not valid_localhost:
-        parser.error(
-            f"Invalid domain in URL: {url}. Use a valid hostname or " "'localhost'."
-        )
-
-    if "/metrics" not in parsed_url.path:
-        parser.error(
-            f"Invalid URL path '{parsed_url.path}' in {url}. The path must "
-            "include '/metrics'."
-        )
-
-    if parsed_url.port is None:
-        parser.error(
-            f"Port missing in URL: {url}. A port number is required " "(e.g., ':8002')."
-        )
-
-
 def _print_warnings(config: ConfigCommand) -> None:
     if config.tokenizer.trust_remote_code:
         logger.warning(
@@ -396,47 +197,6 @@ def _print_warnings(config: ConfigCommand) -> None:
             " in the payload input file. output-tokens-mean"
             " will be ignored in favour of per payload settings."
         )
-
-
-def _check_server_metrics_url(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> argparse.Namespace:
-    """
-    Checks if each server metrics URL passed is valid
-    """
-
-    if args.service_kind == "triton" and args.server_metrics_url:
-        for url in args.server_metrics_url:
-            _is_valid_url(parser, url)
-
-    return args
-
-
-def parse_goodput(values):
-    constraints = {}
-    try:
-        for item in values:
-            target_metric, target_val = item.split(":")
-            constraints[target_metric] = float(target_val)
-    except ValueError:
-        raise argparse.ArgumentTypeError(
-            f"Invalid format found for goodput constraints. "
-            f"The expected format is 'key:value' pairs. The key should be a "
-            f"service level objective name (e.g. request_latency). The value "
-            f"should be a number representing either milliseconds "
-            f"or a throughput value per second."
-        )
-    return constraints
-
-
-def _convert_str_to_enum_entry(args, option, enum):
-    """
-    Convert string option to corresponding enum entry
-    """
-    attr_val = getattr(args, option)
-    if attr_val is not None:
-        setattr(args, f"{option}", utils.get_enum_entry(attr_val, enum))
-    return args
 
 
 ### Types ###
@@ -827,7 +587,6 @@ def _add_input_args(parser):
         "--output-tokens-mean",
         "--osl",
         type=int,
-        default=ic.DEFAULT_OUTPUT_TOKENS_MEAN,
         required=False,
         help=f"The mean number of tokens in each output. "
         "Ensure the --tokenizer value is set correctly. ",
@@ -1197,15 +956,10 @@ def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
     if args.subcommand == Subcommand.PROFILE.value:
-        args = _check_model_args(parser, args)
-        args = _check_conditional_args(parser, args)
-        args = _check_image_input_args(parser, args)
-        args = _check_audio_input_args(parser, args)
-        args = _check_server_metrics_url(parser, args)
         args = _check_goodput_args(args)
-        args = _check_session_args(args)
     elif args.subcommand == Subcommand.ANALYZE.value:
         args = _process_sweep_args(args)
+        args = _check_goodput_args(args)
     elif args.subcommand == Subcommand.COMPARE.value:
         args = _check_compare_args(parser, args)
     elif args.subcommand == Subcommand.TEMPLATE.value:
@@ -1240,10 +994,12 @@ def add_cli_options_to_config(
         config.analyze.parse(sweep_parameters)
 
     # Endpoint
-    config.endpoint.model_selection_strategy = args.model_selection_strategy
+    config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
+        args.model_selection_strategy.upper()
+    )
 
-    if args.backend.name.lower() != ic.DEFAULT_BACKEND:
-        config.endpoint.backend = args.backend
+    if args.backend != ic.DEFAULT_BACKEND:
+        config.endpoint.backend = ic.OutputFormat(args.backend.upper())
 
     config.endpoint.custom = args.endpoint
     config.endpoint.type = args.endpoint_type
@@ -1256,8 +1012,8 @@ def add_cli_options_to_config(
     if args.u:
         config.endpoint.url = args.u
 
-    config.endpoint.output_format = args.output_format
-    config.endpoint.grpc_method = args.grpc_method
+    if args.grpc_method:
+        config.endpoint.grpc_method = args.grpc_method
 
     # Perf Analyzer
     # config.perf_analyzer.path - There is no equivalent setting in the CLI
@@ -1290,7 +1046,7 @@ def add_cli_options_to_config(
     config.input.audio.batch_size = args.batch_size_audio
     config.input.audio.length.mean = args.audio_length_mean
     config.input.audio.length.stddev = args.audio_length_stddev
-    config.input.audio.format = args.audio_format
+    config.input.audio.format = ic.AudioFormat(args.audio_format.upper())
     config.input.audio.depths = args.audio_depths
     config.input.audio.sample_rates = args.audio_sample_rates
     config.input.audio.num_channels = args.audio_num_channels
@@ -1301,12 +1057,19 @@ def add_cli_options_to_config(
     config.input.image.width.stddev = args.image_width_stddev
     config.input.image.height.mean = args.image_height_mean
     config.input.image.height.stddev = args.image_height_stddev
-    config.input.image.format = args.image_format
+
+    if args.image_format:
+        config.input.image.format = ic.ImageFormat(args.image_format.upper())
 
     # Input - Output Tokens
-    config.input.output_tokens.mean = args.output_tokens_mean
-    config.input.output_tokens.deterministic = args.output_tokens_mean_deterministic
-    config.input.output_tokens.stddev = args.output_tokens_stddev
+    if args.output_tokens_mean:
+        config.input.output_tokens.mean = args.output_tokens_mean
+
+    if args.output_tokens_mean_deterministic:
+        config.input.output_tokens.deterministic = args.output_tokens_mean_deterministic
+
+    if args.output_tokens_stddev:
+        config.input.output_tokens.stddev = args.output_tokens_stddev
 
     # Input - Synthetic Tokens
     config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
@@ -1334,10 +1097,6 @@ def add_cli_options_to_config(
     config.tokenizer.name = args.tokenizer
     config.tokenizer.revision = args.tokenizer_revision
     config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
-
-    config._infer_settings()
-    config._check_for_illegal_combinations()
-    config._check_profile_export_file()
 
     return config
 
@@ -1381,7 +1140,9 @@ def parse_args():
             return args, None, argv[passthrough_index + 1 :]
         else:
             # For all other subcommands, parse the CLI fully (no config file)
-            config = ConfigCommand({"model_name": args.formatted_model_name})
+            config = ConfigCommand(
+                {"model_names": args.model}, skip_inferencing_and_checking=True
+            )
             config = add_cli_options_to_config(config, args)
             config.infer_and_check_options()
             _print_warnings(config)
@@ -1419,7 +1180,7 @@ def parse_args():
 
 
 def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
-    config = ConfigCommand({"model_name": ""}, create_template=True)
+    config = ConfigCommand({"model_name": ""}, skip_inferencing_and_checking=True)
 
     config.verbose = ConfigField(
         default=False, value=args.verbose, add_to_template=False
