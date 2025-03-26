@@ -59,7 +59,7 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.model_names, ["gpt2"])
-        self.assertEqual(config.get_field("model_names").required, True)
+        self.assertEqual(config.get_field("model_names").required, False)
 
     def test_multi_model_name_string(self):
         """
@@ -131,6 +131,38 @@ class TestConfigCommand(unittest.TestCase):
             config.analyze.sweep_parameters["input_sequence_length"],
             [100, 120, 140, 160, 180, 200],
         )
+
+    ###########################################################################
+    # Test PROCESS-EXPORT-FILES Subcommand
+    ###########################################################################
+    def test_process_export_files_subcommand(self):
+        """
+        Test that the process-export-files subcommand is parsed correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            process-export-files:
+                input_path: test_dir
+            output:
+                artifact_directory: "test_artifact_directory"
+                profile_export_file: "test_profile_export_file.json"
+                generate_plots: True
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.process.input_path, Path("test_dir"))
+        self.assertEqual(
+            config.output.artifact_directory, Path("test_artifact_directory")
+        )
+        print(config.output.artifact_directory)
+        self.assertEqual(
+            config.output.profile_export_file,
+            Path("test_profile_export_file.json"),
+        )
+        self.assertEqual(config.output.generate_plots, True)
 
     ###########################################################################
     # Test Endpoint Configuration

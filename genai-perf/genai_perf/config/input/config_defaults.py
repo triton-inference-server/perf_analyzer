@@ -178,3 +178,8 @@ class TokenizerDefaults:
 @dataclass(frozen=True)
 class TemplateDefaults:
     FILENAME = "genai_perf_config.yaml"
+
+
+@dataclass(frozen=True)
+class ProcessDefaults:
+    INPUT_PATH = None
