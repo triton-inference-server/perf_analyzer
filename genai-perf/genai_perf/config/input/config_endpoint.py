@@ -205,11 +205,13 @@ class ConfigEndPoint(BaseConfig):
                 "User Config: type must be set when service_kind is 'openai'"
             )
 
-        if self.service_kind == "triton" and not self.type:
-            self.type = "kserve"
-
-        if self.service_kind == "tensorrtllm_engine" and not self.type:
-            self.type = "tensorrtllm_engine"
+        if not self.type:
+            if self.service_kind == "triton":
+                self.type = "kserve"
+            elif self.service_kind == "tensorrtllm_engine":
+                self.type = "tensorrtllm_engine"
+            elif self.service_kind == "dynamic_grpc":
+                self.type = "dynamic_grpc"
 
         self._check_inferred_type()
         self.infer_service_kind(model_name)

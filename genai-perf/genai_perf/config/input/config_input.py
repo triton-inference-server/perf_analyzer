@@ -80,6 +80,7 @@ class ConfigInput(BaseConfig):
         )
         self.num_dataset_entries: Any = ConfigField(
             default=InputDefaults.NUM_DATASET_ENTRIES,
+            bounds={"min": 1},
             verbose_template_comment="The number of unique payloads to sample from.\
                 \nThese will be reused until benchmarking is complete.",
         )
@@ -161,6 +162,12 @@ class ConfigInput(BaseConfig):
                 raise ValueError(f"'{value}' is not a valid file or directory")
 
     ###########################################################################
+    # Illegal Combination Methods
+    ###########################################################################
+    def check_for_illegal_combinations(self) -> None:
+        self.output_tokens._check_output_tokens()
+
+    ###########################################################################
     # Infer Methods
     ###########################################################################
     def infer_settings(self) -> None:
@@ -231,10 +238,12 @@ class ConfigAudio(BaseConfig):
         )
         self.depths: Any = ConfigField(
             default=AudioDefaults.DEPTHS,
+            bounds={"min": 1},
             verbose_template_comment="A list of audio bit depths to randomly select from in bits.",
         )
         self.sample_rates: Any = ConfigField(
             default=AudioDefaults.SAMPLE_RATES,
+            bounds={"min": 1},
             verbose_template_comment="A list of audio sample rates to randomly select from in kHz.",
         )
         self.num_channels: Any = ConfigField(
@@ -438,21 +447,21 @@ class ConfigOutputTokens(BaseConfig):
                     f"User Config: {key} is not a valid output_tokens parameter"
                 )
 
-        self._check_output_tokens()
-
     def _check_output_tokens(self) -> None:
         if (
             self.get_field("stddev").is_set_by_user
             and not self.get_field("mean").is_set_by_user
         ):
-            raise ValueError("User Config: If stddev is set, mean must also be set")
+            raise ValueError(
+                "User Config: If output tokens stddev is set, mean must also be set"
+            )
 
         if (
             self.get_field("deterministic").is_set_by_user
             and not self.get_field("mean").is_set_by_user
         ):
             raise ValueError(
-                "User Config: If deterministic is set, mean must also be set"
+                "User Config: If output tokens deterministic is set, mean must also be set"
             )
 
 
