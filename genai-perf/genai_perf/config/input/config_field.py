@@ -83,12 +83,12 @@ class ConfigField:
             if self.bounds and "upper" in self.bounds:
                 if self.bounds["upper"] < item:
                     raise ValueError(
-                        f"User Config: {item} exceeds upper bounds (f{self.bounds})"
+                        f"User Config: {item} exceeds upper bounds ({self.bounds})"
                     )
             if self.bounds and "lower" in self.bounds:
                 if self.bounds["lower"] > item:
                     raise ValueError(
-                        f"User Config: {item} exceeds lower bounds (f{self.bounds})"
+                        f"User Config: {item} exceeds lower bounds ({self.bounds})"
                     )
         else:
             if self.bounds:

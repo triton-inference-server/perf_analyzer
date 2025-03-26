@@ -989,6 +989,7 @@ class TestCLIArguments:
         with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
 
+        captured = capsys.readouterr()
         assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(
