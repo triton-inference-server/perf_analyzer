@@ -1003,50 +1003,10 @@ def refine_args(
     return args
 
 
-def _set_output_config(config: ConfigCommand, args: argparse.Namespace) -> None:
-    """
-    Set the output-related fields in the config file.
-    """
-    config.output.artifact_directory = args.artifact_dir
-    config.output.profile_export_file = args.profile_export_file
-    config.output.generate_plots = args.generate_plots
-
-
-def add_cli_options_to_config(
+def _add_endpoint_options_to_config(
     config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-    # These can only be set via the CLI and are added here
-    config.subcommand = ConfigField(
-        default="profile", value=args.subcommand, required=True
-    )
-    config.verbose = ConfigField(default=False, value=args.verbose)
-
-    # Process Export Files
-    if args.subcommand == "process-export-files":
-        config.input.path = ConfigField(
-            default=None, value=args.input_path[0], required=True
-        )
-        _set_output_config(config, args)
-        return config
-
-    # Analyze
-    if args.subcommand == "analyze":
-        config.analyze.sweep_parameters = {}
-        if args.sweep_list:
-            sweep_parameters = {args.sweep_type: args.sweep_list}
-        else:
-            sweep_parameters = {
-                args.sweep_type: {"start": args.sweep_min, "stop": args.sweep_max}
-            }
-            if args.sweep_step:
-                sweep_parameters[args.sweep_type]["step"] = args.sweep_step
-
-        config.analyze.parse(sweep_parameters)
-
-    # Endpoint
-    config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
-        args.model_selection_strategy.upper()
-    )
+) -> None:
+    config.endpoint.model_selection_strategy = args.model_selection_strategy
 
     if args.backend != ic.DEFAULT_BACKEND:
         config.endpoint.backend = ic.OutputFormat(args.backend.upper())
@@ -1065,8 +1025,10 @@ def add_cli_options_to_config(
     if args.grpc_method:
         config.endpoint.grpc_method = args.grpc_method
 
-    # Perf Analyzer
-    # config.perf_analyzer.path - There is no equivalent setting in the CLI
+
+def _add_perf_analyzer_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     stimulus = _convert_args_to_stimulus(args)
     if stimulus:
         config.perf_analyzer.stimulus = stimulus
@@ -1082,8 +1044,28 @@ def add_cli_options_to_config(
             ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
         )
         config.perf_analyzer.measurement.num = args.request_count
+    else:
+        config.perf_analyzer.measurement.mode = (
+            ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
+        )
+        config.perf_analyzer.measurement.num = ic.DEFAULT_REQUEST_COUNT
 
-    # Input
+
+def _add_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    _add_base_input_options_to_config(config, args)
+    _add_audio_input_options_to_config(config, args)
+    _add_image_input_options_to_config(config, args)
+    _add_output_tokens_input_options_to_config(config, args)
+    _add_synthetic_tokens_input_options_to_config(config, args)
+    _add_prefix_prompt_input_options_to_config(config, args)
+    _add_session_input_options_to_config(config, args)
+
+
+def _add_base_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     config.input.batch_size = args.batch_size_text
     config.input.extra = get_extra_inputs_as_dict(args)
     config.input.goodput = args.goodput
@@ -1092,7 +1074,10 @@ def add_cli_options_to_config(
     config.input.num_dataset_entries = args.num_dataset_entries
     config.input.random_seed = args.random_seed
 
-    # Input - Audio
+
+def _add_audio_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     config.input.audio.batch_size = args.batch_size_audio
     config.input.audio.length.mean = args.audio_length_mean
     config.input.audio.length.stddev = args.audio_length_stddev
@@ -1101,7 +1086,10 @@ def add_cli_options_to_config(
     config.input.audio.sample_rates = args.audio_sample_rates
     config.input.audio.num_channels = args.audio_num_channels
 
-    # Input - Image
+
+def _add_image_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     config.input.image.batch_size = args.batch_size_image
     config.input.image.width.mean = args.image_width_mean
     config.input.image.width.stddev = args.image_width_stddev
@@ -1111,7 +1099,10 @@ def add_cli_options_to_config(
     if args.image_format:
         config.input.image.format = ic.ImageFormat(args.image_format.upper())
 
-    # Input - Output Tokens
+
+def _add_output_tokens_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     if args.output_tokens_mean:
         config.input.output_tokens.mean = args.output_tokens_mean
 
@@ -1121,15 +1112,24 @@ def add_cli_options_to_config(
     if args.output_tokens_stddev:
         config.input.output_tokens.stddev = args.output_tokens_stddev
 
-    # Input - Synthetic Tokens
+
+def _add_synthetic_tokens_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
     config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
 
-    # Input - Prefix Prompt
+
+def _add_prefix_prompt_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     config.input.prefix_prompt.num = args.num_prefix_prompts
     config.input.prefix_prompt.length = args.prefix_prompt_length
 
-    # Input - Sessions
+
+def _add_session_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     config.input.sessions.num = args.num_sessions
     config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
     config.input.sessions.turn_delay.ratio = args.session_delay_ratio
@@ -1137,14 +1137,75 @@ def add_cli_options_to_config(
     config.input.sessions.turns.mean = args.session_turns_mean
     config.input.sessions.turns.stddev = args.session_turns_stddev
 
-    # Output
-    # config.output.checkpoint_directory - There is no equivalent setting in the CLI
-    _set_output_config(config, args)
 
-    # Tokenizer
+def _add_output_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.output.artifact_directory = args.artifact_dir
+    # config.output.checkpoint_directory - There is no equivalent setting in the CLI
+    config.output.profile_export_file = args.profile_export_file
+    config.output.generate_plots = args.generate_plots
+
+
+def _add_tokenizer_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
     config.tokenizer.name = args.tokenizer
     config.tokenizer.revision = args.tokenizer_revision
     config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
+
+
+def _finalize_config(config: ConfigCommand) -> None:
+    config._infer_settings()
+    config._check_for_illegal_combinations()
+    config._check_profile_export_file()
+
+
+def _handle_process_export_files_subcommand(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.process.input_path = args.input_path[0]
+    _add_output_options_to_config(config, args)
+
+
+def _handle_analyze_subcommand(config: ConfigCommand, args: argparse.Namespace) -> None:
+    config.analyze.sweep_parameters = {}
+    if args.sweep_list:
+        sweep_parameters = {args.sweep_type: args.sweep_list}
+    else:
+        sweep_parameters = {
+            args.sweep_type: {"start": args.sweep_min, "stop": args.sweep_max}
+        }
+        if args.sweep_step:
+            sweep_parameters[args.sweep_type]["step"] = args.sweep_step
+
+    config.analyze.parse(sweep_parameters)
+
+
+def add_cli_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    # These can only be set via the CLI and are added here
+    config.subcommand = ConfigField(
+        default="profile", value=args.subcommand, required=True
+    )
+    config.verbose = ConfigField(default=False, value=args.verbose)
+
+    # Process Export Files
+    if args.subcommand == Subcommand.PROCESS.value:
+        _handle_process_export_files_subcommand(config, args)
+        return config
+
+    # Analyze
+    if args.subcommand == Subcommand.ANALYZE.value:
+        _handle_analyze_subcommand(config, args)
+
+    _add_endpoint_options_to_config(config, args)
+    _add_perf_analyzer_options_to_config(config, args)
+    _add_input_options_to_config(config, args)
+    _add_output_options_to_config(config, args)
+    _add_tokenizer_options_to_config(config, args)
+    _finalize_config(config)
 
     return config
 
@@ -1182,8 +1243,11 @@ def parse_args():
         if args.subcommand == Subcommand.TEMPLATE.value:
             config = _create_template_config(args, argv)
             return args, config, None
+        elif args.subcommand == Subcommand.COMPARE.value:
+            # this subcommand is deprecated and is not supported in the config file
+            return args, None, argv[passthrough_index + 1 :]
         elif args.subcommand == Subcommand.PROCESS.value:
-            config = ConfigCommand({"model_name": ""})
+            config = ConfigCommand()
             config = add_cli_options_to_config(config, args)
             return args, config, None
         else:
@@ -1207,12 +1271,15 @@ def parse_args():
         # Set subcommand
         if config.analyze.get_field("sweep_parameters").is_set_by_user:
             config_args = ["analyze"]
+        elif config.process.get_field("input_path").is_set_by_user:
+            config_args = ["process-export-files", str(config.process.input_path)]
         else:
             config_args = ["profile"]
 
         # Setup args in the way that argparse expects
-        config_args += ["-m", config.model_names[0]]
-        config_args += argv[1 : passthrough_index - 2]
+        if config_args[0] != "process-export-files":
+            config_args += ["-m", config.model_names[0]]
+            config_args += argv[1 : passthrough_index - 2]
 
         args = parser.parse_args(config_args)
 
@@ -1222,8 +1289,9 @@ def parse_args():
 
         # Set verbose
         config.verbose = ConfigField(default=False, value=args.verbose)
+        if config_args[0] != "process-export-files":
+            logger.info(f"Profiling these models: {', '.join(config.model_names)}")
 
-        logger.info(f"Profiling these models: {', '.join(config.model_names)}")
         return args, config, argv[passthrough_index + 1 :]
 
 

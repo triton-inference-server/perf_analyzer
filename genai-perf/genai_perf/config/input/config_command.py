@@ -25,6 +25,7 @@ from genai_perf.config.input.config_field import ConfigField
 from genai_perf.config.input.config_input import ConfigInput
 from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
+from genai_perf.config.input.config_process import ConfigProcess
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
 from genai_perf.inputs.input_constants import (
     OutputFormat,
@@ -61,7 +62,6 @@ class ConfigCommand(BaseConfig):
 
         self.model_names: Any = ConfigField(
             default=TopLevelDefaults.MODEL_NAMES,
-            required=True,
             add_to_template=True,
             verbose_template_comment="The name of the model(s) to benchmark.",
         )
@@ -72,6 +72,7 @@ class ConfigCommand(BaseConfig):
         self.input = ConfigInput()
         self.output = ConfigOutput()
         self.tokenizer = ConfigTokenizer()
+        self.process = ConfigProcess()
 
         self._parse_yaml(user_config, skip_inferencing_and_checking)
 
@@ -97,6 +98,8 @@ class ConfigCommand(BaseConfig):
                     self._parse_model_names(value)
                 elif key == "analyze":
                     self.analyze.parse(value)
+                elif key == "process-export-files":
+                    self.process.parse(value)
                 elif key == "endpoint":
                     self.endpoint.parse(value)
                 elif key == "perf_analyzer":
