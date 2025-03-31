@@ -51,9 +51,7 @@ class ConfigField:
         self._set_bounds(bounds)
         self.choices = choices
         self.is_set_by_user = False
-
-        if value is not None:
-            self.value = value
+        self.value = value
 
     def _set_bounds(self, bounds: Optional[Dict[str, Any]] = None) -> None:
         if not bounds:
@@ -114,7 +112,7 @@ class ConfigField:
             for value in value_list:
                 if not isinstance(value, Enum):
                     raise ValueError(
-                        f"User Config: {value} is not an Enum: f{self.choices}"
+                        f"User Config: {value} is not in list of choices: f{self.choices}"
                     )
                 if value.name not in [e.name for e in self.choices]:
                     raise ValueError(
