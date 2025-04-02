@@ -34,12 +34,8 @@ from urllib.parse import urlparse
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
-from genai_perf.config.input.config_command import ConfigCommand, Subcommand
-from genai_perf.config.input.config_defaults import (
-    AnalyzeDefaults,
-    EndPointDefaults,
-    TemplateDefaults,
-)
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import AnalyzeDefaults, EndPointDefaults
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
@@ -856,7 +852,7 @@ def _add_tokenizer_args(parser):
 
 def _parse_template_args(subparsers) -> argparse.ArgumentParser:
     template = subparsers.add_parser(
-        Subcommand.TEMPLATE.value,
+        ic.Subcommand.TEMPLATE.value,
         description="Subcommand to generate a template YAML file for profiling.",
     )
     _add_other_args(template)
@@ -866,7 +862,7 @@ def _parse_template_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
     compare = subparsers.add_parser(
-        Subcommand.COMPARE.value,
+        ic.Subcommand.COMPARE.value,
         description="Subcommand to generate plots that compare multiple profile runs.",
     )
     _add_compare_args(compare)
@@ -877,7 +873,7 @@ def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     profile = subparsers.add_parser(
-        Subcommand.PROFILE.value,
+        ic.Subcommand.PROFILE.value,
         description="Subcommand to profile LLMs and Generative AI models.",
     )
     _add_audio_input_args(profile)
@@ -895,7 +891,7 @@ def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     analyze = subparsers.add_parser(
-        Subcommand.ANALYZE.value,
+        ic.Subcommand.ANALYZE.value,
         description="Subcommand to analyze LLMs and Generative AI models.",
     )
     _add_analyze_args(analyze)
@@ -955,14 +951,14 @@ def get_passthrough_args_index(argv: list) -> int:
 def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
-    if args.subcommand == Subcommand.PROFILE.value:
+    if args.subcommand == ic.Subcommand.PROFILE.value:
         args = _check_goodput_args(args)
-    elif args.subcommand == Subcommand.ANALYZE.value:
+    elif args.subcommand == ic.Subcommand.ANALYZE.value:
         args = _process_sweep_args(args)
         args = _check_goodput_args(args)
-    elif args.subcommand == Subcommand.COMPARE.value:
+    elif args.subcommand == ic.Subcommand.COMPARE.value:
         args = _check_compare_args(parser, args)
-    elif args.subcommand == Subcommand.TEMPLATE.value:
+    elif args.subcommand == ic.Subcommand.TEMPLATE.value:
         pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
@@ -973,11 +969,10 @@ def refine_args(
 def add_cli_options_to_config(
     config: ConfigCommand, args: argparse.Namespace
 ) -> ConfigCommand:
-    # These can only be set via the CLI and are added here
-    config.subcommand = ConfigField(
-        default="profile", value=args.subcommand, required=True
-    )
-    config.verbose = ConfigField(default=False, value=args.verbose)
+
+    # Top-Level
+    config.subcommand = ic.Subcommand(args.subcommand)
+    config.verbose = args.verbose
 
     # Analyze
     if args.subcommand == "analyze":
@@ -1128,14 +1123,15 @@ def parse_args():
         or "--help" in argv
         or "--version" in argv
     ):
-        args = parser.parse_args(argv[1:passthrough_index])
+        args, unknown_args = parser.parse_known_args(argv[1:passthrough_index])
+        _check_unknown_args(args.subcommand, unknown_args)
         args = refine_args(parser, args)
 
-        if args.subcommand == Subcommand.TEMPLATE.value:
+        if args.subcommand == ic.Subcommand.TEMPLATE.value:
             config = _create_template_config(args, argv)
 
             return args, config, None
-        elif args.subcommand == Subcommand.COMPARE.value:
+        elif args.subcommand == ic.Subcommand.COMPARE.value:
             # this subcommand is deprecated and is not supported in the config file
             return args, None, argv[passthrough_index + 1 :]
         else:
@@ -1168,47 +1164,51 @@ def parse_args():
 
         args = parser.parse_args(config_args)
 
-        config.subcommand = ConfigField(
-            default="profile", value=args.subcommand, required=True
-        )
-
-        # Set verbose
-        config.verbose = ConfigField(default=False, value=args.verbose)
+        config.subcommand = ic.Subcommand(args.subcommand)
+        config.verbose = args.verbose
 
         logger.info(f"Profiling these models: {', '.join(config.model_names)}")
         return args, config, argv[passthrough_index + 1 :]
 
 
 def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
-    config = ConfigCommand({"model_name": ""}, skip_inferencing_and_checking=True)
+    config = ConfigCommand(skip_inferencing_and_checking=True)
 
-    config.verbose = ConfigField(
-        default=False, value=args.verbose, add_to_template=False
-    )
-    config.subcommand = ConfigField(
-        default="profile",
-        value=args.subcommand,
-        required=True,
-        add_to_template=False,
-    )
+    config.verbose = args.verbose
+    config.subcommand = ic.Subcommand(args.subcommand)
 
     # The template command is: genai-perf template [filename] [-v/--verbose]
+    del argv[0]  # This is the path to genai-perf
+    del argv[argv.index(ic.Subcommand.TEMPLATE.value)]
     if "-v" in argv:
         del argv[argv.index("-v")]
     if "--verbose" in argv:
         del argv[argv.index("--verbose")]
 
     # Assumption is the final argument is the filename (if it exists)
-    filename = argv[2] if len(argv) > 2 else TemplateDefaults.FILENAME
-    config.template_filename = ConfigField(
-        default=TemplateDefaults.FILENAME, value=filename, add_to_template=False
-    )
+    if argv:
+        config.template_filename = Path(argv[0])
 
     return config
 
 
+def _check_unknown_args(subcommand: str, unknown_args: List[str]) -> None:
+    # Only in the case of the template subcommand do we allow a single unknown arg
+    # which is assumed to be the filename for the templated config being created.
+    if not unknown_args:
+        return
+    elif subcommand != ic.Subcommand.TEMPLATE.value:
+        raise ValueError(
+            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}"
+        )
+    elif len(unknown_args) > 1:
+        logger.warning(
+            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}. Only a single argument is allowed (filename of the template). "
+        )
+
+
 def subcommand_found(argv) -> bool:
-    for sc in Subcommand:
+    for sc in ic.Subcommand:
         if sc.value in argv:
             return True
 

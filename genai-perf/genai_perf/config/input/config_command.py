@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, TypeAlias, Union
 import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_analyze import ConfigAnalyze
-from genai_perf.config.input.config_defaults import Range, TopLevelDefaults
+from genai_perf.config.input.config_defaults import TopLevelDefaults
 from genai_perf.config.input.config_endpoint import ConfigEndPoint
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.config.input.config_input import ConfigInput
@@ -30,18 +30,9 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PerfAnalyzerMeasurementMode,
     PromptSource,
+    Subcommand,
 )
 from genai_perf.utils import split_and_strip_whitespace
-
-
-class Subcommand(Enum):
-    COMPARE = "compare"
-    PROFILE = "profile"
-    ANALYZE = "analyze"
-    TEMPLATE = "create-template"
-
-
-ConfigRangeOrList: TypeAlias = Optional[Union[Range, List[int]]]
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +54,21 @@ class ConfigCommand(BaseConfig):
             required=True,
             add_to_template=True,
             verbose_template_comment="The name of the model(s) to benchmark.",
+        )
+
+        self.subcommand: Any = ConfigField(
+            default=TopLevelDefaults.SUBCOMMAND,
+            choices=Subcommand,
+            add_to_template=False,
+        )
+
+        self.verbose: Any = ConfigField(
+            default=TopLevelDefaults.VERBOSE, add_to_template=False
+        )
+
+        self.template_filename: Any = ConfigField(
+            default=Path(TopLevelDefaults.TEMPLATE_FILENAME),
+            add_to_template=False,
         )
 
         self.analyze = ConfigAnalyze()
@@ -248,22 +254,3 @@ class ConfigCommand(BaseConfig):
     ###########################################################################
     def make_template(self) -> str:
         return self.create_template(header="", level=0, verbose=self.verbose)
-
-    ###########################################################################
-    # Utility Methods
-    ###########################################################################
-    def get_max(self, config_value: ConfigRangeOrList) -> int:
-        if type(config_value) is list:
-            return max(config_value)
-        elif type(config_value) is Range:
-            return config_value.max
-        else:
-            return 0
-
-    def get_min(self, config_value: ConfigRangeOrList) -> int:
-        if type(config_value) is list:
-            return min(config_value)
-        elif type(config_value) is Range:
-            return config_value.min
-        else:
-            return 0
