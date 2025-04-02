@@ -141,7 +141,7 @@ class TestConfigCommand(unittest.TestCase):
         """
         # yapf: disable
         yaml_str = ("""
-            process-export-files:
+            process:
                 input_path: test_dir
             output:
                 artifact_directory: "test_artifact_directory"
