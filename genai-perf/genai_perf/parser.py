@@ -1006,7 +1006,9 @@ def refine_args(
 def _add_endpoint_options_to_config(
     config: ConfigCommand, args: argparse.Namespace
 ) -> None:
-    config.endpoint.model_selection_strategy = args.model_selection_strategy
+    config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
+        args.model_selection_strategy.upper()
+    )
 
     if args.backend != ic.DEFAULT_BACKEND:
         config.endpoint.backend = ic.OutputFormat(args.backend.upper())
@@ -1029,6 +1031,7 @@ def _add_endpoint_options_to_config(
 def _add_perf_analyzer_options_to_config(
     config: ConfigCommand, args: argparse.Namespace
 ) -> None:
+    # config.perf_analyzer.path - There is no equivalent setting in the CLI
     stimulus = _convert_args_to_stimulus(args)
     if stimulus:
         config.perf_analyzer.stimulus = stimulus
@@ -1044,11 +1047,6 @@ def _add_perf_analyzer_options_to_config(
             ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
         )
         config.perf_analyzer.measurement.num = args.request_count
-    else:
-        config.perf_analyzer.measurement.mode = (
-            ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
-        )
-        config.perf_analyzer.measurement.num = ic.DEFAULT_REQUEST_COUNT
 
 
 def _add_input_options_to_config(

@@ -98,7 +98,7 @@ class ConfigCommand(BaseConfig):
                     self._parse_model_names(value)
                 elif key == "analyze":
                     self.analyze.parse(value)
-                elif key == "process-export-files":
+                elif key == "process":
                     self.process.parse(value)
                 elif key == "endpoint":
                     self.endpoint.parse(value)
