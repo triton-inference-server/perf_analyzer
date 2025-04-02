@@ -21,6 +21,7 @@ from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
     PerfAnalyzerMeasurementMode,
+    Subcommand,
 )
 
 
@@ -40,7 +41,7 @@ class Range:
 @dataclass(frozen=True)
 class TopLevelDefaults:
     MODEL_NAMES = ""
-    SUBCOMMAND = "profile"
+    SUBCOMMAND = Subcommand.PROFILE
     VERBOSE = False
     TEMPLATE_FILENAME = "genai_perf_config.yaml"
 
