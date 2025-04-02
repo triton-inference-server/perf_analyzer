@@ -31,7 +31,6 @@ from genai_perf.constants import (
     runtime_pa_parameters,
 )
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import Subcommand
 
 
 class SearchParameters:

@@ -35,7 +35,7 @@ import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import AnalyzeDefaults, EndPointDefaults
+from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
