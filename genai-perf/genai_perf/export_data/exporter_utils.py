@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,24 +25,33 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import logging
+import textwrap
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def format_metric_name(name: str, unit: Optional[str]) -> str:
+def format_metric_name(
+    name: str, unit: Optional[str], width: Optional[int] = None
+) -> str:
     """
     Formats a metric name into a human-readable string with an optional unit.
 
     Args:
         name: The raw metric name with underscores.
         unit: The unit of the metric (e.g., 'ms').
+        width: The maximum width of the metric name.
 
     Returns:
         The formatted metric name with the unit if provided.
     """
     metric_str = name.replace("_", " ").title()
-    return f"{metric_str} ({unit})" if unit else metric_str
+    metric_str = f"{metric_str} ({unit})" if unit else metric_str
+
+    # Wrap the string if it's longer than the provided width.
+    if width and len(metric_str) > width:
+        metric_str = textwrap.fill(metric_str, width=width)
+    return metric_str
 
 
 def format_stat_value(value: Any) -> str:

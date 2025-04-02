@@ -115,7 +115,7 @@ class LLMProfileDataParser(ProfileDataParser):
         time_to_first_tokens = []
         time_to_second_tokens = []
         inter_token_latencies = []
-        output_token_throughput_per_user = []
+        output_token_throughputs_per_user = []
         input_sequence_lengths = []
         output_sequence_lengths = []
         chunked_inter_token_latencies = []
@@ -141,7 +141,6 @@ class LLMProfileDataParser(ProfileDataParser):
             # request latencies
             req_latency_ns = res_timestamps[-1] - req_timestamp
             request_latencies.append(req_latency_ns)  # nanosec
-            req_latency_s = req_latency_ns / 1e9  # sec
 
             # time to first token
             ttft = res_timestamps[0] - req_timestamp
@@ -170,7 +169,8 @@ class LLMProfileDataParser(ProfileDataParser):
                 inter_token_latencies.append(inter_token_latency)
 
                 # output token throughput per user (TPS/user)
-                output_token_throughput_per_user.append(1 / inter_token_latency)
+                inter_token_latency_s = inter_token_latency / 1e9
+                output_token_throughputs_per_user.append(1 / inter_token_latency_s)
 
             # The new ITL calculation above loses all token-level ITL information
             # and as a result breaks ITL vs token position visualization. Keep
@@ -197,8 +197,8 @@ class LLMProfileDataParser(ProfileDataParser):
                     session_metric["time_to_second_tokens"].append(ttst)
                 if len(res_timestamps) > 1 and total_output_token > 1:
                     session_metric["inter_token_latencies"].append(inter_token_latency)
-                    session_metric["output_token_throughput_per_user"].append(
-                        total_output_token / req_latency_s
+                    session_metric["output_token_throughputs_per_user"].append(
+                        1 / inter_token_latency_s
                     )
                 session_metric["input_sequence_lengths"].append(input_seq_len)
                 session_metric["output_sequence_lengths"].append(total_output_token)
@@ -218,7 +218,7 @@ class LLMProfileDataParser(ProfileDataParser):
             time_to_second_tokens,
             inter_token_latencies,
             output_token_throughputs,
-            output_token_throughput_per_user,
+            output_token_throughputs_per_user,
             output_sequence_lengths,
             input_sequence_lengths,
             chunked_inter_token_latencies,

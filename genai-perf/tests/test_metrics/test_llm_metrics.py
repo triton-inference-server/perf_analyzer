@@ -37,8 +37,8 @@ class TestLLMMetrics:
             request_latencies=[3, 44],
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
+            output_token_throughputs_per_user=[7, 8, 9],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -67,7 +67,7 @@ class TestLLMMetrics:
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughput_per_user=[7, 8, 9],
+            output_token_throughputs_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -89,8 +89,8 @@ class TestLLMMetrics:
             request_latencies=[3, 44],
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
+            output_token_throughputs_per_user=[7, 8, 9],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -107,8 +107,8 @@ class TestLLMMetrics:
             request_latencies=[3, 44],
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
+            output_token_throughputs_per_user=[7, 8, 9],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -117,7 +117,7 @@ class TestLLMMetrics:
         sys_metrics = m.system_metrics
         assert len(sys_metrics) == 4
         assert sys_metrics[0].name == "output_token_throughput"
-        assert sys_metrics[0].unit == "per sec"
+        assert sys_metrics[0].unit == "tokens/sec"
         assert sys_metrics[1].name == "request_throughput"
         assert sys_metrics[1].unit == "per sec"
         assert sys_metrics[2].name == "request_goodput"
@@ -134,8 +134,8 @@ class TestLLMMetrics:
             request_latencies=[3, 44],
             time_to_first_tokens=[1, 2, 3],
             inter_token_latencies=[4, 5],
+            output_token_throughputs_per_user=[7, 8, 9],
             output_token_throughputs=[22.13, 9423.02],
-            output_token_throughput_per_user=[7, 8, 9],
             output_sequence_lengths=[3, 4],
             input_sequence_lengths=[12, 34],
             request_goodputs=[9.88, 10.22],
@@ -143,7 +143,7 @@ class TestLLMMetrics:
         assert metrics.get_base_name("time_to_first_tokens") == "time_to_first_token"
         assert metrics.get_base_name("inter_token_latencies") == "inter_token_latency"
         assert (
-            metrics.get_base_name("output_token_throughput_per_user")
+            metrics.get_base_name("output_token_throughputs_per_user")
             == "output_token_throughput_per_user"
         )
         assert (

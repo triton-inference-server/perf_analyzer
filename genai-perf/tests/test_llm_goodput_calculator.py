@@ -70,7 +70,7 @@ class TestLLMGoodputCalculator:
         assert gc.get_slo_name("time_to_first_token") == "time_to_first_tokens"
         assert gc.get_slo_name("inter_token_latency") == "inter_token_latencies"
         assert gc.get_slo_name("output_token_throughput_per_user") == (
-            "output_token_throughput_per_user"
+            "output_token_throughputs_per_user"
         )
         with pytest.raises(KeyError):
             gc.get_slo_name("hello1234")
@@ -117,7 +117,7 @@ class TestLLMGoodputCalculator:
         test_llm_metrics_1 = LLMMetrics(
             time_to_first_tokens=[2, 2],
             inter_token_latencies=[2, 1],
-            output_token_throughput_per_user=[3 / ns_to_sec(7), 6 / ns_to_sec(9)],
+            output_token_throughputs_per_user=[1 / ns_to_sec(2), 1 / ns_to_sec(1)],
         )
 
         gc_1 = LLMGoodputCalculator(
@@ -133,7 +133,7 @@ class TestLLMGoodputCalculator:
         test_llm_metrics_2 = LLMMetrics(
             time_to_first_tokens=[2, 3],
             inter_token_latencies=[4, 1],
-            output_token_throughput_per_user=[4 / ns_to_sec(13), 6 / ns_to_sec(8)],
+            output_token_throughputs_per_user=[1 / ns_to_sec(4), 1 / ns_to_sec(1)],
         )
 
         gc_2 = LLMGoodputCalculator(

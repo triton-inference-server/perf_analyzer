@@ -54,7 +54,7 @@ class TestStatistics:
                     time_to_first_tokens=[7, 8, 9],
                     inter_token_latencies=[1, 2, 3],
                     output_token_throughputs=[4, 5, 6],
-                    output_token_throughput_per_user=[7, 8, 9],
+                    output_token_throughputs_per_user=[7, 8, 9],
                     output_sequence_lengths=[1, 2, 3],
                     input_sequence_lengths=[4, 5, 6],
                     request_goodputs=[7, 8, 9],

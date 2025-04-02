@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 from rich.console import Console
 from rich.table import Table
 
@@ -46,6 +45,10 @@ class ConsoleExporter:
         self._metrics = config.metrics
         self._config = config.config
 
+        # Set the maximum width of the 'Statistic' column.
+        # Any metric name+unit longer than this width will be wrapped.
+        self._max_width = 36
+
     def _get_title(self):
         title = "NVIDIA GenAI-Perf | "
         if self._config.endpoint.type == "embeddings":
@@ -63,7 +66,7 @@ class ConsoleExporter:
     def export(self, **kwargs) -> None:
         table = Table(title=self._get_title())
 
-        table.add_column("Statistic", justify="right", style="cyan", no_wrap=True)
+        table.add_column("Statistic", justify="right", style="cyan")
         for stat in self.STAT_COLUMN_KEYS:
             table.add_column(stat, justify="right", style="green")
 
@@ -83,7 +86,9 @@ class ConsoleExporter:
             if self._should_skip(metric.name):
                 continue
 
-            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
+            metric_str = exporter_utils.format_metric_name(
+                metric.name, metric.unit, self._max_width
+            )
             row_values = [metric_str]
 
             for stat in self.STAT_COLUMN_KEYS:
@@ -94,7 +99,9 @@ class ConsoleExporter:
             table.add_row(*row_values)
 
         for metric in self._metrics.system_metrics:
-            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
+            metric_str = exporter_utils.format_metric_name(
+                metric.name, metric.unit, self._max_width
+            )
             if metric.name == "request_goodput" and not self._config.input.goodput:
                 continue
 
@@ -114,11 +121,12 @@ class ConsoleExporter:
         if self._config.endpoint.type == "embeddings":
             return False  # skip nothing
 
-        # When non-streaming, skip ITL and TTFT
+        # Skip following streaming metrics when non-streaming mode
         streaming_metrics = [
             "inter_token_latency",
             "time_to_first_token",
             "time_to_second_token",
+            "output_token_throughput_per_user",
         ]
         if not self._config.endpoint.streaming and metric_name in streaming_metrics:
             return True
