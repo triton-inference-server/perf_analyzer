@@ -1155,12 +1155,6 @@ def _add_tokenizer_options_to_config(
     config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
 
 
-def _finalize_config(config: ConfigCommand) -> None:
-    config._infer_settings()
-    config._check_for_illegal_combinations()
-    config._check_profile_export_file()
-
-
 def _handle_process_export_files_subcommand(
     config: ConfigCommand, args: argparse.Namespace
 ) -> None:
@@ -1205,7 +1199,6 @@ def add_cli_options_to_config(
     _add_input_options_to_config(config, args)
     _add_output_options_to_config(config, args)
     _add_tokenizer_options_to_config(config, args)
-    _finalize_config(config)
 
     return config
 
