@@ -32,7 +32,7 @@ import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_command import ConfigCommand, Subcommand
 from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs.input_constants import (
@@ -1497,6 +1497,16 @@ class TestCLIArguments:
         captured = capsys.readouterr()
         assert expected_output in captured.err
 
+    def test_process_export_files_input_path(self, monkeypatch, capsys):
+        args = ["genai-perf", "process-export-files", "test_dir"]
+        monkeypatch.setattr("genai_perf.parser.directory", Path)
+        monkeypatch.setattr("sys.argv", args)
+        parsed_args, config, _ = parser.parse_args()
+
+        assert parsed_args.input_path[0] == Path("test_dir")
+        assert config.subcommand == Subcommand.PROCESS.value
+        assert config.process.input_path == Path("test_dir")
+
     @pytest.mark.parametrize(
         "arg, expected_path",
         [
@@ -1516,9 +1526,10 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
 
         assert args.artifact_dir == Path(expected_path)
+        assert config.output.artifact_directory == Path(expected_path)
 
     @pytest.mark.parametrize(
         "arg, expected_path",
@@ -1539,9 +1550,10 @@ class TestCLIArguments:
         combined_args = ["genai-perf", "process-export-files", "test_dir"] + arg
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
+        args, config, _ = parser.parse_args()
 
         assert args.profile_export_file == Path(expected_path)
+        assert config.output.profile_export_file == Path(expected_path)
 
     def test_process_export_files_unrecognized_arg(self, monkeypatch, capsys):
         monkeypatch.setattr("genai_perf.parser.directory", Path)
