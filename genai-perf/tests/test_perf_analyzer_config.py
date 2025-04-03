@@ -523,66 +523,65 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
 
         self.assertEqual(expected_args, actual_args)
 
-        ###########################################################################
-        # Test _add_url_args
-        ###########################################################################
-        def test_add_url_args_with_user_set_url(self):
-            """
-            Test that _add_url_args returns the correct arguments
-            when the URL is set by the user
-            """
-            self._config.endpoint.get_field("url").is_set_by_user = True
-            self._config.endpoint.url = "http://custom-url:8000"
+    ###########################################################################
+    # Test _add_url_args
+    ###########################################################################
+    def test_add_url_args_with_user_set_url(self):
+        """
+        Test that _add_url_args returns the correct arguments
+        when the URL is set by the user
+        """
+        self._config.endpoint.get_field("url").is_set_by_user = True
+        self._config.endpoint.url = "http://custom-url:8000"
 
-            expected_args = ["-u", "http://custom-url:8000"]
+        expected_args = ["-u", "http://custom-url:8000"]
 
-            actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
+        actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
 
-            self.assertEqual(expected_args, actual_args)
+        self.assertEqual(expected_args, actual_args)
 
-        def test_add_url_args_with_triton_service_kind(self):
-            """
-            Test that _add_url_args returns the correct arguments
-            when service_kind is 'triton'
-            """
-            self._config.endpoint.get_field("url").is_set_by_user = False
-            self._config.endpoint.service_kind = "triton"
-            self._config.endpoint.url = "http://triton-url:8001"
+    def test_add_url_args_with_triton_service_kind(self):
+        """
+        Test that _add_url_args returns the correct arguments
+        when service_kind is 'triton'
+        """
+        self._config.endpoint.get_field("url").is_set_by_user = False
+        self._config.endpoint.service_kind = "triton"
+        self._config.endpoint.url = "http://triton-url:8001"
 
-            expected_args = ["-u", "http://triton-url:8001"]
+        expected_args = ["-u", "http://triton-url:8001"]
 
-            actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
+        actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
 
-            self.assertEqual(expected_args, actual_args)
+        self.assertEqual(expected_args, actual_args)
 
-        def test_add_url_args_with_dynamic_grpc_service_kind(self):
-            """
-            Test that _add_url_args returns the correct arguments
-            when service_kind is 'dynamic_grpc'
-            """
-            self._config.endpoint.get_field("url").is_set_by_user = False
-            self._config.endpoint.service_kind = "dynamic_grpc"
-            self._config.endpoint.url = "http://dynamic-grpc-url:9000"
+    def test_add_url_args_with_dynamic_grpc_service_kind(self):
+        """
+        Test that _add_url_args returns the correct arguments
+        when service_kind is 'dynamic_grpc'
+        """
+        self._config.endpoint.get_field("url").is_set_by_user = False
+        self._config.endpoint.service_kind = "dynamic_grpc"
+        self._config.endpoint.url = "http://dynamic-grpc-url:9000"
 
-            expected_args = ["-u", "http://dynamic-grpc-url:9000"]
+        expected_args = ["-u", "http://dynamic-grpc-url:9000"]
 
-            actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
+        actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
 
-            self.assertEqual(expected_args, actual_args)
+        self.assertEqual(expected_args, actual_args)
 
-        def test_add_url_args_with_no_url_and_unknown_service_kind(self):
-            """
-            Test that _add_url_args returns an empty list
-            when the URL is not set and service_kind is unknown
-            """
-            self._config.endpoint.get_field("url").is_set_by_user = False
-            self._config.endpoint.service_kind = "unknown"
+    def test_add_url_args_with_no_url_and_openai_service_kind(self):
+        """
+        Test that _add_url_args returns an empty list
+        when the URL is not set and service_kind is
+        """
+        self._config.endpoint.service_kind = "openai"
 
-            expected_args = []
+        expected_args = []
 
-            actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
+        actual_args = self._default_perf_analyzer_config._add_url_args(self._config)
 
-            self.assertEqual(expected_args, actual_args)
+        self.assertEqual(expected_args, actual_args)
 
 
 if __name__ == "__main__":
