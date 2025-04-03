@@ -73,6 +73,7 @@ class OutputFormat(Enum):
     TEMPLATE = "TEMPLATE"
     TENSORRTLLM_ENGINE = "TENSORRTLLM_ENGINE"
     TRITON_GENERATE = "TRITON_GENERATE"
+    HUGGINGFACE_GENERATE = "HUGGINGFACE_GENERATE"
 
     def to_lowercase(self):
         return self.name.lower()

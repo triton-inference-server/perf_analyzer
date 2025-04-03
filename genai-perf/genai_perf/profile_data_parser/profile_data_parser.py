@@ -39,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class ResponseFormat(Enum):
+    HUGGINGFACE_GENERATE = auto()
     HUGGINGFACE_RANKINGS = auto()
     OPENAI_CHAT_COMPLETIONS = auto()
     OPENAI_COMPLETIONS = auto()
@@ -90,8 +91,8 @@ class ProfileDataParser:
                 self._response_format = ResponseFormat.RANKINGS
             elif data["endpoint"] == "v1/infer":
                 self._response_format = ResponseFormat.IMAGE_RETRIEVAL
-            elif "generate" in data["endpoint"]:
-                self._response_format = ResponseFormat.TRITON_GENERATE
+            elif "huggingface/generate" in data["endpoint"].lower():
+                self._response_format = ResponseFormat.HUGGINGFACE_GENERATE
             else:
                 # (TPA-66) add PA metadata to handle this case
                 # When endpoint field is either empty or custom endpoint, fall
@@ -112,6 +113,8 @@ class ProfileDataParser:
                     self._response_format = ResponseFormat.RANKINGS
                 elif "image_retrieval" in response:
                     self._response_format = ResponseFormat.IMAGE_RETRIEVAL
+                elif "generated_text" in response:
+                    self._response_format = ResponseFormat.HUGGINGFACE_GENERATE
                 else:
                     raise RuntimeError("Unknown OpenAI response format.")
 
