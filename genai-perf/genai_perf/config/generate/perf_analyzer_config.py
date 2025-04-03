@@ -85,6 +85,7 @@ class PerfAnalyzerConfig:
         cli_args += self._add_verbose_args(config)
         cli_args += self._add_perf_analyzer_args(config)
         cli_args += self._add_protocol_args(config)
+        cli_args += self._add_url_args(config)
         cli_args += self._add_dynamic_grpc_args(config)
         cli_args += self._add_inference_load_args(config)
         cli_args += self._add_prompt_source_args(config)
@@ -270,18 +271,28 @@ class PerfAnalyzerConfig:
 
         return perf_analyzer_args
 
+    def _add_url_args(self, config: ConfigCommand) -> List[str]:
+        url_args = []
+
+        if (
+            config.endpoint.get_field("url").is_set_by_user
+            or config.endpoint.service_kind == "triton"
+            or config.endpoint.service_kind == "dynamic_grpc"
+        ):
+            url_args += ["-u", config.endpoint.url]
+
+        return url_args
+
     def _add_protocol_args(self, config: ConfigCommand) -> List[str]:
         protocol_args = []
 
         if config.endpoint.service_kind == "triton":
-            protocol_args += ["-i", "grpc", "--streaming", "-u", config.endpoint.url]
+            protocol_args += ["-i", "grpc", "--streaming"]
 
             if config.endpoint.backend == OutputFormat.TENSORRTLLM:
                 protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif config.endpoint.service_kind == "openai":
             protocol_args += ["-i", "http"]
-        elif config.endpoint.service_kind == "dynamic_grpc":
-            protocol_args += ["-u", config.endpoint.url]
 
         return protocol_args
 
