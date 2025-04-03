@@ -45,4 +45,6 @@ class ConfigProcess(BaseConfig):
     # Parsing Methods
     ###########################################################################
     def parse(self, process: Dict[str, Any]) -> None:
+        if not process:
+            return
         self.input_path = Path(process["input_path"])
