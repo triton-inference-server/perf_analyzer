@@ -32,6 +32,7 @@ class Subcommand(Enum):
     PROFILE = "profile"
     ANALYZE = "analyze"
     TEMPLATE = "create-template"
+    PROCESS = "process-export-files"
 
 
 class ModelSelectionStrategy(Enum):

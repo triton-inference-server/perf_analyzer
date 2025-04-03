@@ -806,7 +806,7 @@ def _parse_config_args(subparsers) -> argparse.ArgumentParser:
 
 def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
     process_export_files = subparsers.add_parser(
-        Subcommand.PROCESS_EXPORT_FILES.to_cli_format(),
+        ic.Subcommand.PROCESS.value,
         description="Subcommand to process export files and aggregate the results.",
     )
     _add_process_export_files_args(process_export_files)
@@ -871,12 +871,219 @@ def refine_args(
         args = _check_goodput_args(args)
     elif args.subcommand == ic.Subcommand.TEMPLATE.value:
         pass
-    elif args.subcommand == Subcommand.PROCESS_EXPORT_FILES.to_cli_format():
+    elif args.subcommand == ic.Subcommand.PROCESS.value:
         pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")
 
     return args
+
+
+def _add_endpoint_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
+        args.model_selection_strategy.upper()
+    )
+
+    if args.backend != ic.DEFAULT_BACKEND:
+        config.endpoint.backend = ic.OutputFormat(args.backend.upper())
+
+    config.endpoint.custom = args.endpoint
+    config.endpoint.type = args.endpoint_type
+    config.endpoint.service_kind = args.service_kind
+    config.endpoint.streaming = args.streaming
+
+    if args.server_metrics_url:
+        config.endpoint.server_metrics_urls = args.server_metrics_url
+
+    if args.u:
+        config.endpoint.url = args.u
+
+    if args.grpc_method:
+        config.endpoint.grpc_method = args.grpc_method
+
+
+def _add_perf_analyzer_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    # config.perf_analyzer.path - There is no equivalent setting in the CLI
+    stimulus = _convert_args_to_stimulus(args)
+    if stimulus:
+        config.perf_analyzer.stimulus = stimulus
+
+    config.perf_analyzer.stability_percentage = args.stability_percentage
+    config.perf_analyzer.warmup_request_count = args.warmup_request_count
+
+    if args.measurement_interval:
+        config.perf_analyzer.measurement.mode = ic.PerfAnalyzerMeasurementMode.INTERVAL
+        config.perf_analyzer.measurement.num = args.measurement_interval
+    elif args.request_count:
+        config.perf_analyzer.measurement.mode = (
+            ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
+        )
+        config.perf_analyzer.measurement.num = args.request_count
+
+
+def _add_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    _add_base_input_options_to_config(config, args)
+    _add_audio_input_options_to_config(config, args)
+    _add_image_input_options_to_config(config, args)
+    _add_output_tokens_input_options_to_config(config, args)
+    _add_synthetic_tokens_input_options_to_config(config, args)
+    _add_prefix_prompt_input_options_to_config(config, args)
+    _add_session_input_options_to_config(config, args)
+
+
+def _add_base_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.input.batch_size = args.batch_size_text
+    config.input.extra = get_extra_inputs_as_dict(args)
+    config.input.goodput = args.goodput
+    config.input.header = args.header
+    config.input.file = args.input_file
+    config.input.num_dataset_entries = args.num_dataset_entries
+    config.input.random_seed = args.random_seed
+
+
+def _add_audio_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.input.audio.batch_size = args.batch_size_audio
+    config.input.audio.length.mean = args.audio_length_mean
+    config.input.audio.length.stddev = args.audio_length_stddev
+    config.input.audio.format = ic.AudioFormat(args.audio_format.upper())
+    config.input.audio.depths = args.audio_depths
+    config.input.audio.sample_rates = args.audio_sample_rates
+    config.input.audio.num_channels = args.audio_num_channels
+
+
+def _add_image_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.input.image.batch_size = args.batch_size_image
+    config.input.image.width.mean = args.image_width_mean
+    config.input.image.width.stddev = args.image_width_stddev
+    config.input.image.height.mean = args.image_height_mean
+    config.input.image.height.stddev = args.image_height_stddev
+
+    if args.image_format:
+        config.input.image.format = ic.ImageFormat(args.image_format.upper())
+
+
+def _add_output_tokens_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    if args.output_tokens_mean:
+        config.input.output_tokens.mean = args.output_tokens_mean
+
+    if args.output_tokens_mean_deterministic:
+        config.input.output_tokens.deterministic = args.output_tokens_mean_deterministic
+
+    if args.output_tokens_stddev:
+        config.input.output_tokens.stddev = args.output_tokens_stddev
+
+
+def _add_synthetic_tokens_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
+    config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
+
+
+def _add_prefix_prompt_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.input.prefix_prompt.num = args.num_prefix_prompts
+    config.input.prefix_prompt.length = args.prefix_prompt_length
+
+
+def _add_session_input_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.input.sessions.num = args.num_sessions
+    config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
+    config.input.sessions.turn_delay.ratio = args.session_delay_ratio
+    config.input.sessions.turn_delay.stddev = args.session_turn_delay_stddev
+    config.input.sessions.turns.mean = args.session_turns_mean
+    config.input.sessions.turns.stddev = args.session_turns_stddev
+
+
+def _add_output_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.output.artifact_directory = args.artifact_dir
+    # config.output.checkpoint_directory - There is no equivalent setting in the CLI
+    config.output.profile_export_file = args.profile_export_file
+    config.output.generate_plots = args.generate_plots
+
+
+def _add_tokenizer_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.tokenizer.name = args.tokenizer
+    config.tokenizer.revision = args.tokenizer_revision
+    config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
+
+
+def _handle_process_export_files_subcommand(
+    config: ConfigCommand, args: argparse.Namespace
+) -> None:
+    config.process.input_path = args.input_path[0]
+    _add_output_options_to_config(config, args)
+
+
+def _handle_analyze_subcommand(config: ConfigCommand, args: argparse.Namespace) -> None:
+    config.analyze.sweep_parameters = {}
+    if args.sweep_list:
+        sweep_parameters = {args.sweep_type: args.sweep_list}
+    else:
+        sweep_parameters = {
+            args.sweep_type: {"start": args.sweep_min, "stop": args.sweep_max}
+        }
+        if args.sweep_step:
+            sweep_parameters[args.sweep_type]["step"] = args.sweep_step
+
+    config.analyze.parse(sweep_parameters)
+
+
+def add_cli_options_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    # These can only be set via the CLI and are added here
+    config.subcommand = ic.Subcommand(args.subcommand)
+    config.verbose = args.verbose
+
+    # Process Export Files
+    if args.subcommand == ic.Subcommand.PROCESS.value:
+        _handle_process_export_files_subcommand(config, args)
+        return config
+
+    # Analyze
+    if args.subcommand == ic.Subcommand.ANALYZE.value:
+        _handle_analyze_subcommand(config, args)
+
+    _add_endpoint_options_to_config(config, args)
+    _add_perf_analyzer_options_to_config(config, args)
+    _add_input_options_to_config(config, args)
+    _add_output_options_to_config(config, args)
+    _add_tokenizer_options_to_config(config, args)
+
+    return config
+
+
+def _convert_args_to_stimulus(args: argparse.Namespace) -> Optional[Dict[str, int]]:
+    if args.session_concurrency:
+        return {"session_concurrency": args.session_concurrency}
+    elif args.concurrency:
+        return {"concurrency": args.concurrency}
+    elif args.request_rate:
+        return {"request_rate": args.request_rate}
+    else:
+        return None
 
 
 ### Entrypoint ###
@@ -889,4 +1096,98 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     args = parser.parse_args(argv[1:passthrough_index])
     args = refine_args(parser, args)
 
-    return args, extra_args
+        if args.subcommand == ic.Subcommand.TEMPLATE.value:
+            config = _create_template_config(args, argv)
+            return args, config, None
+        elif args.subcommand == ic.Subcommand.COMPARE.value:
+            # this subcommand is deprecated and is not supported in the config file
+            return args, None, argv[passthrough_index + 1 :]
+        elif args.subcommand == ic.Subcommand.PROCESS.value:
+            config = ConfigCommand()
+            config = add_cli_options_to_config(config, args)
+            return args, config, None
+        else:
+            # For all other subcommands, parse the CLI fully (no config file)
+            config = ConfigCommand(
+                {"model_names": args.model}, skip_inferencing_and_checking=True
+            )
+            config = add_cli_options_to_config(config, args)
+            config.infer_and_check_options()
+            _print_warnings(config)
+
+            logger.info(f"Profiling these models: {', '.join(config.model_names)}")
+            return args, config, argv[passthrough_index + 1 :]
+    else:  # No subcommmand on CLI
+        # Assumption is the last argument before the
+        # passthrough is the user config file
+        user_config = utils.load_yaml(argv[passthrough_index - 1])
+        config = ConfigCommand(user_config)
+        _print_warnings(config)
+
+        # Set subcommand
+        if config.analyze.get_field("sweep_parameters").is_set_by_user:
+            config_args = ["analyze"]
+        elif config.process.get_field("input_path").is_set_by_user:
+            config_args = ["process-export-files", str(config.process.input_path)]
+        else:
+            config_args = ["profile"]
+
+        # Setup args in the way that argparse expects
+        if config_args[0] != "process-export-files":
+            config_args += ["-m", config.model_names[0]]
+            config_args += argv[1 : passthrough_index - 2]
+
+        args = parser.parse_args(config_args)
+
+        config.subcommand = ic.Subcommand(args.subcommand)
+
+        # Set verbose
+        config.verbose = args.verbose
+        if config_args[0] != "process-export-files":
+            logger.info(f"Profiling these models: {', '.join(config.model_names)}")
+
+        return args, config, argv[passthrough_index + 1 :]
+
+
+def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
+    config = ConfigCommand(skip_inferencing_and_checking=True)
+
+    config.verbose = args.verbose
+    config.subcommand = ic.Subcommand(args.subcommand)
+
+    # The template command is: genai-perf template [filename] [-v/--verbose]
+    del argv[0]  # This is the path to genai-perf
+    del argv[argv.index(ic.Subcommand.TEMPLATE.value)]
+    if "-v" in argv:
+        del argv[argv.index("-v")]
+    if "--verbose" in argv:
+        del argv[argv.index("--verbose")]
+
+    # Assumption is the final argument is the filename (if it exists)
+    if argv:
+        config.template_filename = Path(argv[0])
+
+    return config
+
+
+def _check_unknown_args(subcommand: str, unknown_args: List[str]) -> None:
+    # Only in the case of the template subcommand do we allow a single unknown arg
+    # which is assumed to be the filename for the templated config being created.
+    if not unknown_args:
+        return
+    elif subcommand != ic.Subcommand.TEMPLATE.value:
+        raise ValueError(
+            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}"
+        )
+    elif len(unknown_args) > 1:
+        logger.warning(
+            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}. Only a single argument is allowed (filename of the template). "
+        )
+
+
+def subcommand_found(argv) -> bool:
+    for sc in ic.Subcommand:
+        if sc.value in argv:
+            return True
+
+    return False
