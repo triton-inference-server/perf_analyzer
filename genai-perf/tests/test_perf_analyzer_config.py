@@ -573,7 +573,7 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
     def test_add_url_args_with_no_url_and_openai_service_kind(self):
         """
         Test that _add_url_args returns an empty list
-        when the URL is not set and service_kind is
+        when the URL is not set and service_kind is 'openai'
         """
         self._config.endpoint.service_kind = "openai"
 
