@@ -32,7 +32,7 @@ import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_command import ConfigCommand, Subcommand
 from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
@@ -1411,6 +1411,16 @@ class TestCLIArguments:
             config = CreateConfig.create(args)
 
         assert args.input_path[0] == "test_dir"
+        assert config.process.input_path == Path("test_dir")
+
+    def test_process_export_files_input_path(self, monkeypatch, capsys):
+        args = ["genai-perf", "process-export-files", "test_dir"]
+        monkeypatch.setattr("genai_perf.parser.directory", Path)
+        monkeypatch.setattr("sys.argv", args)
+        parsed_args, config, _ = parser.parse_args()
+
+        assert parsed_args.input_path[0] == Path("test_dir")
+        assert config.subcommand == Subcommand.PROCESS.value
         assert config.process.input_path == Path("test_dir")
 
     @pytest.mark.parametrize(

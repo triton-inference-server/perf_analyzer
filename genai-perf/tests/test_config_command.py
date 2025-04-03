@@ -61,7 +61,7 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.model_names, ["gpt2"])
-        self.assertEqual(config.get_field("model_names").required, True)
+        self.assertEqual(config.get_field("model_names").required, False)
 
     def test_multi_model_name_string(self):
         """
@@ -153,13 +153,21 @@ class TestConfigCommand(unittest.TestCase):
         # yapf: enable
 
         user_config = yaml.safe_load(yaml_str)
+<<<<<<< HEAD
         with patch.object(Path, "is_dir", return_value=True):
             config = ConfigCommand(user_config)
+=======
+        config = ConfigCommand(user_config)
+>>>>>>> 3c605ed (Fix process-export-files subcommand (#342))
 
         self.assertEqual(config.process.input_path, Path("test_dir"))
         self.assertEqual(
             config.output.artifact_directory, Path("test_artifact_directory")
         )
+<<<<<<< HEAD
+=======
+        print(config.output.artifact_directory)
+>>>>>>> 3c605ed (Fix process-export-files subcommand (#342))
         self.assertEqual(
             config.output.profile_export_file,
             Path("test_profile_export_file.json"),
