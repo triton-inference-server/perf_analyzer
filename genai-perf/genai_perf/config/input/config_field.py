@@ -48,25 +48,51 @@ class ConfigField:
         self.add_to_template = add_to_template
         self.template_comment = template_comment
         self.verbose_template_comment = verbose_template_comment
-        self.bounds = bounds
+        self._set_bounds(bounds)
         self.choices = choices
         self.is_set_by_user = False
+        self.value = value
 
-        if value is not None:
-            self.value = value
+    def _set_bounds(self, bounds: Optional[Dict[str, Any]] = None) -> None:
+        if not bounds:
+            self.bounds = None
+        else:
+            self.bounds = {}
+            for key, value in bounds.items():
+                if key not in ["upper", "max", "lower", "min"]:
+                    raise ValueError(
+                        f"User Config: {key} is not a valid key for bounds. "
+                        f"Valid keys are 'upper', 'max, 'lower', or 'min'."
+                    )
+                if key in ["upper", "max"]:
+                    self.bounds["upper"] = value
+                elif key in ["lower", "min"]:
+                    self.bounds["lower"] = value
 
     def _check_bounds(self) -> None:
-        if isinstance(self.value, (int, float)):
+        if isinstance(self.value, list):
+            for item in self.value:
+                self._check_item_bounds(item)
+        else:
+            self._check_item_bounds(self.value)
+
+    def _check_item_bounds(self, item: Any) -> None:
+        if isinstance(item, (int, float)):
             if self.bounds and "upper" in self.bounds:
-                if self.bounds["upper"] < self.value:
+                if self.bounds["upper"] < item:
                     raise ValueError(
-                        f"User Config: {self.value} exceeds upper bounds (f{self.bounds})"
+                        f"User Config: {item} exceeds upper bounds ({self.bounds})"
                     )
             if self.bounds and "lower" in self.bounds:
-                if self.bounds["lower"] > self.value:
+                if self.bounds["lower"] > item:
                     raise ValueError(
-                        f"User Config: {self.value} exceeds lower bounds (f{self.bounds})"
+                        f"User Config: {item} exceeds lower bounds ({self.bounds})"
                     )
+        else:
+            if self.bounds:
+                raise ValueError(
+                    f"User Config: {item} is not a valid type for bounds checking (int/float)"
+                )
 
     def _check_choices(self) -> None:
         if not self.choices or not self.value:
@@ -86,7 +112,7 @@ class ConfigField:
             for value in value_list:
                 if not isinstance(value, Enum):
                     raise ValueError(
-                        f"User Config: {value} is not an Enum: f{self.choices}"
+                        f"User Config: {value} is not in list of choices: f{self.choices}"
                     )
                 if value.name not in [e.name for e in self.choices]:
                     raise ValueError(
