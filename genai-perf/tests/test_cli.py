@@ -717,14 +717,21 @@ class TestCLIArguments:
                 "--wrong-arg",
             ],
         )
-        expected_output = "unrecognized arguments: --wrong-arg"
 
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+        expected_error_message = "Unknown arguments passed to GenAI-Perf: --wrong-arg"
+        assert expected_error_message == execinfo.value.args[0]
+
+    def test_non_default_create_template_filename(self, monkeypatch, capsys):
+        monkeypatch.setattr(
+            "sys.argv",
+            ["genai-perf", "create-template", "custom_template.yaml"],
+        )
+
+        args, config, _ = parser.parse_args()
+        assert config.template_filename == Path("custom_template.yaml")
 
     @pytest.mark.parametrize(
         "args, expected_error_message",
@@ -989,7 +996,6 @@ class TestCLIArguments:
         with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
 
-        captured = capsys.readouterr()
         assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(

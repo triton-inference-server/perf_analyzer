@@ -22,7 +22,8 @@ from genai_perf.config.generate.search_parameter import (
     SearchParameter,
     SearchUsage,
 )
-from genai_perf.config.input.config_command import ConfigCommand, Range, Subcommand
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import Range
 from genai_perf.constants import (
     exponential_range_parameters,
     linear_range_parameters,

@@ -27,6 +27,13 @@
 from enum import Enum, auto
 
 
+class Subcommand(Enum):
+    COMPARE = "compare"
+    PROFILE = "profile"
+    ANALYZE = "analyze"
+    TEMPLATE = "create-template"
+
+
 class ModelSelectionStrategy(Enum):
     ROUND_ROBIN = "ROUND_ROBIN"
     RANDOM = "RANDOM"

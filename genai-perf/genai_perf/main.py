@@ -30,7 +30,7 @@ import traceback
 
 import genai_perf.logging as logging
 from genai_perf import parser
-from genai_perf.config.input.config_command import Subcommand
+from genai_perf.inputs.input_constants import Subcommand
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +44,9 @@ def run():
     # Compare subcommand is deprecated and does not support config file
     if args.subcommand == Subcommand.COMPARE.value:
         args.func(args)
-    elif config.subcommand == Subcommand.ANALYZE.value:
+    elif config.subcommand == Subcommand.ANALYZE:
         args.func(config, extra_args)
-    elif config.subcommand == Subcommand.TEMPLATE.value:
+    elif config.subcommand == Subcommand.TEMPLATE:
         args.func(config)
     else:  # profile
         args.func(config, extra_args)
