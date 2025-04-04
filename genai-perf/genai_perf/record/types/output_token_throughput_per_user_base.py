@@ -1,4 +1,4 @@
-# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,26 +19,26 @@ from genai_perf.types import RecordValue
 
 
 @total_ordering
-class OutputTokenThroughputPerRequestBase(IncreasingRecord):
+class OutputTokenThroughputPerUserBase(IncreasingRecord):
     """
-    A base class for the output token throughput per request metric
+    A base class for the output token throughput per user metric
     """
 
-    base_tag = "output_token_throughput_per_request"
+    base_tag = "output_token_throughput_per_user"
     reduction_factor = ReductionFactor.NONE
 
     def __init__(self, value: RecordValue, timestamp: int = 0) -> None:
         super().__init__(value, timestamp)
 
-    def __eq__(self, other: "OutputTokenThroughputPerRequestBase") -> bool:  # type: ignore
+    def __eq__(self, other: "OutputTokenThroughputPerUserBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "OutputTokenThroughputPerRequestBase") -> bool:
+    def __lt__(self, other: "OutputTokenThroughputPerUserBase") -> bool:
         return self.value() < other.value()
 
     def __add__(
-        self, other: "OutputTokenThroughputPerRequestBase"
-    ) -> "OutputTokenThroughputPerRequestBase":
+        self, other: "OutputTokenThroughputPerUserBase"
+    ) -> "OutputTokenThroughputPerUserBase":
         """
         Allows adding two records together
         to produce a brand new record.
@@ -47,8 +47,8 @@ class OutputTokenThroughputPerRequestBase(IncreasingRecord):
         return self.__class__(value=(self.value() + other.value()))
 
     def __sub__(
-        self, other: "OutputTokenThroughputPerRequestBase"
-    ) -> "OutputTokenThroughputPerRequestBase":
+        self, other: "OutputTokenThroughputPerUserBase"
+    ) -> "OutputTokenThroughputPerUserBase":
         """
         Allows subbing two records together
         to produce a brand new record.

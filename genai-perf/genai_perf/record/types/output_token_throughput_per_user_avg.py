@@ -1,4 +1,4 @@
-# Copyright 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +14,22 @@
 
 from functools import total_ordering
 
-from genai_perf.record.types.output_token_throughput_per_request_base import (
-    OutputTokenThroughputPerRequestBase,
+from genai_perf.record.types.output_token_throughput_per_user_base import (
+    OutputTokenThroughputPerUserBase,
 )
 
 
 @total_ordering
-class OutputTokenThroughputPerRequestP99(OutputTokenThroughputPerRequestBase):
+class OutputTokenThroughputPerUserAvg(OutputTokenThroughputPerUserBase):
     """
-    A record for P99 output token per request metric
+    A record for avg output token throughput per user metric
     """
 
-    tag = OutputTokenThroughputPerRequestBase.base_tag + "_p99"
+    tag = OutputTokenThroughputPerUserBase.base_tag + "_avg"
 
     def __init__(self, value, timestamp=0):
         super().__init__(value, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p99 Output Token Per Request (tokens/sec)"
+        return "Avg. Output Token Throughput Per User (tokens/sec/user)"

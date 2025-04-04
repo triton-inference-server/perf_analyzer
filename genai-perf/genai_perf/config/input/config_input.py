@@ -60,7 +60,7 @@ class ConfigInput(BaseConfig):
                 \neither milliseconds or a throughput value per second.\
                 \nFor example:\
                 \n  request_latency:300\
-                \n  output_token_throughput_per_request:600",
+                \n  output_token_throughput_per_user:600",
         )
         self.header: Any = ConfigField(
             default=InputDefaults.HEADER,

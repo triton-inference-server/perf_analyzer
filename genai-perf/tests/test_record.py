@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -115,16 +115,16 @@ class TestRecord(unittest.TestCase):
                 "request_goodput_avg",
                 "request_count_avg",
                 "output_token_throughput_avg",
-                "output_token_throughput_per_request_min",
-                "output_token_throughput_per_request_max",
-                "output_token_throughput_per_request_avg",
-                "output_token_throughput_per_request_std",
-                "output_token_throughput_per_request_p25",
-                "output_token_throughput_per_request_p50",
-                "output_token_throughput_per_request_p75",
-                "output_token_throughput_per_request_p90",
-                "output_token_throughput_per_request_p95",
-                "output_token_throughput_per_request_p99",
+                "output_token_throughput_per_user_min",
+                "output_token_throughput_per_user_max",
+                "output_token_throughput_per_user_avg",
+                "output_token_throughput_per_user_std",
+                "output_token_throughput_per_user_p25",
+                "output_token_throughput_per_user_p50",
+                "output_token_throughput_per_user_p75",
+                "output_token_throughput_per_user_p90",
+                "output_token_throughput_per_user_p95",
+                "output_token_throughput_per_user_p99",
                 "output_sequence_length_min",
                 "output_sequence_length_max",
                 "output_sequence_length_avg",

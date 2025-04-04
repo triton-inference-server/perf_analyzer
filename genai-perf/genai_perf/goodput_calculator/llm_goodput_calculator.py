@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -71,8 +71,8 @@ class LLMGoodputCalculator(GoodputCalculator):
         self._slo_names["time_to_first_token"] = "time_to_first_tokens"  # nosec
         self._slo_names["time_to_second_token"] = "time_to_second_tokens"  # nosec
         self._slo_names["inter_token_latency"] = "inter_token_latencies"  # nosec
-        self._slo_names["output_token_throughput_per_request"] = (  # nosec
-            "output_token_throughputs_per_request"
+        self._slo_names["output_token_throughput_per_user"] = (  # nosec
+            "output_token_throughputs_per_user"
         )
         self._slo_names["image_throughput"] = "image_throughputs"
         self._slo_names["image_latency"] = "image_latencies"
