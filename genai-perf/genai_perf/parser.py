@@ -219,7 +219,6 @@ def _add_analyze_args(parser):
     analyze_group.add_argument(
         "--sweep-type",
         type=str,
-        default=AnalyzeDefaults.STIMULUS_TYPE,
         choices=[
             "batch_size",
             "concurrency",
@@ -233,14 +232,12 @@ def _add_analyze_args(parser):
     analyze_group.add_argument(
         "--sweep-range",
         type=str,
-        default=f"{AnalyzeDefaults.MIN_CONCURRENCY}:{AnalyzeDefaults.MAX_CONCURRENCY}",
         required=False,
         help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
     )
     analyze_group.add_argument(
         "--sweep-list",
         type=str,
-        default=None,
         required=False,
         help=f"A comma-separated list of values that stimulus will be swept over.",
     )
@@ -252,7 +249,6 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-length-mean",
         type=float,
-        default=ic.DEFAULT_AUDIO_LENGTH_MEAN,
         required=False,
         help=f"The mean length of audio data in seconds. Default is 10 seconds.",
     )
@@ -260,7 +256,6 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-length-stddev",
         type=float,
-        default=ic.DEFAULT_AUDIO_LENGTH_STDDEV,
         required=False,
         help=f"The standard deviation of the length of audio data in seconds. "
         "Default is 0.",
@@ -270,7 +265,6 @@ def _add_audio_input_args(parser):
         "--audio-format",
         type=str,
         choices=utils.get_enum_names(ic.AudioFormat),
-        default=ic.DEFAULT_AUDIO_FORMAT,
         required=False,
         help=f"The format of the audio data. Currently we support wav and "
         "mp3 format. Default is 'wav'.",
@@ -279,7 +273,6 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-depths",
         type=int,
-        default=ic.DEFAULT_AUDIO_DEPTHS,
         nargs="*",
         required=False,
         help=f"A list of audio bit depths to randomly select from in bits. "
@@ -289,7 +282,6 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-sample-rates",
         type=float,
-        default=ic.DEFAULT_AUDIO_SAMPLE_RATES,
         nargs="*",
         required=False,
         help=f"A list of audio sample rates to randomly select from in kHz. "
@@ -299,7 +291,6 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-num-channels",
         type=int,
-        default=ic.DEFAULT_AUDIO_NUM_CHANNELS,
         choices=[1, 2],
         required=False,
         help=f"The number of audio channels to use for the audio data generation. "
@@ -322,7 +313,6 @@ def _add_endpoint_args(parser):
         "--model-selection-strategy",
         type=str,
         choices=utils.get_enum_names(ic.ModelSelectionStrategy),
-        default="round_robin",
         required=False,
         help=f"When multiple model are specified, this is how a specific model "
         "should be assigned to a prompt.  round_robin means that ith prompt in the "
@@ -334,7 +324,6 @@ def _add_endpoint_args(parser):
         "--backend",
         type=str,
         choices=utils.get_enum_names(ic.OutputFormat)[0:2],
-        default=ic.DEFAULT_BACKEND,
         required=False,
         help=f'When using the "triton" service-kind, '
         "this is the backend of the model. "
@@ -362,7 +351,6 @@ def _add_endpoint_args(parser):
         "--service-kind",
         type=str,
         choices=["dynamic_grpc", "openai", "tensorrtllm_engine", "triton"],
-        default="triton",
         required=False,
         help="The kind of service perf_analyzer will "
         'generate load for. In order to use "openai", '
@@ -374,7 +362,6 @@ def _add_endpoint_args(parser):
         "--server-metrics-urls",
         type=str,
         nargs="+",
-        default=[],
         required=False,
         help="The list of Triton server metrics URLs. These are used for "
         "Telemetry metric reporting with the Triton service-kind. Example "
@@ -406,7 +393,6 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-mean",
         type=int,
-        default=ic.DEFAULT_IMAGE_WIDTH_MEAN,
         required=False,
         help=f"The mean width of images when generating synthetic image data.",
     )
@@ -414,7 +400,6 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-stddev",
         type=int,
-        default=ic.DEFAULT_IMAGE_WIDTH_STDDEV,
         required=False,
         help=f"The standard deviation of width of images when generating synthetic image data.",
     )
@@ -422,7 +407,6 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-mean",
         type=int,
-        default=ic.DEFAULT_IMAGE_HEIGHT_MEAN,
         required=False,
         help=f"The mean height of images when generating synthetic image data.",
     )
@@ -430,7 +414,6 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-height-stddev",
         type=int,
-        default=ic.DEFAULT_IMAGE_HEIGHT_STDDEV,
         required=False,
         help=f"The standard deviation of height of images when generating synthetic image data.",
     )
@@ -451,7 +434,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--batch-size-audio",
         type=int,
-        default=ic.DEFAULT_BATCH_SIZE,
         required=False,
         help=f"The audio batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the OpenAI `multimodal` endpoint type.",
@@ -460,7 +442,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--batch-size-image",
         type=int,
-        default=ic.DEFAULT_BATCH_SIZE,
         required=False,
         help=f"The image batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the image retrieval endpoint type.",
@@ -471,7 +452,6 @@ def _add_input_args(parser):
         "--batch-size",
         "-b",
         type=int,
-        default=ic.DEFAULT_BATCH_SIZE,
         required=False,
         help=f"The text batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the embeddings and rankings "
@@ -511,7 +491,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--input-file",
         type=file_or_directory,
-        default=None,
         required=False,
         help="The input file or directory containing the content to use for "
         "profiling. Each line should be a JSON object with a 'text' or "
@@ -532,7 +511,6 @@ def _add_input_args(parser):
         "--num-dataset-entries",
         "--num-prompts",
         type=positive_integer,
-        default=ic.DEFAULT_NUM_DATASET_ENTRIES,
         required=False,
         help=f"The number of unique payloads to sample from. "
         "These will be reused until benchmarking is complete.",
@@ -541,7 +519,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--num-prefix-prompts",
         type=int,
-        default=ic.DEFAULT_NUM_PREFIX_PROMPTS,
         required=False,
         help=f"The number of prefix prompts to select from. "
         "If this value is not zero, these are prompts that are "
@@ -574,7 +551,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-stddev",
         type=int,
-        default=ic.DEFAULT_OUTPUT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of the number of tokens in each output. "
         "This is only used when --output-tokens-mean is provided.",
@@ -602,7 +578,6 @@ def _add_input_args(parser):
         "--synthetic-input-tokens-mean",
         "--isl",
         type=int,
-        default=ic.DEFAULT_PROMPT_TOKENS_MEAN,
         required=False,
         help=f"The mean of number of tokens in the generated prompts when using synthetic data.",
     )
@@ -610,7 +585,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--synthetic-input-tokens-stddev",
         type=int,
-        default=ic.DEFAULT_PROMPT_TOKENS_STDDEV,
         required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
     )
@@ -618,7 +592,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--prefix-prompt-length",
         type=int,
-        default=ic.DEFAULT_PREFIX_PROMPT_LENGTH,
         required=False,
         help=f"The number of tokens in each prefix prompt. This value is only "
         "used if --num-prefix-prompts is positive. Note that due to "
@@ -630,7 +603,6 @@ def _add_input_args(parser):
         "--warmup-request-count",
         "--num-warmup-requests",
         type=int,
-        default=ic.DEFAULT_WARMUP_REQUEST_COUNT,
         required=False,
         help=f"The number of warmup requests to send before benchmarking.",
     )
@@ -653,7 +625,6 @@ def _add_output_args(parser):
     output_group.add_argument(
         "--artifact-dir",
         type=Path,
-        default=Path(DEFAULT_ARTIFACT_DIR),
         help="The directory to store all the (output) artifacts generated by "
         "GenAI-Perf and Perf Analyzer.",
     )
@@ -666,7 +637,6 @@ def _add_output_args(parser):
     output_group.add_argument(
         "--profile-export-file",
         type=Path,
-        default=Path(DEFAULT_PROFILE_EXPORT_FILE),
         help="The path where the perf_analyzer profile export will be "
         "generated. By default, the profile export will be to "
         "profile_export.json. The genai-perf file will be exported to "
@@ -692,7 +662,6 @@ def _add_profile_args(parser):
         "--measurement-interval",
         "-p",
         type=int,
-        default=ic.DEFAULT_MEASUREMENT_INTERVAL,
         required=False,
         help="The time interval used for each measurement in milliseconds. "
         "Perf Analyzer will sample a time interval specified and take "
@@ -720,7 +689,6 @@ def _add_profile_args(parser):
         "-s",
         "--stability-percentage",
         type=float,
-        default=999,
         required=False,
         help="The allowed variation in "
         "latency measurements when determining if a result is stable. The "
@@ -740,7 +708,6 @@ def _add_session_args(parser):
     session_group.add_argument(
         "--num-sessions",
         type=int,
-        default=ic.DEFAULT_NUM_SESSIONS,
         help="The number of sessions to simulate.",
     )
 
@@ -754,7 +721,6 @@ def _add_session_args(parser):
     session_group.add_argument(
         "--session-delay-ratio",
         type=float,
-        default=ic.DEFAULT_SESSION_DELAY_RATIO,
         help="A ratio to scale multi-turn delays when using a payload file. "
         "For example, a value of 0.5 will halve the specified delays.",
     )
@@ -762,14 +728,12 @@ def _add_session_args(parser):
     session_group.add_argument(
         "--session-turn-delay-mean",
         type=int,
-        default=ic.DEFAULT_SESSION_TURN_DELAY_MEAN_MS,
         help="The mean delay (in ms) between turns in a session.",
     )
 
     session_group.add_argument(
         "--session-turn-delay-stddev",
         type=int,
-        default=ic.DEFAULT_SESSION_TURN_DELAY_STDDEV_MS,
         help="The standard deviation (in ms) of the delay between turns in "
         "a session.",
     )
@@ -777,14 +741,12 @@ def _add_session_args(parser):
     session_group.add_argument(
         "--session-turns-mean",
         type=int,
-        default=ic.DEFAULT_SESSION_TURNS_MEAN,
         help="The mean number of turns per session.",
     )
 
     session_group.add_argument(
         "--session-turns-stddev",
         type=int,
-        default=ic.DEFAULT_SESSION_TURNS_STDDEV,
         help="The standard deviation of the number of turns per session.",
     )
 
@@ -804,7 +766,6 @@ def _add_tokenizer_args(parser):
     tokenizer_group.add_argument(
         "--tokenizer-revision",
         type=str,
-        default=DEFAULT_TOKENIZER_REVISION,
         required=False,
         help="The specific model version to use. It can be a branch name, "
         "tag name, or commit ID.",
@@ -926,12 +887,34 @@ def add_cli_options_to_config(
     config: ConfigCommand, args: argparse.Namespace
 ) -> ConfigCommand:
 
-    # Top-Level
-    config.subcommand = ic.Subcommand(args.subcommand)
-    config.verbose = args.verbose
+    _add_top_level_args_to_config(config, args)
+    _add_analyze_args_to_config(config, args)
+    _add_endpoint_args_to_config(config, args)
+    _add_perf_analyzer_args_to_config(config, args)
+    _add_input_args_to_config(config, args)
+    _add_output_args_to_config(config, args)
+    _add_tokenizer_args_to_config(config, args)
 
-    # Analyze
-    if args.subcommand == "analyze":
+    return config
+
+
+def _add_top_level_args_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    if args.model:
+        config.model_names = args.model
+    if args.subcommand:
+        config.subcommand = ic.Subcommand(args.subcommand)
+    if args.verbose:
+        config.verbose = args.verbose
+
+    return config
+
+
+def _add_analyze_args_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    if args.subcommand and args.subcommand == "analyze":
         config.analyze.sweep_parameters = {}
         if args.sweep_list:
             sweep_parameters = {args.sweep_type: args.sweep_list}
@@ -944,36 +927,49 @@ def add_cli_options_to_config(
 
         config.analyze.parse(sweep_parameters)
 
-    # Endpoint
-    config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
-        args.model_selection_strategy.upper()
-    )
+    return config
 
-    if args.backend != ic.DEFAULT_BACKEND:
+
+def _add_endpoint_args_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    if args.model_selection_strategy:
+        config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
+            args.model_selection_strategy.upper()
+        )
+    if args.backend:
         config.endpoint.backend = ic.OutputFormat(args.backend.upper())
-
-    config.endpoint.custom = args.endpoint
-    config.endpoint.type = args.endpoint_type
-    config.endpoint.service_kind = args.service_kind
-    config.endpoint.streaming = args.streaming
-
+    if args.endpoint:
+        config.endpoint.custom = args.endpoint
+    if args.endpoint_type:
+        config.endpoint.type = args.endpoint_type
+    if args.service_kind:
+        config.endpoint.service_kind = args.service_kind
+    if args.streaming:
+        config.endpoint.streaming = args.streaming
     if args.server_metrics_url:
         config.endpoint.server_metrics_urls = args.server_metrics_url
-
     if args.u:
         config.endpoint.url = args.u
-
     if args.grpc_method:
         config.endpoint.grpc_method = args.grpc_method
 
-    # Perf Analyzer
+    return config
+
+
+def _add_perf_analyzer_args_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+
     # config.perf_analyzer.path - There is no equivalent setting in the CLI
     stimulus = _convert_args_to_stimulus(args)
     if stimulus:
         config.perf_analyzer.stimulus = stimulus
 
-    config.perf_analyzer.stability_percentage = args.stability_percentage
-    config.perf_analyzer.warmup_request_count = args.warmup_request_count
+    if args.stability_percentage:
+        config.perf_analyzer.stability_percentage = args.stability_percentage
+    if args.warmup_request_count:
+        config.perf_analyzer.warmup_request_count = args.warmup_request_count
 
     if args.measurement_interval:
         config.perf_analyzer.measurement.mode = ic.PerfAnalyzerMeasurementMode.INTERVAL
@@ -984,70 +980,122 @@ def add_cli_options_to_config(
         )
         config.perf_analyzer.measurement.num = args.request_count
 
-    # Input
-    config.input.batch_size = args.batch_size_text
-    config.input.extra = get_extra_inputs_as_dict(args)
-    config.input.goodput = args.goodput
-    config.input.header = args.header
-    config.input.file = args.input_file
-    config.input.num_dataset_entries = args.num_dataset_entries
-    config.input.random_seed = args.random_seed
+    return config
+
+
+def _add_input_args_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    # Input - Top Level
+    if args.batch_size_text:
+        config.input.batch_size = args.batch_size_text
+
+    extra_inputs = get_extra_inputs_as_dict(args)
+
+    if extra_inputs:
+        config.input.extra = extra_inputs
+
+    if args.goodput:
+        config.input.goodput = args.goodput
+    if args.header:
+        config.input.header = args.header
+    if args.input_file:
+        config.input.file = args.input_file
+    if args.num_dataset_entries:
+        config.input.num_dataset_entries = args.num_dataset_entries
+    if args.random_seed:
+        config.input.random_seed = args.random_seed
 
     # Input - Audio
-    config.input.audio.batch_size = args.batch_size_audio
-    config.input.audio.length.mean = args.audio_length_mean
-    config.input.audio.length.stddev = args.audio_length_stddev
-    config.input.audio.format = ic.AudioFormat(args.audio_format.upper())
-    config.input.audio.depths = args.audio_depths
-    config.input.audio.sample_rates = args.audio_sample_rates
-    config.input.audio.num_channels = args.audio_num_channels
+    if args.batch_size_audio:
+        config.input.audio.batch_size = args.batch_size_audio
+    if args.audio_length_mean:
+        config.input.audio.length.mean = args.audio_length_mean
+    if args.audio_length_stddev:
+        config.input.audio.length.stddev = args.audio_length_stddev
+    if args.audio_format:
+        config.input.audio.format = ic.AudioFormat(args.audio_format.upper())
+    if args.audio_depths:
+        config.input.audio.depths = args.audio_depths
+    if args.audio_sample_rates:
+        config.input.audio.sample_rates = args.audio_sample_rates
+    if args.audio_num_channels:
+        config.input.audio.num_channels = args.audio_num_channels
 
     # Input - Image
-    config.input.image.batch_size = args.batch_size_image
-    config.input.image.width.mean = args.image_width_mean
-    config.input.image.width.stddev = args.image_width_stddev
-    config.input.image.height.mean = args.image_height_mean
-    config.input.image.height.stddev = args.image_height_stddev
-
+    if args.batch_size_image:
+        config.input.image.batch_size = args.batch_size_image
+    if args.image_width_mean:
+        config.input.image.width.mean = args.image_width_mean
+    if args.image_width_stddev:
+        config.input.image.width.stddev = args.image_width_stddev
+    if args.image_height_mean:
+        config.input.image.height.mean = args.image_height_mean
+    if args.image_height_stddev:
+        config.input.image.height.stddev = args.image_height_stddev
     if args.image_format:
         config.input.image.format = ic.ImageFormat(args.image_format.upper())
 
     # Input - Output Tokens
     if args.output_tokens_mean:
         config.input.output_tokens.mean = args.output_tokens_mean
-
     if args.output_tokens_mean_deterministic:
         config.input.output_tokens.deterministic = args.output_tokens_mean_deterministic
-
     if args.output_tokens_stddev:
         config.input.output_tokens.stddev = args.output_tokens_stddev
 
     # Input - Synthetic Tokens
-    config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
-    config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
+    if args.synthetic_input_tokens_mean:
+        config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
+    if args.synthetic_input_tokens_stddev:
+        config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
 
     # Input - Prefix Prompt
-    config.input.prefix_prompt.num = args.num_prefix_prompts
-    config.input.prefix_prompt.length = args.prefix_prompt_length
+    if args.num_prefix_prompts:
+        config.input.prefix_prompt.num = args.num_prefix_prompts
+    if args.prefix_prompt_length:
+        config.input.prefix_prompt.length = args.prefix_prompt_length
 
     # Input - Sessions
-    config.input.sessions.num = args.num_sessions
-    config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
-    config.input.sessions.turn_delay.ratio = args.session_delay_ratio
-    config.input.sessions.turn_delay.stddev = args.session_turn_delay_stddev
-    config.input.sessions.turns.mean = args.session_turns_mean
-    config.input.sessions.turns.stddev = args.session_turns_stddev
+    if args.num_sessions:
+        config.input.sessions.num = args.num_sessions
+    if args.session_turn_delay_mean:
+        config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
+    if args.session_delay_ratio:
+        config.input.sessions.turn_delay.ratio = args.session_delay_ratio
+    if args.session_turn_delay_stddev:
+        config.input.sessions.turn_delay.stddev = args.session_turn_delay_stddev
+    if args.session_turns_mean:
+        config.input.sessions.turns.mean = args.session_turns_mean
+    if args.session_turns_stddev:
+        config.input.sessions.turns.stddev = args.session_turns_stddev
 
-    # Output
-    config.output.artifact_directory = args.artifact_dir
+    return config
+
+
+def _add_output_args_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    if args.artifact_dir:
+        config.output.artifact_directory = args.artifact_dir
     # config.output.checkpoint_directory - There is no equivalent setting in the CLI
-    config.output.profile_export_file = args.profile_export_file
-    config.output.generate_plots = args.generate_plots
+    if args.profile_export_file:
+        config.output.profile_export_file = args.profile_export_file
+    if args.generate_plots:
+        config.output.generate_plots = args.generate_plots
 
-    # Tokenizer
-    config.tokenizer.name = args.tokenizer
-    config.tokenizer.revision = args.tokenizer_revision
-    config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
+    return config
+
+
+def _add_tokenizer_args_to_config(
+    config: ConfigCommand, args: argparse.Namespace
+) -> ConfigCommand:
+    if args.tokenizer:
+        config.tokenizer.name = args.tokenizer
+    if args.tokenizer_revision:
+        config.tokenizer.revision = args.tokenizer_revision
+    if args.tokenizer_trust_remote_code:
+        config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
 
     return config
 
@@ -1071,92 +1119,93 @@ def parse_args():
     parser = init_parsers()
     passthrough_index = get_passthrough_args_index(argv)
 
-    # Assumption is that the subcommand will be implied by
-    # the fields set in the config file
-    if (
-        subcommand_found(argv)
-        or "-h" in argv
-        or "--help" in argv
-        or "--version" in argv
-    ):
-        args, unknown_args = parser.parse_known_args(argv[1:passthrough_index])
-        _check_unknown_args(args.subcommand, unknown_args)
-        args = refine_args(parser, args)
+    args, unknown_args = parser.parse_known_args(argv[1:passthrough_index])
+    args = _parse_unknown_args(args, unknown_args)
+    args = refine_args(parser, args)
 
-        if args.subcommand == ic.Subcommand.TEMPLATE.value:
-            config = _create_template_config(args, argv)
-            return args, config, None
-        else:
-            # For all other subcommands, parse the CLI fully (no config file)
-            config = ConfigCommand(
-                {"model_names": args.model}, skip_inferencing_and_checking=True
-            )
-            config = add_cli_options_to_config(config, args)
-            config.infer_and_check_options()
-            _print_warnings(config)
-
-            logger.info(f"Profiling these models: {', '.join(config.model_names)}")
-            return args, config, argv[passthrough_index + 1 :]
-    else:  # No subcommmand on CLI
-        # Assumption is the last argument before the
-        # passthrough is the user config file
-        user_config = utils.load_yaml(argv[passthrough_index - 1])
-        config = ConfigCommand(user_config)
-        _print_warnings(config)
-
-        # Set subcommand
-        if config.analyze.get_field("sweep_parameters").is_set_by_user:
-            config_args = ["analyze"]
-        else:
-            config_args = ["profile"]
-
-        # Setup args in the way that argparse expects
-        config_args += ["-m", config.model_names[0]]
-        config_args += argv[1 : passthrough_index - 2]
-
-        args = parser.parse_args(config_args)
-
-        config.subcommand = ic.Subcommand(args.subcommand)
-        config.verbose = args.verbose
-
-        logger.info(f"Profiling these models: {', '.join(config.model_names)}")
-        return args, config, argv[passthrough_index + 1 :]
+    return args, argv[passthrough_index + 1 :]
 
 
-def _create_template_config(args: argparse.Namespace, argv: List[str]) -> ConfigCommand:
+def _create_template_config(args: argparse.Namespace) -> ConfigCommand:
     config = ConfigCommand(skip_inferencing_and_checking=True)
 
     config.verbose = args.verbose
     config.subcommand = ic.Subcommand(args.subcommand)
 
-    # The template command is: genai-perf template [filename] [-v/--verbose]
-    del argv[0]  # This is the path to genai-perf
-    del argv[argv.index(ic.Subcommand.TEMPLATE.value)]
-    if "-v" in argv:
-        del argv[argv.index("-v")]
-    if "--verbose" in argv:
-        del argv[argv.index("--verbose")]
-
-    # Assumption is the final argument is the filename (if it exists)
-    if argv:
-        config.template_filename = Path(argv[0])
+    if args.template_filename:
+        config.template_filename = args.template_filename
 
     return config
 
 
-def _check_unknown_args(subcommand: str, unknown_args: List[str]) -> None:
-    # Only in the case of the template subcommand do we allow a single unknown arg
-    # which is assumed to be the filename for the templated config being created.
+def _parse_unknown_args(
+    args: argparse.Namespace, unknown_args: List[str]
+) -> argparse.Namespace:
+    # We allow a single unknown arg on the command line that argprase does not
+    # recognize:
+    #   This is assumed to be a filename that will either be a config file (read)
+    #   or a custom template file (write), dependant on the subcommand
+
+    if args.subcommand == ic.Subcommand.TEMPLATE.value:
+        args = _parse_template_unknown_args(args, unknown_args)
+    else:
+        args = _parse_non_template_unknown_args(args, unknown_args)
+
+    return args
+
+
+def _parse_template_unknown_args(
+    args: argparse.Namespace, unknown_args: List[str]
+) -> argparse.Namespace:
+    # We allow a single unknown arg on the command line that argprase does not
+    # recognize:
+    #   This is assumed to be a filename that will be a custom template file (write)
     if not unknown_args:
-        return
-    elif subcommand != ic.Subcommand.TEMPLATE.value:
+        args.template_filename = None
+    elif len(unknown_args) > 1:
         raise ValueError(
-            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}"
+            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}. "
+            "Only a single argument is allowed (custom template filename)."
         )
+    else:
+        args.template_filename = Path(unknown_args[0])
+
+        if not args.template_filename.parent.exists():
+            raise ValueError(
+                f"Expected a custom template file path. The directory '{args.template_filename.parent}' does not exist: {args.template_filename}"
+            )
+
+    return args
+
+
+def _parse_non_template_unknown_args(
+    args: argparse.Namespace, unknown_args: List[str]
+) -> argparse.Namespace:
+    # We allow a single unknown arg on the command line that argprase does not
+    # recognize:
+    #   This is assumed to be a filename that will be a config file (read)
+    if not unknown_args:
+        args.config_filename = None
     elif len(unknown_args) > 1:
         logger.warning(
-            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}. Only a single argument is allowed (filename of the template). "
+            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}. "
+            "Only a single argument is allowed (config filename)."
         )
+    else:
+        args.config_filename = Path(unknown_args[0])
+
+        if not args.config_filename.exists():
+            if unknown_args[0].startswith("--"):
+                # Assume that the user misspelled a valid option
+                raise ValueError(
+                    f"Unknown argument passed to GenAI-Perf: {unknown_args[0]}"
+                )
+            else:
+                raise ValueError(
+                    f"Expected a config file path. Config file not found: {args.config_filename}"
+                )
+
+    return args
 
 
 def subcommand_found(argv) -> bool:

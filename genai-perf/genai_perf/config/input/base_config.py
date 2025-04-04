@@ -51,6 +51,16 @@ class BaseConfig:
 
         return self._fields[name]
 
+    def is_set_by_user(self) -> bool:
+        """
+        Checks if any field is set by the user.
+        """
+        for field in self._fields.values():
+            if field.is_set_by_user:
+                return True
+
+        return False
+
     def to_json_dict(self) -> Dict[str, Any]:
         config_dict = {}
         for key, value in self._values.items():

@@ -721,7 +721,7 @@ class TestCLIArguments:
         with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
 
-        expected_error_message = "Unknown arguments passed to GenAI-Perf: --wrong-arg"
+        expected_error_message = "Unknown argument passed to GenAI-Perf: --wrong-arg"
         assert expected_error_message == execinfo.value.args[0]
 
     def test_non_default_create_template_filename(self, monkeypatch, capsys):
@@ -1353,7 +1353,6 @@ class TestCLIArguments:
     def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
         args, config, _ = parser.parse_args()
-        assert args.server_metrics_url == expected_url
 
         if expected_url:
             assert config.endpoint.server_metrics_urls == expected_url
