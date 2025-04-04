@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from .dynamic_grpc_converter import DynamicGRPCConverter
+from .huggingface_generate_converter import HuggingFaceGenerateConverter
 from .image_retrieval_converter import ImageRetrievalConverter
 from .nvclip_converter import NVClipConverter
 from .openai_chat_completions_converter import OpenAIChatCompletionsConverter
@@ -39,6 +40,7 @@ from .vllm_converter import VLLMConverter
 
 __all__ = [
     "DynamicGRPCConverter",
+    "HuggingFaceGenerateConverter",
     "ImageRetrievalConverter",
     "NVClipConverter",
     "OpenAIChatCompletionsConverter",
