@@ -28,7 +28,8 @@ import argparse
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
@@ -306,7 +307,7 @@ def _add_endpoint_args(parser):
         "-m",
         "--model",
         nargs="+",
-        required=True,
+        required=False,
         help=f"The name of the model(s) to benchmark.",
     )
     endpoint_group.add_argument(
@@ -619,6 +620,13 @@ def _add_other_args(parser):
         help="An option to enable verbose mode.",
     )
 
+    other_group.add_argument(
+        "--override-config",
+        action="store_true",
+        required=False,
+        help="Setting this flag enables the user to override configuration values via the CLI.",
+    )
+
 
 def _add_output_args(parser):
     output_group = parser.add_argument_group("Output")
@@ -829,6 +837,27 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     return analyze
 
 
+def _parse_undefined(subparsers) -> argparse.ArgumentParser:
+    undefined = subparsers.add_parser(
+        ic.Subcommand.UNDEFINED.value,
+        description="",
+    )
+
+    _add_analyze_args(undefined)
+    _add_audio_input_args(undefined)
+    _add_endpoint_args(undefined)
+    _add_image_input_args(undefined)
+    _add_input_args(undefined)
+    _add_other_args(undefined)
+    _add_output_args(undefined)
+    _add_profile_args(undefined)
+    _add_session_args(undefined)
+    _add_tokenizer_args(undefined)
+
+    undefined.set_defaults(func=profile_handler)
+    return undefined
+
+
 ### Parser Initialization ###
 
 
@@ -870,6 +899,9 @@ def get_passthrough_args_index(argv: list) -> int:
 def refine_args(
     parser: argparse.ArgumentParser, args: argparse.Namespace
 ) -> argparse.Namespace:
+    if not args.subcommand:
+        return args
+
     if args.subcommand == ic.Subcommand.PROFILE.value:
         args = _check_goodput_args(args)
     elif args.subcommand == ic.Subcommand.ANALYZE.value:
@@ -887,6 +919,7 @@ def add_cli_options_to_config(
     config: ConfigCommand, args: argparse.Namespace
 ) -> ConfigCommand:
 
+    _check_that_override_is_set(args)
     _add_top_level_args_to_config(config, args)
     _add_analyze_args_to_config(config, args)
     _add_endpoint_args_to_config(config, args)
@@ -896,6 +929,29 @@ def add_cli_options_to_config(
     _add_tokenizer_args_to_config(config, args)
 
     return config
+
+
+def _check_that_override_is_set(args: argparse.Namespace) -> None:
+    """
+    Check that the --override-config flag is set if the user is trying to
+    override a config value via the CLI.
+    """
+    if not args.config_filename:
+        return
+
+    args_cannot_override = [
+        "override_config",
+        "subcommand",
+        "verbose",
+    ]
+
+    for key, value in vars(args).items():
+        if key in args_cannot_override:
+            continue
+        if value and not args.override_config:
+            raise ValueError(
+                "In order to use the CLI to override the config, the --override-config flag must be set."
+            )
 
 
 def _add_top_level_args_to_config(
@@ -1119,7 +1175,17 @@ def parse_args():
     parser = init_parsers()
     passthrough_index = get_passthrough_args_index(argv)
 
+    if not subcommand_found(argv[1:passthrough_index]) and not help_or_version_found(
+        argv[1:passthrough_index]
+    ):
+        argv.insert(1, ic.Subcommand.PROFILE.value)
+        passthrough_index += 1
+
     args, unknown_args = parser.parse_known_args(argv[1:passthrough_index])
+
+    if args.subcommand == ic.Subcommand.UNDEFINED.value:
+        args.subcommand = None
+
     args = _parse_unknown_args(args, unknown_args)
     args = refine_args(parser, args)
 
@@ -1212,5 +1278,15 @@ def subcommand_found(argv) -> bool:
     for sc in ic.Subcommand:
         if sc.value in argv:
             return True
+
+    return False
+
+
+def help_or_version_found(argv) -> bool:
+    if "--help" in argv or "-h" in argv:
+        return True
+
+    if "--version" in argv:
+        return True
 
     return False
