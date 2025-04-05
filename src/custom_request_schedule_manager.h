@@ -60,12 +60,11 @@ class CustomRequestScheduleManager : public RequestRateManager {
       const std::shared_ptr<cb::ClientBackendFactory>& factory,
       std::unique_ptr<LoadManager>* manager);
 
-  /// Initializes the load manager with the provided schedule
-  /// \param request_count The number of requests to generate when profiling.
-  /// \return cb::Error object indicating success or failure
-  cb::Error InitCustomSchedule(const size_t request_count);
+  void Start();
 
  protected:
+  using Schedule = std::vector<std::chrono::milliseconds>;
+
   /// Constructor for CustomRequestScheduleManager
   ///
   /// Initializes a CustomRequestScheduleManager instance using a PAParamsPtr
@@ -80,8 +79,18 @@ class CustomRequestScheduleManager : public RequestRateManager {
       const std::shared_ptr<ModelParser>& parser,
       const std::shared_ptr<cb::ClientBackendFactory>& factory);
 
-  /// Generates and updates the request schedule as per the given schedule
-  void GenerateSchedule();
+  void DistributeScheduleToWorkers(const Schedule& schedule);
+
+ private:
+  void InitManagerFinalize() override;
+
+  std::pair<Schedule, Schedule> GetSchedulesFromDataset() const;
+
+  std::chrono::milliseconds GetTimestamp(size_t dataset_index) const;
+
+  void PerformWarmup();
+
+  void InitCustomSchedule(const Schedule& schedule, size_t dataset_offset = 0);
 
   /// Creates worker schedules based on the provided schedule
   /// \param duration The maximum duration for the schedule
@@ -90,15 +99,12 @@ class CustomRequestScheduleManager : public RequestRateManager {
   std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
       const std::vector<std::chrono::milliseconds>& schedule);
 
-  /// The vector containing the schedule for requests
-  std::vector<std::chrono::milliseconds> schedule_{};
+  void StartBenchmark();
 
- private:
-  void InitManagerFinalize() override;
-
-  std::vector<std::chrono::milliseconds> GetScheduleFromDataset() const;
-
-  std::chrono::milliseconds GetTimestamp(size_t dataset_index) const;
+  const size_t warmup_request_count_{0};
+  const size_t benchmark_request_count_{0};
+  Schedule warmup_schedule_{};
+  Schedule benchmark_schedule_{};
 };
 
 }  // namespace triton::perfanalyzer

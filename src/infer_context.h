@@ -115,6 +115,8 @@ class InferContext {
     num_active_threads_ = num_threads;
   }
 
+  void ApplyDatasetOffset(size_t dataset_offset);
+
   bool HasReceivedFinalResponse() { return has_received_final_response_; }
 
  protected:

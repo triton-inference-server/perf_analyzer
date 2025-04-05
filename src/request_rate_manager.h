@@ -1,4 +1,4 @@
-// Copyright 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -150,14 +150,16 @@ class RequestRateManager : public LoadManager {
   // Pauses the worker threads
   void PauseWorkers();
 
-  void ConfigureThreads(const size_t request_count = 0);
+  void ConfigureThreads(
+      const size_t request_count = 0, size_t dataset_offset = 0);
 
   // Resets the counters and resumes the worker threads
   void ResumeWorkers();
 
   // Makes a new worker
   virtual std::shared_ptr<IWorker> MakeWorker(
-      std::shared_ptr<ThreadStat>, std::shared_ptr<ThreadConfig>);
+      std::shared_ptr<ThreadStat>, std::shared_ptr<ThreadConfig>,
+      size_t dataset_offset = 0);
 
   size_t DetermineNumThreads();
 

@@ -1912,8 +1912,14 @@ CLParser::ParseCommandLine(int argc, char** argv)
   }
 
   // In fixed schedule mode, the request count is based on the number of
-  // payloads in the user-provided dataset
+  // payloads in the user-provided dataset (minus warmup request count)
   if (params_->inference_load_mode == pa::InferenceLoadMode::FixedSchedule) {
+    if (params_->user_data.empty()) {
+      throw std::runtime_error(
+          "When using `--fixed-schedule`, you must provide a dataset using "
+          "`--input-data`.");
+    }
+
     for (const auto& input_data_path : params_->user_data) {
       if (!std::filesystem::is_regular_file(input_data_path)) {
         throw std::runtime_error(
@@ -1923,7 +1929,22 @@ CLParser::ParseCommandLine(int argc, char** argv)
       }
     }
 
-    params_->request_count = pa::DataLoader::GetDatasetSize(params_->user_data);
+    const size_t dataset_size{
+        pa::DataLoader::GetDatasetSize(params_->user_data)};
+
+    if (dataset_size == 0) {
+      throw std::runtime_error(
+          "The dataset provided is empty. When using `--fixed-schedule`, the "
+          "dataset must contain at least one payload.");
+    }
+
+    if (params_->warmup_request_count >= dataset_size) {
+      throw std::runtime_error(
+          "The warmup request count must be less than the total number of "
+          "payloads in the dataset.");
+    }
+
+    params_->request_count = dataset_size - params_->warmup_request_count;
   }
 
   // When the request-count feature is enabled, override the measurement mode to
@@ -1984,11 +2005,6 @@ CLParser::VerifyOptions()
   }
   if (params_->async && params_->forced_sync) {
     Usage("Cannot specify --async and --sync simultaneously.");
-  }
-
-  if (params_->inference_load_mode == InferenceLoadMode::FixedSchedule &&
-      params_->warmup_request_count > 0) {
-    Usage("Cannot use warmup options with --fixed-schedule");
   }
 
   if (params_->inference_load_mode == InferenceLoadMode::PeriodicConcurrency &&
@@ -2225,11 +2241,6 @@ CLParser::VerifyOptions()
       params_->metrics_url =
           params_->url.substr(0, colon_pos) + ":8002/metrics";
     }
-  }
-
-  if (params_->inference_load_mode == InferenceLoadMode::FixedSchedule &&
-      params_->kind != cb::BackendKind::OPENAI) {
-    Usage("Fixed schedule mode is only supported with OpenAI service kind.");
   }
 
   if (params_->inference_load_mode == InferenceLoadMode::SessionConcurrency &&

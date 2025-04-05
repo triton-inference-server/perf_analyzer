@@ -290,8 +290,6 @@ class PerfAnalyzerConfig:
                 protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif config.endpoint.service_kind == "openai":
             protocol_args += ["-i", "http"]
-        elif config.endpoint.service_kind == "tensorrtllm_engine":
-            protocol_args += ["--service-kind", "triton_c_api", "--streaming"]
 
         return protocol_args
 
@@ -346,7 +344,10 @@ class PerfAnalyzerConfig:
 
     def _add_endpoint_args(self, config: ConfigCommand) -> List[str]:
         endpoint_args = []
-        endpoint_args += ["--service-kind", f"{config.endpoint.service_kind}"]
+        if config.endpoint.service_kind == "tensorrtllm_engine":
+            endpoint_args += ["--service-kind", "triton_c_api", "--streaming"]
+        else:
+            endpoint_args += ["--service-kind", f"{config.endpoint.service_kind}"]
 
         if config.endpoint.custom:
             endpoint_args += ["--endpoint", f"{config.endpoint.custom}"]
