@@ -28,6 +28,7 @@ from enum import Enum, auto
 
 
 class Subcommand(Enum):
+    UNDEFINED = "undefined"
     COMPARE = "compare"
     PROFILE = "profile"
     ANALYZE = "analyze"
