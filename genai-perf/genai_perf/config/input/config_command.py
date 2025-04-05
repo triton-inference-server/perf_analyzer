@@ -134,11 +134,16 @@ class ConfigCommand(BaseConfig):
     def _infer_settings(self) -> None:
         # covers the template creation case
         model_name = self.model_names[0] if self.model_names else ""
+        self._infer_subcommand()
 
         self.endpoint.infer_settings(model_name)
         self.input.infer_settings()
         self.perf_analyzer.infer_settings()
         self.tokenizer.infer_settings(model_name)
+
+    def _infer_subcommand(self) -> None:
+        if self.analyze.is_set_by_user():
+            self.subcommand = Subcommand.ANALYZE
 
     ###########################################################################
     # Illegal Combination Methods

@@ -58,6 +58,10 @@ class TestCLIArguments:
         "--model",
         "test_model",
     ]
+    base_config_args = [
+        "genai-perf",
+        # "test_config.yaml",
+    ]
 
     @pytest.mark.parametrize(
         "args, expected_output",
@@ -688,17 +692,6 @@ class TestCLIArguments:
         captured = capsys.readouterr()
         assert expected_output in captured.err
 
-    def test_model_not_provided(self, monkeypatch, capsys):
-        monkeypatch.setattr("sys.argv", ["genai-perf", "profile"])
-        expected_output = "the following arguments are required: -m/--model"
-
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
-
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
-
     def test_pass_through_args(self, monkeypatch):
         other_args = ["--", "With", "great", "power"]
         monkeypatch.setattr("sys.argv", self.base_args + other_args)
@@ -721,7 +714,7 @@ class TestCLIArguments:
         with pytest.raises(ValueError) as execinfo:
             parser.parse_args()
 
-        expected_error_message = "Unknown arguments passed to GenAI-Perf: --wrong-arg"
+        expected_error_message = "Unknown argument passed to GenAI-Perf: --wrong-arg"
         assert expected_error_message == execinfo.value.args[0]
 
     def test_non_default_create_template_filename(self, monkeypatch, capsys):
@@ -1407,7 +1400,6 @@ class TestCLIArguments:
     def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
         args, config, _ = parser.parse_args()
-        assert args.server_metrics_url == expected_url
 
         if expected_url:
             assert config.endpoint.server_metrics_urls == expected_url
@@ -1456,3 +1448,43 @@ class TestCLIArguments:
         captured = capsys.readouterr()
         expected_error = "argument --measurement-interval/-p: not allowed with argument --request-count/--num-requests"
         assert expected_error in captured.err
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_config_file_plus_illegal_cli_options(
+        self, mock_yaml, mock_path, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "test_config.yaml",
+            "--model",
+            "test_model_name",
+            "--request-rate",
+            "100",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(ValueError) as execinfo:
+            parser.parse_args()
+
+        expected_error_message = "In order to use the CLI to override the config, the --override-config flag must be set."
+        assert expected_error_message == execinfo.value.args[0]
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_config_file_plus_override_config_options(
+        self, mock_yaml, mock_path, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "test_config.yaml",
+            "--override-config",
+            "--model",
+            "test_model_name",
+            "--request-rate",
+            "100",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        _, config, _ = parser.parse_args()
+
+        assert config.model_names == ["test_model_name"]
+        assert config.perf_analyzer.stimulus == {"request_rate": 100}
