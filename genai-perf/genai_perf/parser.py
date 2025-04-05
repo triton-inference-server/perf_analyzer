@@ -1178,7 +1178,7 @@ def parse_args():
     if not subcommand_found(argv[1:passthrough_index]) and not help_or_version_found(
         argv[1:passthrough_index]
     ):
-        argv.insert(1, ic.Subcommand.PROFILE.value)
+        argv.insert(1, ic.Subcommand.UNDEFINED.value)
         passthrough_index += 1
 
     args, unknown_args = parser.parse_known_args(argv[1:passthrough_index])
