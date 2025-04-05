@@ -66,14 +66,14 @@ class RequestRateWorker : public LoadWorker, public IScheduler {
       std::chrono::steady_clock::time_point& start_time,
       const bool serial_sequences,
       const std::shared_ptr<IInferDataManager>& infer_data_manager,
-      std::shared_ptr<SequenceManager> sequence_manager)
+      std::shared_ptr<SequenceManager> sequence_manager, size_t dataset_offset)
       : LoadWorker(
             id, thread_stat, thread_config, parser, data_loader, factory,
             on_sequence_model, async, streaming, batch_size, using_json_data,
             wake_signal, wake_mutex, execute, infer_data_manager,
             sequence_manager),
         num_threads_(num_threads), start_time_(start_time),
-        serial_sequences_(serial_sequences)
+        serial_sequences_(serial_sequences), dataset_offset_(dataset_offset)
   {
   }
 
@@ -114,9 +114,13 @@ class RequestRateWorker : public LoadWorker, public IScheduler {
         std::placeholders::_1));
 
     ctx->SetNumActiveThreads(num_threads_);
+
+    ctx->ApplyDatasetOffset(dataset_offset_);
   }
 
   const std::chrono::milliseconds delay_tolerance_{1};
+
+  const size_t dataset_offset_{0};
 
 #ifndef DOCTEST_CONFIG_DISABLE
   friend NaggyMockRequestRateWorker;

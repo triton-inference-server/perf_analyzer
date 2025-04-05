@@ -46,15 +46,15 @@ class TestCustomRequestScheduleManager : public TestLoadManagerBase,
 
   void TestSchedule(const std::vector<std::chrono::milliseconds> schedule)
   {
-    schedule_ = schedule;
-    int request_count = schedule_.size();
+    const size_t request_count = schedule.size();
+    max_threads_ = std::min(max_threads_, request_count);
     PauseWorkers();
     ConfigureThreads(request_count);
-    GenerateSchedule();
+    DistributeScheduleToWorkers(schedule);
 
     std::vector<std::chrono::nanoseconds> expected_timestamps{};
 
-    for (const auto& timestamp_ms : schedule_) {
+    for (const auto& timestamp_ms : schedule) {
       const auto timestamp{
           std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp_ms)};
       expected_timestamps.push_back(timestamp);

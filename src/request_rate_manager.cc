@@ -240,7 +240,8 @@ RequestRateManager::PauseWorkers()
 }
 
 void
-RequestRateManager::ConfigureThreads(const size_t request_count)
+RequestRateManager::ConfigureThreads(
+    const size_t request_count, size_t dataset_offset)
 {
   if (threads_.empty()) {
     size_t num_of_threads = DetermineNumThreads();
@@ -249,8 +250,8 @@ RequestRateManager::ConfigureThreads(const size_t request_count)
       threads_stat_.emplace_back(new ThreadStat());
       threads_config_.emplace_back(new ThreadConfig(workers_.size()));
 
-      workers_.push_back(
-          MakeWorker(threads_stat_.back(), threads_config_.back()));
+      workers_.push_back(MakeWorker(
+          threads_stat_.back(), threads_config_.back(), dataset_offset));
     }
     // Compute the number of sequences for each thread (take floor)
     // and spread the remaining value
@@ -293,7 +294,7 @@ RequestRateManager::ResumeWorkers()
 std::shared_ptr<IWorker>
 RequestRateManager::MakeWorker(
     std::shared_ptr<ThreadStat> thread_stat,
-    std::shared_ptr<ThreadConfig> thread_config)
+    std::shared_ptr<ThreadConfig> thread_config, size_t dataset_offset)
 {
   size_t id = workers_.size();
   size_t num_of_threads = DetermineNumThreads();
@@ -301,7 +302,8 @@ RequestRateManager::MakeWorker(
       id, thread_stat, thread_config, parser_, data_loader_, factory_,
       on_sequence_model_, async_, num_of_threads, using_json_data_, streaming_,
       batch_size_, wake_signal_, wake_mutex_, execute_, start_time_,
-      serial_sequences_, infer_data_manager_, sequence_manager_);
+      serial_sequences_, infer_data_manager_, sequence_manager_,
+      dataset_offset);
 }
 
 size_t
