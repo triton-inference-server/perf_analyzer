@@ -1175,6 +1175,8 @@ def parse_args():
     parser = init_parsers()
     passthrough_index = get_passthrough_args_index(argv)
 
+    # Argparse requires that the subcommand be present. To get around this requirement,
+    # we add a dummy subcommand if none is present and then remove it after parsing.
     if not subcommand_found(argv[1:passthrough_index]) and not help_or_version_found(
         argv[1:passthrough_index]
     ):
