@@ -940,8 +940,9 @@ def _check_that_override_is_set(args: argparse.Namespace) -> None:
         return
 
     args_cannot_override = [
+        "func",  # this is the function to call that comes from vars(args)
         "override_config",
-        "subcommand",
+        "config_filename",
         "verbose",
     ]
 

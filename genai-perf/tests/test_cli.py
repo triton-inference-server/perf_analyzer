@@ -1434,3 +1434,16 @@ class TestCLIArguments:
 
         assert config.model_names == ["test_model_name"]
         assert config.perf_analyzer.stimulus == {"request_rate": 100}
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_config_file_plus_verbose(self, mock_yaml, mock_path, monkeypatch):
+        combined_args = self.base_config_args + [
+            "test_config.yaml",
+            "--verbose",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        _, config, _ = parser.parse_args()
+
+        assert config.verbose is True
