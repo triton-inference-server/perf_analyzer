@@ -60,7 +60,7 @@ class TestCLIArguments:
     ]
     base_config_args = [
         "genai-perf",
-        # "test_config.yaml",
+        "test_config.yaml",
     ]
 
     @pytest.mark.parametrize(
@@ -1410,7 +1410,6 @@ class TestCLIArguments:
         self, mock_yaml, mock_path, monkeypatch
     ):
         combined_args = self.base_config_args + [
-            "test_config.yaml",
             "--model",
             "test_model_name",
             "--request-rate",
@@ -1430,7 +1429,6 @@ class TestCLIArguments:
         self, mock_yaml, mock_path, monkeypatch
     ):
         combined_args = self.base_config_args + [
-            "test_config.yaml",
             "--override-config",
             "--model",
             "test_model_name",
@@ -1454,7 +1452,6 @@ class TestCLIArguments:
         self, mock_yaml, mock_path, mock_check_fields, monkeypatch
     ):
         combined_args = self.base_config_args + [
-            "test_config.yaml",
             "--verbose",
         ]
 
