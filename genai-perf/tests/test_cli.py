@@ -692,6 +692,15 @@ class TestCLIArguments:
         captured = capsys.readouterr()
         assert expected_output in captured.err
 
+    def test_model_not_provided(self, monkeypatch, capsys):
+        monkeypatch.setattr("sys.argv", ["genai-perf", "profile"])
+        expected_error_message = "Required field model_names is not set"
+
+        with pytest.raises(ValueError) as execinfo:
+            parser.parse_args()
+
+        assert expected_error_message == execinfo.value.args[0]
+
     def test_pass_through_args(self, monkeypatch):
         other_args = ["--", "With", "great", "power"]
         monkeypatch.setattr("sys.argv", self.base_args + other_args)
@@ -1437,7 +1446,13 @@ class TestCLIArguments:
 
     @patch("genai_perf.parser.utils.load_yaml", return_value={})
     @patch("pathlib.Path.exists", return_value=True)
-    def test_config_file_plus_verbose(self, mock_yaml, mock_path, monkeypatch):
+    @patch(
+        "genai_perf.config.input.base_config.BaseConfig.check_required_fields",
+        return_value=None,
+    )
+    def test_config_file_plus_verbose(
+        self, mock_yaml, mock_path, mock_check_fields, monkeypatch
+    ):
         combined_args = self.base_config_args + [
             "test_config.yaml",
             "--verbose",

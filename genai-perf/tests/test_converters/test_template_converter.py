@@ -235,6 +235,6 @@ class TestTemplateConverter:
         with patch("builtins.open", mock_open(read_data=fake_template_content)), patch(
             "os.path.isfile", return_value=True
         ):
-            converter = TemplateConverter(ConfigCommand())
+            converter = TemplateConverter(ConfigCommand({"model_names": "test_model"}))
             template = converter.resolve_template("/path/to/template.jinja2")
             assert template.render(texts=["sample"]) == '[{"custom_key": ["sample"] }]'

@@ -88,6 +88,7 @@ class ConfigCommand(BaseConfig):
         Infers and checks the configuration options.
         """
         self._infer_settings()
+        self._check_required_fields()
         self._check_for_illegal_combinations()
         self._check_profile_export_file()
 
@@ -127,6 +128,13 @@ class ConfigCommand(BaseConfig):
             self.model_names = model_names
         else:
             raise ValueError("User Config: model_names must be a string or list")
+
+    def _check_required_fields(self) -> None:
+        """
+        Checks if all required fields are set.
+        Raises an error if any required field is not set.
+        """
+        super().check_required_fields()
 
     ###########################################################################
     # Infer Methods
