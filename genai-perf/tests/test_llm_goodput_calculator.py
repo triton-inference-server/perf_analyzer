@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -69,8 +69,8 @@ class TestLLMGoodputCalculator:
         assert gc.get_slo_name("request_latency") == "request_latencies"
         assert gc.get_slo_name("time_to_first_token") == "time_to_first_tokens"
         assert gc.get_slo_name("inter_token_latency") == "inter_token_latencies"
-        assert gc.get_slo_name("output_token_throughput_per_request") == (
-            "output_token_throughputs_per_request"
+        assert gc.get_slo_name("output_token_throughput_per_user") == (
+            "output_token_throughputs_per_user"
         )
         with pytest.raises(KeyError):
             gc.get_slo_name("hello1234")
@@ -80,7 +80,7 @@ class TestLLMGoodputCalculator:
         Goodput constraints for experiment 1 and 2:
         * time_to_first_token: 2.5e-6 ms
         * inter_token_latency: 2.5e-6 ms
-        * output_token_throughput_per_request: 0.5e9 s
+        * output_token_throughput_per_user: 0.5e9 s
 
         Benchmark duration for experiment 1 and 2: 10 s
 
@@ -95,7 +95,7 @@ class TestLLMGoodputCalculator:
             - experiment 2: [((18 - 5) - 2)/(4 - 1), ((11 - 3) - 3)/(6 - 1)]
                           : [11/3, 1]
                           : [4, 1]  # rounded
-        * output token throughputs per request
+        * output token throughputs per user
             - experiment 1: [3/(8 - 1), 6/(11 - 2)] = [3/7, 6/9]
             - experiment 2: [4/(18 - 5), 6/(11 - 3)] = [4/13, 6/8]
 
@@ -110,14 +110,14 @@ class TestLLMGoodputCalculator:
         test_goodput_constraints = {
             "time_to_first_token": 2.5e-6,  # ms
             "inter_token_latency": 1.5e-6,  # ms
-            "output_token_throughput_per_request": 0.5e9,  # s
+            "output_token_throughput_per_user": 0.5e9,  # s
         }
 
         # experiment 1
         test_llm_metrics_1 = LLMMetrics(
             time_to_first_tokens=[2, 2],
             inter_token_latencies=[2, 1],
-            output_token_throughputs_per_request=[3 / ns_to_sec(7), 6 / ns_to_sec(9)],
+            output_token_throughputs_per_user=[1 / ns_to_sec(2), 1 / ns_to_sec(1)],
         )
 
         gc_1 = LLMGoodputCalculator(
@@ -133,7 +133,7 @@ class TestLLMGoodputCalculator:
         test_llm_metrics_2 = LLMMetrics(
             time_to_first_tokens=[2, 3],
             inter_token_latencies=[4, 1],
-            output_token_throughputs_per_request=[4 / ns_to_sec(13), 6 / ns_to_sec(8)],
+            output_token_throughputs_per_user=[1 / ns_to_sec(4), 1 / ns_to_sec(1)],
         )
 
         gc_2 = LLMGoodputCalculator(

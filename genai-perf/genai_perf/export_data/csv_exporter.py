@@ -106,19 +106,12 @@ class CsvExporter:
         if self._config.endpoint.type == "embeddings":
             return False  # skip nothing
 
-        # TODO (TMA-1712): need to decide if we need this metric. Remove
-        # from statistics display for now.
-        # TODO (TMA-1678): output_token_throughput_per_request is treated
-        # separately since the current code treats all throughput metrics to
-        # be displayed outside of the statistics table.
-        if metric_name == "output_token_throughput_per_request":
-            return True
-
-        # When non-streaming, skip ITL and TTFT
+        # Skip following streaming metrics when non-streaming mode
         streaming_metrics = [
             "inter_token_latency",
             "time_to_first_token",
             "time_to_second_token",
+            "output_token_throughput_per_user",
         ]
         if not self._config.endpoint.streaming and metric_name in streaming_metrics:
             return True

@@ -368,6 +368,7 @@ the inference server.
 | <span id="time_to_first_token_metric">Time to First Token</span> | Time between when a request is sent and when its first response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | <span id="time_to_second_token_metric">Time to Second Token</span> | Time between when the first streaming response is received and when the second streaming response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | <span id="inter_token_latency_metric">Inter Token Latency</span> | Time between intermediate responses for a single request divided by the number of generated tokens of the latter response, one value per response per request in benchmark | Avg, min, max, p99, p90, p75 |
+| <span id="output_token_throughput_per_user_metric">Output Token Throughput Per User</span> | Total number of output tokens (excluding the first token) divided by the total duration of the generation phase of each request | Avg, min, max, p99, p90, p75 |
 | Request Latency | Time between when a request is sent and when its final response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Output Sequence Length | Total number of output tokens of a request, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Input Sequence Length | Total number of input tokens of a request, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
@@ -754,7 +755,7 @@ An option to provide constraints in order to compute goodput. Specify goodput
 constraints as 'key:value' pairs, where the key is a valid metric name, and the
 value is a number representing either milliseconds or a throughput value per
 second. For example, 'request_latency:300' or
-'output_token_throughput_per_request:600'. Multiple key:value pairs can be
+'output_token_throughput_per_user:600'. Multiple key:value pairs can be
 provided, separated by spaces. (default: `None`)
 
 </br>
