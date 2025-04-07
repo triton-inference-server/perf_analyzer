@@ -1379,7 +1379,7 @@ class TestLLMProfileDataParser:
             (
                 ResponseFormat.HUGGINGFACE_GENERATE,
                 '["not a dict"]',
-                "",
+                None,  # Will raise ValueError
             ),
             # HuggingFace dict format (should raise error)
             (
@@ -1535,11 +1535,6 @@ class TestLLMProfileDataParser:
                 "[]",
                 True,
             ),
-            (
-                ResponseFormat.HUGGINGFACE_GENERATE,
-                '["not a dict"]',
-                True,
-            ),
         ],
     )
     @patch("genai_perf.profile_data_parser.profile_data_parser.load_json")
@@ -1653,9 +1648,9 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 2],
                     "time_to_second_tokens": [2, 3],
                     "inter_token_latencies": [2, 2],
-                    "output_token_throughputs_per_request": [
-                        4 / ns_to_sec(7),
-                        5 / ns_to_sec(9),
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(2),
+                        1 / ns_to_sec(2),
                     ],
                     "output_token_throughputs": [9 / ns_to_sec(10)],
                     "output_sequence_lengths": [4, 5],
@@ -1686,8 +1681,8 @@ class TestLLMProfileDataParser:
             - experiment 1: [((8 - 1) - 2)/(4 - 1), ((11 - 2) - 2)/(5 - 1)]
                           : [5/3, 7/4]
                           : [2, 2]  # rounded
-        * output token throughputs per request
-            - experiment 1: [4/(8 - 1), 5/(11 - 2)] = [4/7, 5/9]
+        * output token throughputs per user
+            - experiment 1: [1 / ns_to_sec(2), 1 / ns_to_sec(2)]
         * output token throughputs
             - experiment 1: [(4 + 5)/(11 - 1)] = [9/10]
         * output sequence lengths

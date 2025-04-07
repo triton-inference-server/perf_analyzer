@@ -453,6 +453,10 @@ class LLMProfileDataParser(ProfileDataParser):
                 first_item = data[0]  # type: ignore
                 if isinstance(first_item, dict):
                     return first_item.get("generated_text", "")
+                else:
+                    raise ValueError(
+                        f"Unknown HuggingFace response type in list: {type(first_item)}"
+                    )
         else:
             raise ValueError(f"Unknown HuggingFace response type: {type(data)}")
 
