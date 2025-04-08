@@ -39,7 +39,7 @@ To launch a Hugging Face TGI server, use the official `ghcr.io` image:
 ```bash
 docker run --gpus all --rm -it \
   -p 8080:80 \
-  -e MODEL_ID=<model> \
+  -e MODEL_ID=llava-hf/llava-v1.6-mistral-7b-hf \
   ghcr.io/huggingface/text-generation-inference
 ```
 
@@ -51,7 +51,7 @@ Run with built-in synthetic prompts:
 
 ```bash
 genai-perf profile \
-  -m <model> \
+  -m llava-hf/llava-v1.6-mistral-7b-hf \
   --service-kind openai \
   --endpoint-type huggingface_generate \
   --url localhost:8080 \
@@ -83,7 +83,7 @@ For instance, an example of input file would look something as following:
 
 ```bash
 genai-perf profile \
-  -m <model> \
+  -m llava-hf/llava-v1.6-mistral-7b-hf \
   --service-kind openai \
   --endpoint-type huggingface_generate \
   --url localhost:8080 \
@@ -95,15 +95,15 @@ genai-perf profile \
 Example output:
 
 ```
-                                    NVIDIA GenAI-Perf | LLM Metrics
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┓
-┃                            Statistic ┃      avg ┃    min ┃      max ┃      p99 ┃      p90 ┃      p75 ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━┩
-│                 Request Latency (ms) │   731.58 │ 251.22 │ 1,556.89 │ 1,552.28 │ 1,510.77 │ 1,275.52 │
-│      Output Sequence Length (tokens) │   853.40 │ 370.00 │ 1,025.00 │ 1,024.91 │ 1,024.10 │ 1,024.00 │
-│       Input Sequence Length (tokens) │   394.00 │  78.00 │   866.00 │   866.00 │   866.00 │   866.00 │
-│ Output Token Throughput (tokens/sec) │ 1,166.41 │    N/A │      N/A │      N/A │      N/A │      N/A │
-│         Request Throughput (per sec) │     1.37 │    N/A │      N/A │      N/A │      N/A │      N/A │
-│                Request Count (count) │    10.00 │    N/A │      N/A │      N/A │      N/A │      N/A │
-└──────────────────────────────────────┴──────────┴────────┴──────────┴──────────┴──────────┴──────────┘
+                                        NVIDIA GenAI-Perf | LLM Metrics
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┓
+┃                            Statistic ┃       avg ┃      min ┃       max ┃       p99 ┃       p90 ┃       p75 ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━┩
+│                 Request Latency (ms) │  6,675.95 │   234.82 │ 54,474.75 │ 50,240.69 │ 12,134.14 │  1,283.24 │
+│      Output Sequence Length (tokens) │    347.50 │     3.00 │  2,908.00 │  2,681.92 │    647.20 │     59.75 │
+│       Input Sequence Length (tokens) │ 10,164.10 │ 7,293.00 │ 12,113.00 │ 12,113.00 │ 12,113.00 │ 12,112.75 │
+│ Output Token Throughput (tokens/sec) │     52.05 │      N/A │       N/A │       N/A │       N/A │       N/A │
+│         Request Throughput (per sec) │      0.15 │      N/A │       N/A │       N/A │       N/A │       N/A │
+│                Request Count (count) │     10.00 │      N/A │       N/A │       N/A │       N/A │       N/A │
+└──────────────────────────────────────┴───────────┴──────────┴───────────┴───────────┴───────────┴───────────┘
 ```

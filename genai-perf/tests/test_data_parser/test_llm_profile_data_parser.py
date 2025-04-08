@@ -1361,220 +1361,60 @@ class TestLLMProfileDataParser:
     ###############################
 
     @pytest.mark.parametrize(
-        "service_kind, response_format, response, expected_text",
+        "response_format,response_text,expected",
         [
-            # HuggingFace list format
             (
-                "openai",
                 ResponseFormat.HUGGINGFACE_GENERATE,
-                '[{"generated_text":"Hello, world!"}]',
-                "Hello, world!",
+                '[{"generated_text":"Hello"}]',
+                "Hello",
             ),
-            # HuggingFace empty list
+            (ResponseFormat.HUGGINGFACE_GENERATE, "[]", ""),
+            (ResponseFormat.HUGGINGFACE_GENERATE, '["not a dict"]', None),
+            (ResponseFormat.HUGGINGFACE_GENERATE, '{"generated_text":"Hello"}', None),
             (
-                "openai",
-                ResponseFormat.HUGGINGFACE_GENERATE,
-                "[]",
-                "",
-            ),
-            # HuggingFace list with non-dict item
-            (
-                "openai",
-                ResponseFormat.HUGGINGFACE_GENERATE,
-                '["not a dict"]',
-                None,  # Will raise ValueError
-            ),
-            # HuggingFace dict format (should raise error)
-            (
-                "openai",
-                ResponseFormat.HUGGINGFACE_GENERATE,
-                '{"generated_text":"Hello, world!"}',
-                None,  # Will raise ValueError
-            ),
-            # OpenAI chat completion
-            (
-                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                '{"object":"chat.completion","choices":[{"message":{"content":"Hello, world!"}}]}',
-                "Hello, world!",
+                '{"object":"chat.completion","choices":[{"message":{"content":"Hi"}}]}',
+                "Hi",
             ),
-            # OpenAI chat completion streaming
             (
-                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                '{"object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello, world!"}}]}',
-                "Hello, world!",
+                '{"object":"chat.completion.chunk","choices":[{"delta":{"content":"Stream"}}]}',
+                "Stream",
             ),
-            # OpenAI chat completion without object field (vLLM workaround)
             (
-                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                '{"choices":[{"text":"Hello, world!"}]}',
-                "Hello, world!",
+                '{"choices":[{"text":"Fallback"}]}',
+                "Fallback",
             ),
-            # OpenAI completion
             (
-                "openai",
                 ResponseFormat.OPENAI_COMPLETIONS,
-                '{"object":"text_completion","choices":[{"text":"Hello, world!"}]}',
-                "Hello, world!",
+                '{"object":"text_completion","choices":[{"text":"Complete"}]}',
+                "Complete",
             ),
-            # OpenAI completion without object field (vLLM workaround)
             (
-                "openai",
                 ResponseFormat.OPENAI_COMPLETIONS,
-                '{"choices":[{"text":"Hello, world!"}]}',
-                "Hello, world!",
+                '{"choices":[{"text":"Legacy"}]}',
+                "Legacy",
             ),
-            # Triton generate
-            (
-                "triton",
-                ResponseFormat.TRITON_GENERATE,
-                '{"text_output":"Hello, world!"}',
-                "Hello, world!",
-            ),
-            # Empty response
-            (
-                "openai",
-                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                "",
-                "",
-            ),
-            # [DONE] response
-            (
-                "openai",
-                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                "data: [DONE]",
-                "",
-            ),
-            # Non-data SSE field
-            (
-                "openai",
-                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                ": ping",
-                "",
-            ),
-            # Unknown format
-            (
-                "openai",
-                "UNKNOWN_FORMAT",  # type: ignore
-                "any response",
-                None,  # Will raise ValueError
-            ),
+            (ResponseFormat.TRITON_GENERATE, '{"text_output":"Triton"}', "Triton"),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "", ""),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "data: [DONE]", ""),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, ": ping", ""),
+            # Unknown format (should raise)
+            ("UNKNOWN_FORMAT", "any response", None),
         ],
     )
-    @patch("genai_perf.profile_data_parser.profile_data_parser.load_json")
-    def test_extract_text_output(
-        self, mock_json, service_kind, response_format, response, expected_text
-    ) -> None:
-        """Test the text extraction methods for different response formats."""
-        if service_kind == "triton":
-            mock_json.return_value = {
-                "service_kind": service_kind,
-                "endpoint": "v1/models/test_model/infer",
-                "experiments": [
-                    {
-                        "experiment": {"mode": "concurrency", "value": 1},
-                        "requests": [
-                            {
-                                "timestamp": 0,
-                                "request_inputs": {
-                                    "text_input": "This is a test input"
-                                },
-                                "response_timestamps": [1],
-                                "response_outputs": [
-                                    {"text_output": "This is a test output"}
-                                ],
-                            }
-                        ],
-                    }
-                ],
-            }
-        elif service_kind == "triton_c_api":
-            mock_json.return_value = {
-                "service_kind": service_kind,
-                "endpoint": "v1/models/test_model/infer",
-                "experiments": [
-                    {
-                        "experiment": {"mode": "concurrency", "value": 1},
-                        "requests": [
-                            {
-                                "timestamp": 0,
-                                "request_inputs": {"input_ids": [1, 2, 3, 4, 5]},
-                                "response_timestamps": [1],
-                                "response_outputs": [{"output_ids": [6, 7, 8, 9, 10]}],
-                            }
-                        ],
-                    }
-                ],
-            }
-        elif response_format == ResponseFormat.HUGGINGFACE_GENERATE:
-            mock_json.return_value = {
-                "service_kind": service_kind,
-                "endpoint": "huggingface/generate",
-                "experiments": [
-                    {
-                        "experiment": {"mode": "concurrency", "value": 1},
-                        "requests": [
-                            {
-                                "timestamp": 0,
-                                "request_inputs": {
-                                    "payload": '{"inputs":"This is a test input"}'
-                                },
-                                "response_timestamps": [1],
-                                "response_outputs": [
-                                    {
-                                        "response": '[{"generated_text":"This is a test output"}]'
-                                    }
-                                ],
-                            }
-                        ],
-                    }
-                ],
-            }
-        elif service_kind == "openai":
-            mock_json.return_value = {
-                "service_kind": service_kind,
-                "endpoint": "v1/chat/completions",
-                "experiments": [
-                    {
-                        "experiment": {"mode": "concurrency", "value": 1},
-                        "requests": [
-                            {
-                                "timestamp": 0,
-                                "request_inputs": {
-                                    "payload": '{"messages":[{"role":"user","content":"Hello"}],"model":"gpt2"}'
-                                },
-                                "response_timestamps": [1],
-                                "response_outputs": [
-                                    {
-                                        "response": '{"object":"chat.completion.chunk","choices":[{"delta":{"content":"hello"}}]}\n\n'
-                                    }
-                                ],
-                            }
-                        ],
-                    }
-                ],
-            }
-        else:
-            raise ValueError(f"Unknown service kind: {service_kind}")
-
+    def test_extract_text_output(self, response_format, response_text, expected):
         config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        pd = LLMProfileDataParser(
-            filename=Path("profile_export.json"),
-            tokenizer=tokenizer,
-        )
+        parser = LLMProfileDataParser.__new__(LLMProfileDataParser)  # Bypass init
+        parser._response_format = response_format  # type: ignore
 
-        pd._response_format = response_format  # type: ignore
-
-        if expected_text is None:
+        if expected is None:
             with pytest.raises(ValueError):
-                pd._extract_text_output(response)
+                parser._extract_text_output(response_text)
         else:
-            result = pd._extract_text_output(response)
-            assert result == expected_text
+            assert parser._extract_text_output(response_text) == expected
 
     @pytest.mark.parametrize(
         "response_format, response, expected_is_empty",
