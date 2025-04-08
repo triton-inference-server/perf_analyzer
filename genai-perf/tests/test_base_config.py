@@ -425,7 +425,7 @@ class TestBaseConfig(unittest.TestCase):
     ###########################################################################
     # Set by User Testing
     ###########################################################################
-    def test_is_set_by_user_true(self):
+    def test_any_field_set_by_user_true(self):
         """
         Test that is_set_by_user returns True when at least one field is set by the user.
         """
@@ -433,9 +433,9 @@ class TestBaseConfig(unittest.TestCase):
         test_base_config.test_field_A = ConfigField(default=1, value=2)
         test_base_config.test_field_B = ConfigField(default=3)
 
-        self.assertTrue(test_base_config.is_set_by_user())
+        self.assertTrue(test_base_config.any_field_set_by_user())
 
-    def test_is_set_by_user_false(self):
+    def test_any_field_set_by_user_false(self):
         """
         Test that is_set_by_user returns False when no fields are set by the user.
         """
@@ -443,42 +443,42 @@ class TestBaseConfig(unittest.TestCase):
         test_base_config.test_field_A = ConfigField(default=1)
         test_base_config.test_field_B = ConfigField(default=3)
 
-        self.assertFalse(test_base_config.is_set_by_user())
+        self.assertFalse(test_base_config.any_field_set_by_user())
 
     ###########################################################################
     # Check Required Fields Testing
     ###########################################################################
     def test_check_required_fields_all_set(self):
         """
-        Test that check_required_fields does not raise an error when all required fields are set.
+        Test that check_required_fields_are_set does not raise an error when all required fields are set.
         """
         test_base_config = BaseConfig()
         test_base_config.test_field_A = ConfigField(default=1, value=2, required=True)
         test_base_config.test_field_B = ConfigField(default=3, value=4, required=True)
 
         try:
-            test_base_config.check_required_fields()
+            test_base_config.check_required_fields_are_set()
         except ValueError:
-            self.fail("check_required_fields raised ValueError unexpectedly!")
+            self.fail("check_required_fields_are_set raised ValueError unexpectedly!")
 
     def test_check_required_fields_missing_field(self):
         """
-        Test that check_required_fields raises an error when a required field is not set.
+        Test that check_required_fields_are_set raises an error when a required field is not set.
         """
         test_base_config = BaseConfig()
         test_base_config.test_field_A = ConfigField(default=1, required=True)
         test_base_config.test_field_B = ConfigField(default=3, value=4, required=True)
 
         with self.assertRaises(ValueError) as context:
-            test_base_config.check_required_fields()
+            test_base_config.check_required_fields_are_set()
 
         self.assertEqual(
             str(context.exception), "Required field test_field_A is not set"
         )
 
-    def test_check_required_fields_nested(self):
+    def test_check_required_fields_are_set_nested(self):
         """
-        Test that check_required_fields works correctly with nested BaseConfig objects.
+        Test that check_required_fields_are_set works correctly with nested BaseConfig objects.
         """
         test_base_config = BaseConfig()
         test_base_config.test_field_A = ConfigField(default=1, value=2, required=True)
@@ -489,7 +489,7 @@ class TestBaseConfig(unittest.TestCase):
         test_base_config.child_config = child_base_config
 
         with self.assertRaises(ValueError) as context:
-            test_base_config.check_required_fields()
+            test_base_config.check_required_fields_are_set()
 
         self.assertEqual(
             str(context.exception), "Required field test_field_B is not set"

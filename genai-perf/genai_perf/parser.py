@@ -939,12 +939,12 @@ def _check_that_override_is_set(args: argparse.Namespace) -> None:
     if not args.config_filename:
         return
 
-    args_cannot_override = [
+    args_cannot_override = {
         "func",  # this is the function to call that comes from vars(args)
         "override_config",
         "config_filename",
         "verbose",
-    ]
+    }
 
     for key, value in vars(args).items():
         if key in args_cannot_override:

@@ -51,27 +51,16 @@ class BaseConfig:
 
         return self._fields[name]
 
-    def is_set_by_user(self) -> bool:
-        """
-        Checks if any field is set by the user.
-        """
-        for field in self._fields.values():
-            if field.is_set_by_user:
-                return True
+    def any_field_set_by_user(self) -> bool:
+        return any(field.is_set_by_user for field in self._fields.values())
 
-        return False
-
-    def check_required_fields(self) -> None:
-        """
-        Checks if all required fields are set.
-        Raises an error if any required field is not set.
-        """
+    def check_required_fields_are_set(self) -> None:
         for name, field in self._fields.items():
             if field.required and not field.is_set_by_user:
                 raise ValueError(f"Required field {name} is not set")
 
         for child in self._children.values():
-            child.check_required_fields()
+            child.check_required_fields_are_set()
 
     def to_json_dict(self) -> Dict[str, Any]:
         config_dict = {}

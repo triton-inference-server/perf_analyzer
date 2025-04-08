@@ -1445,7 +1445,7 @@ class TestCLIArguments:
     @patch("genai_perf.parser.utils.load_yaml", return_value={})
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
-        "genai_perf.config.input.base_config.BaseConfig.check_required_fields",
+        "genai_perf.config.input.base_config.BaseConfig.check_required_fields_are_set",
         return_value=None,
     )
     def test_config_file_plus_verbose(
