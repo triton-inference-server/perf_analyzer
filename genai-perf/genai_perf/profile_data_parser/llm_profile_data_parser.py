@@ -30,7 +30,7 @@ import json
 from collections import defaultdict
 from itertools import tee
 from pathlib import Path
-from typing import Dict, List, Tuple, TypeAlias
+from typing import Dict, List, NoReturn, Tuple, TypeAlias
 
 from genai_perf.constants import EMPTY_RESPONSE_TOKEN
 from genai_perf.exceptions import GenAIPerfException
@@ -429,10 +429,10 @@ class LLMProfileDataParser(ProfileDataParser):
             ResponseFormat.HUGGINGFACE_GENERATE: self._extract_huggingface_generate_text_output,
             ResponseFormat.OPENAI_CHAT_COMPLETIONS: self._extract_openai_chat_text_output,
             ResponseFormat.OPENAI_COMPLETIONS: self._extract_openai_completion_text_output,
-            ResponseFormat.OPENAI_MULTIMODAL: self._extract_openai_multimodal_text_output,
+            ResponseFormat.OPENAI_MULTIMODAL: self._extract_openai_chat_text_output,
         }
         extract_method = extraction_methods.get(
-            self._response_format, self._extract_default_text_output
+            self._response_format, self._throw_unknown_response_format_error
         )
         return extract_method(response)
 
@@ -495,15 +495,8 @@ class LLMProfileDataParser(ProfileDataParser):
             obj_type = data["object"]
             raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
 
-    def _extract_openai_multimodal_text_output(self, response: str) -> str:
-        return self._extract_openai_chat_text_output(response)
-
-    def _extract_default_text_output(self, response: str) -> str:
-        """Default text extraction method for unknown response formats."""
-        logger.warning(
-            f"Unknown response format: {self._response_format}, using default extraction"
-        )
-        return ""
+    def _throw_unknown_response_format_error(self, response: str) -> NoReturn:
+        raise ValueError(f"Unknown response format: {self._response_format}")
 
     def _extract_generate_text_output(self, response: str) -> str:
         # (TODO) TPA-829: Add more proper SSE event stream support

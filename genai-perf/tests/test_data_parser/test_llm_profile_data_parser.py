@@ -1361,108 +1361,180 @@ class TestLLMProfileDataParser:
     ###############################
 
     @pytest.mark.parametrize(
-        "response_format, response, expected_text",
+        "service_kind, response_format, response, expected_text",
         [
             # HuggingFace list format
             (
+                "openai",
                 ResponseFormat.HUGGINGFACE_GENERATE,
                 '[{"generated_text":"Hello, world!"}]',
                 "Hello, world!",
             ),
             # HuggingFace empty list
             (
+                "openai",
                 ResponseFormat.HUGGINGFACE_GENERATE,
                 "[]",
                 "",
             ),
             # HuggingFace list with non-dict item
             (
+                "openai",
                 ResponseFormat.HUGGINGFACE_GENERATE,
                 '["not a dict"]',
                 None,  # Will raise ValueError
             ),
             # HuggingFace dict format (should raise error)
             (
+                "openai",
                 ResponseFormat.HUGGINGFACE_GENERATE,
                 '{"generated_text":"Hello, world!"}',
                 None,  # Will raise ValueError
             ),
             # OpenAI chat completion
             (
+                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
                 '{"object":"chat.completion","choices":[{"message":{"content":"Hello, world!"}}]}',
                 "Hello, world!",
             ),
             # OpenAI chat completion streaming
             (
+                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
                 '{"object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello, world!"}}]}',
                 "Hello, world!",
             ),
             # OpenAI chat completion without object field (vLLM workaround)
             (
+                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
                 '{"choices":[{"text":"Hello, world!"}]}',
                 "Hello, world!",
             ),
             # OpenAI completion
             (
+                "openai",
                 ResponseFormat.OPENAI_COMPLETIONS,
                 '{"object":"text_completion","choices":[{"text":"Hello, world!"}]}',
                 "Hello, world!",
             ),
             # OpenAI completion without object field (vLLM workaround)
             (
+                "openai",
                 ResponseFormat.OPENAI_COMPLETIONS,
                 '{"choices":[{"text":"Hello, world!"}]}',
                 "Hello, world!",
             ),
             # Triton generate
             (
+                "triton",
                 ResponseFormat.TRITON_GENERATE,
                 '{"text_output":"Hello, world!"}',
                 "Hello, world!",
             ),
             # Empty response
             (
+                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
                 "",
                 "",
             ),
             # [DONE] response
             (
+                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
                 "data: [DONE]",
                 "",
             ),
             # Non-data SSE field
             (
+                "openai",
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
                 ": ping",
                 "",
             ),
             # Unknown format
             (
+                "openai",
                 "UNKNOWN_FORMAT",  # type: ignore
                 "any response",
-                "",
+                None,  # Will raise ValueError
             ),
         ],
     )
     @patch("genai_perf.profile_data_parser.profile_data_parser.load_json")
     def test_extract_text_output(
-        self, mock_json, response_format, response, expected_text
+        self, mock_json, service_kind, response_format, response, expected_text
     ) -> None:
         """Test the text extraction methods for different response formats."""
-        if response_format == ResponseFormat.HUGGINGFACE_GENERATE:
+        if service_kind == "triton":
             mock_json.return_value = {
-                "service_kind": "openai",
-                "endpoint": "huggingface/generate",
-                "experiments": [],
+                "service_kind": service_kind,
+                "endpoint": "v1/models/test_model/infer",
+                "experiments": [
+                    {
+                        "experiment": {"mode": "concurrency", "value": 1},
+                        "requests": [
+                            {
+                                "timestamp": 0,
+                                "request_inputs": {
+                                    "text_input": "This is a test input"
+                                },
+                                "response_timestamps": [1],
+                                "response_outputs": [
+                                    {"text_output": "This is a test output"}
+                                ],
+                            }
+                        ],
+                    }
+                ],
             }
-        else:
+        elif service_kind == "triton_c_api":
             mock_json.return_value = {
-                "service_kind": "openai",
+                "service_kind": service_kind,
+                "endpoint": "v1/models/test_model/infer",
+                "experiments": [
+                    {
+                        "experiment": {"mode": "concurrency", "value": 1},
+                        "requests": [
+                            {
+                                "timestamp": 0,
+                                "request_inputs": {"input_ids": [1, 2, 3, 4, 5]},
+                                "response_timestamps": [1],
+                                "response_outputs": [{"output_ids": [6, 7, 8, 9, 10]}],
+                            }
+                        ],
+                    }
+                ],
+            }
+        elif response_format == ResponseFormat.HUGGINGFACE_GENERATE:
+            mock_json.return_value = {
+                "service_kind": service_kind,
+                "endpoint": "huggingface/generate",
+                "experiments": [
+                    {
+                        "experiment": {"mode": "concurrency", "value": 1},
+                        "requests": [
+                            {
+                                "timestamp": 0,
+                                "request_inputs": {
+                                    "payload": '{"inputs":"This is a test input"}'
+                                },
+                                "response_timestamps": [1],
+                                "response_outputs": [
+                                    {
+                                        "response": '[{"generated_text":"This is a test output"}]'
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        elif service_kind == "openai":
+            mock_json.return_value = {
+                "service_kind": service_kind,
                 "endpoint": "v1/chat/completions",
                 "experiments": [
                     {
@@ -1484,6 +1556,8 @@ class TestLLMProfileDataParser:
                     }
                 ],
             }
+        else:
+            raise ValueError(f"Unknown service kind: {service_kind}")
 
         config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = DEFAULT_TOKENIZER
@@ -1679,7 +1753,7 @@ class TestLLMProfileDataParser:
             - experiment 1: [5 - 3, 7 - 4] = [2, 3]
         * inter token latencies
             - experiment 1: [((8 - 1) - 2)/(4 - 1), ((11 - 2) - 2)/(5 - 1)]
-                          : [5/3, 7/4]
+                          : [5/3, 9/5]
                           : [2, 2]  # rounded
         * output token throughputs per user
             - experiment 1: [1 / ns_to_sec(2), 1 / ns_to_sec(2)]

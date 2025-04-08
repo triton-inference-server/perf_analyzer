@@ -39,12 +39,13 @@ from genai_perf.inputs.retrievers.generic_dataset import (
 class TestHuggingFaceGenerateConverter:
 
     def test_convert_default(self):
+        expected_texts = ["Hello world.", "Test prompt."]
         dataset = GenericDataset(
             files_data={
                 "file1": FileData(
                     rows=[
-                        DataRow(texts=["Hello world."]),
-                        DataRow(texts=["Test prompt."]),
+                        DataRow(texts=[expected_texts[0]]),
+                        DataRow(texts=[expected_texts[1]]),
                     ]
                 )
             }
@@ -59,22 +60,26 @@ class TestHuggingFaceGenerateConverter:
         assert isinstance(result, dict)
         assert "data" in result
         assert len(result["data"]) == 2
-        for item in result["data"]:
+        for i, item in enumerate(result["data"]):
             assert "payload" in item
             payload_list = item["payload"]
             assert isinstance(payload_list, list)
             payload = payload_list[0]
             assert "model" in payload
             assert "inputs" in payload
+            assert payload["inputs"] == expected_texts[i]
 
     def test_convert_with_extra_params(self):
         expected_temperature = 0.7
+        expected_max_tokens = 100
+        expected_texts = ["Hello again."]
         dataset = GenericDataset(
             files_data={
                 "file1": FileData(
                     rows=[
                         DataRow(
-                            texts=["Hello again."], optional_data={"max_tokens": 100}
+                            texts=expected_texts,
+                            optional_data={"max_tokens": expected_max_tokens},
                         )
                     ]
                 )
@@ -93,7 +98,9 @@ class TestHuggingFaceGenerateConverter:
         assert payload["model"] == "hf_model"
         assert "inputs" in payload
         assert "parameters" in payload
+        assert payload["inputs"] == expected_texts[0]
         assert payload["temperature"] == expected_temperature
+        assert payload["max_tokens"] == expected_max_tokens
 
     def test_convert_empty_dataset(self):
         dataset = GenericDataset(files_data={})
