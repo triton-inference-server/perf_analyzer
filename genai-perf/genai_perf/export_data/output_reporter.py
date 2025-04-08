@@ -24,15 +24,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from argparse import Namespace
 from typing import Dict
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.data_exporter_factory import DataExporterFactory
 from genai_perf.export_data.exporter_config import ExporterConfig
+from genai_perf.inputs import input_constants as ic
 from genai_perf.metrics import Metrics, Statistics, TelemetryStatistics
-from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
 class OutputReporter:
@@ -56,7 +55,10 @@ class OutputReporter:
 
         # scale the data to be in milliseconds
         self.stats.scale_data()
-        self.telemetry_stats.scale_data()
+        # In case of process-export-files subcommand, we get telemetry_stats from previously generated
+        # profile_export_genai_perf.json file. Hence, we don't need to scale the data again.
+        if config.subcommand != ic.Subcommand.PROCESS:
+            self.telemetry_stats.scale_data()
         for stat in self.session_stats.values():
             stat.scale_data()
 
