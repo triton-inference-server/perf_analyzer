@@ -1405,8 +1405,6 @@ class TestLLMProfileDataParser:
         ],
     )
     def test_extract_text_output(self, response_format, response_text, expected):
-        config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
         parser = LLMProfileDataParser.__new__(LLMProfileDataParser)  # Bypass init
         parser._response_format = response_format  # type: ignore
 
@@ -1417,92 +1415,28 @@ class TestLLMProfileDataParser:
             assert parser._extract_text_output(response_text) == expected
 
     @pytest.mark.parametrize(
-        "response_format, response, expected_is_empty",
+        "response_format, response_text, expected_is_empty",
         [
             (
                 ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                '{"object":"chat.completion","choices":[{"message":{"content":"Hello, world!"}}]}',
+                '{"object":"chat.completion","choices":[{"message":{"content":"Hello"}}]}',
                 False,
             ),
-            (
-                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                "",
-                True,
-            ),
-            (
-                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                "data: [DONE]",
-                True,
-            ),
-            (
-                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
-                ": ping",
-                True,
-            ),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "", True),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "data: [DONE]", True),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, ": ping", True),
             (
                 ResponseFormat.HUGGINGFACE_GENERATE,
-                '[{"generated_text":"Hello, world!"}]',
+                '[{"generated_text":"Hello"}]',
                 False,
             ),
-            (
-                ResponseFormat.HUGGINGFACE_GENERATE,
-                "[]",
-                True,
-            ),
+            (ResponseFormat.HUGGINGFACE_GENERATE, "[]", True),
         ],
     )
-    @patch("genai_perf.profile_data_parser.profile_data_parser.load_json")
-    def test_is_empty_response(
-        self, mock_json, response_format, response, expected_is_empty
-    ) -> None:
-        """Test the _is_empty_response method."""
-        # Mock the load_json function to return a dict with all required fields
-        if response_format == ResponseFormat.HUGGINGFACE_GENERATE:
-            mock_json.return_value = {
-                "service_kind": "openai",
-                "endpoint": "huggingface/generate",
-                "experiments": [
-                    {
-                        "experiment": {"mode": "concurrency", "value": 1},
-                        "requests": [],
-                    }
-                ],
-            }
-        else:
-            mock_json.return_value = {
-                "service_kind": "openai",
-                "endpoint": "v1/chat/completions",
-                "experiments": [
-                    {
-                        "experiment": {"mode": "concurrency", "value": 1},
-                        "requests": [
-                            {
-                                "timestamp": 0,
-                                "request_inputs": {"payload": "{}"},
-                                "response_timestamps": [1],
-                                "response_outputs": [
-                                    {
-                                        "response": '{"object":"chat.completion.chunk","choices":[{"delta":{"content":""}}]}\n\n'
-                                    }
-                                ],
-                            }
-                        ],
-                    }
-                ],
-            }
-
-        config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(config)
-        pd = LLMProfileDataParser(
-            filename=Path("profile_export.json"),
-            tokenizer=tokenizer,
-        )
-
-        pd._response_format = response_format
-
-        result = pd._is_empty_response(response)
-        assert result == expected_is_empty
+    def test_is_empty_response(self, response_format, response_text, expected_is_empty):
+        parser = LLMProfileDataParser.__new__(LLMProfileDataParser)
+        parser._response_format = response_format
+        assert parser._is_empty_response(response_text) == expected_is_empty
 
     ###############################
     # HUGGINGFACE GENERATE
