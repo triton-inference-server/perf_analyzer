@@ -29,19 +29,16 @@ import sys
 from enum import Enum, auto
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
-from genai_perf.config.input.config_field import ConfigField
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
-from genai_perf.subcommand.compare import compare_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
 from genai_perf.tokenizer import DEFAULT_TOKENIZER_REVISION
@@ -86,17 +83,6 @@ def _check_goodput_args(args):
                     f"Invalid value found, {target_metric}: {target_val}. "
                     f"The goodput constraint value should be non-negative. "
                 )
-    return args
-
-
-def _check_compare_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace
-) -> argparse.Namespace:
-    """
-    Check compare subcommand args
-    """
-    if not args.config and not args.files:
-        parser.error("Either the --config or --files option must be specified.")
     return args
 
 
@@ -314,27 +300,6 @@ def _add_audio_input_args(parser):
         help=f"The number of audio channels to use for the audio data generation. "
         "Currently only 1 (mono) and 2 (stereo) are supported. "
         "Default is 1 (mono channel).",
-    )
-
-
-def _add_compare_args(parser):
-    compare_group = parser.add_argument_group("Input")
-    mx_group = compare_group.add_mutually_exclusive_group(required=False)
-    mx_group.add_argument(
-        "--config",
-        type=Path,
-        default=None,
-        help="The path to the YAML file that specifies plot configurations for "
-        "comparing multiple runs.",
-    )
-    mx_group.add_argument(
-        "-f",
-        "--files",
-        nargs="+",
-        default=[],
-        help="List of paths to the profile export JSON files. Users can specify "
-        "this option instead of the `--config` option if they would like "
-        "GenAI-Perf to generate default plots as well as initial YAML config file.",
     )
 
 
@@ -860,17 +825,6 @@ def _parse_template_args(subparsers) -> argparse.ArgumentParser:
     return template
 
 
-def _parse_compare_args(subparsers) -> argparse.ArgumentParser:
-    compare = subparsers.add_parser(
-        ic.Subcommand.COMPARE.value,
-        description="Subcommand to generate plots that compare multiple profile runs.",
-    )
-    _add_compare_args(compare)
-    _add_tokenizer_args(compare)
-    compare.set_defaults(func=compare_handler)
-    return compare
-
-
 def _parse_profile_args(subparsers) -> argparse.ArgumentParser:
     profile = subparsers.add_parser(
         ic.Subcommand.PROFILE.value,
@@ -929,7 +883,6 @@ def init_parsers():
     subparsers = parser.add_subparsers(
         help="List of subparser commands.", dest="subcommand"
     )
-    _ = _parse_compare_args(subparsers)
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
     _ = _parse_template_args(subparsers)
@@ -956,8 +909,6 @@ def refine_args(
     elif args.subcommand == ic.Subcommand.ANALYZE.value:
         args = _process_sweep_args(args)
         args = _check_goodput_args(args)
-    elif args.subcommand == ic.Subcommand.COMPARE.value:
-        args = _check_compare_args(parser, args)
     elif args.subcommand == ic.Subcommand.TEMPLATE.value:
         pass
     else:
@@ -1129,11 +1080,7 @@ def parse_args():
 
         if args.subcommand == ic.Subcommand.TEMPLATE.value:
             config = _create_template_config(args, argv)
-
             return args, config, None
-        elif args.subcommand == ic.Subcommand.COMPARE.value:
-            # this subcommand is deprecated and is not supported in the config file
-            return args, None, argv[passthrough_index + 1 :]
         else:
             # For all other subcommands, parse the CLI fully (no config file)
             config = ConfigCommand(
