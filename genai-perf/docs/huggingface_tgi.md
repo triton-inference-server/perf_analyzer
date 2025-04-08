@@ -39,7 +39,7 @@ To launch a Hugging Face TGI server, use the official `ghcr.io` image:
 ```bash
 docker run --gpus all --rm -it \
   -p 8080:80 \
-  -e MODEL_ID=gpt2 \
+  -e MODEL_ID=<model> \
   ghcr.io/huggingface/text-generation-inference
 ```
 
@@ -51,13 +51,13 @@ Run with built-in synthetic prompts:
 
 ```bash
 genai-perf profile \
-  -m gpt2 \
+  -m <model> \
   --service-kind openai \
   --endpoint-type huggingface_generate \
-  --port localhost:8080 \
+  --url localhost:8080 \
   --batch-size-image 1 \
-  --image-width-mean 1 \
-  --image-height-mean 1 \
+  --image-width-mean 100 \
+  --image-height-mean 100 \
   --synthetic-input-tokens-mean 10
 ```
 
@@ -83,7 +83,7 @@ For instance, an example of input file would look something as following:
 
 ```bash
 genai-perf profile \
-  -m gpt2 \
+  -m <model> \
   --service-kind openai \
   --endpoint-type huggingface_generate \
   --url localhost:8080 \
