@@ -32,7 +32,7 @@ With GenAI-Perf, you can customize how input data is formatted into payloads
 using templates. This allows you to define how payloads are
 structured when sent to an inference server.
 
-This feature is only available for the Triton service-kind currently.
+This feature is only available for Triton.
 
 These provide less customizability than a
 [customizable frontend](customizable_frontends.md), which is used when more
@@ -60,7 +60,6 @@ Run the following command:
 ```bash
 genai-perf profile \
   --model MY_MODEL \
-  --service-kind triton \
   --endpoint-type template \
   --num-payloads 2 \
   --extra-inputs payload_template:nv-embedqa
@@ -107,7 +106,6 @@ you can run the command:
 ```bash
 genai-perf profile \
   --model MY_MODEL \
-  --service-kind triton \
   --endpoint-type template \
   --num-payloads 2 \
   --extra-inputs payload_template:custom_template.jinja

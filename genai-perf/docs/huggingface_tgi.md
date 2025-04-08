@@ -52,7 +52,6 @@ Run with built-in synthetic prompts:
 ```bash
 genai-perf profile \
   -m llava-hf/llava-v1.6-mistral-7b-hf \
-  --service-kind openai \
   --endpoint-type huggingface_generate \
   --url localhost:8080 \
   --batch-size-image 1 \
@@ -84,7 +83,6 @@ For instance, an example of input file would look something as following:
 ```bash
 genai-perf profile \
   -m llava-hf/llava-v1.6-mistral-7b-hf \
-  --service-kind openai \
   --endpoint-type huggingface_generate \
   --url localhost:8080 \
   --input-file input.jsonl

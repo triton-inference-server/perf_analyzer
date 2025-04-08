@@ -364,9 +364,8 @@ def _add_endpoint_args(parser):
         "--backend",
         type=str,
         choices=utils.get_enum_names(ic.OutputFormat)[0:2],
-        default=ic.DEFAULT_BACKEND,
         required=False,
-        help=f'When using the "triton" service-kind, '
+        help=f"When benchmarking Triton, "
         "this is the backend of the model. "
         "For the TENSORRT-LLM backend, you currently must set "
         "'exclude_input_in_output' to true in the model config to "
@@ -385,18 +384,7 @@ def _add_endpoint_args(parser):
         type=str,
         choices=list(endpoint_type_map.keys()),
         required=False,
-        help=f"The endpoint-type to send requests to on the " "server.",
-    )
-
-    endpoint_group.add_argument(
-        "--service-kind",
-        type=str,
-        choices=["dynamic_grpc", "openai", "tensorrtllm_engine", "triton"],
-        default="triton",
-        required=False,
-        help="The kind of service perf_analyzer will "
-        'generate load for. In order to use "openai", '
-        "you must specify an api via --endpoint-type.",
+        help=f"The endpoint-type to send requests to on the server.",
     )
 
     endpoint_group.add_argument(
@@ -407,7 +395,7 @@ def _add_endpoint_args(parser):
         default=[],
         required=False,
         help="The list of Triton server metrics URLs. These are used for "
-        "Telemetry metric reporting with the Triton service-kind. Example "
+        "Telemetry metric reporting with Triton. Example "
         "usage: --server-metrics-url http://server1:8002/metrics "
         "http://server2:8002/metrics",
     )
@@ -595,7 +583,7 @@ def _add_input_args(parser):
         help=f"When using --output-tokens-mean, this flag can be set to "
         "improve precision by setting the minimum number of tokens "
         "equal to the requested number of tokens. This is currently "
-        "supported with the Triton service-kind. "
+        "supported with Triton. "
         "Note that there is still some variability in the requested number "
         "of output tokens, but GenAi-Perf attempts its best effort with your "
         "model to get the right number of output tokens. ",
@@ -993,12 +981,11 @@ def add_cli_options_to_config(
         args.model_selection_strategy.upper()
     )
 
-    if args.backend != ic.DEFAULT_BACKEND:
+    if args.backend:
         config.endpoint.backend = ic.OutputFormat(args.backend.upper())
 
     config.endpoint.custom = args.endpoint
     config.endpoint.type = args.endpoint_type
-    config.endpoint.service_kind = args.service_kind
     config.endpoint.streaming = args.streaming
 
     if args.server_metrics_url:

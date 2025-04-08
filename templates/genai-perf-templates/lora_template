@@ -100,7 +100,6 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 genai-perf profile \
   -m adapter1 adapter2 \
   --tokenizer meta-llama/Llama-2-7b-hf \
-  --service-kind openai \
   --endpoint-type completions \
   --model-selection-strategy round_robin
 ```
@@ -160,7 +159,6 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 genai-perf profile \
   -m predibase/customer_support predibase/magicoder \
   --tokenizer mistralai/Mistral-7B-v0.1 \
-  --service-kind openai \
   --endpoint-type completions \
   --model-selection-strategy round_robin
 ```
@@ -219,7 +217,6 @@ docker run -it --net=host --gpus=all nvcr.io/nvidia/tritonserver:${RELEASE}-py3-
 genai-perf profile \
   -m alignment-handbook/zephyr-7b-dpo-lora Undi95/Mistral-7B-roleplay_alpaca-lora \
   --tokenizer mistralai/Mistral-7B-Instruct-v0.1 \
-  --service-kind openai \
   --endpoint-type completions \
   --model-selection-strategy round_robin \
   --concurrency=128

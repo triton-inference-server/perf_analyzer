@@ -506,7 +506,7 @@ class TestConfigCommand(unittest.TestCase):
             model_name: gpt2
 
             endpoint:
-                service_kind: triton
+                type: kserve
             """)
         # yapf: enable
 
@@ -524,7 +524,7 @@ class TestConfigCommand(unittest.TestCase):
             model_name: gpt2
 
             endpoint:
-                service_kind: tensorrtllm_engine
+                type: tensorrtllm_engine
             """)
         # yapf: enable
 
@@ -542,7 +542,6 @@ class TestConfigCommand(unittest.TestCase):
             model_name: gpt2
 
             endpoint:
-                service_kind: triton
                 type: generate
             """)
         # yapf: enable
@@ -550,7 +549,7 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.endpoint.service_kind, "openai")
+        self.assertEqual(config.endpoint.service_kind, "triton")
 
     def test_infer_output_format_triton(self):
         """
@@ -561,7 +560,6 @@ class TestConfigCommand(unittest.TestCase):
             model_name: gpt2
 
             endpoint:
-                service_kind: triton
                 type: kserve
                 backend: vllm
             """)
@@ -581,7 +579,7 @@ class TestConfigCommand(unittest.TestCase):
             model_name: gpt2
 
             endpoint:
-                service_kind: tensorrtllm_engine
+                type: tensorrtllm_engine
             """)
         # yapf: enable
 

@@ -30,7 +30,6 @@ from unittest.mock import mock_open, patch
 
 import pytest
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,

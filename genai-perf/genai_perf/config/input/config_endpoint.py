@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from typing import Any, Dict
 from urllib.parse import urlparse
 
@@ -21,6 +22,8 @@ from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.config.input.config_field import ConfigField
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.utils import split_and_strip_whitespace
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigEndPoint(BaseConfig):
@@ -39,8 +42,8 @@ class ConfigEndPoint(BaseConfig):
         )
         self.backend: Any = ConfigField(
             default=EndPointDefaults.BACKEND,
-            choices=OutputFormat,
-            verbose_template_comment="When using the \"triton\" service-kind, this is the backend of the model.\
+            choices=list(OutputFormat)[:2],
+            verbose_template_comment="When benchmarking Triton, this is the backend of the model.\
                 \nFor the TENSORRT-LLM backend,you currently must set 'exclude_input_in_output' to true\
                 \nin the model config to not echo the input tokens",
         )
@@ -56,6 +59,7 @@ class ConfigEndPoint(BaseConfig):
         self.service_kind: Any = ConfigField(
             default=EndPointDefaults.SERVICE_KIND,
             choices=["triton", "openai", "tensorrtllm_engine", "dynamic_grpc"],
+            add_to_template=False,
             verbose_template_comment='The kind of service Perf Analyzer will generate load for.\
                 \nIn order to use "openai", you must specify an api via the "type" field',
         )
@@ -65,8 +69,8 @@ class ConfigEndPoint(BaseConfig):
         )
         self.server_metrics_urls: Any = ConfigField(
             default=EndPointDefaults.SERVER_METRICS_URLS,
-            verbose_template_comment='The list of Triton server metrics URLs.\
-                \nThese are used for Telemetry metric reporting with the "triton" service-kind.',
+            verbose_template_comment="The list of Triton server metrics URLs.\
+                \nThese are used for Telemetry metric reporting with Triton.",
         )
         self.url: Any = ConfigField(
             default=EndPointDefaults.URL,
@@ -121,7 +125,6 @@ class ConfigEndPoint(BaseConfig):
     def check_for_illegal_combinations(self) -> None:
         self._check_service_kind_and_type()
         self._check_server_metrics_url()
-        self._check_dynamic_grpc()
 
     def _check_service_kind_and_type(self) -> None:
         if not self.type:
@@ -180,16 +183,6 @@ class ConfigEndPoint(BaseConfig):
                 "(e.g., ':8002')."
             )
 
-    def _check_dynamic_grpc(self) -> None:
-        if self.service_kind == "dynamic_grpc" and not self.grpc_method:
-            raise ValueError(
-                "User Config: service_kind 'dynamic_grpc' requires a grpc_method to be specified"
-            )
-        elif self.service_kind != "dynamic_grpc" and self.grpc_method:
-            raise ValueError(
-                "User Config: grpc_method is only valid with service_kind 'dynamic_grpc'"
-            )
-
     ###########################################################################
     # Infer Methods
     ###########################################################################
@@ -197,31 +190,37 @@ class ConfigEndPoint(BaseConfig):
         # IMPORTANT: There is a nasty dependency ordering between the infer methods
         # For readability they are broken up into separate methods, that daisy chain
         # their calls
-        self.infer_type(model_name)
+        self.infer_service_kind(model_name)
 
-    def infer_type(self, model_name: str) -> None:
-        if self.service_kind == "openai" and not self.get_field("type").is_set_by_user:
-            raise ValueError(
-                "User Config: type must be set when service_kind is 'openai'"
+    def infer_service_kind(self, model_name: str) -> None:
+        if self.get_field("service_kind").is_set_by_user:
+            logger.warning(
+                "User Config: service_kind is deprecated. The service kind "
+                "will be inferred from the endpoint type, grpc_method, or "
+                "backend."
             )
 
+        if self.type:
+            endpoint_config = endpoint_type_map[self.type]
+            self.service_kind = endpoint_config.service_kind
+        elif self.get_field("grpc_method").is_set_by_user:
+            self.service_kind = "dynamic_grpc"
+        else:
+            # Default case
+            self.service_kind = "triton"
+
+        self.infer_type(model_name)
+        self._check_inferred_backend()
+        self.infer_output_format(model_name)
+
+    def infer_type(self, model_name: str) -> None:
         if not self.type:
             if self.service_kind == "triton":
                 self.type = "kserve"
-            elif self.service_kind == "tensorrtllm_engine":
-                self.type = "tensorrtllm_engine"
             elif self.service_kind == "dynamic_grpc":
                 self.type = "dynamic_grpc"
 
         self._check_inferred_type()
-        self.infer_service_kind(model_name)
-
-    def infer_service_kind(self, model_name: str) -> None:
-        if self.service_kind == "triton" and self.type == "generate":
-            self.service_kind = "openai"
-
-        self._check_inferred_backend()
-        self.infer_output_format(model_name)
 
     def infer_output_format(self, model_name: str) -> None:
         self.output_format: Any = ConfigField(default=None, add_to_template=False)
@@ -252,6 +251,15 @@ class ConfigEndPoint(BaseConfig):
         if self.type and self.type not in endpoint_type_map:
             raise ValueError(f"User Config: {self.type} is not a valid endpoint type")
 
+    def _check_inferred_backend(self) -> None:
+        if self.get_field("backend").is_set_by_user:
+            if self.service_kind == "triton" and self.type == "kserve":
+                return
+            else:
+                raise ValueError(
+                    f"The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'"
+                )
+
     def _check_inferred_service_kind(self, endpoint_config: EndpointConfig) -> None:
         # This is inferred and cannot be checked by the endpoint_config
         if self.service_kind == "openai" and self.type == "generate":
@@ -261,12 +269,3 @@ class ConfigEndPoint(BaseConfig):
             raise ValueError(
                 f"Invalid service-kind '{self.service_kind}' for endpoint-type '{self.type}'"
             )
-
-    def _check_inferred_backend(self) -> None:
-        if self.get_field("backend").is_set_by_user:
-            if self.service_kind == "triton" and self.type == "kserve":
-                return
-            else:
-                raise ValueError(
-                    f"The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'"
-                )

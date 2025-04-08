@@ -58,19 +58,6 @@ class TestOutputReporter:
     config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
     config.subcommand = Subcommand.PROFILE
 
-    args = {
-        "model": ["gpt2_vllm"],
-        "formatted_model_name": "gpt2_vllm",
-        "model_selection_strategy": "round_robin",
-        "func": "Should_be_removed",
-        "output_format": "Should_be_removed",
-        "profile_export_file": ".",
-        "artifact_dir": ".",
-        "extra_inputs": ["max_tokens:200"],
-        "subcommand": "profile",
-    }
-    args_namespace = Namespace(**args)
-
     exporter_config = create_default_exporter_config(
         stats=stats,
         config=config,

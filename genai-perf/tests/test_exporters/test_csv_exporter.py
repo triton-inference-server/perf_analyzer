@@ -95,16 +95,12 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         stats = Statistics(metrics=llm_metrics)
 
@@ -153,17 +149,13 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--profile-export-file",
             "custom_export.json",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         stats = Statistics(metrics=llm_metrics)
 
@@ -201,15 +193,11 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -244,8 +232,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -253,9 +239,7 @@ class TestCsvExporter:
             "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -297,8 +281,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -306,9 +288,7 @@ class TestCsvExporter:
             "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -351,16 +331,14 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "triton",
+            "--backend",
+            "tensorrtllm",
             "--streaming",
             "--server-metrics-url",
             "http://tritonserver:8002/metrics",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         telemetry_metrics = TelemetryMetrics(
             gpu_power_usage={"gpu0": [45.2, 46.5]},
@@ -436,17 +414,13 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--profile-export-file",
             "custom_export.json",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         stats = Statistics(metrics=llm_metrics)
 

@@ -50,15 +50,11 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -83,16 +79,12 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -164,15 +156,11 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -208,8 +196,6 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -217,9 +203,7 @@ class TestConsoleExporter:
             "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -271,8 +255,6 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -280,9 +262,7 @@ class TestConsoleExporter:
             "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -355,15 +335,11 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             endpoint_type,
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         stats = Statistics(metrics=metrics)
 
@@ -384,17 +360,15 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "triton",
+            "--backend",
+            "tensorrtllm",
             "--streaming",
             "--server-metrics-url",
             "http://tritonmetrics:8002/metrics",
             "--verbose",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -511,15 +485,11 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
-        config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        _, config, _ = parser.parse_args()
 
         metrics = LLMMetrics(
             request_throughputs=[123],

@@ -70,7 +70,7 @@ class OutputFormat(Enum):
     # Other output formats
     ################################################################
     IMAGE_RETRIEVAL = "IMAGE_RETRIEVAL"
-    DYANMIC_GRPC = "DYANMIC_GRPC"
+    DYNAMIC_GRPC = "DYANMIC_GRPC"
     NVCLIP = "NVCLIP"
     OPENAI_CHAT_COMPLETIONS = "OPENAI_CHAT_COMPLETIONS"
     OPENAI_COMPLETIONS = "OPENAI_COMPLETIONS"
@@ -96,7 +96,6 @@ DEFAULT_RANDOM_SEED = 0
 DEFAULT_REQUEST_COUNT = 10
 DEFAULT_SYNTHETIC_FILENAME = "synthetic_data.json"
 DEFAULT_WARMUP_REQUEST_COUNT = 0
-DEFAULT_BACKEND = "tensorrtllm"
 PAYLOAD_METADATA_FIELDS = ["timestamp", "delay", "session_id"]
 PAYLOAD_METADATA_INT_FIELDS = ["timestamp", "delay"]
 

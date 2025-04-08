@@ -154,8 +154,8 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 "text_input:1",
                 "--concurrency-range",
                 "64",
-                "--service-kind",
-                "triton",
+                "--backend",
+                "tensorrtllm",
                 "-b",
                 "1",
             ]
@@ -496,7 +496,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         Test that _add_endpoint_args returns the correct arguments
         when custom endpoint is set
         """
-        self._config.endpoint.service_kind = "triton"
         self._config.endpoint.custom = "custom_endpoint"
 
         expected_args = ["--service-kind", "triton", "--endpoint", "custom_endpoint"]
@@ -512,7 +511,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         Test that _add_endpoint_args returns the correct arguments
         when custom endpoint is not set
         """
-        self._config.endpoint.service_kind = "triton"
         self._config.endpoint.custom = None
 
         expected_args = ["--service-kind", "triton"]
