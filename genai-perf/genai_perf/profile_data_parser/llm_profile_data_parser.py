@@ -30,7 +30,7 @@ import json
 from collections import defaultdict
 from itertools import tee
 from pathlib import Path
-from typing import Dict, List, Tuple, TypeAlias
+from typing import Dict, List, NoReturn, Tuple, TypeAlias
 
 from genai_perf.constants import EMPTY_RESPONSE_TOKEN
 from genai_perf.exceptions import GenAIPerfException
@@ -256,7 +256,10 @@ class LLMProfileDataParser(ProfileDataParser):
         self, res_timestamps: List[int], res_outputs: List[Dict[str, str]]
     ) -> None:
         """Helper function to preprocess responses of a request."""
-        if self._service_kind == "openai":
+        if (
+            self._service_kind == "openai"
+            and "huggingface" not in self._response_format.name.lower()
+        ):
             # Sometimes streamed chunks are returned in a splintered fashion.
             # This forces a merge with the previous chunk if error detected.
             for i in reversed(range(1, len(res_outputs))):
@@ -304,9 +307,18 @@ class LLMProfileDataParser(ProfileDataParser):
                             [self._extract_generate_text_output(r) for r in responses]
                         )
                         data["text_output"] = merged_text
+                    elif self._response_format == ResponseFormat.HUGGINGFACE_GENERATE:
+                        merged_text = "".join(
+                            [
+                                self._extract_huggingface_generate_text_output(r)
+                                for r in responses
+                            ]
+                        )
+                        if isinstance(data, list) and len(data) > 0:
+                            data[0]["generated_text"] = merged_text  # type: ignore
                     else:
                         merged_text = "".join(
-                            [self._extract_openai_text_output(r) for r in responses]
+                            [self._extract_text_output(r) for r in responses]
                         )
                         if self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
                             data["choices"][0]["text"] = merged_text
@@ -344,6 +356,8 @@ class LLMProfileDataParser(ProfileDataParser):
         payload = load_json_str(req_inputs["payload"])
         if self._response_format == ResponseFormat.TRITON_GENERATE:
             return " ".join(payload["text_input"])
+        elif self._response_format == ResponseFormat.HUGGINGFACE_GENERATE:
+            return payload["inputs"]
         elif self._response_format == ResponseFormat.OPENAI_CHAT_COMPLETIONS:
             return " ".join(m["content"] for m in payload["messages"])
         elif self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
@@ -396,12 +410,31 @@ class LLMProfileDataParser(ProfileDataParser):
         """Return a list of LLM response texts."""
         output_texts = []
         for output in res_outputs:
-            if self._response_format == ResponseFormat.TRITON_GENERATE:
-                text = self._extract_generate_text_output(output["response"])
-            else:
-                text = self._extract_openai_text_output(output["response"])
+            text = self._extract_text_output(output["response"])
             output_texts.append(text)
         return output_texts
+
+    def _extract_text_output(self, response: str) -> str:
+        """Extract text output based on response format."""
+        if not response or not_data_sse_field(response):
+            return ""
+
+        response = remove_sse_prefix(response)
+        if response == "[DONE]":
+            return ""
+
+        # Use a mapping to select the appropriate extraction method
+        extraction_methods = {
+            ResponseFormat.TRITON_GENERATE: self._extract_generate_text_output,
+            ResponseFormat.HUGGINGFACE_GENERATE: self._extract_huggingface_generate_text_output,
+            ResponseFormat.OPENAI_CHAT_COMPLETIONS: self._extract_openai_chat_text_output,
+            ResponseFormat.OPENAI_COMPLETIONS: self._extract_openai_completion_text_output,
+            ResponseFormat.OPENAI_MULTIMODAL: self._extract_openai_chat_text_output,
+        }
+        extract_method = extraction_methods.get(
+            self._response_format, self._throw_unknown_response_format_error
+        )
+        return extract_method(response)
 
     def _get_response_output_tokens(self, output_texts: List[str]) -> List[List[int]]:
         """Return a list of response output tokens."""
@@ -412,7 +445,62 @@ class LLMProfileDataParser(ProfileDataParser):
         encodings = self._tokenizer(["!" + txt for txt in output_texts])
         return [out[1:] for out in encodings.data["input_ids"]]
 
+    def _extract_huggingface_generate_text_output(self, response: str) -> str:
+        data = load_json_str(response)
+
+        if isinstance(data, list):
+            if len(data) > 0:
+                first_item = data[0]  # type: ignore
+                if isinstance(first_item, dict):
+                    return first_item.get("generated_text", "")
+                else:
+                    raise ValueError(
+                        f"Unknown HuggingFace response type in list: {type(first_item)}"
+                    )
+        else:
+            raise ValueError(f"Unknown HuggingFace response type: {type(data)}")
+
+        return ""
+
+    def _extract_openai_chat_text_output(self, response: str) -> str:
+        data = load_json_str(response)
+        completions = data["choices"][0]  # type: ignore
+
+        if "object" not in data:
+            # FIXME: TPA-47 workaround for vLLM not following OpenAI Completions
+            # API specification when streaming, missing 'object' field:
+            # https://platform.openai.com/docs/api-reference/completions
+            return completions.get("text", "")
+        elif data["object"] == "chat.completion":  # non-streaming
+            return completions["message"].get("content", "")
+        elif data["object"] == "chat.completion.chunk":  # streaming
+            return completions["delta"].get("content", "")
+        else:
+            obj_type = data["object"]
+            raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
+
+    def _extract_openai_completion_text_output(self, response: str) -> str:
+        """Extract text from OpenAI completion response."""
+        data = load_json_str(response)
+        completions = data["choices"][0]  # type: ignore
+
+        if "object" not in data:
+            # FIXME: TPA-47 workaround for vLLM not following OpenAI Completions
+            # API specification when streaming, missing 'object' field:
+            # https://platform.openai.com/docs/api-reference/completions
+            return completions.get("text", "")
+        elif data["object"] == "text_completion":  # legacy
+            return completions.get("text", "")
+        else:
+            obj_type = data["object"]
+            raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
+
+    def _throw_unknown_response_format_error(self, response: str) -> NoReturn:
+        raise ValueError(f"Unknown response format: {self._response_format}")
+
     def _extract_generate_text_output(self, response: str) -> str:
+        # (TODO) TPA-829: Add more proper SSE event stream support
+        # Check for empty, comment, or event SSE response
         if not response or not_data_sse_field(response):
             return ""
 
@@ -422,44 +510,7 @@ class LLMProfileDataParser(ProfileDataParser):
         data = json.loads(response)
         return data["text_output"]
 
-    def _extract_openai_text_output(self, response: str) -> str:
-        """Extracts text/content of the OpenAI response object."""
-        # (TODO) TPA-829: Add more proper SSE event stream support
-        # Check for empty, comment, or event SSE response
-        if not response or not_data_sse_field(response):
-            return ""
-
-        response = remove_sse_prefix(response)
-
-        if response == "[DONE]":
-            return ""
-
-        data = load_json_str(response)
-        completions = data["choices"][0]
-
-        text_output = ""
-        if "object" not in data:
-            # FIXME: TPA-47 workaround for vLLM not following OpenAI Completions
-            # API specification when streaming, missing 'object' field:
-            # https://platform.openai.com/docs/api-reference/completions
-            text_output = completions.get("text", "")
-        elif data["object"] == "text_completion":  # legacy
-            text_output = completions.get("text", "")
-        elif data["object"] == "chat.completion":  # non-streaming
-            text_output = completions["message"].get("content", "")
-        elif data["object"] == "chat.completion.chunk":  # streaming
-            text_output = completions["delta"].get("content", "")
-        else:
-            obj_type = data["object"]
-            raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
-        return text_output
-
     def _is_empty_response(self, response: str) -> bool:
         """Returns true if the response is an LLM response with no content (or empty content)"""
-        if self._response_format == ResponseFormat.TRITON_GENERATE:
-            text = self._extract_generate_text_output(response)
-        else:
-            text = self._extract_openai_text_output(response)
-        if text:
-            return False
-        return True
+        text = self._extract_text_output(response)
+        return not bool(text)

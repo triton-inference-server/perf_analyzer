@@ -34,7 +34,7 @@ from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
-from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
+from genai_perf.profile_data_parser.profile_data_parser import ResponseFormat
 from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
 from tests.test_utils import check_statistics, ns_to_sec
 
@@ -229,7 +229,7 @@ class TestLLMProfileDataParser:
         # Check that Records can be created
         records = statistics.create_records()
         assert records is not None
-        assert records[RequestThroughputAvg.tag] is not None
+        assert records["request_throughput_avg"] is not None
 
         # check non-existing profile data
         with pytest.raises(KeyError):
@@ -1355,3 +1355,206 @@ class TestLLMProfileDataParser:
 
         session_metrics = pd._session_metrics
         assert session_metrics == {}
+
+    ###############################
+    # COMMON FUNCTIONALITY
+    ###############################
+
+    @pytest.mark.parametrize(
+        "response_format,response_text,expected",
+        [
+            (
+                ResponseFormat.HUGGINGFACE_GENERATE,
+                '[{"generated_text":"Hello"}]',
+                "Hello",
+            ),
+            (ResponseFormat.HUGGINGFACE_GENERATE, "[]", ""),
+            (ResponseFormat.HUGGINGFACE_GENERATE, '["not a dict"]', None),
+            (ResponseFormat.HUGGINGFACE_GENERATE, '{"generated_text":"Hello"}', None),
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"object":"chat.completion","choices":[{"message":{"content":"Hi"}}]}',
+                "Hi",
+            ),
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"object":"chat.completion.chunk","choices":[{"delta":{"content":"Stream"}}]}',
+                "Stream",
+            ),
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"choices":[{"text":"Fallback"}]}',
+                "Fallback",
+            ),
+            (
+                ResponseFormat.OPENAI_COMPLETIONS,
+                '{"object":"text_completion","choices":[{"text":"Complete"}]}',
+                "Complete",
+            ),
+            (
+                ResponseFormat.OPENAI_COMPLETIONS,
+                '{"choices":[{"text":"Legacy"}]}',
+                "Legacy",
+            ),
+            (ResponseFormat.TRITON_GENERATE, '{"text_output":"Triton"}', "Triton"),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "", ""),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "data: [DONE]", ""),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, ": ping", ""),
+            # Unknown format (should raise)
+            ("UNKNOWN_FORMAT", "any response", None),
+        ],
+    )
+    def test_extract_text_output(self, response_format, response_text, expected):
+        parser = LLMProfileDataParser.__new__(LLMProfileDataParser)  # Bypass init
+        parser._response_format = response_format  # type: ignore
+
+        if expected is None:
+            with pytest.raises(ValueError):
+                parser._extract_text_output(response_text)
+        else:
+            assert parser._extract_text_output(response_text) == expected
+
+    @pytest.mark.parametrize(
+        "response_format, response_text, expected_is_empty",
+        [
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"object":"chat.completion","choices":[{"message":{"content":"Hello"}}]}',
+                False,
+            ),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "", True),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "data: [DONE]", True),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, ": ping", True),
+            (
+                ResponseFormat.HUGGINGFACE_GENERATE,
+                '[{"generated_text":"Hello"}]',
+                False,
+            ),
+            (ResponseFormat.HUGGINGFACE_GENERATE, "[]", True),
+        ],
+    )
+    def test_is_empty_response(self, response_format, response_text, expected_is_empty):
+        parser = LLMProfileDataParser.__new__(LLMProfileDataParser)
+        parser._response_format = response_format
+        assert parser._is_empty_response(response_text) == expected_is_empty
+
+    ###############################
+    # HUGGINGFACE GENERATE
+    ###############################
+    huggingface_generate_profile_data = {
+        "service_kind": "openai",
+        "endpoint": "huggingface/generate",
+        "experiments": [
+            {
+                "experiment": {
+                    "mode": "concurrency",
+                    "value": 10,
+                },
+                "requests": [
+                    {
+                        "timestamp": 1,
+                        "request_inputs": {
+                            "payload": '{"inputs":"This is test","parameters":{"max_new_tokens":10}}',
+                        },
+                        "response_timestamps": [3, 5, 8],
+                        "response_outputs": [
+                            {"response": '[{"generated_text":" I"}]'},
+                            {"response": '[{"generated_text":" like"}]'},
+                            {"response": '[{"generated_text":" dogs"}]'},
+                        ],
+                    },
+                    {
+                        "timestamp": 2,
+                        "request_inputs": {
+                            "payload": '{"inputs":"This is test too","parameters":{"max_new_tokens":10}}',
+                        },
+                        "response_timestamps": [4, 7, 11],
+                        "response_outputs": [
+                            {"response": '[{"generated_text":" I"}]'},
+                            {"response": '[{"generated_text":" like"}]'},
+                            {"response": '[{"generated_text":" cats"}]'},
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=huggingface_generate_profile_data,
+    )
+    @pytest.mark.parametrize(
+        "infer_mode, load_level, expected_metrics",
+        [
+            (
+                "concurrency",
+                "10",
+                {
+                    "request_latencies": [7, 9],
+                    "request_throughputs": [2 / ns_to_sec(10)],
+                    "time_to_first_tokens": [2, 2],
+                    "time_to_second_tokens": [2, 3],
+                    "inter_token_latencies": [2, 2],
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(2),
+                        1 / ns_to_sec(2),
+                    ],
+                    "output_token_throughputs": [9 / ns_to_sec(10)],
+                    "output_sequence_lengths": [4, 5],
+                    "input_sequence_lengths": [3, 4],
+                },
+            ),
+        ],
+    )
+    def test_huggingface_generate_llm_profile_data(
+        self,
+        mock_json,
+        infer_mode,
+        load_level,
+        expected_metrics,
+    ) -> None:
+        """Collect LLM metrics from HuggingFace generate profile export data and check values.
+
+        Metrics
+        * request_latencies
+            - experiment 1: [8 - 1, 11 - 2] = [7, 9]
+        * request_throughputs
+            - experiment 1: [2/(11 - 1)] = [2/10]
+        * time to first tokens
+            - experiment 1: [3 - 1, 4 - 2] = [2, 2]
+        * time to second tokens
+            - experiment 1: [5 - 3, 7 - 4] = [2, 3]
+        * inter token latencies
+            - experiment 1: [((8 - 1) - 2)/(4 - 1), ((11 - 2) - 2)/(5 - 1)]
+                          : [5/3, 9/5]
+                          : [2, 2]  # rounded
+        * output token throughputs per user
+            - experiment 1: [1 / ns_to_sec(2), 1 / ns_to_sec(2)]
+        * output token throughputs
+            - experiment 1: [(4 + 5)/(11 - 1)] = [9/10]
+        * output sequence lengths
+            - experiment 1: [4, 5]
+        * input sequence lengths
+            - experiment 1: [3, 4]
+        """
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = DEFAULT_TOKENIZER
+        tokenizer = get_tokenizer(config)
+        pd = LLMProfileDataParser(
+            filename=Path("huggingface_generate_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        statistics = pd.get_statistics(infer_mode=infer_mode, load_level=load_level)
+        metrics = cast(LLMMetrics, statistics.metrics)
+
+        expected_metrics = LLMMetrics(**expected_metrics)
+        expected_statistics = Statistics(expected_metrics)
+
+        check_llm_metrics(metrics, expected_metrics)
+        check_statistics(statistics, expected_statistics)
+
+        # check non-existing profile data
+        with pytest.raises(KeyError):
+            pd.get_statistics(infer_mode="concurrency", load_level="40")

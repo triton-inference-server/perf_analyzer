@@ -48,6 +48,10 @@ endpoint_type_map = {
     "embeddings": EndpointConfig(
         "v1/embeddings", "openai", OutputFormat.OPENAI_EMBEDDINGS
     ),
+    # HuggingFace TGI only exposes root endpoint, so use that as endpoint
+    "huggingface_generate": EndpointConfig(
+        ".", "openai", OutputFormat.HUGGINGFACE_GENERATE
+    ),
     "image_retrieval": EndpointConfig(
         "v1/infer", "openai", OutputFormat.IMAGE_RETRIEVAL
     ),
