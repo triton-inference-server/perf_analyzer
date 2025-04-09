@@ -28,7 +28,7 @@ import argparse
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging

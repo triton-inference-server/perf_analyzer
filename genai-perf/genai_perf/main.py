@@ -30,6 +30,7 @@ import traceback
 
 import genai_perf.logging as logging
 from genai_perf import parser
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.inputs.input_constants import Subcommand
 
 logger = logging.getLogger(__name__)
