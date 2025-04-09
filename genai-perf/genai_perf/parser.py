@@ -275,6 +275,37 @@ def _add_audio_input_args(parser):
     )
 
 
+def _add_template_args(parser):
+    template_group = parser.add_argument_group("Template")
+
+    template_group.add_argument(
+        "-f",
+        "--file",
+        type=Path,
+        required=False,
+        help="The name to the template file that will be created.",
+    )
+
+
+def _add_config_args(parser):
+    config_group = parser.add_argument_group("Config")
+
+    config_group.add_argument(
+        "-f",
+        "--file",
+        type=Path,
+        required=True,
+        help="The path to the config file.",
+    )
+
+    config_group.add_argument(
+        "--override-config",
+        action="store_true",
+        required=False,
+        help="Setting this flag enables the user to override config values via the CLI.",
+    )
+
+
 def _add_endpoint_args(parser):
     endpoint_group = parser.add_argument_group("Endpoint")
 
@@ -595,13 +626,6 @@ def _add_other_args(parser):
         help="An option to enable verbose mode.",
     )
 
-    other_group.add_argument(
-        "--override-config",
-        action="store_true",
-        required=False,
-        help="Setting this flag enables the user to override configuration values via the CLI.",
-    )
-
 
 def _add_output_args(parser):
     output_group = parser.add_argument_group("Output")
@@ -769,6 +793,7 @@ def _parse_template_args(subparsers) -> argparse.ArgumentParser:
         ic.Subcommand.TEMPLATE.value,
         description="Subcommand to generate a template YAML file for profiling.",
     )
+    _add_template_args(template)
     _add_other_args(template)
     template.set_defaults(func=template_handler)
     return template
@@ -812,12 +837,14 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     return analyze
 
 
-def _parse_config(subparsers) -> argparse.ArgumentParser:
+def _parse_config_args(subparsers) -> argparse.ArgumentParser:
     config = subparsers.add_parser(
         ic.Subcommand.CONFIG.value,
-        description="(Optional) subcommmand used to indicate a config file is being used.",
+        description="Subcommmand that indicates a config file is being used.",
     )
 
+    _add_config_args(config)
+    # This should be the superset of all possible args
     _add_analyze_args(config)
     _add_audio_input_args(config)
     _add_endpoint_args(config)
@@ -853,7 +880,7 @@ def init_parsers():
     subparsers = parser.add_subparsers(
         help="List of subparser commands.", dest="subcommand"
     )
-    _ = _parse_config(subparsers)
+    _ = _parse_config_args(subparsers)
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
     _ = _parse_template_args(subparsers)
@@ -878,7 +905,9 @@ def refine_args(
     if not args.subcommand:
         return args
 
-    if args.subcommand == ic.Subcommand.PROFILE.value:
+    if args.subcommand == ic.Subcommand.CONFIG.value:
+        pass
+    elif args.subcommand == ic.Subcommand.PROFILE.value:
         args = _check_goodput_args(args)
     elif args.subcommand == ic.Subcommand.ANALYZE.value:
         args = _process_sweep_args(args)
@@ -892,136 +921,13 @@ def refine_args(
 
 
 ### Entrypoint ###
-
-
 def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     argv = sys.argv
     parser = init_parsers()
+    passthrough_index = get_passthrough_args_index(argv)
+    extra_args = argv[passthrough_index + 1 :]
 
-    args, extra_args = parse_argv(parser, argv)
+    args = parser.parse_args(argv[1:passthrough_index])
     args = refine_args(parser, args)
 
-    return args, extra_args
-
-
-def parse_argv(
-    parser: argparse.ArgumentParser, argv: List[Any]
-) -> Tuple[argparse.Namespace, List[str]]:
-    passthrough_index = get_passthrough_args_index(argv)
-
-    # Argparse requires that the subcommand be present. To get around this requirement,
-    # we add a dummy config subcommand if none is present and then remove it after parsing.
-    if not subcommand_found(argv[1:passthrough_index]) and not help_or_version_found(
-        argv[1:passthrough_index]
-    ):
-        argv.insert(1, ic.Subcommand.CONFIG.value)
-        passthrough_index += 1
-
-    args, unknown_args = parser.parse_known_args(argv[1:passthrough_index])
-
-    if args.subcommand == ic.Subcommand.CONFIG.value:
-        args.subcommand = None
-
-    args = _parse_unknown_args(args, unknown_args)
-
     return args, argv[passthrough_index + 1 :]
-
-
-def _create_template_config(args: argparse.Namespace) -> ConfigCommand:
-    config = ConfigCommand(skip_inferencing_and_checking=True)
-
-    config.verbose = args.verbose
-    config.subcommand = ic.Subcommand(args.subcommand)
-
-    if args.template_filename:
-        config.template_filename = args.template_filename
-
-    return config
-
-
-def _parse_unknown_args(
-    args: argparse.Namespace, unknown_args: List[str]
-) -> argparse.Namespace:
-    # We allow a single unknown arg on the command line that argprase does not
-    # recognize:
-    #   This is assumed to be a filename that will either be a config file (read)
-    #   or a custom template file (write), dependant on the subcommand
-
-    if args.subcommand == ic.Subcommand.TEMPLATE.value:
-        args = _parse_template_unknown_args(args, unknown_args)
-    else:
-        args = _parse_non_template_unknown_args(args, unknown_args)
-
-    return args
-
-
-def _parse_template_unknown_args(
-    args: argparse.Namespace, unknown_args: List[str]
-) -> argparse.Namespace:
-    # We allow a single unknown arg on the command line that argprase does not
-    # recognize:
-    #   This is assumed to be a filename that will be a custom template file (write)
-    if not unknown_args:
-        args.template_filename = None
-    elif len(unknown_args) > 1:
-        raise ValueError(
-            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}. "
-            "Only a single argument is allowed (custom template filename)."
-        )
-    else:
-        args.template_filename = Path(unknown_args[0])
-
-        if not args.template_filename.parent.exists():
-            raise ValueError(
-                f"Expected a custom template file path. The directory '{args.template_filename.parent}' does not exist: {args.template_filename}"
-            )
-
-    return args
-
-
-def _parse_non_template_unknown_args(
-    args: argparse.Namespace, unknown_args: List[str]
-) -> argparse.Namespace:
-    # We allow a single unknown arg on the command line that argprase does not
-    # recognize:
-    #   This is assumed to be a filename that will be a config file (read)
-    if not unknown_args:
-        args.config_filename = None
-    elif len(unknown_args) > 1:
-        logger.warning(
-            f"Unknown arguments passed to GenAI-Perf: {', '.join(unknown_args)}. "
-            "Only a single argument is allowed (config filename)."
-        )
-    else:
-        args.config_filename = Path(unknown_args[0])
-
-        if not args.config_filename.exists():
-            if unknown_args[0].startswith("--"):
-                # Assume that the user misspelled a valid option
-                raise ValueError(
-                    f"Unknown argument passed to GenAI-Perf: {unknown_args[0]}"
-                )
-            else:
-                raise ValueError(
-                    f"Expected a config file path. Config file not found: {args.config_filename}"
-                )
-
-    return args
-
-
-def subcommand_found(argv) -> bool:
-    for sc in ic.Subcommand:
-        if sc.value in argv:
-            return True
-
-    return False
-
-
-def help_or_version_found(argv) -> bool:
-    if "--help" in argv or "-h" in argv:
-        return True
-
-    if "--version" in argv:
-        return True
-
-    return False

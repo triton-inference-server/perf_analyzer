@@ -41,11 +41,11 @@ class CreateConfig:
     @staticmethod
     def create(args: argparse.Namespace, extra_args: List[str] = []) -> ConfigCommand:
 
-        if args.subcommand and args.subcommand == Subcommand.TEMPLATE.value:
+        if args.subcommand == Subcommand.TEMPLATE.value:
             config = CreateConfig._create_template_config(args)
         else:
-            if args.config_filename:
-                user_config = utils.load_yaml(args.config_filename)
+            if args.subcommand == Subcommand.CONFIG.value:
+                user_config = utils.load_yaml(args.file)
             else:
                 user_config = {}
 
@@ -65,8 +65,8 @@ class CreateConfig:
         config.verbose = args.verbose
         config.subcommand = Subcommand(args.subcommand)
 
-        if args.template_filename:
-            config.template_filename = args.template_filename
+        if args.file:
+            config.template_filename = args.file
 
         return config
 
@@ -110,18 +110,19 @@ class CreateConfig:
         Check that the --override-config flag is set if the user is trying to
         override a config value via the CLI.
         """
-        if not args.config_filename:
+        if not args.subcommand == Subcommand.CONFIG.value:
             return
 
-        args_cannot_override = {
+        args_exempt_from_override = {
             "func",  # this is the function to call that comes from vars(args)
+            "subcommand",
             "override_config",
-            "config_filename",
+            "file",
             "verbose",
         }
 
         for key, value in vars(args).items():
-            if key in args_cannot_override:
+            if key in args_exempt_from_override:
                 continue
             if value and not args.override_config:
                 raise ValueError(
