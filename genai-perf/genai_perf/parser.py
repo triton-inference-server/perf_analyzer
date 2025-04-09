@@ -28,7 +28,7 @@ import argparse
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
@@ -930,4 +930,4 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     args = parser.parse_args(argv[1:passthrough_index])
     args = refine_args(parser, args)
 
-    return args, argv[passthrough_index + 1 :]
+    return args, extra_args
