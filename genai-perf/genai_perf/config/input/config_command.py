@@ -26,7 +26,6 @@ from genai_perf.config.input.config_input import ConfigInput
 from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
 from genai_perf.config.input.config_process import ConfigProcess
-from genai_perf.config.input.config_process import ConfigProcess
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
 from genai_perf.inputs.input_constants import (
     OutputFormat,
