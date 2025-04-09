@@ -33,6 +33,11 @@ README:
   template: genai-perf-templates/README_template
   output_dir: ../genai-perf/
 
+example_plots:
+  filename: example_plots.md
+  template: genai-perf-templates/example_plots_template
+  output_dir: ../genai-perf/docs/
+
 customizable_frontends:
   filename: customizable_frontends.md
   template: genai-perf-templates/customizable_frontends_template
