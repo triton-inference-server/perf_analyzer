@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from argparse import Namespace
 from typing import List, Optional
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
@@ -122,7 +121,7 @@ def _report_output(
 
     reporter = OutputReporter(
         stats=stats,
-        telemetry_stats=TelemetryStatistics(merged_telemetry_metrics),
+        telemetry_stats=telemetry_stats,
         config=config,
         perf_analyzer_config=perf_analyzer_config,
         session_stats=session_stats,

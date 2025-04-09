@@ -31,8 +31,6 @@ DEFAULT_TRITON_METRICS_URL = "http://localhost:8002/metrics"
 
 
 DEFAULT_ARTIFACT_DIR = "artifacts"
-DEFAULT_COMPARE_DIR = "compare"
-DEFAULT_PARQUET_FILE = "all_data"
 DEFAULT_PROFILE_EXPORT_FILE = "profile_export.json"
 EMPTY_RESPONSE_TOKEN = 0
 

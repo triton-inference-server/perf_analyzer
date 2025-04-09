@@ -41,14 +41,9 @@ def run():
     # TMA-1900: refactor CLI handler
     logging.init_logging()
     args, config, extra_args = parser.parse_args()
-    # Compare subcommand is deprecated and does not support config file
-    if args.subcommand == Subcommand.COMPARE.value:
-        args.func(args)
-    elif config.subcommand == Subcommand.ANALYZE:
-        args.func(config, extra_args)
-    elif config.subcommand == Subcommand.TEMPLATE:
+    if config.subcommand == Subcommand.TEMPLATE:
         args.func(config)
-    else:  # profile
+    else:  # profile, analyze
         args.func(config, extra_args)
 
 

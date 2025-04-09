@@ -14,9 +14,7 @@
 
 import json
 import random
-from copy import deepcopy
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Dict
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.output_format_converter_factory import (
@@ -25,7 +23,6 @@ from genai_perf.inputs.converters.output_format_converter_factory import (
 from genai_perf.inputs.input_constants import (
     DEFAULT_INPUT_DATA_JSON,
     MINIMUM_LENGTH,
-    OutputFormat,
     PromptSource,
 )
 from genai_perf.inputs.inputs_config import InputsConfig
