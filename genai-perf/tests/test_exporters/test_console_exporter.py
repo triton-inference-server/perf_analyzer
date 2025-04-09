@@ -29,6 +29,7 @@ from unittest.mock import patch
 import pytest
 from genai_perf import logging, parser
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.metrics import (
     ImageRetrievalMetrics,
@@ -56,9 +57,9 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -90,9 +91,9 @@ class TestConsoleExporter:
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -170,9 +171,9 @@ class TestConsoleExporter:
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -217,9 +218,9 @@ class TestConsoleExporter:
             "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -280,9 +281,9 @@ class TestConsoleExporter:
             "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -361,9 +362,9 @@ class TestConsoleExporter:
             endpoint_type,
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=metrics)
 
@@ -392,9 +393,9 @@ class TestConsoleExporter:
             "--verbose",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -517,9 +518,9 @@ class TestConsoleExporter:
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],

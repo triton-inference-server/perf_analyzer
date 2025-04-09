@@ -28,6 +28,7 @@ from enum import Enum, auto
 
 
 class Subcommand(Enum):
+    CONFIG = "config"
     PROFILE = "profile"
     ANALYZE = "analyze"
     TEMPLATE = "create-template"

@@ -41,10 +41,7 @@ def run():
     # TMA-1900: refactor CLI handler
     logging.init_logging()
     args, config, extra_args = parser.parse_args()
-    if config.subcommand == Subcommand.TEMPLATE:
-        args.func(config)
-    else:  # profile, analyze
-        args.func(config, extra_args)
+    args.func(config, extra_args)
 
 
 def main():

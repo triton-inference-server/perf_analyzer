@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Tuple
 
 import genai_perf.parser as parser
 import pytest
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from tests.test_utils import create_default_exporter_config
@@ -41,7 +42,8 @@ class TestJsonExporter:
         self, monkeypatch, cli_cmd: List[str], stats: Dict[str, Any], **kwargs
     ) -> JsonExporter:
         monkeypatch.setattr("sys.argv", cli_cmd)
-        args, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         exporter_config = create_default_exporter_config(
             stats=stats,
             config=config,

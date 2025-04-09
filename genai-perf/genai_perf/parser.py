@@ -28,7 +28,7 @@ import argparse
 import sys
 from enum import Enum, auto
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import genai_perf.logging as logging
@@ -164,32 +164,7 @@ def _create_sweep_list(args):
     ]
 
 
-def _print_warnings(config: ConfigCommand) -> None:
-    if config.tokenizer.trust_remote_code:
-        logger.warning(
-            "--tokenizer-trust-remote-code is enabled. "
-            "Custom tokenizer code can be executed. "
-            "This should only be used with repositories you trust."
-        )
-    if (
-        config.input.prompt_source == ic.PromptSource.PAYLOAD
-        and config.input.output_tokens.mean != ic.DEFAULT_OUTPUT_TOKENS_MEAN
-    ):
-        logger.warning(
-            "--output-tokens-mean is incompatible with output_length"
-            " in the payload input file. output-tokens-mean"
-            " will be ignored in favour of per payload settings."
-        )
-    # TPA-1067: Deprecate visualization in profile subcommand
-    if config.output.generate_plots:
-        logger.warning(
-            "--generate-plots is deprecated and will be removed in a future release."
-        )
-
-
 ### Types ###
-
-
 def file_or_directory(value: str) -> Path:
     if value.startswith("synthetic:") or value.startswith("payload"):
         return Path(value)
@@ -837,25 +812,25 @@ def _parse_analyze_args(subparsers) -> argparse.ArgumentParser:
     return analyze
 
 
-def _parse_undefined(subparsers) -> argparse.ArgumentParser:
-    undefined = subparsers.add_parser(
-        ic.Subcommand.UNDEFINED.value,
-        description="",
+def _parse_config(subparsers) -> argparse.ArgumentParser:
+    config = subparsers.add_parser(
+        ic.Subcommand.CONFIG.value,
+        description="(Optional) subcommmand used to indicate a config file is being used.",
     )
 
-    _add_analyze_args(undefined)
-    _add_audio_input_args(undefined)
-    _add_endpoint_args(undefined)
-    _add_image_input_args(undefined)
-    _add_input_args(undefined)
-    _add_other_args(undefined)
-    _add_output_args(undefined)
-    _add_profile_args(undefined)
-    _add_session_args(undefined)
-    _add_tokenizer_args(undefined)
+    _add_analyze_args(config)
+    _add_audio_input_args(config)
+    _add_endpoint_args(config)
+    _add_image_input_args(config)
+    _add_input_args(config)
+    _add_other_args(config)
+    _add_output_args(config)
+    _add_profile_args(config)
+    _add_session_args(config)
+    _add_tokenizer_args(config)
 
-    undefined.set_defaults(func=profile_handler)
-    return undefined
+    config.set_defaults(func=profile_handler)
+    return config
 
 
 ### Parser Initialization ###
@@ -878,6 +853,7 @@ def init_parsers():
     subparsers = parser.add_subparsers(
         help="List of subparser commands.", dest="subcommand"
     )
+    _ = _parse_config(subparsers)
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
     _ = _parse_template_args(subparsers)
@@ -915,282 +891,38 @@ def refine_args(
     return args
 
 
-def add_cli_options_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-
-    _check_that_override_is_set(args)
-    _add_top_level_args_to_config(config, args)
-    _add_analyze_args_to_config(config, args)
-    _add_endpoint_args_to_config(config, args)
-    _add_perf_analyzer_args_to_config(config, args)
-    _add_input_args_to_config(config, args)
-    _add_output_args_to_config(config, args)
-    _add_tokenizer_args_to_config(config, args)
-
-    return config
-
-
-def _check_that_override_is_set(args: argparse.Namespace) -> None:
-    """
-    Check that the --override-config flag is set if the user is trying to
-    override a config value via the CLI.
-    """
-    if not args.config_filename:
-        return
-
-    args_cannot_override = {
-        "func",  # this is the function to call that comes from vars(args)
-        "override_config",
-        "config_filename",
-        "verbose",
-    }
-
-    for key, value in vars(args).items():
-        if key in args_cannot_override:
-            continue
-        if value and not args.override_config:
-            raise ValueError(
-                "In order to use the CLI to override the config, the --override-config flag must be set."
-            )
-
-
-def _add_top_level_args_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-    if args.model:
-        config.model_names = args.model
-    if args.subcommand:
-        config.subcommand = ic.Subcommand(args.subcommand)
-    if args.verbose:
-        config.verbose = args.verbose
-
-    return config
-
-
-def _add_analyze_args_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-    if args.subcommand and args.subcommand == "analyze":
-        config.analyze.sweep_parameters = {}
-        if args.sweep_list:
-            sweep_parameters = {args.sweep_type: args.sweep_list}
-        else:
-            sweep_parameters = {
-                args.sweep_type: {"start": args.sweep_min, "stop": args.sweep_max}
-            }
-            if args.sweep_step:
-                sweep_parameters[args.sweep_type]["step"] = args.sweep_step
-
-        config.analyze.parse(sweep_parameters)
-
-    return config
-
-
-def _add_endpoint_args_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-    if args.model_selection_strategy:
-        config.endpoint.model_selection_strategy = ic.ModelSelectionStrategy(
-            args.model_selection_strategy.upper()
-        )
-    if args.backend:
-        config.endpoint.backend = ic.OutputFormat(args.backend.upper())
-    if args.endpoint:
-        config.endpoint.custom = args.endpoint
-    if args.endpoint_type:
-        config.endpoint.type = args.endpoint_type
-    if args.service_kind:
-        config.endpoint.service_kind = args.service_kind
-    if args.streaming:
-        config.endpoint.streaming = args.streaming
-    if args.server_metrics_url:
-        config.endpoint.server_metrics_urls = args.server_metrics_url
-    if args.u:
-        config.endpoint.url = args.u
-    if args.grpc_method:
-        config.endpoint.grpc_method = args.grpc_method
-
-    return config
-
-
-def _add_perf_analyzer_args_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-
-    # config.perf_analyzer.path - There is no equivalent setting in the CLI
-    stimulus = _convert_args_to_stimulus(args)
-    if stimulus:
-        config.perf_analyzer.stimulus = stimulus
-
-    if args.stability_percentage:
-        config.perf_analyzer.stability_percentage = args.stability_percentage
-    if args.warmup_request_count:
-        config.perf_analyzer.warmup_request_count = args.warmup_request_count
-
-    if args.measurement_interval:
-        config.perf_analyzer.measurement.mode = ic.PerfAnalyzerMeasurementMode.INTERVAL
-        config.perf_analyzer.measurement.num = args.measurement_interval
-    elif args.request_count:
-        config.perf_analyzer.measurement.mode = (
-            ic.PerfAnalyzerMeasurementMode.REQUEST_COUNT
-        )
-        config.perf_analyzer.measurement.num = args.request_count
-
-    return config
-
-
-def _add_input_args_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-    # Input - Top Level
-    if args.batch_size_text:
-        config.input.batch_size = args.batch_size_text
-
-    extra_inputs = get_extra_inputs_as_dict(args)
-
-    if extra_inputs:
-        config.input.extra = extra_inputs
-
-    if args.goodput:
-        config.input.goodput = args.goodput
-    if args.header:
-        config.input.header = args.header
-    if args.input_file:
-        config.input.file = args.input_file
-    if args.num_dataset_entries:
-        config.input.num_dataset_entries = args.num_dataset_entries
-    if args.random_seed:
-        config.input.random_seed = args.random_seed
-
-    # Input - Audio
-    if args.batch_size_audio:
-        config.input.audio.batch_size = args.batch_size_audio
-    if args.audio_length_mean:
-        config.input.audio.length.mean = args.audio_length_mean
-    if args.audio_length_stddev:
-        config.input.audio.length.stddev = args.audio_length_stddev
-    if args.audio_format:
-        config.input.audio.format = ic.AudioFormat(args.audio_format.upper())
-    if args.audio_depths:
-        config.input.audio.depths = args.audio_depths
-    if args.audio_sample_rates:
-        config.input.audio.sample_rates = args.audio_sample_rates
-    if args.audio_num_channels:
-        config.input.audio.num_channels = args.audio_num_channels
-
-    # Input - Image
-    if args.batch_size_image:
-        config.input.image.batch_size = args.batch_size_image
-    if args.image_width_mean:
-        config.input.image.width.mean = args.image_width_mean
-    if args.image_width_stddev:
-        config.input.image.width.stddev = args.image_width_stddev
-    if args.image_height_mean:
-        config.input.image.height.mean = args.image_height_mean
-    if args.image_height_stddev:
-        config.input.image.height.stddev = args.image_height_stddev
-    if args.image_format:
-        config.input.image.format = ic.ImageFormat(args.image_format.upper())
-
-    # Input - Output Tokens
-    if args.output_tokens_mean:
-        config.input.output_tokens.mean = args.output_tokens_mean
-    if args.output_tokens_mean_deterministic:
-        config.input.output_tokens.deterministic = args.output_tokens_mean_deterministic
-    if args.output_tokens_stddev:
-        config.input.output_tokens.stddev = args.output_tokens_stddev
-
-    # Input - Synthetic Tokens
-    if args.synthetic_input_tokens_mean:
-        config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
-    if args.synthetic_input_tokens_stddev:
-        config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
-
-    # Input - Prefix Prompt
-    if args.num_prefix_prompts:
-        config.input.prefix_prompt.num = args.num_prefix_prompts
-    if args.prefix_prompt_length:
-        config.input.prefix_prompt.length = args.prefix_prompt_length
-
-    # Input - Sessions
-    if args.num_sessions:
-        config.input.sessions.num = args.num_sessions
-    if args.session_turn_delay_mean:
-        config.input.sessions.turn_delay.mean = args.session_turn_delay_mean
-    if args.session_delay_ratio:
-        config.input.sessions.turn_delay.ratio = args.session_delay_ratio
-    if args.session_turn_delay_stddev:
-        config.input.sessions.turn_delay.stddev = args.session_turn_delay_stddev
-    if args.session_turns_mean:
-        config.input.sessions.turns.mean = args.session_turns_mean
-    if args.session_turns_stddev:
-        config.input.sessions.turns.stddev = args.session_turns_stddev
-
-    return config
-
-
-def _add_output_args_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-    if args.artifact_dir:
-        config.output.artifact_directory = args.artifact_dir
-    # config.output.checkpoint_directory - There is no equivalent setting in the CLI
-    if args.profile_export_file:
-        config.output.profile_export_file = args.profile_export_file
-    if args.generate_plots:
-        config.output.generate_plots = args.generate_plots
-
-    return config
-
-
-def _add_tokenizer_args_to_config(
-    config: ConfigCommand, args: argparse.Namespace
-) -> ConfigCommand:
-    if args.tokenizer:
-        config.tokenizer.name = args.tokenizer
-    if args.tokenizer_revision:
-        config.tokenizer.revision = args.tokenizer_revision
-    if args.tokenizer_trust_remote_code:
-        config.tokenizer.trust_remote_code = args.tokenizer_trust_remote_code
-
-    return config
-
-
-def _convert_args_to_stimulus(args: argparse.Namespace) -> Optional[Dict[str, int]]:
-    if args.session_concurrency:
-        return {"session_concurrency": args.session_concurrency}
-    elif args.concurrency:
-        return {"concurrency": args.concurrency}
-    elif args.request_rate:
-        return {"request_rate": args.request_rate}
-    else:
-        return None
-
-
 ### Entrypoint ###
 
 
-def parse_args():
+def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     argv = sys.argv
     parser = init_parsers()
+
+    args, extra_args = parse_argv(parser, argv)
+    args = refine_args(parser, args)
+
+    return args, extra_args
+
+
+def parse_argv(
+    parser: argparse.ArgumentParser, argv: List[Any]
+) -> Tuple[argparse.Namespace, List[str]]:
     passthrough_index = get_passthrough_args_index(argv)
 
     # Argparse requires that the subcommand be present. To get around this requirement,
-    # we add a dummy subcommand if none is present and then remove it after parsing.
+    # we add a dummy config subcommand if none is present and then remove it after parsing.
     if not subcommand_found(argv[1:passthrough_index]) and not help_or_version_found(
         argv[1:passthrough_index]
     ):
-        argv.insert(1, ic.Subcommand.UNDEFINED.value)
+        argv.insert(1, ic.Subcommand.CONFIG.value)
         passthrough_index += 1
 
     args, unknown_args = parser.parse_known_args(argv[1:passthrough_index])
 
-    if args.subcommand == ic.Subcommand.UNDEFINED.value:
+    if args.subcommand == ic.Subcommand.CONFIG.value:
         args.subcommand = None
 
     args = _parse_unknown_args(args, unknown_args)
-    args = refine_args(parser, args)
 
     return args, argv[passthrough_index + 1 :]
 
