@@ -708,6 +708,10 @@ second. For example, 'request_latency:300' or
 'output_token_throughput_per_user:600'. Multiple key:value pairs can be
 provided, separated by spaces. (default: `None`)
 
+##### `-override-config`
+
+An option that allows the user to override values specified in the config file.
+
 </br>
 
 <!--
