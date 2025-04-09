@@ -79,7 +79,7 @@ class TestCLIArguments:
 
         with pytest.raises(SystemExit) as excinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         # Check that the exit was successful
         assert excinfo.value.code == 0
@@ -693,7 +693,7 @@ class TestCLIArguments:
 
         with pytest.raises(SystemExit) as excinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         assert excinfo.value.code != 0
         captured = capsys.readouterr()
@@ -705,7 +705,7 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as execinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -730,7 +730,7 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as execinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         expected_error_message = "Unknown argument passed to GenAI-Perf: --wrong-arg"
         assert expected_error_message == execinfo.value.args[0]
@@ -1007,7 +1007,7 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as execinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -1088,7 +1088,7 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as execinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -1107,7 +1107,7 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as execinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -1167,7 +1167,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(ValueError):
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
     def test_inferred_prompt_source_invalid_input(self, monkeypatch, mocker):
         arg = ["--input-file", "invalid_input"]
@@ -1177,7 +1177,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(SystemExit):
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args",
@@ -1195,7 +1195,7 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as excinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args",
@@ -1218,7 +1218,7 @@ class TestCLIArguments:
 
         with pytest.raises(ValueError) as excinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args , expected_error_message",
@@ -1257,7 +1257,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(ValueError) as execinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -1270,7 +1270,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", valid_args)
         try:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
         except SystemExit:
             pytest.fail("Unexpected error in test")
 
@@ -1295,7 +1295,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", args)
         with patch.object(logger, "warning") as mock_logger:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
         mock_logger.assert_any_call(expected_warning_message)
 
     @pytest.mark.parametrize(
@@ -1422,7 +1422,7 @@ class TestCLIArguments:
 
         with pytest.raises(SystemExit) as excinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         assert excinfo.value.code != 0
         captured = capsys.readouterr()
@@ -1444,7 +1444,7 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(ValueError) as execinfo:
             args, _ = parser.parse_args()
-            config = CreateConfig.create(args)
+            CreateConfig.create(args)
 
         expected_error_message = "In order to use the CLI to override the config, the --override-config flag must be set."
         assert expected_error_message == execinfo.value.args[0]

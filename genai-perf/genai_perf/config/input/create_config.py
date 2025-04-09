@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import argparse
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
