@@ -179,6 +179,11 @@ def _print_warnings(config: ConfigCommand) -> None:
             " in the payload input file. output-tokens-mean"
             " will be ignored in favour of per payload settings."
         )
+    # TPA-1067: Deprecate visualization in profile subcommand
+    if config.output.generate_plots:
+        logger.warning(
+            "--generate-plots is deprecated and will be removed in a future release."
+        )
 
 
 ### Types ###
