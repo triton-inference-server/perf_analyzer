@@ -1153,7 +1153,6 @@ def _handle_process_export_files_subcommand(
     config: ConfigCommand, args: argparse.Namespace
 ) -> None:
     config.process.input_path = args.input_path[0]
-    # config.input.prompt_source = ic.PromptSource.SYNTHETIC
     _add_output_options_to_config(config, args)
 
 

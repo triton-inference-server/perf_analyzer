@@ -60,7 +60,10 @@ def process_export_files_handler(config: ConfigCommand) -> None:
     tokenizer = get_tokenizer(config)
     _copy_profile_export_to_artifact_dir(config, perf_analyzer_config)
 
-    telemetry_stats_dict = profile_data["telemetry_stats"]
+    if "telemetry_stats" in profile_data:
+        telemetry_stats_dict = profile_data["telemetry_stats"]
+    else:
+        telemetry_stats_dict = {}
     data_parser = calculate_metrics(config, perf_analyzer_config, tokenizer)
     _report_output(
         data_parser=data_parser,
