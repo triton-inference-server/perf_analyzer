@@ -107,7 +107,6 @@ def _set_model_names(config: ConfigCommand, profile_data: Dict[str, Any]) -> Non
 
 
 def _set_input_fields(config: ConfigCommand, profile_data: Dict[str, Any]) -> None:
-    input_data = profile_data["input_config"]["input"]
     keys_to_exclude = ["prompt_source", "synthetic_files", "payload_file"]
     input_data = {
         k: v
