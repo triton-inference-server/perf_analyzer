@@ -173,7 +173,10 @@ class ConfigEndPoint(BaseConfig):
         self.infer_service_kind(model_name)
 
     def infer_service_kind(self, model_name: str) -> None:
-
+        self.service_kind: Any = ConfigField(
+            default=EndPointDefaults.SERVICE_KIND,
+            choices=["dynamic_grpc", "openai", "tensorrtllm_engine", "triton"],
+        )
         if self.type:
             endpoint_config = endpoint_type_map[self.type]
             self.service_kind = endpoint_config.service_kind
