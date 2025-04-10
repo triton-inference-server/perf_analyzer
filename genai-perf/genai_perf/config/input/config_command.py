@@ -106,8 +106,6 @@ class ConfigCommand(BaseConfig):
                 elif key == "analyze":
                     self.analyze.parse(value)
                 elif key == "process":
-                    print("process")
-                    print(value)
                     self.process.parse(value)
                 elif key == "endpoint":
                     self.endpoint.parse(value)
