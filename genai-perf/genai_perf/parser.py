@@ -29,7 +29,6 @@ import sys
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional, Tuple
-from urllib.parse import urlparse
 
 import genai_perf.logging as logging
 import genai_perf.utils as utils
