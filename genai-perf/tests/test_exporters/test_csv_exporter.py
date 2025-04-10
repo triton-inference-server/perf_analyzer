@@ -32,6 +32,7 @@ from unittest.mock import patch
 import pytest
 from genai_perf import parser
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.metrics import (
     LLMMetrics,
@@ -100,7 +101,9 @@ class TestCsvExporter:
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=llm_metrics)
 
@@ -155,7 +158,9 @@ class TestCsvExporter:
             "custom_export.json",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=llm_metrics)
 
@@ -197,7 +202,9 @@ class TestCsvExporter:
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -239,7 +246,9 @@ class TestCsvExporter:
             "request_latency:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -288,7 +297,9 @@ class TestCsvExporter:
             "request_latenC:100",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -338,7 +349,9 @@ class TestCsvExporter:
             "http://tritonserver:8002/metrics",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         telemetry_metrics = TelemetryMetrics(
             gpu_power_usage={"gpu0": [45.2, 46.5]},
@@ -420,7 +433,9 @@ class TestCsvExporter:
             "custom_export.json",
         ]
         monkeypatch.setattr("sys.argv", argv)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=llm_metrics)
 

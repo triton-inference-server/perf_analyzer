@@ -88,6 +88,7 @@ class ConfigCommand(BaseConfig):
         Infers and checks the configuration options.
         """
         self._infer_settings()
+        self._check_required_fields_are_set()
         self._check_for_illegal_combinations()
         self._check_profile_export_file()
 
@@ -128,17 +129,30 @@ class ConfigCommand(BaseConfig):
         else:
             raise ValueError("User Config: model_names must be a string or list")
 
+    def _check_required_fields_are_set(self) -> None:
+        super().check_required_fields_are_set()
+
     ###########################################################################
     # Infer Methods
     ###########################################################################
     def _infer_settings(self) -> None:
         # covers the template creation case
         model_name = self.model_names[0] if self.model_names else ""
+        self._infer_subcommand()
 
         self.endpoint.infer_settings(model_name)
         self.input.infer_settings()
         self.perf_analyzer.infer_settings()
         self.tokenizer.infer_settings(model_name)
+
+    def _infer_subcommand(self) -> None:
+        if self.subcommand != Subcommand.CONFIG:
+            return
+
+        if self.analyze.any_field_set_by_user():
+            self.subcommand = Subcommand.ANALYZE
+        else:
+            self.subcommand = Subcommand.PROFILE
 
     ###########################################################################
     # Illegal Combination Methods

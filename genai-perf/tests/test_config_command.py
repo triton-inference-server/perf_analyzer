@@ -27,6 +27,7 @@ from genai_perf.inputs.input_constants import (
     OutputFormat,
     PerfAnalyzerMeasurementMode,
     PromptSource,
+    Subcommand,
 )
 from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
 from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
@@ -626,6 +627,61 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
         self.assertEqual(config.tokenizer.name, "t5-small")
+
+    ###########################################################################
+    # Test Infer Subcommand
+    ###########################################################################
+    def test_infer_subcommand_analyze(self):
+        """
+        Test that the subcommand is inferred as ANALYZE when analyze fields are set
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            analyze:
+                concurrency:
+                    start: 4
+                    stop: 32
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.subcommand, Subcommand.ANALYZE)
+
+    def test_infer_subcommand_profile(self):
+        """
+        Test that the subcommand is inferred as PROFILE when no analyze fields are set
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.subcommand, Subcommand.PROFILE)
+
+    def test_infer_subcommand_no_change(self):
+        """
+        Test that the subcommand remains unchanged if it is not CONFIG
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config, skip_inferencing_and_checking=True)
+        config.subcommand = Subcommand.ANALYZE
+        config.infer_and_check_options()
+
+        self.assertEqual(config.subcommand, Subcommand.ANALYZE)
 
 
 if __name__ == "__main__":

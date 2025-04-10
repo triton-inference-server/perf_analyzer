@@ -33,6 +33,7 @@ import genai_perf.parser as parser
 import pytest
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.metrics import Metrics, TelemetryMetrics, TelemetryStatistics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
@@ -82,7 +83,7 @@ class TestIntegrationTelemetry:
             "-v",
         ]
         monkeypatch.setattr("sys.argv", test_args)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
 
         mock_metrics = create_autospec(Metrics, instance=True)
         mock_statistics = create_autospec(Statistics, instance=True)
@@ -117,7 +118,7 @@ class TestIntegrationTelemetry:
             "rich.console.Console.print", side_effect=console.print
         ):
             config = ConfigCommand({"model_name": args.model[0]})
-            config = parser.add_cli_options_to_config(config, args)
+            config = CreateConfig._add_cli_options_to_config(config, args)
             perf_analyzer_config = PerfAnalyzerConfig(config)
 
             _report_output(

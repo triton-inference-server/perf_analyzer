@@ -34,6 +34,7 @@ from genai_perf import __version__, parser
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import EndPointDefaults
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.inputs.input_constants import (
     AudioFormat,
     ImageFormat,
@@ -58,6 +59,12 @@ class TestCLIArguments:
         "--model",
         "test_model",
     ]
+    base_config_args = [
+        "genai-perf",
+        "config",
+        "--file",
+        "test_config.yaml",
+    ]
 
     @pytest.mark.parametrize(
         "args, expected_output",
@@ -73,7 +80,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", ["genai-perf"] + args)
 
         with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         # Check that the exit was successful
         assert excinfo.value.code == 0
@@ -489,7 +497,8 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
 
         # Check that the attributes are set correctly
         for key, value in expected_cli_attributes.items():
@@ -515,7 +524,8 @@ class TestCLIArguments:
             "fakefile.txt",
         ]
         monkeypatch.setattr("sys.argv", combined_args)
-        args, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         assert args.input_file == Path(
             "fakefile.txt"
         ), "The file argument should be the path to the file"
@@ -565,9 +575,9 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": args.model})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
         config.infer_and_check_options()
         perf_analyzer_config = PerfAnalyzerConfig(config)
 
@@ -605,10 +615,10 @@ class TestCLIArguments:
         logging.init_logging()
         combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
-        args, _, _ = parser.parse_args()
+        args, _ = parser.parse_args()
 
         config = ConfigCommand({"model_names": args.model})
-        config = parser.add_cli_options_to_config(config, args)
+        config = CreateConfig._add_cli_options_to_config(config, args)
         config.infer_and_check_options()
         perf_analyzer_config = PerfAnalyzerConfig(config)
 
@@ -617,7 +627,8 @@ class TestCLIArguments:
     def test_default_load_level(self, monkeypatch, capsys):
         logging.init_logging()
         monkeypatch.setattr("sys.argv", self.base_args)
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         assert config.perf_analyzer.stimulus["concurrency"] == 1
 
     def test_load_manager_args_with_payload(self, monkeypatch, mocker):
@@ -632,7 +643,8 @@ class TestCLIArguments:
             ],
         )
         mocker.patch.object(Path, "is_file", return_value=True)
-        args, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         assert args.concurrency is None
         assert config.perf_analyzer.get_field("stimulus").is_set_by_user is False
 
@@ -646,7 +658,8 @@ class TestCLIArguments:
         )
 
         with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         assert excinfo.value.code != 0
         captured = capsys.readouterr()
@@ -654,19 +667,18 @@ class TestCLIArguments:
 
     def test_model_not_provided(self, monkeypatch, capsys):
         monkeypatch.setattr("sys.argv", ["genai-perf", "profile"])
-        expected_output = "the following arguments are required: -m/--model"
+        expected_error_message = "Required field model_names is not set"
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+        assert expected_error_message == execinfo.value.args[0]
 
     def test_pass_through_args(self, monkeypatch):
         other_args = ["--", "With", "great", "power"]
         monkeypatch.setattr("sys.argv", self.base_args + other_args)
-        _, _, pass_through_args = parser.parse_args()
+        _, pass_through_args = parser.parse_args()
 
         assert pass_through_args == other_args[1:]
 
@@ -682,19 +694,24 @@ class TestCLIArguments:
             ],
         )
 
-        with pytest.raises(ValueError) as execinfo:
-            parser.parse_args()
+        with pytest.raises(SystemExit):
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
-        expected_error_message = "Unknown arguments passed to GenAI-Perf: --wrong-arg"
-        assert expected_error_message == execinfo.value.args[0]
+        expected_error_message = "error: unrecognized arguments: --wrong-arg"
+
+        # Capture that the correct message was displayed
+        captured = capsys.readouterr()
+        assert expected_error_message in captured.err
 
     def test_non_default_create_template_filename(self, monkeypatch, capsys):
         monkeypatch.setattr(
             "sys.argv",
-            ["genai-perf", "create-template", "custom_template.yaml"],
+            ["genai-perf", "create-template", "--file", "custom_template.yaml"],
         )
 
-        args, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         assert config.template_filename == Path("custom_template.yaml")
 
     @pytest.mark.parametrize(
@@ -868,7 +885,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", args)
 
         with pytest.raises(ValueError) as execinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -914,7 +932,8 @@ class TestCLIArguments:
     def test_inferred_output_format(self, monkeypatch, args, expected_format):
         monkeypatch.setattr("sys.argv", self.base_args + args)
 
-        _, config, _ = parser.parse_args()
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         assert config.endpoint.output_format == expected_format
 
     @pytest.mark.parametrize(
@@ -948,7 +967,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(ValueError) as execinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -966,7 +986,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(ValueError) as execinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -1003,7 +1024,8 @@ class TestCLIArguments:
         mocker.patch.object(Path, "is_file", return_value=True)
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
-        parsed_args, config, _ = parser.parse_args()
+        parsed_args, _ = parser.parse_args()
+        config = CreateConfig.create(parsed_args)
         assert config.input.prompt_source == expected_prompt_source
         assert config.input.payload_file == expected_input_file
 
@@ -1024,7 +1046,8 @@ class TestCLIArguments:
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(ValueError):
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     def test_inferred_prompt_source_invalid_input(self, monkeypatch, mocker):
         arg = ["--input-file", "invalid_input"]
@@ -1033,7 +1056,8 @@ class TestCLIArguments:
         combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(SystemExit):
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args",
@@ -1050,7 +1074,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(ValueError) as excinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args",
@@ -1072,7 +1097,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(ValueError) as excinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args , expected_error_message",
@@ -1110,7 +1136,8 @@ class TestCLIArguments:
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(ValueError) as execinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         assert expected_error_message == execinfo.value.args[0]
 
@@ -1122,7 +1149,8 @@ class TestCLIArguments:
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", valid_args)
         try:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
         except SystemExit:
             pytest.fail("Unexpected error in test")
 
@@ -1142,11 +1170,12 @@ class TestCLIArguments:
             "100",
         ]
         logging.init_logging()
-        logger = logging.getLogger("genai_perf.parser")
+        logger = logging.getLogger("genai_perf.config.input.create_config")
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", args)
         with patch.object(logger, "warning") as mock_logger:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
         mock_logger.assert_any_call(expected_warning_message)
 
     @pytest.mark.parametrize(
@@ -1227,8 +1256,8 @@ class TestCLIArguments:
     )
     def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
-        args, config, _ = parser.parse_args()
-        assert args.server_metrics_url == expected_url
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
 
         if expected_url:
             assert config.endpoint.server_metrics_urls == expected_url
@@ -1251,7 +1280,8 @@ class TestCLIArguments:
             "test_revision",
         ]
         monkeypatch.setattr("sys.argv", args)
-        parsed_args, config, _ = parser.parse_args()
+        parsed_args, _ = parser.parse_args()
+        config = CreateConfig.create(parsed_args)
 
         assert parsed_args.tokenizer == "test_tokenizer"
         assert parsed_args.tokenizer_trust_remote_code
@@ -1271,9 +1301,69 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", combined_args)
 
         with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         assert excinfo.value.code != 0
         captured = capsys.readouterr()
         expected_error = "argument --measurement-interval/-p: not allowed with argument --request-count/--num-requests"
         assert expected_error in captured.err
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_config_file_plus_illegal_cli_options(
+        self, mock_yaml, mock_path, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "--model",
+            "test_model_name",
+            "--request-rate",
+            "100",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
+
+        expected_error_message = "In order to use the CLI to override the config, the --override-config flag must be set."
+        assert expected_error_message == execinfo.value.args[0]
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_config_file_plus_override_config_options(
+        self, mock_yaml, mock_path, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "--override-config",
+            "--model",
+            "test_model_name",
+            "--request-rate",
+            "100",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
+
+        assert config.model_names == ["test_model_name"]
+        assert config.perf_analyzer.stimulus == {"request_rate": 100}
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch(
+        "genai_perf.config.input.base_config.BaseConfig.check_required_fields_are_set",
+        return_value=None,
+    )
+    def test_config_file_plus_verbose(
+        self, mock_yaml, mock_path, mock_check_fields, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "--verbose",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
+
+        assert config.verbose is True

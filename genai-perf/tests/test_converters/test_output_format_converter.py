@@ -67,7 +67,9 @@ class TestOutputFormatConverter:
         ],
     )
     def test_create(self, format, expected_converter):
-        converter = OutputFormatConverterFactory.create(format, ConfigCommand())
+        converter = OutputFormatConverterFactory.create(
+            format, ConfigCommand({"model_names": "test_model"})
+        )
         assert isinstance(converter, expected_converter)
 
     @pytest.mark.parametrize(
