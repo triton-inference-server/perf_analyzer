@@ -214,62 +214,12 @@ genai-perf profile \
   --generate-plots
 ```
 
-This will generate a [set of default plots](docs/compare.md#example-plots) such as:
+This will generate a [set of default plots](docs/example_plots.md) such as:
 - Time to first token (TTFT) analysis
 - Request latency analysis
 - TTFT vs Input sequence lengths
 - Inter token latencies vs Token positions
 - Input sequence lengths vs Output sequence lengths
-
-
-### Using `compare` Subcommand to Visualize Multiple Runs
-
-The `compare` subcommand in GenAI-Perf facilitates users in comparing multiple
-profile runs and visualizing the differences through plots.
-
-#### Usage
-Assuming the user possesses two profile export JSON files,
-namely `profile1.json` and `profile2.json`,
-they can execute the `compare` subcommand using the `--files` option:
-
-```bash
-genai-perf compare --files profile1.json profile2.json
-```
-
-Executing the above command will perform the following actions under the
-`compare` directory:
-1. Generate a YAML configuration file (e.g. `config.yaml`) containing the
-metadata for each plot generated during the comparison process.
-2. Automatically generate the [default set of plots](docs/compare.md#example-plots)
-(e.g. TTFT vs. Input Sequence Lengths) that compare the two profile runs.
-
-```
-compare
-├── config.yaml
-├── distribution_of_input_sequence_lengths_to_output_sequence_lengths.jpeg
-├── request_latency.jpeg
-├── time_to_first_token.jpeg
-├── time_to_first_token_vs_input_sequence_lengths.jpeg
-├── token-to-token_latency_vs_output_token_position.jpeg
-└── ...
-```
-
-#### Customization
-Users have the flexibility to iteratively modify the generated YAML configuration
-file to suit their specific requirements.
-They can make alterations to the plots according to their preferences and execute
-the command with the `--config` option followed by the path to the modified
-configuration file:
-
-```bash
-genai-perf compare --config compare/config.yaml
-```
-
-This command will regenerate the plots based on the updated configuration settings,
-enabling users to refine the visual representation of the comparison results as
-per their needs.
-
-See [Compare documentation](docs/compare.md) for more details.
 
 </br>
 
