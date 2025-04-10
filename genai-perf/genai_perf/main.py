@@ -30,6 +30,7 @@ import traceback
 
 import genai_perf.logging as logging
 from genai_perf import parser
+from genai_perf.config.input.create_config import CreateConfig
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,8 @@ logger = logging.getLogger(__name__)
 def run():
     # TMA-1900: refactor CLI handler
     logging.init_logging()
-    args, config, extra_args = parser.parse_args()
+    args, extra_args = parser.parse_args()
+    config = CreateConfig.create(args, extra_args)
     args.func(config, extra_args)
 
 
