@@ -24,11 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from typing import List, Optional
+
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 
 
-def template_handler(config: ConfigCommand) -> None:
+def template_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
     """
     Handles `template` subcommand workflow
     """

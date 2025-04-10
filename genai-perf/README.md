@@ -347,6 +347,24 @@ COMMAND LINE OPTIONS
 
 Show the help message and exit.
 
+### Config Options
+
+##### `-f`
+##### `--file`
+
+The path to the config file - REQUIRED.
+
+##### `--override-config`
+
+An option that allows the user to override values specified in the config file.
+
+### Template Options
+
+##### `-f`
+##### `--file`
+
+The name of the template file to be created. Default is `genai_perf_config.yaml`.
+
 ### Endpoint Options:
 
 ##### `-m <list>`
@@ -707,6 +725,7 @@ value is a number representing either milliseconds or a throughput value per
 second. For example, 'request_latency:300' or
 'output_token_throughput_per_user:600'. Multiple key:value pairs can be
 provided, separated by spaces. (default: `None`)
+
 
 </br>
 
