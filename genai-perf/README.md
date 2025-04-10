@@ -373,7 +373,7 @@ Set a custom endpoint that differs from the OpenAI defaults. (default: `None`)
 
 ##### `--endpoint-type <str>`
 
-The endpoint-type to send requests to on the server. (default: `None`)
+The endpoint-type to send requests to on the server. (default: `kserve`)
 
 ##### `--server-metrics-urls <list>`
 

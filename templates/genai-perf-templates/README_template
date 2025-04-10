@@ -371,9 +371,9 @@ model config to not echo the input tokens in the output. (default: tensorrtllm)
 
 Set a custom endpoint that differs from the OpenAI defaults. (default: `None`)
 
-##### `--endpoint-type {chat,completions,embeddings,rankings}`
+##### `--endpoint-type <str>`
 
-The endpoint-type to send requests to on the server. (default: `None`)
+The endpoint-type to send requests to on the server. (default: `kserve`)
 
 ##### `--server-metrics-urls <list>`
 

@@ -69,7 +69,7 @@ class EndPointDefaults:
     MODEL_SELECTION_STRATEGY = ModelSelectionStrategy.ROUND_ROBIN
     BACKEND = OutputFormat.TENSORRTLLM
     CUSTOM = ""
-    TYPE = ""
+    TYPE = "kserve"
     SERVICE_KIND = "triton"
     STREAMING = False
     SERVER_METRICS_URLS = ["http://localhost:8002/metrics"]

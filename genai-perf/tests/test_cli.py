@@ -319,6 +319,8 @@ class TestCLIArguments:
             ),
             (
                 [
+                    "--endpoint-type",
+                    "dynamic_grpc",
                     "--grpc-method",
                     "package.name.v1.ServiceName/MethodName",
                 ],

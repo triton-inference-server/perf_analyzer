@@ -149,7 +149,6 @@ class TestConfigCommand(unittest.TestCase):
                 backend: vllm
                 custom: custom_endpoint
                 type: kserve
-                service_kind: triton
                 streaming: True
                 server_metrics_url: "http://test_server_metrics_url:8002/metrics"
                 url: "test_url"
@@ -597,7 +596,6 @@ class TestConfigCommand(unittest.TestCase):
             model_name: gpt2
 
             endpoint:
-                service_kind: openai
                 type: embeddings
             """)
         # yapf: enable
