@@ -146,8 +146,13 @@ class ConfigCommand(BaseConfig):
         self.tokenizer.infer_settings(model_name)
 
     def _infer_subcommand(self) -> None:
+        if self.subcommand != Subcommand.CONFIG:
+            return
+
         if self.analyze.any_field_set_by_user():
             self.subcommand = Subcommand.ANALYZE
+        else:
+            self.subcommand = Subcommand.PROFILE
 
     ###########################################################################
     # Illegal Combination Methods

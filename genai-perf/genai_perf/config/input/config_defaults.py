@@ -41,7 +41,7 @@ class Range:
 @dataclass(frozen=True)
 class TopLevelDefaults:
     MODEL_NAMES = ""
-    SUBCOMMAND = Subcommand.PROFILE
+    SUBCOMMAND = Subcommand.CONFIG
     VERBOSE = False
     TEMPLATE_FILENAME = "genai_perf_config.yaml"
 
