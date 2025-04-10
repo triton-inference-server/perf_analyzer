@@ -292,6 +292,8 @@ class PerfAnalyzerConfig:
                 protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif config.endpoint.service_kind == "openai":
             protocol_args += ["-i", "http"]
+        elif config.endpoint.service_kind == "tensorrtllm_engine":
+            protocol_args += ["--service-kind", "triton_c_api", "--streaming"]
 
         return protocol_args
 
@@ -352,27 +354,6 @@ class PerfAnalyzerConfig:
             endpoint_args += ["--endpoint", f"{config.endpoint.custom}"]
 
         return endpoint_args
-
-    def _add_boolean_arg(self, arg: str) -> List[str]:
-        if len(arg) == 1:
-            return [f"-{arg}"]
-        else:
-            return [f"--{arg}"]
-
-    def _add_non_boolean_arg(self, arg: str, value: Any) -> List[str]:
-        if len(arg) == 1:
-            return [f"-{arg}", f"{value}"]
-        else:
-            converted_arg = convert_option_name(arg)
-            return [f"--{converted_arg}", f"{value}"]
-
-    def _add_tensorrtllm_engine_args(self) -> List[str]:
-        # GAP needs to call PA using triton_c_api service kind when running
-        # against tensorrtllm engine.
-        return ["--service-kind", "triton_c_api", "--streaming"]
-
-    def _arg_is_tensorrtllm_engine(self, arg: str, value: str) -> bool:
-        return arg == "service_kind" and value == "tensorrtllm_engine"
 
     def _add_extra_args(self, extra_args: Optional[List[str]]) -> List[str]:
         if not extra_args:

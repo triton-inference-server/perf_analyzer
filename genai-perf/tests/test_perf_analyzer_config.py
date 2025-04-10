@@ -358,6 +358,21 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
 
         self.assertEqual(expected_args, actual_args)
 
+    def test_add_protocol_args_with_tensorrtllm_engine(self):
+        """
+        Test that _add_protocol_args returns the correct arguments
+        when service_kind is 'tensorrtllm_engine'
+        """
+        self._config.endpoint.service_kind = "tensorrtllm_engine"
+
+        expected_args = ["--service-kind", "triton_c_api", "--streaming"]
+
+        actual_args = self._default_perf_analyzer_config._add_protocol_args(
+            self._config
+        )
+
+        self.assertEqual(expected_args, actual_args)
+
     ###########################################################################
     # Test _add_inference_load_args
     ###########################################################################
