@@ -1235,6 +1235,7 @@ def parse_args():
         elif args.subcommand == ic.Subcommand.PROCESS.value:
             config = ConfigCommand(skip_inferencing_and_checking=True)
             config = add_cli_options_to_config(config, args)
+            config.infer_and_check_options()
             return args, config, None
         else:
             # For all other subcommands, parse the CLI fully (no config file)

@@ -55,8 +55,9 @@ class OutputReporter:
 
         # scale the data to be in milliseconds
         self.stats.scale_data()
-        # In case of process-export-files subcommand, we get telemetry_stats from previously generated
-        # profile_export_genai_perf.json file. Hence, we don't need to scale the data again.
+        # For the process-export-files subcommand, telemetry_stats
+        # are loaded from a previously generated profile_export_genai_perf.json file.
+        # As the data is already preprocessed, scaling is not required.
         if config.subcommand != ic.Subcommand.PROCESS:
             self.telemetry_stats.scale_data()
         for stat in self.session_stats.values():

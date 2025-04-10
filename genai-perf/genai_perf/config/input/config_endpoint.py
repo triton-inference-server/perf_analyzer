@@ -229,10 +229,8 @@ class ConfigEndPoint(BaseConfig):
         if self.service_kind == "triton" and self.type in ["kserve", "template"]:
             self.output_format = self.backend
         elif self.service_kind == "tensorrtllm_engine":
-            print("why")
             self.output_format = OutputFormat.TENSORRTLLM_ENGINE
         else:
-            print(self.type)
             endpoint_config = endpoint_type_map[self.type]
             self.output_format = endpoint_config.output_format
             self._check_inferred_service_kind(endpoint_config)

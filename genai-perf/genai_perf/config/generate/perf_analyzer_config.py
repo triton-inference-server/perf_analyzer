@@ -198,8 +198,7 @@ class PerfAnalyzerConfig:
         self, config: ConfigCommand
     ) -> Optional[List[str]]:
         if (
-            hasattr(config.input, "prompt_source")
-            and config.input.prompt_source == PromptSource.PAYLOAD
+            config.input.prompt_source == PromptSource.PAYLOAD
             and not "session_concurrency" in config.perf_analyzer.stimulus
         ):
             stimulus = None
@@ -250,10 +249,7 @@ class PerfAnalyzerConfig:
     def _add_perf_analyzer_args(self, config: ConfigCommand) -> List[str]:
         perf_analyzer_args = []
 
-        if (
-            hasattr(config.input, "prompt_source")
-            and config.input.prompt_source != PromptSource.PAYLOAD
-        ):
+        if config.input.prompt_source != PromptSource.PAYLOAD:
             perf_analyzer_args += [
                 f"--stability-percentage",
                 f"{config.perf_analyzer.stability_percentage}",
@@ -342,8 +338,7 @@ class PerfAnalyzerConfig:
     def _add_prompt_source_args(self, config: ConfigCommand) -> List[str]:
         prompt_source_args = []
         if (
-            hasattr(config.input, "prompt_source")
-            and config.input.prompt_source == PromptSource.PAYLOAD
+            config.input.prompt_source == PromptSource.PAYLOAD
             and not "session_concurrency" in config.perf_analyzer.stimulus
         ):
             prompt_source_args += ["--fixed-schedule"]

@@ -156,10 +156,7 @@ def _report_output(
         load_level = "0.0"
     # When using fixed schedule mode, infer mode is not set.
     # Setting to default values to avoid an error.
-    elif (
-        hasattr(config.input, "prompt_source")
-        and config.input.prompt_source == ic.PromptSource.PAYLOAD
-    ):
+    elif config.input.prompt_source == ic.PromptSource.PAYLOAD:
         infer_mode = "request_rate"
         load_level = "0.0"
     elif "concurrency" in config.perf_analyzer.stimulus:
