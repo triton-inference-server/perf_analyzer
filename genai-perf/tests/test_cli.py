@@ -41,6 +41,7 @@ from genai_perf.inputs.input_constants import (
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
+    Subcommand,
 )
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
@@ -1504,7 +1505,7 @@ class TestCLIArguments:
         parsed_args, config, _ = parser.parse_args()
 
         assert parsed_args.input_path[0] == Path("test_dir")
-        assert config.subcommand == Subcommand.PROCESS.value
+        assert config.subcommand == Subcommand.PROCESS
         assert config.process.input_path == Path("test_dir")
 
     @pytest.mark.parametrize(
@@ -1561,11 +1562,9 @@ class TestCLIArguments:
             "sys.argv",
             ["genai-perf", "process-export-files", "test_dir", "--wrong-arg"],
         )
-        expected_output = "unrecognized arguments: --wrong-arg"
 
-        with pytest.raises(SystemExit) as excinfo:
+        with pytest.raises(ValueError) as excinfo:
             parser.parse_args()
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+        expected_output = "Unknown arguments passed to GenAI-Perf: --wrong-arg"
+        assert str(excinfo.value) == expected_output

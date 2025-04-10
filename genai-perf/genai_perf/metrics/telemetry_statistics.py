@@ -92,6 +92,9 @@ class TelemetryStatistics:
                         for stat, value in gpu_data.items():
                             self._stats_dict[metric][key][stat] = value * factor
 
+    def set_stats_dict(self, stats_dict: defaultdict[str, Any]) -> None:
+        self._stats_dict = stats_dict
+
     def create_records(self) -> GpuRecords:
         """
         Populates and returns a list of Records

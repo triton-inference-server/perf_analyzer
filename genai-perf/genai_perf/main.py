@@ -48,7 +48,7 @@ def run():
         args.func(config, extra_args)
     elif config.subcommand == Subcommand.TEMPLATE:
         args.func(config)
-    elif config.subcommand == Subcommand.PROCESS.value:
+    elif config.subcommand == Subcommand.PROCESS:
         args.func(config)
     else:  # profile
         args.func(config, extra_args)
