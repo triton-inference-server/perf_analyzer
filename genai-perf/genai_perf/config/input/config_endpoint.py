@@ -16,7 +16,7 @@ import logging
 from typing import Any, Dict
 from urllib.parse import urlparse
 
-from genai_perf.config.endpoint_config import EndpointConfig, endpoint_type_map
+from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.base_config import BaseConfig
 from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.config.input.config_field import ConfigField
@@ -177,7 +177,7 @@ class ConfigEndPoint(BaseConfig):
             default=EndPointDefaults.SERVICE_KIND,
             choices=["dynamic_grpc", "openai", "tensorrtllm_engine", "triton"],
         )
-        if self.type:
+        if self.get_field("type").is_set_by_user:
             endpoint_config = endpoint_type_map[self.type]
             self.service_kind = endpoint_config.service_kind
         else:

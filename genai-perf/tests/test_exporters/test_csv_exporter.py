@@ -161,6 +161,7 @@ class TestCsvExporter:
         args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
 
         stats = Statistics(metrics=llm_metrics)
 
@@ -342,8 +343,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--backend",
-            "tensorrtllm",
             "--streaming",
             "--server-metrics-url",
             "http://tritonserver:8002/metrics",
@@ -436,6 +435,7 @@ class TestCsvExporter:
         args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
 
         stats = Statistics(metrics=llm_metrics)
 

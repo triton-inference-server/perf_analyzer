@@ -70,7 +70,7 @@ class OutputFormat(Enum):
     # Other output formats
     ################################################################
     IMAGE_RETRIEVAL = "IMAGE_RETRIEVAL"
-    DYNAMIC_GRPC = "DYANMIC_GRPC"
+    DYNAMIC_GRPC = "DYNAMIC_GRPC"
     NVCLIP = "NVCLIP"
     OPENAI_CHAT_COMPLETIONS = "OPENAI_CHAT_COMPLETIONS"
     OPENAI_COMPLETIONS = "OPENAI_COMPLETIONS"
