@@ -28,7 +28,6 @@ from pathlib import Path
 
 import pytest
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.dynamic_grpc_converter import DynamicGRPCConverter
 from genai_perf.inputs.retrievers.generic_dataset import (
