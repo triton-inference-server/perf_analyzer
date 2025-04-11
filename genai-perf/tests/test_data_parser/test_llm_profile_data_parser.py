@@ -35,7 +35,7 @@ from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
 from genai_perf.profile_data_parser.profile_data_parser import ResponseFormat
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from genai_perf.tokenizer import get_tokenizer
 from tests.test_utils import check_statistics, ns_to_sec
 
 
@@ -210,7 +210,7 @@ class TestLLMProfileDataParser:
             - experiment 2: [3, 4]
         """
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
@@ -423,7 +423,7 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
         """
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
@@ -572,7 +572,7 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
         """
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_vlm_profile_export.json"),
@@ -827,7 +827,7 @@ class TestLLMProfileDataParser:
             - experiment 2: [3, 4]
         """
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("tensorrtllm_engine_profile_export.json"),
@@ -870,7 +870,7 @@ class TestLLMProfileDataParser:
             res_outputs.append({"response": response})
 
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
@@ -906,7 +906,7 @@ class TestLLMProfileDataParser:
             res_outputs.append({"text_output": text})
 
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
@@ -958,7 +958,7 @@ class TestLLMProfileDataParser:
     def test_empty_response(self, mock_json) -> None:
         """Check if it handles all empty responses."""
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
 
         # Should not throw error
@@ -1011,7 +1011,7 @@ class TestLLMProfileDataParser:
             return_value=profile_data,
         ):
             config = ConfigCommand({"model_name": "test_model"})
-            config.tokenizer.name = DEFAULT_TOKENIZER
+            config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
             tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
                 filename=Path("profile_export.json"),
@@ -1088,7 +1088,7 @@ class TestLLMProfileDataParser:
             return_value=profile_data,
         ):
             config = ConfigCommand({"model_name": "test_model"})
-            config.tokenizer.name = DEFAULT_TOKENIZER
+            config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
             tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
                 filename=Path("profile_export.json"),
@@ -1140,7 +1140,7 @@ class TestLLMProfileDataParser:
         ]
 
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
@@ -1184,7 +1184,7 @@ class TestLLMProfileDataParser:
     def test_handle_sse_error(self, mock_json, res_outputs) -> None:
         """Check if the parser can handle SSE error field."""
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
@@ -1209,13 +1209,13 @@ class TestLLMProfileDataParser:
         ]
         res_outputs = [
             {
-                "response": '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+                "response": '{"id":"1","object":"chat.completion","created":2,"model":"hf-internal-testing/llama-tokenizer","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
             },
         ]
-        expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+        expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"hf-internal-testing/llama-tokenizer","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
 
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
@@ -1308,7 +1308,7 @@ class TestLLMProfileDataParser:
     def test_session_metrics(self, mock_json) -> None:
         """Check if it handles session metrics."""
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("session_profile_export.json"),
@@ -1346,7 +1346,7 @@ class TestLLMProfileDataParser:
     def test_no_session_metrics(self, mock_json) -> None:
         """Check if it handles profile export files without session metrics."""
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
@@ -1539,7 +1539,7 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
         """
         config = ConfigCommand({"model_name": "test_model"})
-        config.tokenizer.name = DEFAULT_TOKENIZER
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
         tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("huggingface_generate_profile_export.json"),

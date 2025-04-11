@@ -24,9 +24,6 @@ if TYPE_CHECKING:
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 
-DEFAULT_TOKENIZER = "hf-internal-testing/llama-tokenizer"
-DEFAULT_TOKENIZER_REVISION = "main"
-
 
 class Tokenizer:
     """

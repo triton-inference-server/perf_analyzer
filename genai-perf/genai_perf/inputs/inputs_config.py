@@ -24,12 +24,10 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.inputs import input_constants as ic
 from genai_perf.tokenizer import Tokenizer
 
 

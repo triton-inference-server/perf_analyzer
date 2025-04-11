@@ -33,23 +33,12 @@ from typing import List, Optional, Tuple
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
-from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import AnalyzeDefaults, EndPointDefaults
-from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.subcommand.analyze import analyze_handler
-from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
-from genai_perf.tokenizer import DEFAULT_TOKENIZER_REVISION
 
 from . import __version__
-
-
-class PathType(Enum):
-    FILE = auto()
-    DIRECTORY = auto()
-
 
 logger = logging.getLogger(__name__)
 

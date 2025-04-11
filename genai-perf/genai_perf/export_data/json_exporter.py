@@ -50,9 +50,7 @@ class JsonExporter:
         self._session_stats: Dict = config.session_stats
         self._config = config.config
         self._args = self._config.to_json_dict()
-        self._extra_inputs = config.extra_inputs
         self._output_dir = config.perf_analyzer_config.get_artifact_directory()
-        self._stats_and_args: Dict = {}
         self._export_data: Dict = {}
 
         self._merge_stats_and_args()
@@ -66,14 +64,6 @@ class JsonExporter:
         logger.info(f"Generating {filename}")
         with open(str(filename), "w") as f:
             f.write(json.dumps(self._export_data, indent=2))
-
-    def _exclude_args(self, args_to_exclude) -> None:
-        for arg in args_to_exclude:
-            self._args.pop(arg, None)
-
-    def _add_extra_inputs_to_args(self) -> None:
-        del self._args["extra_inputs"]
-        self._args.update({"extra_inputs": self._extra_inputs})
 
     def _merge_stats_and_args(self) -> None:
         self._export_data = dict(self._stats)

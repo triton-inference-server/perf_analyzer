@@ -14,7 +14,7 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypeAlias, Union
+from typing import Any, Dict, List, Optional
 
 import genai_perf.logging as logging
 from genai_perf.config.input.base_config import BaseConfig

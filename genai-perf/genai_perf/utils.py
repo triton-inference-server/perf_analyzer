@@ -109,22 +109,11 @@ def remove_file(file: Path) -> None:
         file.unlink()
 
 
-def convert_option_name(name: str) -> str:
-    return name.replace("_", "-")
-
-
 def get_enum_names(enum: Type[Enum]) -> List[str]:
     names = []
     for e in enum:
         names.append(e.name.lower())
     return names
-
-
-def get_enum_entry(name: str, enum: Type[Enum]) -> Optional[Enum]:
-    for e in enum:
-        if e.name.lower() == name.lower():
-            return e
-    return None
 
 
 def scale(value, factor):

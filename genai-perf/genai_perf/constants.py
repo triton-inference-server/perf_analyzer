@@ -25,13 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ABBREVIATIONS = ["gpu"]
-DEFAULT_HTTP_URL = "localhost:8000"
-DEFAULT_GRPC_URL = "localhost:8001"
 DEFAULT_TRITON_METRICS_URL = "http://localhost:8002/metrics"
-
-
-DEFAULT_ARTIFACT_DIR = "artifacts"
-DEFAULT_PROFILE_EXPORT_FILE = "profile_export.json"
 EMPTY_RESPONSE_TOKEN = 0
 
 # These map to the various fields that can be set for PA and model configs

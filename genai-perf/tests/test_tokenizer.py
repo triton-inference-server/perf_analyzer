@@ -25,16 +25,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.tokenizer import (
-    DEFAULT_TOKENIZER,
-    DEFAULT_TOKENIZER_REVISION,
-    get_tokenizer,
-)
+from genai_perf.config.input.config_defaults import TokenizerDefaults
+from genai_perf.tokenizer import get_tokenizer
 
 
 class TestTokenizer:
     def _create_tokenizer_config(
-        self, name, trust_remote_code=False, revision=DEFAULT_TOKENIZER_REVISION
+        self, name, trust_remote_code=False, revision=TokenizerDefaults.REVISION
     ):
         config = ConfigCommand({"model_name": "test_model"})
         config.tokenizer.name = name
@@ -44,7 +41,7 @@ class TestTokenizer:
         return config
 
     def test_default_tokenizer(self):
-        config = self._create_tokenizer_config(name=DEFAULT_TOKENIZER)
+        config = self._create_tokenizer_config(name="gpt2")
         get_tokenizer(config)
 
     def test_non_default_tokenizer(self):
@@ -53,9 +50,9 @@ class TestTokenizer:
 
     def test_default_tokenizer_all_args(self):
         config = self._create_tokenizer_config(
-            name=DEFAULT_TOKENIZER,
+            name="gpt2",
             trust_remote_code=False,
-            revision=DEFAULT_TOKENIZER_REVISION,
+            revision=TokenizerDefaults.REVISION,
         )
         get_tokenizer(config)
 
@@ -68,7 +65,9 @@ class TestTokenizer:
         get_tokenizer(config)
 
     def test_default_args(self):
-        config = self._create_tokenizer_config(name=DEFAULT_TOKENIZER)
+        config = self._create_tokenizer_config(
+            name="hf-internal-testing/llama-tokenizer"
+        )
         tokenizer = get_tokenizer(config)
 
         # There are 3 special tokens in the default tokenizer

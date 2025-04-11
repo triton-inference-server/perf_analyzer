@@ -26,11 +26,7 @@
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import OpenAICompletionsConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    ModelSelectionStrategy,
-    OutputFormat,
-)
+from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,

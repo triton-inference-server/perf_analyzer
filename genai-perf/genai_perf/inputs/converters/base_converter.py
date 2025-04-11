@@ -25,14 +25,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import OutputTokenDefaults
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import (
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    ModelSelectionStrategy,
-)
+from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.tokenizer import Tokenizer, get_empty_tokenizer
 from genai_perf.utils import sample_bounded_normal
@@ -78,7 +76,7 @@ class BaseConverter:
                 f"Model selection strategy '{self.config.endpoint.model_selection_strategy}' is unsupported"
             )
 
-    def _get_max_tokens(self, optional_data: Dict[Any, Any]) -> int:
+    def _get_max_tokens(self, optional_data: Dict[Any, Any]) -> Union[int, None]:
         """
         Return the `max_tokens` value to be added in the payload.
         If `max_tokens` is present in `optional_data`, that value is used.
@@ -95,7 +93,7 @@ class BaseConverter:
                     lower=1,  # output token must be >= 1
                 )
             )
-        return DEFAULT_OUTPUT_TOKENS_MEAN
+        return OutputTokenDefaults.MEAN
 
     def _add_request_params(
         self,

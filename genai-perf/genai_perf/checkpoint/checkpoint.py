@@ -59,7 +59,6 @@ class Checkpoint:
         checkpoint_file_path = self._create_checkpoint_file_path()
 
         if os.path.isfile(checkpoint_file_path):
-            self.checkpoint_exists = True
             try:
                 with open(checkpoint_file_path, "r") as checkpoint_file:
                     checkpoint_json = json.load(checkpoint_file)
@@ -74,8 +73,6 @@ class Checkpoint:
                         " empty or corrupted. Delete it and rerun GAP"
                     )
                 )
-        else:
-            self.checkpoint_exists = False
 
     def _create_checkpoint_file_path(self) -> str:
         checkpoint_file_path = os.path.join(

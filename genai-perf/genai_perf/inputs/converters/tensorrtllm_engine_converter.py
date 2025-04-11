@@ -26,20 +26,17 @@
 
 from typing import Any, Dict, List
 
+from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    DEFAULT_TENSORRTLLM_MAX_TOKENS,
-)
+from genai_perf.inputs.input_constants import DEFAULT_TENSORRTLLM_MAX_TOKENS
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
     def check_config(self) -> None:
-        if self.config.input.batch_size != DEFAULT_BATCH_SIZE:
+        if self.config.input.batch_size != InputDefaults.BATCH_SIZE:
             raise GenAIPerfException(
                 f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )

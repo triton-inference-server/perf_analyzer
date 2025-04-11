@@ -28,9 +28,9 @@ from pathlib import Path
 
 import pytest
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.dynamic_grpc_converter import DynamicGRPCConverter
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -139,7 +139,7 @@ def test_check_config_valid(valid_config):
 
 
 def test_check_config_invalid_batch_size(valid_config):
-    valid_config.input.batch_size = [2]
+    valid_config.input.batch_size = InputDefaults.BATCH_SIZE + 1
     with pytest.raises(
         GenAIPerfException, match="The --batch-size-text flag is not supported"
     ):
