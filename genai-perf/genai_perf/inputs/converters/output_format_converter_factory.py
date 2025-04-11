@@ -46,7 +46,7 @@ class OutputFormatConverterFactory:
         tokenizer: Optional[Tokenizer] = None,
     ):
         converters = {
-            OutputFormat.DYANMIC_GRPC: DynamicGRPCConverter,
+            OutputFormat.DYNAMIC_GRPC: DynamicGRPCConverter,
             OutputFormat.IMAGE_RETRIEVAL: ImageRetrievalConverter,
             OutputFormat.NVCLIP: NVClipConverter,
             OutputFormat.OPENAI_CHAT_COMPLETIONS: OpenAIChatCompletionsConverter,

@@ -426,7 +426,7 @@ class ConfigOutputTokens(BaseConfig):
             default=OutputTokenDefaults.DETERMINISTIC,
             verbose_template_comment="This can be set to improve the precision of the mean by setting the\
             \nminimum number of tokens equal to the requested number of tokens.\
-            \nThis is currently supported with the Triton service-kind.",
+            \nThis is currently supported with Triton.",
         )
         self.stddev: Any = ConfigField(
             default=OutputTokenDefaults.STDDEV,

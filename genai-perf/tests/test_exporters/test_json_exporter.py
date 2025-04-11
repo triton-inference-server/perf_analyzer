@@ -82,6 +82,8 @@ class TestJsonExporter:
             "profile",
             "-m",
             "test_model",
+            "--backend",
+            "tensorrtllm",
             "--artifact-dir",
             "/tmp/test_artifact",
         ]
@@ -100,6 +102,8 @@ class TestJsonExporter:
             "profile",
             "-m",
             "test_model",
+            "--backend",
+            "tensorrtllm",
             "--artifact-dir",
             "/tmp/test_artifact",
             "--profile-export-file",
@@ -138,7 +142,14 @@ class TestJsonExporter:
             },
         }
 
-        cli_cmd = ["genai-perf", "profile", "-m", "test_model"]
+        cli_cmd = [
+            "genai-perf",
+            "profile",
+            "-m",
+            "test_model",
+            "--endpoint-type",
+            "chat",
+        ]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats)
         json_exporter.export()
 
@@ -156,6 +167,8 @@ class TestJsonExporter:
             "profile",
             "-m",
             "test_model",
+            "--endpoint-type",
+            "chat",
         ]
         json_exporter = self.create_json_exporter(monkeypatch, cli_cmd, stats={})
         json_exporter.export()
@@ -199,6 +212,8 @@ class TestJsonExporter:
             "profile",
             "-m",
             "test_model",
+            "--endpoint-type",
+            "chat",
             "--goodput",
             "some_metric_1:8.0",
             "some_metric_2:2.0",
@@ -250,8 +265,8 @@ class TestJsonExporter:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "triton",
+            "--backend",
+            "tensorrtllm",
             "--server-metrics-url",
             "http://tritonmetrics:8002/metrics",
         ]
@@ -296,8 +311,6 @@ class TestJsonExporter:
             "profile",
             "-m",
             "test_model",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
         ]

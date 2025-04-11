@@ -159,7 +159,6 @@ Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --service-kind triton \
   --backend tensorrtllm \
   --streaming
 ```
@@ -209,7 +208,6 @@ by passing the `--generate-plots` option when running the benchmark:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --service-kind triton \
   --backend tensorrtllm \
   --streaming \
   --concurrency 1 \
@@ -263,8 +261,8 @@ For any dataset, you can specify the following options:
   in each output. This is only used when output-tokens-mean is provided, >= 1.
 * `--output-tokens-mean-deterministic`: When using `--output-tokens-mean`, this
   flag can be set to improve precision by setting the minimum number of tokens
-  equal to the requested number of tokens. This is currently supported with the
-  Triton service-kind. Note that there is still some variability in the
+  equal to the requested number of tokens. This is currently supported with
+  Triton. Note that there is still some variability in the
   requested number of output tokens, but GenAi-Perf attempts its best effort
   with your model to get the right number of output tokens.
 * `--prefix-prompt-length <int>`: The number of tokens to include in each
@@ -329,7 +327,7 @@ the inference server.
 
 ### Telemetry Metrics
 
-When using the Triton service kind, Telemetry metrics will be reported in
+When benchmarking Triton, Telemetry metrics will be reported in
 the GenAI-Perf profile export files. These include GPU power usage, GPU
 utilization, energy consumption, total GPU memory, and more. If you would like
 these to be printed as output, you can use the `--verbose` flag.
@@ -383,7 +381,7 @@ a request in order. Random means that assignment is uniformly random
 
 ##### `--backend {tensorrtllm,vllm}`
 
-When using the "triton" service-kind, this is the backend of the model. For the
+When benchmarking Triton, this is the backend of the model. For the
 TRT-LLM backend, you currently must set `exclude_input_in_output` to true in the
 model config to not echo the input tokens in the output. (default: tensorrtllm)
 
@@ -391,22 +389,16 @@ model config to not echo the input tokens in the output. (default: tensorrtllm)
 
 Set a custom endpoint that differs from the OpenAI defaults. (default: `None`)
 
-##### `--endpoint-type {chat,completions,embeddings,rankings}`
+##### `--endpoint-type <str>`
 
-The endpoint-type to send requests to on the server. This is only used with the
-`openai` service-kind. (default: `None`)
+The endpoint-type to send requests to on the server. (default: `kserve`)
 
 ##### `--server-metrics-urls <list>`
 
 The list of Triton server metrics URLs. These are used for Telemetry metric
-reporting with the Triton service-kind. Example usage: --server-metrics-urls
+reporting with Triton. Example usage: --server-metrics-urls
 http://server1:8002/metrics http://server2:8002/metrics.
 (default: `http://localhost:8002/metrics`)
-
-##### `--service-kind {triton,openai}`
-
-The kind of service perf_analyzer will generate load for. In order to use
-`openai`, you must specify an api via `--endpoint-type`. (default: `triton`)
 
 ##### `--streaming`
 
@@ -420,7 +412,7 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 ##### `--grpc-method <str>`
 
 A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
-The option is only supported by dynamic gRPC service kind and is required to
+The option is only supported with dynamic gRPC and is required to
 identify the RPC to use when sending requests to the server. (default: `None`)
 
 ### Input Options
@@ -531,7 +523,7 @@ correctly. (default: `-1`)
 
 When using `--output-tokens-mean`, this flag can be set to improve precision by
 setting the minimum number of tokens equal to the requested number of tokens.
-This is currently supported with the Triton service-kind. Note that there is
+This is currently supported with Triton. Note that there is
 still some variability in the requested number of output tokens, but GenAi-Perf
 attempts its best effort with your model to get the right number of output
 tokens. (default: `False`)

@@ -175,8 +175,6 @@ class CreateConfig:
             config.endpoint.custom = args.endpoint
         if args.endpoint_type:
             config.endpoint.type = args.endpoint_type
-        if args.service_kind:
-            config.endpoint.service_kind = args.service_kind
         if args.streaming:
             config.endpoint.streaming = args.streaming
         if args.server_metrics_url:

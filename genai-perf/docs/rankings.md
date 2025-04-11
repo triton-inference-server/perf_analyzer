@@ -51,7 +51,6 @@ To profile ranking models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m BAAI/bge-reranker-base \
-    --service-kind openai \
     --endpoint-type rankings \
     --endpoint rerank \
     --input-file synthetic:queries,passages \
@@ -96,7 +95,6 @@ To profile ranking models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m BAAI/bge-reranker-base \
-    --service-kind openai \
     --endpoint-type rankings \
     --endpoint rerank \
     --input-file rankings_jsonl/ \

@@ -55,7 +55,6 @@ the parameters provide by the user through CLI.
 genai-perf profile \
     -m llava-hf/llava-v1.6-mistral-7b-hf \
     --tokenizer llava-hf/llava-v1.6-mistral-7b-hf \
-    --service-kind openai \
     --endpoint-type vision \
     --image-width-mean 512 \
     --image-width-stddev 30 \
@@ -99,7 +98,6 @@ After you create the file, you can run GenAI-Perf using the following command:
 genai-perf profile \
     -m llava-hf/llava-v1.6-mistral-7b-hf \
     --tokenizer llava-hf/llava-v1.6-mistral-7b-hf \
-    --service-kind openai \
     --endpoint-type vision \
     --input-file input.jsonl \
     --streaming

@@ -96,8 +96,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -154,8 +152,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--profile-export-file",
@@ -165,6 +161,7 @@ class TestCsvExporter:
         args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
 
         stats = Statistics(metrics=llm_metrics)
 
@@ -202,8 +199,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "embeddings",
         ]
@@ -245,8 +240,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -298,8 +291,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -352,8 +343,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "triton",
             "--streaming",
             "--server-metrics-url",
             "http://tritonserver:8002/metrics",
@@ -437,8 +426,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--profile-export-file",
@@ -448,6 +435,7 @@ class TestCsvExporter:
         args, _ = parser.parse_args()
         config = ConfigCommand({"model_name": "model_name"})
         config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
 
         stats = Statistics(metrics=llm_metrics)
 

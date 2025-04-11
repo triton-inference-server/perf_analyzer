@@ -34,7 +34,7 @@ import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import AnalyzeDefaults
+from genai_perf.config.input.config_defaults import AnalyzeDefaults, EndPointDefaults
 from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs import input_constants as ic
 from genai_perf.subcommand.analyze import analyze_handler
@@ -201,19 +201,16 @@ def _add_analyze_args(parser):
             "input_sequence_length",
             "request_rate",
         ],
-        required=False,
         help=f"The stimulus type that GAP will sweep.",
     )
     analyze_group.add_argument(
         "--sweep-range",
         type=str,
-        required=False,
         help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
     )
     analyze_group.add_argument(
         "--sweep-list",
         type=str,
-        required=False,
         help=f"A comma-separated list of values that stimulus will be swept over.",
     )
 
@@ -224,14 +221,12 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-length-mean",
         type=float,
-        required=False,
         help=f"The mean length of audio data in seconds. Default is 10 seconds.",
     )
 
     input_group.add_argument(
         "--audio-length-stddev",
         type=float,
-        required=False,
         help=f"The standard deviation of the length of audio data in seconds. "
         "Default is 0.",
     )
@@ -240,7 +235,6 @@ def _add_audio_input_args(parser):
         "--audio-format",
         type=str,
         choices=utils.get_enum_names(ic.AudioFormat),
-        required=False,
         help=f"The format of the audio data. Currently we support wav and "
         "mp3 format. Default is 'wav'.",
     )
@@ -249,7 +243,6 @@ def _add_audio_input_args(parser):
         "--audio-depths",
         type=int,
         nargs="*",
-        required=False,
         help=f"A list of audio bit depths to randomly select from in bits. "
         "Default is [16].",
     )
@@ -258,7 +251,6 @@ def _add_audio_input_args(parser):
         "--audio-sample-rates",
         type=float,
         nargs="*",
-        required=False,
         help=f"A list of audio sample rates to randomly select from in kHz. "
         "Default is [16].",
     )
@@ -267,7 +259,6 @@ def _add_audio_input_args(parser):
         "--audio-num-channels",
         type=int,
         choices=[1, 2],
-        required=False,
         help=f"The number of audio channels to use for the audio data generation. "
         "Currently only 1 (mono) and 2 (stereo) are supported. "
         "Default is 1 (mono channel).",
@@ -281,7 +272,6 @@ def _add_template_args(parser):
         "-f",
         "--file",
         type=Path,
-        required=False,
         help="The name to the template file that will be created.",
     )
 
@@ -300,7 +290,6 @@ def _add_config_args(parser):
     config_group.add_argument(
         "--override-config",
         action="store_true",
-        required=False,
         help="Setting this flag enables the user to override config values via the CLI.",
     )
 
@@ -312,14 +301,12 @@ def _add_endpoint_args(parser):
         "-m",
         "--model",
         nargs="+",
-        required=False,
         help=f"The name of the model(s) to benchmark.",
     )
     endpoint_group.add_argument(
         "--model-selection-strategy",
         type=str,
         choices=utils.get_enum_names(ic.ModelSelectionStrategy),
-        required=False,
         help=f"When multiple model are specified, this is how a specific model "
         "should be assigned to a prompt.  round_robin means that ith prompt in the "
         "list gets assigned to i mod len(models).  random means that assignment is "
@@ -330,8 +317,7 @@ def _add_endpoint_args(parser):
         "--backend",
         type=str,
         choices=utils.get_enum_names(ic.OutputFormat)[0:2],
-        required=False,
-        help=f'When using the "triton" service-kind, '
+        help=f"When benchmarking Triton, "
         "this is the backend of the model. "
         "For the TENSORRT-LLM backend, you currently must set "
         "'exclude_input_in_output' to true in the model config to "
@@ -341,7 +327,6 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--endpoint",
         type=str,
-        required=False,
         help=f"Set a custom endpoint that differs from the OpenAI defaults.",
     )
 
@@ -349,18 +334,7 @@ def _add_endpoint_args(parser):
         "--endpoint-type",
         type=str,
         choices=list(endpoint_type_map.keys()),
-        required=False,
-        help=f"The endpoint-type to send requests to on the " "server.",
-    )
-
-    endpoint_group.add_argument(
-        "--service-kind",
-        type=str,
-        choices=["dynamic_grpc", "openai", "tensorrtllm_engine", "triton"],
-        required=False,
-        help="The kind of service perf_analyzer will "
-        'generate load for. In order to use "openai", '
-        "you must specify an api via --endpoint-type.",
+        help=f"The endpoint-type to send requests to on the server.",
     )
 
     endpoint_group.add_argument(
@@ -368,9 +342,8 @@ def _add_endpoint_args(parser):
         "--server-metrics-urls",
         type=str,
         nargs="+",
-        required=False,
         help="The list of Triton server metrics URLs. These are used for "
-        "Telemetry metric reporting with the Triton service-kind. Example "
+        "Telemetry metric reporting with Triton. Example "
         "usage: --server-metrics-url http://server1:8002/metrics "
         "http://server2:8002/metrics",
     )
@@ -378,7 +351,6 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--streaming",
         action="store_true",
-        required=False,
         help=f"An option to enable the use of the streaming API.",
     )
 
@@ -386,7 +358,6 @@ def _add_endpoint_args(parser):
         "-u",
         "--url",
         type=str,
-        required=False,
         dest="u",
         metavar="URL",
         help="URL of the endpoint to target for benchmarking.",
@@ -399,28 +370,24 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-mean",
         type=int,
-        required=False,
         help=f"The mean width of images when generating synthetic image data.",
     )
 
     input_group.add_argument(
         "--image-width-stddev",
         type=int,
-        required=False,
         help=f"The standard deviation of width of images when generating synthetic image data.",
     )
 
     input_group.add_argument(
         "--image-height-mean",
         type=int,
-        required=False,
         help=f"The mean height of images when generating synthetic image data.",
     )
 
     input_group.add_argument(
         "--image-height-stddev",
         type=int,
-        required=False,
         help=f"The standard deviation of height of images when generating synthetic image data.",
     )
 
@@ -428,7 +395,6 @@ def _add_image_input_args(parser):
         "--image-format",
         type=str,
         choices=utils.get_enum_names(ic.ImageFormat),
-        required=False,
         help=f"The compression format of the images. "
         "If format is not selected, format of generated image is selected at random",
     )
@@ -440,7 +406,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--batch-size-audio",
         type=int,
-        required=False,
         help=f"The audio batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the OpenAI `multimodal` endpoint type.",
     )
@@ -448,7 +413,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--batch-size-image",
         type=int,
-        required=False,
         help=f"The image batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the image retrieval endpoint type.",
     )
@@ -458,7 +422,6 @@ def _add_input_args(parser):
         "--batch-size",
         "-b",
         type=int,
-        required=False,
         help=f"The text batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the embeddings and rankings "
         "endpoint types.",
@@ -476,7 +439,6 @@ def _add_input_args(parser):
         "--goodput",
         "-g",
         nargs="+",
-        required=False,
         help="An option to provide constraints in order to compute goodput. "
         "Specify goodput constraints as 'key:value' pairs, where the key is a "
         "valid metric name, and the value is a number representing "
@@ -497,7 +459,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--input-file",
         type=file_or_directory,
-        required=False,
         help="The input file or directory containing the content to use for "
         "profiling. Each line should be a JSON object with a 'text' or "
         "'image' field in JSONL format. Example: {\"text\": "
@@ -517,7 +478,6 @@ def _add_input_args(parser):
         "--num-dataset-entries",
         "--num-prompts",
         type=positive_integer,
-        required=False,
         help=f"The number of unique payloads to sample from. "
         "These will be reused until benchmarking is complete.",
     )
@@ -525,7 +485,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--num-prefix-prompts",
         type=int,
-        required=False,
         help=f"The number of prefix prompts to select from. "
         "If this value is not zero, these are prompts that are "
         "prepended to input prompts. This is useful for "
@@ -536,7 +495,6 @@ def _add_input_args(parser):
         "--output-tokens-mean",
         "--osl",
         type=int,
-        required=False,
         help=f"The mean number of tokens in each output. "
         "Ensure the --tokenizer value is set correctly. ",
     )
@@ -544,11 +502,10 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-mean-deterministic",
         action="store_true",
-        required=False,
         help=f"When using --output-tokens-mean, this flag can be set to "
         "improve precision by setting the minimum number of tokens "
         "equal to the requested number of tokens. This is currently "
-        "supported with the Triton service-kind. "
+        "supported with Triton. "
         "Note that there is still some variability in the requested number "
         "of output tokens, but GenAi-Perf attempts its best effort with your "
         "model to get the right number of output tokens. ",
@@ -557,7 +514,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-stddev",
         type=int,
-        required=False,
         help=f"The standard deviation of the number of tokens in each output. "
         "This is only used when --output-tokens-mean is provided.",
     )
@@ -565,7 +521,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--random-seed",
         type=int,
-        required=False,
         help="The seed used to generate random values. If not provided, a "
         "random seed will be used.",
     )
@@ -573,7 +528,6 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--grpc-method",
         type=str,
-        required=False,
         help="A fully-qualified gRPC method name in "
         "'<package>.<service>/<method>' format. The option is only "
         "supported by dynamic gRPC service kind and is required to identify "
@@ -584,21 +538,18 @@ def _add_input_args(parser):
         "--synthetic-input-tokens-mean",
         "--isl",
         type=int,
-        required=False,
         help=f"The mean of number of tokens in the generated prompts when using synthetic data.",
     )
 
     input_group.add_argument(
         "--synthetic-input-tokens-stddev",
         type=int,
-        required=False,
         help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
     )
 
     input_group.add_argument(
         "--prefix-prompt-length",
         type=int,
-        required=False,
         help=f"The number of tokens in each prefix prompt. This value is only "
         "used if --num-prefix-prompts is positive. Note that due to "
         "the prefix and user prompts being concatenated, the number of tokens "
@@ -609,7 +560,6 @@ def _add_input_args(parser):
         "--warmup-request-count",
         "--num-warmup-requests",
         type=int,
-        required=False,
         help=f"The number of warmup requests to send before benchmarking.",
     )
 
@@ -621,7 +571,6 @@ def _add_other_args(parser):
         "-v",
         "--verbose",
         action="store_true",
-        required=False,
         help="An option to enable verbose mode.",
     )
 
@@ -637,7 +586,6 @@ def _add_output_args(parser):
     output_group.add_argument(
         "--generate-plots",
         action="store_true",
-        required=False,
         help="An option to enable the generation of plots.",
     )
     output_group.add_argument(
@@ -660,7 +608,6 @@ def _add_profile_args(parser):
     load_management_group.add_argument(
         "--concurrency",
         type=int,
-        required=False,
         help="The concurrency value to benchmark.",
     )
 
@@ -668,7 +615,6 @@ def _add_profile_args(parser):
         "--measurement-interval",
         "-p",
         type=int,
-        required=False,
         help="The time interval used for each measurement in milliseconds. "
         "Perf Analyzer will sample a time interval specified and take "
         "measurement over the requests completed within that time interval. "
@@ -680,14 +626,12 @@ def _add_profile_args(parser):
         "--request-count",
         "--num-requests",
         type=int,
-        required=False,
         help="The number of requests to use for measurement.",
     )
 
     load_management_group.add_argument(
         "--request-rate",
         type=float,
-        required=False,
         help="Sets the request rate for the load generated by PA.",
     )
 
@@ -695,7 +639,6 @@ def _add_profile_args(parser):
         "-s",
         "--stability-percentage",
         type=float,
-        required=False,
         help="The allowed variation in "
         "latency measurements when determining if a result is stable. The "
         "measurement is considered as stable if the ratio of max / min "
@@ -720,7 +663,6 @@ def _add_session_args(parser):
     session_load_management_group.add_argument(
         "--session-concurrency",
         type=int,
-        required=False,
         help="The number of concurrent sessions to benchmark.",
     )
 
@@ -763,7 +705,6 @@ def _add_tokenizer_args(parser):
     tokenizer_group.add_argument(
         "--tokenizer",
         type=str,
-        required=False,
         help="The HuggingFace tokenizer to use to interpret token metrics "
         "from prompts and responses. The value can be the name of a tokenizer "
         "or the filepath of the tokenizer. The default value is the model "
@@ -772,14 +713,12 @@ def _add_tokenizer_args(parser):
     tokenizer_group.add_argument(
         "--tokenizer-revision",
         type=str,
-        required=False,
         help="The specific model version to use. It can be a branch name, "
         "tag name, or commit ID.",
     )
     tokenizer_group.add_argument(
         "--tokenizer-trust-remote-code",
         action="store_true",
-        required=False,
         help="Allow custom tokenizer to be downloaded and executed. "
         "This carries security risks and should only be used "
         "for repositories you trust. This is only necessary for custom "
