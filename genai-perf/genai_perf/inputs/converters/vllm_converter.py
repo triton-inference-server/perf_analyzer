@@ -27,20 +27,16 @@
 import json
 from typing import Any, Dict
 
+from genai_perf.config.input.config_defaults import InputDefaults, OutputTokenDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-)
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.utils import sample_bounded_normal
 
 
 class VLLMConverter(BaseConverter):
 
     def check_config(self) -> None:
-        if self.config.input.batch_size != DEFAULT_BATCH_SIZE:
+        if self.config.input.batch_size != InputDefaults.BATCH_SIZE:
             raise GenAIPerfException(
                 f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
@@ -71,7 +67,7 @@ class VLLMConverter(BaseConverter):
         if self.config.endpoint.streaming:
             payload["stream"] = [True]
         number_of_tokens = self._get_max_tokens(optional_data)
-        if number_of_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
+        if number_of_tokens != OutputTokenDefaults.MEAN:
             sampling_parameters = {
                 "max_tokens": f"{number_of_tokens}",
             }

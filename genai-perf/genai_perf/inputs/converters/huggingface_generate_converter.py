@@ -26,8 +26,8 @@
 
 from typing import Any, Dict
 
+from genai_perf.config.input.config_defaults import OutputTokenDefaults
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 
 
@@ -65,7 +65,7 @@ class HuggingFaceGenerateConverter(BaseConverter):
 
     def _add_request_params(self, payload: Dict, optional_data: Dict[Any, Any]) -> None:
         number_of_tokens = self._get_max_tokens(optional_data)
-        if number_of_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
+        if number_of_tokens != OutputTokenDefaults.MEAN:
             payload.setdefault("parameters", {})["max_new_tokens"] = number_of_tokens
         if self.config.input.extra:
             for key, value in self.config.input.extra.items():

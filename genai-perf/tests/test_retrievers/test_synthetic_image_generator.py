@@ -56,7 +56,7 @@ def test_different_image_size(expected_image_size):
         image_width_stddev=0,
         image_height_mean=expected_height,
         image_height_stddev=0,
-        image_format=ImageFormat.PNG,
+        image_format=ImageFormat.JPEG,
     )
 
     image = decode_image(base64_string)

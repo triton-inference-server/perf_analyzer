@@ -60,7 +60,6 @@ class AnalyzeDefaults:
     MAX_INPUT_SEQUENCE_LENGTH = 1000
     STEP = 1
 
-    STIMULUS_TYPE = "concurrency"
     SWEEP_PARAMETER = {"concurrency": Range(min=MIN_CONCURRENCY, max=MAX_CONCURRENCY)}
 
 
@@ -161,7 +160,6 @@ class SessionTurnsDefaults:
 class SessionTurnDelayDefaults:
     MEAN = 0
     STDDEV = 0
-    RATIO = 1.0
 
 
 @dataclass(frozen=True)

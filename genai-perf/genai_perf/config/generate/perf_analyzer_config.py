@@ -29,13 +29,7 @@ from genai_perf.inputs.input_constants import (
     PromptSource,
 )
 from genai_perf.logging import logging
-from genai_perf.types import (
-    CheckpointObject,
-    ModelName,
-    ModelObjectiveParameters,
-    Parameters,
-)
-from genai_perf.utils import convert_option_name
+from genai_perf.types import CheckpointObject, ModelObjectiveParameters, Parameters
 
 logger = logging.getLogger(__name__)
 

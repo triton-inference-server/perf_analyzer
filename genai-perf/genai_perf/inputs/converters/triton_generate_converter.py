@@ -26,10 +26,9 @@
 
 from typing import Any, Dict
 
+from genai_perf.config.input.config_defaults import OutputTokenDefaults
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_OUTPUT_TOKENS_MEAN
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.utils import sample_bounded_normal
 
 
 class TritonGenerateConverter(BaseConverter):
@@ -66,7 +65,7 @@ class TritonGenerateConverter(BaseConverter):
         if self.config.endpoint.streaming:
             payload["stream"] = True
         max_tokens = self._get_max_tokens(optional_data)
-        if max_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
+        if max_tokens != OutputTokenDefaults.MEAN:
             payload["max_tokens"] = max_tokens
         if self.config.input.extra:
             for key, value in self.config.input.extra.items():

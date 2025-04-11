@@ -28,8 +28,7 @@ from genai_perf.config.generate.perf_analyzer_config import (
     PerfAnalyzerConfig,
 )
 from genai_perf.config.generate.search_parameters import SearchUsage
-from genai_perf.config.input.config_command import ConfigCommand, ConfigPerfAnalyzer
-from genai_perf.constants import DEFAULT_GRPC_URL
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import (
     OutputFormat,
     PerfAnalyzerMeasurementMode,

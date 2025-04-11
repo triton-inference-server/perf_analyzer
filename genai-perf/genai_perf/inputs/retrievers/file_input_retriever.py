@@ -29,8 +29,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple, cast
 
 from genai_perf import utils
+from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.retrievers.base_file_input_retriever import (
     BaseFileInputRetriever,
 )
@@ -239,8 +239,8 @@ class FileInputRetriever(BaseFileInputRetriever):
                     "Batch size for images cannot be larger than the number of available images"
                 )
             if (
-                self.config.input.image.batch_size > DEFAULT_BATCH_SIZE
-                or self.config.input.batch_size > DEFAULT_BATCH_SIZE
+                self.config.input.image.batch_size > InputDefaults.BATCH_SIZE
+                or self.config.input.batch_size > InputDefaults.BATCH_SIZE
             ):
                 for _ in range(self.config.input.num_dataset_entries):
                     sampled_texts = random.sample(prompts, self.config.input.batch_size)
@@ -258,7 +258,7 @@ class FileInputRetriever(BaseFileInputRetriever):
                 raise ValueError(
                     "Batch size for texts cannot be larger than the number of available texts"
                 )
-            if self.config.input.batch_size > DEFAULT_BATCH_SIZE:
+            if self.config.input.batch_size > InputDefaults.BATCH_SIZE:
                 for _ in range(self.config.input.num_dataset_entries):
                     sampled_texts = random.sample(prompts, self.config.input.batch_size)
                     data_rows.append(DataRow(texts=sampled_texts, images=[]))
@@ -271,7 +271,7 @@ class FileInputRetriever(BaseFileInputRetriever):
                     "Batch size for images cannot be larger than the number of available images"
                 )
 
-            if self.config.input.image.batch_size > DEFAULT_BATCH_SIZE:
+            if self.config.input.image.batch_size > InputDefaults.BATCH_SIZE:
                 for _ in range(self.config.input.num_dataset_entries):
                     sampled_images = random.sample(
                         images, self.config.input.image.batch_size

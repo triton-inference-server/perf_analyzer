@@ -26,16 +26,16 @@
 
 from typing import Any, Dict
 
+from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class DynamicGRPCConverter(BaseConverter):
 
     def check_config(self) -> None:
-        if self.config.input.batch_size != DEFAULT_BATCH_SIZE:
+        if self.config.input.batch_size != InputDefaults.BATCH_SIZE:
             raise GenAIPerfException(
                 f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
