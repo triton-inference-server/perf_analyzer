@@ -28,7 +28,6 @@ from contextlib import nullcontext as does_not_raise
 
 import pytest
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import TokenizerDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,

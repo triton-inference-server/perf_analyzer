@@ -139,7 +139,7 @@ def test_check_config_valid(valid_config):
 
 
 def test_check_config_invalid_batch_size(valid_config):
-    valid_config.input.batch_size = InputDefaults.BATCH_SIZE + 1
+    valid_config.input.batch_size = [2]
     with pytest.raises(
         GenAIPerfException, match="The --batch-size-text flag is not supported"
     ):
