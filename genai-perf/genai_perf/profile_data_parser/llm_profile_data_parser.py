@@ -26,12 +26,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
 from collections import defaultdict
-from itertools import tee
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, NoReturn, Tuple, TypeAlias
 
+import orjson
 from genai_perf.constants import EMPTY_RESPONSE_TOKEN
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.logging import logging
@@ -111,17 +111,24 @@ class LLMProfileDataParser(ProfileDataParser):
     def _parse_requests(self, requests: dict) -> LLMMetrics:
         """Parse each requests in profile export data to extract key metrics."""
         min_req_timestamp, max_res_timestamp = float("inf"), 0
-        request_latencies = []
-        time_to_first_tokens = []
-        time_to_second_tokens = []
-        inter_token_latencies = []
-        output_token_throughputs_per_user = []
-        input_sequence_lengths = []
-        output_sequence_lengths = []
-        chunked_inter_token_latencies = []
+        request_latencies: List[int] = []
+        time_to_first_tokens: List[int] = []
+        time_to_second_tokens: List[int] = []
+        inter_token_latencies: List[int] = []
+        output_token_throughputs_per_user: List[float] = []
+        input_sequence_lengths: List[int] = []
+        output_sequence_lengths: List[int] = []
+        chunked_inter_token_latency: List[int] = []
+        chunked_inter_token_latencies: List[List[int]] = []
 
         logger.info(f"Parsing total {len(requests)} requests.")
-        for request in tqdm(requests, desc="Progress: ", unit="requests"):
+        for request in tqdm(
+            requests,
+            desc="Progress: ",
+            unit="requests",
+            total=len(requests),
+            miniters=len(requests) // 100,
+        ):
             req_timestamp = request["timestamp"]
             req_inputs = request["request_inputs"]
             res_timestamps = request["response_timestamps"]
@@ -134,43 +141,56 @@ class LLMProfileDataParser(ProfileDataParser):
             if not res_timestamps:
                 continue
 
+            # Cache length
+            num_responses = len(res_timestamps)
+
+            # Cache frequently used appends
+            request_latencies_append = request_latencies.append
+            ttft_list_append = time_to_first_tokens.append
+            ttst_list_append = time_to_second_tokens.append
+            itl_append = inter_token_latencies.append
+            tps_user_append = output_token_throughputs_per_user.append
+            in_len_append = input_sequence_lengths.append
+            out_len_append = output_sequence_lengths.append
+            chunked_itls_append = chunked_inter_token_latencies.append
+
             # track entire benchmark duration
             min_req_timestamp = min(min_req_timestamp, req_timestamp)
             max_res_timestamp = max(max_res_timestamp, res_timestamps[-1])
 
             # request latencies
             req_latency_ns = res_timestamps[-1] - req_timestamp
-            request_latencies.append(req_latency_ns)  # nanosec
+            request_latencies_append(req_latency_ns)  # nanosec
 
             # time to first token
             ttft = res_timestamps[0] - req_timestamp
-            time_to_first_tokens.append(ttft)
+            ttft_list_append(ttft)
 
             # time to second token (if available)
-            if len(res_timestamps) > 1:
+            if num_responses > 1:
                 ttst = res_timestamps[1] - res_timestamps[0]
-                time_to_second_tokens.append(ttst)
+                ttst_list_append(ttst)
 
             # number of input tokens
             input_seq_len = self._get_input_token_count(req_inputs)
-            input_sequence_lengths.append(input_seq_len)
+            in_len_append(input_seq_len)
 
             # number of output tokens
             output_token_counts, total_output_token = self._get_output_token_counts(
                 res_outputs
             )
-            output_sequence_lengths.append(total_output_token)
+            out_len_append(total_output_token)
 
-            if len(res_timestamps) > 1 and total_output_token > 1:
+            if num_responses > 1 and total_output_token > 1:
                 # inter token latencies
                 inter_token_latency = round(
                     (req_latency_ns - ttft) / (total_output_token - 1)
                 )
-                inter_token_latencies.append(inter_token_latency)
+                itl_append(inter_token_latency)
 
                 # output token throughput per user (TPS/user)
                 inter_token_latency_s = inter_token_latency / 1e9
-                output_token_throughputs_per_user.append(1 / inter_token_latency_s)
+                tps_user_append(1 / inter_token_latency_s)
 
             # The new ITL calculation above loses all token-level ITL information
             # and as a result breaks ITL vs token position visualization. Keep
@@ -186,16 +206,16 @@ class LLMProfileDataParser(ProfileDataParser):
                 # calculation and to avoid divide by zero.
                 num_token = 1 if n2 == 0 else n2
                 chunked_inter_token_latency.append(round((t2 - t1) / num_token))
-            chunked_inter_token_latencies.append(chunked_inter_token_latency)
+            chunked_itls_append(chunked_inter_token_latency)
 
             # (per-session) calculate llm metrics
             if "session_id" in req_inputs:
                 session_metric = self._session_metrics[req_inputs["session_id"]]
                 session_metric["request_latencies"].append(req_latency_ns)
                 session_metric["time_to_first_tokens"].append(ttft)
-                if len(res_timestamps) > 1:
+                if num_responses > 1:
                     session_metric["time_to_second_tokens"].append(ttst)
-                if len(res_timestamps) > 1 and total_output_token > 1:
+                if num_responses > 1 and total_output_token > 1:
                     session_metric["inter_token_latencies"].append(inter_token_latency)
                     session_metric["output_token_throughputs_per_user"].append(
                         1 / inter_token_latency_s
@@ -248,9 +268,8 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _pairwise(self, iterable):
         """Generate pairs of consecutive elements from the given iterable."""
-        a, b = tee(iterable)
-        next(b, None)
-        return zip(a, b)
+        iterable = list(iterable)
+        return zip(iterable, iterable[1:])
 
     def _preprocess_response(
         self, res_timestamps: List[int], res_outputs: List[Dict[str, str]]
@@ -324,7 +343,7 @@ class LLMProfileDataParser(ProfileDataParser):
                             data["choices"][0]["text"] = merged_text
                         else:
                             data["choices"][0]["delta"]["content"] = merged_text
-                    res_outputs[i] = {"response": json.dumps(data)}
+                    res_outputs[i] = {"response": orjson.dumps(data).decode("utf-8")}
                 elif self._is_empty_response(responses[0]):
                     res_outputs[i]["response"] = ""
 
@@ -349,7 +368,11 @@ class LLMProfileDataParser(ProfileDataParser):
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
-        return len(self._tokenizer.encode(input_text))
+        return self._cached_encode(input_text)
+
+    @lru_cache(maxsize=100_000)
+    def _cached_encode(self, text: str) -> int:
+        return len(self._tokenizer.encode(text))
 
     def _get_input_payload(self, req_inputs: dict) -> str:
         """Deserialize the request input payload."""
@@ -371,22 +394,35 @@ class LLMProfileDataParser(ProfileDataParser):
     def _get_output_token_counts(
         self, res_outputs: List[Dict]
     ) -> Tuple[List[int], int]:
-        """Return response-level token counts and total token count."""
         if self._service_kind == "triton":
-            output_texts = self._get_triton_output_tokens(res_outputs)
+            output_texts = [r["text_output"] for r in res_outputs]
         elif self._service_kind == "triton_c_api":
-            # No tokenizer is need to get the token counts.
-            return self._get_tensorrtllm_engine_token_counts(res_outputs)
+            token_ids = []
+            for r in res_outputs:
+                if isinstance(r["output_ids"], list):
+                    token_ids += r["output_ids"]
+                elif isinstance(r["output_ids"], int):
+                    token_ids.append(r["output_ids"])
+                else:
+                    token_ids.append(EMPTY_RESPONSE_TOKEN)
+            return token_ids, len(token_ids)
         elif self._service_kind == "openai":
-            output_texts = self._get_text_output_tokens(res_outputs)
+            output_texts = [
+                self._extract_text_output(r["response"]) for r in res_outputs
+            ]
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
 
-        full_text_token_count = len(self._tokenizer.encode("".join(output_texts)))
-
-        output_tokens = self._get_response_output_tokens(output_texts)
-        output_token_counts = list(map(len, output_tokens))
+        full_text_token_count = self._cached_encode("".join(output_texts))
+        output_token_counts = self._get_output_token_counts_batch(output_texts)
         return output_token_counts, full_text_token_count
+
+    def _get_output_token_counts_batch(self, texts: List[str]) -> List[int]:
+        # Exclamation mark forces tokenizers to use consistent prefix
+        forced_texts = ["!" + t for t in texts]
+        encoded = self._tokenizer(forced_texts)
+        input_ids: List[List[int]] = encoded["input_ids"]  # type: ignore
+        return [len(ids[1:]) for ids in input_ids]
 
     def _get_tensorrtllm_engine_token_counts(
         self, res_outputs: List[Dict]
@@ -464,19 +500,19 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _extract_openai_chat_text_output(self, response: str) -> str:
         data = load_json_str(response)
-        completions = data["choices"][0]  # type: ignore
+        completions = data.get("choices", [{}])[0]
 
-        if "object" not in data:
+        obj_type = data.get("object")
+        if not obj_type:
             # FIXME: TPA-47 workaround for vLLM not following OpenAI Completions
             # API specification when streaming, missing 'object' field:
             # https://platform.openai.com/docs/api-reference/completions
             return completions.get("text", "")
-        elif data["object"] == "chat.completion":  # non-streaming
+        elif obj_type == "chat.completion":  # non-streaming
             return completions["message"].get("content", "")
-        elif data["object"] == "chat.completion.chunk":  # streaming
+        elif obj_type == "chat.completion.chunk":  # streaming
             return completions["delta"].get("content", "")
         else:
-            obj_type = data["object"]
             raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
 
     def _extract_openai_completion_text_output(self, response: str) -> str:
@@ -484,12 +520,13 @@ class LLMProfileDataParser(ProfileDataParser):
         data = load_json_str(response)
         completions = data["choices"][0]  # type: ignore
 
-        if "object" not in data:
+        obj_type = data.get("object")
+        if not obj_type:
             # FIXME: TPA-47 workaround for vLLM not following OpenAI Completions
             # API specification when streaming, missing 'object' field:
             # https://platform.openai.com/docs/api-reference/completions
             return completions.get("text", "")
-        elif data["object"] == "text_completion":  # legacy
+        elif obj_type == "text_completion":  # legacy
             return completions.get("text", "")
         else:
             obj_type = data["object"]
@@ -507,7 +544,7 @@ class LLMProfileDataParser(ProfileDataParser):
         response = remove_sse_prefix(response)
         if response == "":
             return response
-        data = json.loads(response)
+        data = load_json_str(response)
         return data["text_output"]
 
     def _is_empty_response(self, response: str) -> bool:

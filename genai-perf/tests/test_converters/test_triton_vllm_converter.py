@@ -169,7 +169,7 @@ class TestVLLMConverter:
                     "text_input": ["text input one"],
                     "exclude_input_in_output": [True],
                     "sampling_parameters": [
-                        '{"max_tokens": "1234", "min_tokens": "1234"}'
+                        '{"max_tokens":"1234","min_tokens":"1234"}'
                     ],
                 },
                 {
@@ -177,7 +177,7 @@ class TestVLLMConverter:
                     "text_input": ["text input two"],
                     "exclude_input_in_output": [True],
                     "sampling_parameters": [
-                        '{"max_tokens": "1234", "min_tokens": "1234"}'
+                        '{"max_tokens":"1234","min_tokens":"1234"}'
                     ],
                 },
             ]

@@ -24,9 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
 from typing import Any, Dict
 
+import orjson
 from genai_perf.config.input.config_defaults import InputDefaults, OutputTokenDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
@@ -73,7 +73,7 @@ class VLLMConverter(BaseConverter):
             }
             if self.config.input.output_tokens.deterministic:
                 sampling_parameters["min_tokens"] = f"{number_of_tokens}"
-            sampling_parameters_str = json.dumps(sampling_parameters)
+            sampling_parameters_str = orjson.dumps(sampling_parameters).decode("utf-8")
             payload["sampling_parameters"] = [sampling_parameters_str]
         if self.config.input.extra:
             for key, value in self.config.input.extra.items():

@@ -983,7 +983,7 @@ class TestLLMProfileDataParser:
                     },
                     {"response": "data: [DONE]\n\n"},
                 ],
-                '{"object": "text_completion", "model": "test_model", "choices": [{"text": "abc1234helloworld"}]}',
+                '{"object":"text_completion","model":"test_model","choices":[{"text":"abc1234helloworld"}]}',
             ),
             # OpenAI Chat Completions
             (
@@ -998,7 +998,7 @@ class TestLLMProfileDataParser:
                     },
                     {"response": "data: [DONE]\n\n"},
                 ],
-                '{"choices": [{"delta": {"content": "abc1234helloworld"}}], "object": "chat.completion.chunk"}',
+                '{"choices":[{"delta":{"content":"abc1234helloworld"}}],"object":"chat.completion.chunk"}',
             ),
         ],
     )

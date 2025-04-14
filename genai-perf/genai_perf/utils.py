@@ -24,13 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
 import random
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
 
 import genai_perf.logging as logging
+import orjson
 
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
@@ -97,8 +97,8 @@ def load_json_str(json_str: str, func: Callable = lambda x: x) -> Dict[str, Any]
           run validation checks on the object. Defaults to identity function.
     """
     try:
-        return func(json.loads(json_str))
-    except json.JSONDecodeError:
+        return func(orjson.loads(json_str))
+    except orjson.JSONDecodeError:
         snippet = json_str[:200] + ("..." if len(json_str) > 200 else "")
         logger.error("Failed to parse JSON string: '%s'", snippet)
         raise
