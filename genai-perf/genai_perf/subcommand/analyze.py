@@ -26,6 +26,7 @@
 
 import csv
 import os
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import genai_perf.logging as logging
@@ -41,8 +42,19 @@ from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
+from genai_perf.record.types.energy_consumption_p99 import GpuEnergyConsumptionP99
+from genai_perf.record.types.gpu_memory_used_p99 import GpuMemoryUsedP99
+from genai_perf.record.types.gpu_power_limit_avg import GPUPowerLimitAvg
 from genai_perf.record.types.gpu_power_usage_p99 import GPUPowerUsageP99
+from genai_perf.record.types.gpu_utilization_p99 import GPUUtilizationP99
 from genai_perf.record.types.input_sequence_length_p99 import InputSequenceLengthP99
+from genai_perf.record.types.inter_token_latency_p99 import InterTokenLatencyP99
+from genai_perf.record.types.output_sequence_length_p99 import OutputSequenceLengthP99
+from genai_perf.record.types.output_token_throughput_avg import OutputTokenThroughputAvg
+from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
+from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
+from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
+from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
 from genai_perf.subcommand.common import (
     calculate_metrics,
     create_artifact_directory,
@@ -79,6 +91,42 @@ class Analyze(Subcommand):
     Contains all the methods needed to run the analyze subcommand
     """
 
+    PERF_METRICS_HEADER = [
+        TimeToFirstTokenP99.header(),
+        InterTokenLatencyP99.header(),
+        RequestLatencyP99.header(),
+        OutputSequenceLengthP99.header(),
+        OutputTokenThroughputAvg.header(),
+        RequestThroughputAvg.header(),
+    ]
+    PERF_METRICS_TAGS = [
+        TimeToFirstTokenP99.tag,
+        InterTokenLatencyP99.tag,
+        RequestLatencyP99.tag,
+        OutputSequenceLengthP99.tag,
+        OutputTokenThroughputAvg.tag,
+        RequestThroughputAvg.tag,
+    ]
+
+    GPU_METRICS_HEADER = [
+        "Config Name",
+        "GPU",
+        GPUPowerUsageP99.header(),
+        GpuEnergyConsumptionP99.header(),
+        GPUUtilizationP99.header(),
+        GpuMemoryUsedP99.header(),
+        GPUPowerLimitAvg.header(),
+        GPUTotalMemoryAvg.header(),
+    ]
+    GPU_METRICS_TAGS = [
+        GPUPowerUsageP99.tag,
+        GpuEnergyConsumptionP99.tag,
+        GPUUtilizationP99.tag,
+        GpuMemoryUsedP99.tag,
+        GPUPowerLimitAvg.tag,
+        GPUTotalMemoryAvg.tag,
+    ]
+
     def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
         super().__init__(config, extra_args)
 
@@ -111,12 +159,16 @@ class Analyze(Subcommand):
                     genai_perf_config, perf_analyzer_config, objectives
                 )
             else:
+                # Pre-amble
                 self._create_tokenizer()
                 self._create_artifact_directory(perf_analyzer_config)
                 self._create_plot_directory(perf_analyzer_config)
                 self._generate_inputs(perf_analyzer_config)
 
+                # Profile using Perf Analyzer
                 self._run_perf_analyzer(perf_analyzer_config=perf_analyzer_config)
+
+                # Post-amble
                 self._set_data_parser(perf_analyzer_config)
                 self._add_results_to_checkpoint(
                     genai_perf_config, perf_analyzer_config, objectives
@@ -132,22 +184,28 @@ class Analyze(Subcommand):
         """
         Creates a CSV report based on checkpointed results
         """
-        filename = os.getcwd() + "/analyze_export_genai_perf.csv"
-        logger.info(f"Generating {filename}")
+        filename = self._create_analyze_summary_path()
 
+        logger.info(f"Generating {filename}")
         with open(filename, mode="w", newline="") as f:
             csv_writer = csv.writer(f)
 
-            #
             # Perf Metrics
             self._write_perf_metrics_header(csv_writer)
             self._write_perf_metrics_body(csv_writer)
             csv_writer.writerow("")
 
-            #
             # GPU Metrics
             self._write_gpu_metrics_header(csv_writer)
             self._write_gpu_metrics_body(csv_writer)
+
+    def _create_analyze_summary_path(self) -> Path:
+        """
+        Creates the path for the analyze summary file
+        """
+        path = self._config.output.artifact_directory / "analyze_export_genai_perf.csv"
+
+        return path
 
     ###########################################################################
     # Report - Perf Metrics Methods

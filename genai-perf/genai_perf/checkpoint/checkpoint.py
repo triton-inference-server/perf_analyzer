@@ -16,10 +16,13 @@ import json
 import os
 from dataclasses import dataclass
 
+import genai_perf.logging as logging
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import default_field
 from genai_perf.config.run.results import Results
 from genai_perf.exceptions import GenAIPerfException
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -65,6 +68,7 @@ class Checkpoint:
                     self.results = Results.create_class_from_checkpoint(
                         checkpoint_json["Results"]
                     )
+                logger.info("Checkpoint loaded from %s", checkpoint_file_path)
 
             except EOFError:
                 raise (
@@ -73,6 +77,8 @@ class Checkpoint:
                         " empty or corrupted. Delete it and rerun GAP"
                     )
                 )
+        else:
+            logger.debug("No checkpoint found - starting fresh run")
 
     def _create_checkpoint_file_path(self) -> str:
         checkpoint_file_path = os.path.join(
