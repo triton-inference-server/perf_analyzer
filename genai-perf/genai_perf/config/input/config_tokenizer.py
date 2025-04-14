@@ -62,7 +62,9 @@ class ConfigTokenizer(BaseConfig):
                     f"User Config: {key} is not a valid tokenizer parameter"
                 )
 
-    def infer_settings(self, model_name: Optional[str] = None) -> None:
+    def infer_settings(
+        self, model_name: Optional[str] = None, suppress_debug: bool = False
+    ) -> None:
         """
         Infer settings that are not explicitly set by the user.
 
@@ -71,4 +73,5 @@ class ConfigTokenizer(BaseConfig):
         """
         if not self.get_field("name").is_set_by_user and model_name:
             self.name = model_name
-            logger.debug(f"Inferred tokenizer from model name: {self.name}")
+            if not suppress_debug:
+                logger.debug(f"Inferred tokenizer from model name: {self.name}")

@@ -35,7 +35,6 @@ class ConfigAnalyze(BaseConfig):
         sweep_parameter_template_comment = \
         (f"Uncomment the lines below to enable the analyze subcommand\n"
          f"# For further details see analyze.md\n"
-         f"sweep_parameters:\n"
          f"  concurrency:\n"
          f"    start: {AnalyzeDefaults.MIN_CONCURRENCY}\n"
          f"    stop: {AnalyzeDefaults.MAX_CONCURRENCY}")
