@@ -26,11 +26,12 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import PerfAnalyzerDefaults
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
-from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.input_constants import OutputFormat, PromptSource
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
@@ -215,7 +216,10 @@ class Subcommand:
 
     def _create_objectives_based_on_stimulus(self) -> ModelObjectiveParameters:
         objectives: ModelObjectiveParameters = {self._model_name: {}}
-        if self._config.perf_analyzer.get_field("stimulus").is_set_by_user:
+        if (
+            self._config.perf_analyzer.get_field("stimulus").is_set_by_user
+            or self._config.input.prompt_source != PromptSource.PAYLOAD
+        ):
             for key, value in self._config.perf_analyzer.stimulus.items():
                 objectives[self._model_name][key] = ObjectiveParameter(
                     SearchUsage.RUNTIME_PA, ObjectiveCategory.INTEGER, value
@@ -472,6 +476,11 @@ class Subcommand:
     def _determine_infer_mode_and_load_level_based_on_stimulus(self) -> Tuple[str, str]:
         if "session_concurrency" in self._config.perf_analyzer.stimulus:
             # [TPA-985] Profile export file should have a session concurrency mode
+            infer_mode = "request_rate"
+            load_level = "0.0"
+        # When using fixed schedule mode, infer mode is not set.
+        # Setting to default values to avoid an error.
+        elif self._config.input.prompt_source == PromptSource.PAYLOAD:
             infer_mode = "request_rate"
             load_level = "0.0"
         elif "concurrency" in self._config.perf_analyzer.stimulus:
