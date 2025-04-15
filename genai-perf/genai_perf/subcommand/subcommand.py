@@ -14,7 +14,7 @@
 
 import os
 import subprocess  # nosec
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import genai_perf.logging as logging
 from genai_perf.checkpoint.checkpoint import Checkpoint
@@ -54,11 +54,15 @@ logger = logging.getLogger(__name__)
 
 
 class Subcommand:
-    def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
+    def __init__(
+        self, config: ConfigCommand, extra_args: Optional[List[str]] = None
+    ) -> None:
         # These fields are constant throughout the GAP run
         self._config = config
         self._extra_args = extra_args
-        self._model_name = self._config.model_names[0]
+        self._model_name = (
+            self._config.model_names[0] if self._config.model_names else ""
+        )
         self._telemetry_data_collectors = self._create_telemetry_data_collectors()
         self._checkpoint = Checkpoint(self._config)
         self._results = self._checkpoint.results
@@ -211,10 +215,11 @@ class Subcommand:
 
     def _create_objectives_based_on_stimulus(self) -> ModelObjectiveParameters:
         objectives: ModelObjectiveParameters = {self._model_name: {}}
-        for key, value in self._config.perf_analyzer.stimulus.items():
-            objectives[self._model_name][key] = ObjectiveParameter(
-                SearchUsage.RUNTIME_PA, ObjectiveCategory.INTEGER, value
-            )
+        if self._config.perf_analyzer.get_field("stimulus").is_set_by_user:
+            for key, value in self._config.perf_analyzer.stimulus.items():
+                objectives[self._model_name][key] = ObjectiveParameter(
+                    SearchUsage.RUNTIME_PA, ObjectiveCategory.INTEGER, value
+                )
 
         return objectives
 
@@ -333,7 +338,6 @@ class Subcommand:
         perf_analyzer_config: PerfAnalyzerConfig,
         objectives: ModelObjectiveParameters,
     ) -> Dict[str, Statistics]:
-        infer_mode, load_level = self._determine_infer_mode_and_load_level(objectives)
         session_stats = self._data_parser.get_session_statistics()  # type: ignore
 
         return session_stats
@@ -493,6 +497,8 @@ class Subcommand:
                 infer_type = "request_rate"
             else:
                 infer_type = "concurrency"
+
+        return infer_type
 
     def _get_num_dataset_entries(self, run_config: RunConfig) -> int:
         if "num_dataset_entries" in self._config.analyze.sweep_parameters:

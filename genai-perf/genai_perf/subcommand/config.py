@@ -44,4 +44,4 @@ def config_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> No
     elif config.subcommand == Subcommand.ANALYZE:
         analyze_handler(config, extra_args)
     else:
-        ValueError(f"User Config: {config.subcommand} handler not found.")
+        raise ValueError(f"User Config: {config.subcommand} handler not found.")

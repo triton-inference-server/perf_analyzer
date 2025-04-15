@@ -28,6 +28,7 @@ import csv
 from io import StringIO
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.telemetry_data_exporter_util import (
     export_telemetry_stats_console,
     export_telemetry_stats_csv,
@@ -35,7 +36,7 @@ from genai_perf.export_data.telemetry_data_exporter_util import (
 )
 from genai_perf.metrics import TelemetryMetrics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
-from genai_perf.subcommand.common import merge_telemetry_metrics
+from genai_perf.subcommand.subcommand import Subcommand
 from rich.console import Console
 
 
@@ -76,7 +77,8 @@ class TestMergeTelemetryMetrics:
         }
 
     def test_merge_identical_metrics(self, telemetry_1):
-        merged = merge_telemetry_metrics([telemetry_1, telemetry_1])
+        config = ConfigCommand(user_config={"model_name": "test_model"})
+        merged = Subcommand(config)._merge_telemetry_metrics([telemetry_1, telemetry_1])
 
         assert merged.gpu_power_usage["gpu0"] == [10.0, 20.0, 10.0, 20.0]
         assert merged.gpu_power_usage["gpu1"] == [30.0, 30.0]
@@ -87,7 +89,8 @@ class TestMergeTelemetryMetrics:
         assert set(merged.gpu_utilization.keys()) == {"gpu0", "gpu1"}
 
     def test_merge_different_gpus(self, telemetry_1, telemetry_2):
-        merged = merge_telemetry_metrics([telemetry_1, telemetry_2])
+        config = ConfigCommand(user_config={"model_name": "test_model"})
+        merged = Subcommand(config)._merge_telemetry_metrics([telemetry_1, telemetry_2])
 
         assert merged.gpu_power_usage["gpu0"] == [10.0, 20.0, 40.0]
         assert merged.gpu_utilization["gpu0"] == [50.0, 80.0]
@@ -100,7 +103,10 @@ class TestMergeTelemetryMetrics:
 
     def test_merge_with_empty_telemetry(self, telemetry_1):
         empty_telemetry = TelemetryMetrics()
-        merged = merge_telemetry_metrics([telemetry_1, empty_telemetry])
+        config = ConfigCommand(user_config={"model_name": "test_model"})
+        merged = Subcommand(config)._merge_telemetry_metrics(
+            [telemetry_1, empty_telemetry]
+        )
 
         assert merged.gpu_power_usage["gpu0"] == [10.0, 20.0]
         assert merged.gpu_utilization["gpu1"] == [75.0]
@@ -109,7 +115,8 @@ class TestMergeTelemetryMetrics:
         assert set(merged.gpu_utilization.keys()) == {"gpu0", "gpu1"}
 
     def test_merge_no_metrics(self):
-        merged = merge_telemetry_metrics([])
+        config = ConfigCommand(user_config={"model_name": "test_model"})
+        merged = Subcommand(config)._merge_telemetry_metrics([])
         assert isinstance(merged, TelemetryMetrics)
         assert len(merged.gpu_power_usage) == 0
         assert len(merged.gpu_utilization) == 0
