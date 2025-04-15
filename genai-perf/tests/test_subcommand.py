@@ -18,17 +18,17 @@ from unittest.mock import MagicMock, patch
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_field import ConfigField
-from genai_perf.subcommand.common import run_perf_analyzer
+from genai_perf.subcommand.subcommand import Subcommand
 
 
 class TestCommon:
-    @patch("genai_perf.subcommand.common.subprocess.run")
+    @patch("genai_perf.subcommand.subcommand.subprocess.run")
     def test_stdout_verbose(self, mock_subprocess_run):
         config = ConfigCommand(user_config={"model_name": "test_model"})
         config.verbose = ConfigField(default=False, value=True)
         perf_analyzer_config = PerfAnalyzerConfig(config)
-        run_perf_analyzer(
-            config=config,
+        subcommand = Subcommand(config)
+        subcommand._run_perf_analyzer(
             perf_analyzer_config=perf_analyzer_config,
         )
 
@@ -39,13 +39,13 @@ class TestCommon:
                 "stdout" not in kwargs or kwargs["stdout"] is None
             ), "With the verbose flag, stdout should not be redirected."
 
-    @patch("genai_perf.subcommand.common.subprocess.run")
+    @patch("genai_perf.subcommand.subcommand.subprocess.run")
     def test_stdout_not_verbose(self, mock_subprocess_run):
         config = ConfigCommand(user_config={"model_name": "test_model"})
         config.verbose = ConfigField(default=False)
         perf_analyzer_config = PerfAnalyzerConfig(config)
-        run_perf_analyzer(
-            config=config,
+        subcommand = Subcommand(config)
+        subcommand._run_perf_analyzer(
             perf_analyzer_config=perf_analyzer_config,
         )
 
