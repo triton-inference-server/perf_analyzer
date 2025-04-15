@@ -27,7 +27,7 @@
 import json
 import shutil
 from pathlib import Path
-from typing import Any, DefaultDict, Dict
+from typing import Any, DefaultDict, Dict, List, Optional
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
@@ -47,7 +47,9 @@ from genai_perf.subcommand.common import (
 from genai_perf.tokenizer import get_tokenizer
 
 
-def process_export_files_handler(config: ConfigCommand) -> None:
+def process_export_files_handler(
+    config: ConfigCommand, extra_args: Optional[List[str]] = None
+) -> None:
     """
     Handles `process-export-files` subcommand workflow
     """
@@ -124,8 +126,12 @@ def _set_perf_analyzer_fields(
 
 
 def _set_endpoint_fields(config: ConfigCommand, profile_data: Dict[str, Any]) -> None:
-    endpoint_data = profile_data["input_config"]["endpoint"]
-    endpoint_data.pop("output_format", None)
+    keys_to_exclude = ["service_kind", "output_format"]
+    endpoint_data = {
+        k: v
+        for k, v in profile_data["input_config"]["endpoint"].items()
+        if k not in keys_to_exclude
+    }
     config.endpoint.parse(endpoint_data)
     config.endpoint.infer_settings(config.model_names[0])
 
