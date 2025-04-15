@@ -26,7 +26,6 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import PerfAnalyzerDefaults
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException

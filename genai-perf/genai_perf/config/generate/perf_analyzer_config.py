@@ -459,6 +459,7 @@ class PerfAnalyzerConfig:
             "runtime_batch_size": "-b",
             "concurrency": "--concurrency-range",
             "request_rate": "--request-rate-range",
+            "session_concurrency": "--session-concurrency",
         }
 
         try:
