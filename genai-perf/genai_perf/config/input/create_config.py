@@ -93,6 +93,11 @@ class CreateConfig:
         config: ConfigCommand, args: argparse.Namespace
     ) -> ConfigCommand:
 
+        if args.subcommand == Subcommand.PROCESS.value:
+            CreateConfig._add_process_export_files_to_config(config, args)
+            CreateConfig._add_output_args_to_config(config, args)
+            return config
+
         CreateConfig._check_that_override_is_set(args)
         CreateConfig._add_top_level_args_to_config(config, args)
         CreateConfig._add_analyze_args_to_config(config, args)
@@ -210,6 +215,13 @@ class CreateConfig:
             )
             config.perf_analyzer.measurement.num = args.request_count
 
+        return config
+
+    @staticmethod
+    def _add_process_export_files_to_config(
+        config: ConfigCommand, args: argparse.Namespace
+    ) -> ConfigCommand:
+        config.process.input_path = args.input_path[0]
         return config
 
     @staticmethod
