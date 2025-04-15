@@ -24,7 +24,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
 import os
 from typing import Any, Dict, cast
 
@@ -32,6 +31,7 @@ import jinja2
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.utils import load_json_str
 
 NAMED_TEMPLATES = {
     "nv-embedqa": """[
@@ -99,7 +99,7 @@ class TemplateConverter(BaseConverter):
             template = self.resolve_template(payload_template)
             test_texts = ["test1", "test2"]
             payloads_json = template.render(texts=test_texts)
-            payloads = json.loads(payloads_json)
+            payloads = load_json_str(payloads_json)
             if not isinstance(payloads, list):
                 raise ValueError(
                     "Template does not render a list of strings to a list of items. "
@@ -121,5 +121,5 @@ class TemplateConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for _, row in enumerate(file_data.rows):
                 payloads_json = template.render(texts=row.texts)
-                request_body["data"] += json.loads(payloads_json)
+                request_body["data"] += load_json_str(payloads_json)
         return request_body
