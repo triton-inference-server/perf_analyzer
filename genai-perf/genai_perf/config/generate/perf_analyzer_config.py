@@ -254,7 +254,7 @@ class PerfAnalyzerConfig:
             if mode == PerfAnalyzerMeasurementMode.REQUEST_COUNT:
                 perf_analyzer_args += [
                     "--request-count",
-                    f"{config.perf_analyzer.measurement.num}",
+                    f"{self._calculate_request_count(config)}",
                 ]
             elif mode == PerfAnalyzerMeasurementMode.INTERVAL:
                 perf_analyzer_args += [
@@ -358,6 +358,30 @@ class PerfAnalyzerConfig:
             args += [f"{extra_arg}"]
 
         return args
+
+    def _calculate_request_count(self, config: ConfigCommand) -> int:
+        REQUEST_COUNT_CONUCURRENCY_MULTIPLIER = 2
+
+        config_request_count = config.perf_analyzer.measurement.num
+        concurrency = self._get_concurrency(config)
+
+        request_count = max(
+            config_request_count, REQUEST_COUNT_CONUCURRENCY_MULTIPLIER * concurrency
+        )
+
+        return request_count
+
+    def _get_concurrency(self, config: ConfigCommand) -> int:
+        concurrency = 0
+        if not self._parameters:
+            if "concurrency" in config.perf_analyzer.stimulus:
+                concurrency = config.perf_analyzer.stimulus["concurrency"]
+        else:
+            for parameter, value in self._parameters.items():
+                if parameter == "concurrency":
+                    concurrency = value
+
+        return concurrency
 
     ###########################################################################
     # Get Accessor Methods

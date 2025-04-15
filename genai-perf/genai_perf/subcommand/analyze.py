@@ -55,15 +55,6 @@ from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
 from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
 from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
-from genai_perf.subcommand.common import (
-    calculate_metrics,
-    create_artifact_directory,
-    create_plot_directory,
-    create_telemetry_data_collectors,
-    generate_inputs,
-    merge_telemetry_metrics,
-    run_perf_analyzer,
-)
 from genai_perf.subcommand.subcommand import Subcommand
 from genai_perf.tokenizer import get_tokenizer
 from genai_perf.types import ModelObjectiveParameters
@@ -136,7 +127,6 @@ class Analyze(Subcommand):
         self._sweep_objective_generator = SweepObjectiveGenerator(
             self._config, self._model_search_parameters
         )
-        self._tokenizer = None
 
     ###########################################################################
     # Sweep Methods
@@ -166,16 +156,14 @@ class Analyze(Subcommand):
                 self._generate_inputs(perf_analyzer_config)
 
                 # Profile using Perf Analyzer
-                self._run_perf_analyzer(perf_analyzer_config=perf_analyzer_config)
+                self._run_perf_analyzer(perf_analyzer_config)
 
                 # Post-amble
                 self._set_data_parser(perf_analyzer_config)
                 self._add_results_to_checkpoint(
                     genai_perf_config, perf_analyzer_config, objectives
                 )
-                self._add_csv_output_to_artifact_directory(
-                    perf_analyzer_config, objectives
-                )
+                self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
 
     ###########################################################################
     # Report Methods

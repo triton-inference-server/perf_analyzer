@@ -33,7 +33,7 @@ from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.inputs.input_constants import Subcommand
 
 ProfileDataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
-AnalyzeDataExporterList = [CsvExporter]
+AnalyzeDataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
 
 
 class DataExporterFactory:

@@ -19,7 +19,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import genai_perf.logging as logging
 from genai_perf.checkpoint.checkpoint import Checkpoint
 from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
+from genai_perf.config.generate.objective_parameter import (
+    ObjectiveCategory,
+    ObjectiveParameter,
+)
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
@@ -150,7 +155,7 @@ class Subcommand:
             genai_perf_config, perf_analyzer_config
         )
         logger.info(
-            f"{run_config_name}:{obj_str} found in checkpoint - skipping profiling..."
+            f"{run_config_name}:{obj_str} found in checkpoint. Results in '{perf_analyzer_config.get_artifact_directory()}/' - skipping profiling..."
         )
 
     ###########################################################################
@@ -203,6 +208,15 @@ class Subcommand:
                 logger.warning(f"Skipping unreachable metrics URL: {url}")
 
         return telemetry_collectors
+
+    def _create_objectives_based_on_stimulus(self) -> ModelObjectiveParameters:
+        objectives: ModelObjectiveParameters = {self._model_name: {}}
+        for key, value in self._config.perf_analyzer.stimulus.items():
+            objectives[self._model_name][key] = ObjectiveParameter(
+                SearchUsage.RUNTIME_PA, ObjectiveCategory.INTEGER, value
+            )
+
+        return objectives
 
     def _create_genai_perf_config(
         self, objectives: ModelObjectiveParameters
@@ -392,7 +406,7 @@ class Subcommand:
     ###########################################################################
     # Outputs Methods
     ###########################################################################
-    def _add_csv_output_to_artifact_directory(
+    def _add_output_to_artifact_directory(
         self,
         perf_analyzer_config: PerfAnalyzerConfig,
         objectives: ModelObjectiveParameters,
@@ -416,6 +430,22 @@ class Subcommand:
         self,
         objectives: ModelObjectiveParameters,
     ) -> Tuple[str, str]:
+        if self._config.analyze.any_field_set_by_user():
+            infer_mode, load_level = (
+                self._determine_infer_mode_and_load_level_based_on_objectives(
+                    objectives
+                )
+            )
+        else:
+            infer_mode, load_level = (
+                self._determine_infer_mode_and_load_level_based_on_stimulus()
+            )
+
+        return infer_mode, load_level
+
+    def _determine_infer_mode_and_load_level_based_on_objectives(
+        self, objectives: ModelObjectiveParameters
+    ) -> Tuple[str, str]:
         if "concurrency" in self._config.analyze.sweep_parameters:
             infer_mode = "concurrency"
             load_level = f"{objectives[self._model_name][infer_mode].get_value_based_on_category()}"
@@ -427,18 +457,25 @@ class Subcommand:
             or "num_dataset_entries" in self._config.analyze.sweep_parameters
             or "batch_size" in self._config.analyze.sweep_parameters
         ):
-            if "session_concurrency" in self._config.perf_analyzer.stimulus:
-                # [TPA-985] Profile export file should have a session concurrency mode
-                infer_mode = "request_rate"
-                load_level = "0.0"
-            elif "concurrency" in self._config.perf_analyzer.stimulus:
-                infer_mode = "concurrency"
-                load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
-            elif "request_rate" in self._config.perf_analyzer.stimulus:
-                infer_mode = "request_rate"
-                load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
-            else:
-                raise GenAIPerfException("Cannot determine infer_mode/load_level")
+            infer_mode, load_level = (
+                self._determine_infer_mode_and_load_level_based_on_stimulus()
+            )
+        else:
+            raise GenAIPerfException("Cannot determine infer_mode/load_level")
+
+        return infer_mode, load_level
+
+    def _determine_infer_mode_and_load_level_based_on_stimulus(self) -> Tuple[str, str]:
+        if "session_concurrency" in self._config.perf_analyzer.stimulus:
+            # [TPA-985] Profile export file should have a session concurrency mode
+            infer_mode = "request_rate"
+            load_level = "0.0"
+        elif "concurrency" in self._config.perf_analyzer.stimulus:
+            infer_mode = "concurrency"
+            load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
+        elif "request_rate" in self._config.perf_analyzer.stimulus:
+            infer_mode = "request_rate"
+            load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
         else:
             raise GenAIPerfException("Cannot determine infer_mode/load_level")
 
