@@ -32,7 +32,7 @@ from pathlib import Path
 from typing import Dict, List, NoReturn, Tuple, TypeAlias
 
 import orjson
-from genai_perf.constants import EMPTY_RESPONSE_TOKEN
+from genai_perf.constants import DEFAULT_LRU_CACHE_SIZE, EMPTY_RESPONSE_TOKEN
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.logging import logging
 from genai_perf.metrics import LLMMetrics, Statistics
@@ -370,7 +370,7 @@ class LLMProfileDataParser(ProfileDataParser):
 
         return self._cached_encode(input_text)
 
-    @lru_cache(maxsize=100_000)
+    @lru_cache(maxsize=DEFAULT_LRU_CACHE_SIZE)
     def _cached_encode(self, text: str) -> int:
         return len(self._tokenizer.encode(text))
 

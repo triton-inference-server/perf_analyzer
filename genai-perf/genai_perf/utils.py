@@ -97,6 +97,9 @@ def load_json_str(json_str: str, func: Callable = lambda x: x) -> Dict[str, Any]
           run validation checks on the object. Defaults to identity function.
     """
     try:
+        # Note: orjson may not parse JSON the same way as Python's standard json library,
+        # notably being stricter on UTF-8 conformance.
+        # Refer to https://github.com/ijl/orjson?tab=readme-ov-file#str for details.
         return func(orjson.loads(json_str))
     except orjson.JSONDecodeError:
         snippet = json_str[:200] + ("..." if len(json_str) > 200 else "")
