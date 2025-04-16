@@ -61,7 +61,7 @@ endpoint_type_map = {
         "v1/chat/completions", "openai", OutputFormat.OPENAI_MULTIMODAL
     ),
     "generate": EndpointConfig(
-        "v2/models/{MODEL_NAME}/generate", "triton", OutputFormat.TRITON_GENERATE
+        "v2/models/{MODEL_NAME}/generate", "openai", OutputFormat.TRITON_GENERATE
     ),
     "kserve": EndpointConfig(None, "triton", OutputFormat.TENSORRTLLM),
     "template": EndpointConfig(None, "triton", OutputFormat.TEMPLATE),
