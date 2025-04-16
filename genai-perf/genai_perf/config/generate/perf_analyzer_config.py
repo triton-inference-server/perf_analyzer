@@ -20,7 +20,10 @@ from typing import Any, List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import AnalyzeDefaults
+from genai_perf.config.input.config_defaults import (
+    AnalyzeDefaults,
+    PerfAnalyzerMeasurementDefaults,
+)
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import (
     DEFAULT_INPUT_DATA_JSON,
@@ -361,16 +364,28 @@ class PerfAnalyzerConfig:
         return args
 
     def _calculate_request_count(self, config: ConfigCommand) -> int:
+        """
+        Calculate the request count for performance analysis based on the configuration.
+
+        This method determines the number of requests to be used during performance
+        analysis. If the user explicitly sets the `num` field in the measurement
+        configuration, that value is returned. Otherwise, the request count is
+        calculated as the maximum of the configured request count and a value
+        derived from the concurrency level multiplied by a predefined multiplier.
+        """
         REQUEST_COUNT_CONCURRENCY_MULTIPLIER = 2
 
-        config_request_count = config.perf_analyzer.measurement.num
-        concurrency = self._get_concurrency(config)
+        if config.perf_analyzer.measurement.get_field("num").is_set_by_user:
+            return config.perf_analyzer.measurement.num
+        else:
+            concurrency = self._get_concurrency(config)
 
-        request_count = max(
-            config_request_count, REQUEST_COUNT_CONCURRENCY_MULTIPLIER * concurrency
-        )
+            request_count = max(
+                PerfAnalyzerMeasurementDefaults.REQUEST_COUNT,
+                REQUEST_COUNT_CONCURRENCY_MULTIPLIER * concurrency,
+            )
 
-        return request_count
+            return request_count
 
     def _get_concurrency(self, config: ConfigCommand) -> int:
         concurrency = 0
