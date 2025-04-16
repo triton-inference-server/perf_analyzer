@@ -84,11 +84,11 @@ class ConfigCommand(BaseConfig):
     ###########################################################################
     # Top-Level Parsing Methods
     ###########################################################################
-    def infer_and_check_options(self, supress_debug: bool = False) -> None:
+    def infer_and_check_options(self, suppress_debug: bool = False) -> None:
         """
         Infers and checks the configuration options.
         """
-        self._infer_settings(supress_debug)
+        self._infer_settings(suppress_debug)
         self._check_required_fields_are_set()
         self._check_for_illegal_combinations()
         self._check_profile_export_file()

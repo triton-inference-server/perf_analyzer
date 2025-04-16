@@ -361,13 +361,13 @@ class PerfAnalyzerConfig:
         return args
 
     def _calculate_request_count(self, config: ConfigCommand) -> int:
-        REQUEST_COUNT_CONUCURRENCY_MULTIPLIER = 2
+        REQUEST_COUNT_CONCURRENCY_MULTIPLIER = 2
 
         config_request_count = config.perf_analyzer.measurement.num
         concurrency = self._get_concurrency(config)
 
         request_count = max(
-            config_request_count, REQUEST_COUNT_CONUCURRENCY_MULTIPLIER * concurrency
+            config_request_count, REQUEST_COUNT_CONCURRENCY_MULTIPLIER * concurrency
         )
 
         return request_count
