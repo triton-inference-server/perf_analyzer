@@ -549,7 +549,7 @@ class TestConfigCommand(unittest.TestCase):
         user_config = yaml.safe_load(yaml_str)
         config = ConfigCommand(user_config)
 
-        self.assertEqual(config.endpoint.service_kind, "triton")
+        self.assertEqual(config.endpoint.service_kind, "openai")
 
     def test_infer_output_format_triton(self):
         """

@@ -115,6 +115,8 @@ class ProfileDataParser:
                     self._response_format = ResponseFormat.IMAGE_RETRIEVAL
                 elif "generated_text" in response:
                     self._response_format = ResponseFormat.HUGGINGFACE_GENERATE
+                elif "/generate" in data["endpoint"]:
+                    self._response_format = ResponseFormat.TRITON_GENERATE
                 else:
                     raise RuntimeError("Unknown OpenAI response format.")
 
