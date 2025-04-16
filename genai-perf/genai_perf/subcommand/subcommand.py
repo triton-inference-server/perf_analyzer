@@ -496,12 +496,10 @@ class Subcommand:
     def _determine_infer_type(self):
         if "concurrency" in self._config.analyze.sweep_parameters:
             infer_type = "concurrency"
-        elif "request_rate" in config.analyze.sweep_parameters:
+        elif "request_rate" in self._config.analyze.sweep_parameters:
             infer_type = "request_rate"
         else:
-            if "concurrency" in self._config.perf_analyzer.stimulus:
-                infer_type = "concurrency"
-            elif "request_rate" in self._config.perf_analyzer.stimulus:
+            if "request_rate" in self._config.perf_analyzer.stimulus:
                 infer_type = "request_rate"
             else:
                 infer_type = "concurrency"

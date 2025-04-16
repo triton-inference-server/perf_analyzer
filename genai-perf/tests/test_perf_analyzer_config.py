@@ -86,9 +86,9 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
     ###########################################################################
     # Test Command Creation
     ###########################################################################
-    def test_default_command_creation(self):
+    def test_command_creation(self):
         """
-        Test that the default CLI string is created correctly
+        Test that the CLI string is created correctly
         """
         expected_command = {
             self._config.perf_analyzer.path,
@@ -131,9 +131,9 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
     ###########################################################################
     # Test Representation
     ###########################################################################
-    def test_default_representation(self):
+    def test_representation(self):
         """
-        Test that the representation is created correctly in the default case
+        Test that the representation is created correctly
         """
         expected_representation = " ".join(
             [
