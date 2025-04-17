@@ -35,6 +35,7 @@ import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.inputs import input_constants as ic
 from genai_perf.subcommand.analyze import analyze_handler
+from genai_perf.subcommand.config import config_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
 
@@ -779,7 +780,7 @@ def _parse_config_args(subparsers) -> argparse.ArgumentParser:
     _add_session_args(config)
     _add_tokenizer_args(config)
 
-    config.set_defaults(func=profile_handler)
+    config.set_defaults(func=config_handler)
     return config
 
 

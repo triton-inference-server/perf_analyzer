@@ -31,7 +31,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
-from genai_perf.subcommand.common import create_telemetry_data_collectors
+from genai_perf.subcommand.subcommand import Subcommand
 from genai_perf.telemetry_data import TritonTelemetryDataCollector
 from requests import codes as http_codes
 
@@ -68,7 +68,8 @@ class TestCreateTelemetryDataCollector:
         if server_metrics_url:
             config.endpoint.server_metrics_urls = server_metrics_url
 
-        telemetry_collectors = create_telemetry_data_collectors(config)
+        subcommand = Subcommand(config)
+        telemetry_collectors = subcommand._create_telemetry_data_collectors()
 
         assert (
             len(telemetry_collectors) > 0
@@ -112,7 +113,8 @@ class TestCreateTelemetryDataCollector:
         if server_metrics_urls:
             config.endpoint.server_metrics_urls = server_metrics_urls
 
-        telemetry_collectors = create_telemetry_data_collectors(config)
+        subcommand = Subcommand(config)
+        telemetry_collectors = subcommand._create_telemetry_data_collectors()
 
         assert len(telemetry_collectors) == len(
             expected_urls
@@ -142,14 +144,15 @@ class TestCreateTelemetryDataCollector:
         if server_metrics_url:
             config.endpoint.server_metrics_urls = server_metrics_url
 
-        telemetry_collectors = create_telemetry_data_collectors(config)
+        subcommand = Subcommand(config)
+        telemetry_collectors = subcommand._create_telemetry_data_collectors()
 
         assert isinstance(telemetry_collectors, list), "Expected a list return type"
         assert (
             len(telemetry_collectors) == 0
         ), "Expected empty list when URL is unreachable"
 
-    @patch("genai_perf.subcommand.common.TritonTelemetryDataCollector")
+    @patch("genai_perf.subcommand.subcommand.TritonTelemetryDataCollector")
     @patch("requests.get")
     def test_create_telemetry_data_collectors_service_kind_not_triton(
         self, mock_requests_get, mock_telemetry_collector
@@ -164,7 +167,8 @@ class TestCreateTelemetryDataCollector:
         if self.test_triton_metrics_url:
             config.endpoint.server_metrics_urls = [self.test_triton_metrics_url]
 
-        telemetry_collectors = create_telemetry_data_collectors(config)
+        subcommand = Subcommand(config)
+        telemetry_collectors = subcommand._create_telemetry_data_collectors()
 
         assert isinstance(telemetry_collectors, list), "Expected a list return type"
         assert (

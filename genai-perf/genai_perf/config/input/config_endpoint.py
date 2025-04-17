@@ -80,7 +80,7 @@ class ConfigEndPoint(BaseConfig):
             if key == "model_selection_strategy":
                 self.model_selection_strategy = ModelSelectionStrategy(value.upper())
             elif key == "backend":
-                self.backend = OutputFormat(value.upper())
+                self.backend = OutputFormat(value.upper()) if value else None
             elif key == "custom":
                 self.custom = value
             elif key == "type":

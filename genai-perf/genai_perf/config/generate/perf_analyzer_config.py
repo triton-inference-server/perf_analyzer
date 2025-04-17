@@ -20,7 +20,10 @@ from typing import Any, List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.input.config_defaults import AnalyzeDefaults
+from genai_perf.config.input.config_defaults import (
+    AnalyzeDefaults,
+    PerfAnalyzerMeasurementDefaults,
+)
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import (
     DEFAULT_INPUT_DATA_JSON,
@@ -202,7 +205,8 @@ class PerfAnalyzerConfig:
             request_rate = config.perf_analyzer.stimulus["request_rate"]
             stimulus = [f"request_rate{request_rate}"]
         elif "session_concurrency" in config.perf_analyzer.stimulus:
-            stimulus = None
+            session_concurrency = config.perf_analyzer.stimulus["session_concurrency"]
+            stimulus = [f"session_concurrency{session_concurrency}"]
         else:
             raise GenAIPerfException(f"Stimulus type not found in config")
 
@@ -254,7 +258,7 @@ class PerfAnalyzerConfig:
             if mode == PerfAnalyzerMeasurementMode.REQUEST_COUNT:
                 perf_analyzer_args += [
                     "--request-count",
-                    f"{config.perf_analyzer.measurement.num}",
+                    f"{self._calculate_request_count(config)}",
                 ]
             elif mode == PerfAnalyzerMeasurementMode.INTERVAL:
                 perf_analyzer_args += [
@@ -359,6 +363,42 @@ class PerfAnalyzerConfig:
 
         return args
 
+    def _calculate_request_count(self, config: ConfigCommand) -> int:
+        """
+        Calculate the request count for performance analysis based on the configuration.
+
+        This method determines the number of requests to be used during performance
+        analysis. If the user explicitly sets the `num` field in the measurement
+        configuration, that value is returned. Otherwise, the request count is
+        calculated as the maximum of the configured request count and a value
+        derived from the concurrency level multiplied by a predefined multiplier.
+        """
+        REQUEST_COUNT_CONCURRENCY_MULTIPLIER = 2
+
+        if config.perf_analyzer.measurement.get_field("num").is_set_by_user:
+            return config.perf_analyzer.measurement.num
+        else:
+            concurrency = self._get_concurrency(config)
+
+            request_count = max(
+                PerfAnalyzerMeasurementDefaults.REQUEST_COUNT,
+                REQUEST_COUNT_CONCURRENCY_MULTIPLIER * concurrency,
+            )
+
+            return request_count
+
+    def _get_concurrency(self, config: ConfigCommand) -> int:
+        concurrency = 0
+        if not self._parameters:
+            if "concurrency" in config.perf_analyzer.stimulus:
+                concurrency = config.perf_analyzer.stimulus["concurrency"]
+        else:
+            for parameter, value in self._parameters.items():
+                if parameter == "concurrency":
+                    concurrency = value
+
+        return concurrency
+
     ###########################################################################
     # Get Accessor Methods
     ###########################################################################
@@ -435,6 +475,7 @@ class PerfAnalyzerConfig:
             "runtime_batch_size": "-b",
             "concurrency": "--concurrency-range",
             "request_rate": "--request-rate-range",
+            "session_concurrency": "--session-concurrency",
         }
 
         try:
@@ -522,7 +563,8 @@ class PerfAnalyzerConfig:
         """
         perf_analyzer_config = PerfAnalyzerConfig(
             config=ConfigCommand(
-                user_config={"model_name": perf_analyzer_config_dict["_model_name"]}
+                user_config={"model_name": perf_analyzer_config_dict["_model_name"]},
+                enable_debug_logging=False,
             ),
             model_objective_parameters={},
         )

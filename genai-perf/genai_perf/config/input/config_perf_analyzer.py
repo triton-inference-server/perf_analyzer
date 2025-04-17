@@ -126,7 +126,8 @@ class ConfigPerfAnalyzerMeasurement(BaseConfig):
     def _infer_measurement_num_based_on_mode(self) -> None:
         if not self.get_field("num").is_set_by_user:
             if self.mode == PerfAnalyzerMeasurementMode.REQUEST_COUNT:
-                self.num = PerfAnalyzerMeasurementDefaults.REQUEST_COUNT
+                # This will be set at PA Config generation time
+                pass
             elif self.mode == PerfAnalyzerMeasurementMode.INTERVAL:
                 self.num = PerfAnalyzerMeasurementDefaults.INTERVAL
             else:

@@ -46,6 +46,7 @@ class ConfigCommand(BaseConfig):
         self,
         user_config: Optional[Dict[str, Any]] = None,
         skip_inferencing_and_checking: bool = False,
+        enable_debug_logging: bool = True,
     ):
         super().__init__()
 
@@ -76,7 +77,7 @@ class ConfigCommand(BaseConfig):
         self.perf_analyzer = ConfigPerfAnalyzer()
         self.input = ConfigInput()
         self.output = ConfigOutput()
-        self.tokenizer = ConfigTokenizer()
+        self.tokenizer = ConfigTokenizer(enable_debug_logging)
 
         self._parse_yaml(user_config, skip_inferencing_and_checking)
 
