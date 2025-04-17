@@ -27,7 +27,7 @@ class ConfigTokenizer(BaseConfig):
     Describes the configuration tokenizer options
     """
 
-    def __init__(self) -> None:
+    def __init__(self, enable_debug_logging: bool = True) -> None:
         super().__init__()
         self.name: Any = ConfigField(
             default=TokenizerDefaults.NAME,
@@ -49,6 +49,10 @@ class ConfigTokenizer(BaseConfig):
                 \nThis is only necessary for custom tokenizers stored in HuggingFace Hub.",
         )
 
+        self._enable_debug_logging: Any = ConfigField(
+            default=None, add_to_template=False, value=enable_debug_logging
+        )
+
     def parse(self, tokenizer: Dict[str, Any]) -> None:
         for key, value in tokenizer.items():
             if key == "name":
@@ -62,9 +66,7 @@ class ConfigTokenizer(BaseConfig):
                     f"User Config: {key} is not a valid tokenizer parameter"
                 )
 
-    def infer_settings(
-        self, model_name: Optional[str] = None, suppress_debug: bool = False
-    ) -> None:
+    def infer_settings(self, model_name: Optional[str] = None) -> None:
         """
         Infer settings that are not explicitly set by the user.
 
@@ -73,5 +75,5 @@ class ConfigTokenizer(BaseConfig):
         """
         if not self.get_field("name").is_set_by_user and model_name:
             self.name = model_name
-            if not suppress_debug:
+            if self._enable_debug_logging:
                 logger.debug(f"Inferred tokenizer from model name: {self.name}")

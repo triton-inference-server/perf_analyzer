@@ -564,7 +564,7 @@ class PerfAnalyzerConfig:
         perf_analyzer_config = PerfAnalyzerConfig(
             config=ConfigCommand(
                 user_config={"model_name": perf_analyzer_config_dict["_model_name"]},
-                suppress_debug=True,
+                enable_debug_logging=False,
             ),
             model_objective_parameters={},
         )

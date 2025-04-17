@@ -46,7 +46,7 @@ class ConfigCommand(BaseConfig):
         self,
         user_config: Optional[Dict[str, Any]] = None,
         skip_inferencing_and_checking: bool = False,
-        suppress_debug: bool = False,
+        enable_debug_logging: bool = True,
     ):
         super().__init__()
 
@@ -77,18 +77,18 @@ class ConfigCommand(BaseConfig):
         self.perf_analyzer = ConfigPerfAnalyzer()
         self.input = ConfigInput()
         self.output = ConfigOutput()
-        self.tokenizer = ConfigTokenizer()
+        self.tokenizer = ConfigTokenizer(enable_debug_logging)
 
-        self._parse_yaml(user_config, skip_inferencing_and_checking, suppress_debug)
+        self._parse_yaml(user_config, skip_inferencing_and_checking)
 
     ###########################################################################
     # Top-Level Parsing Methods
     ###########################################################################
-    def infer_and_check_options(self, suppress_debug: bool = False) -> None:
+    def infer_and_check_options(self) -> None:
         """
         Infers and checks the configuration options.
         """
-        self._infer_settings(suppress_debug)
+        self._infer_settings()
         self._check_required_fields_are_set()
         self._check_for_illegal_combinations()
         self._check_profile_export_file()
@@ -97,7 +97,6 @@ class ConfigCommand(BaseConfig):
         self,
         user_config: Optional[Dict[str, Any]] = None,
         skip_inferencing_and_checking: bool = False,
-        suppress_debug: bool = False,
     ) -> None:
         if user_config:
             for key, value in user_config.items():
@@ -121,7 +120,7 @@ class ConfigCommand(BaseConfig):
                     )
 
         if not skip_inferencing_and_checking:
-            self.infer_and_check_options(suppress_debug)
+            self.infer_and_check_options()
 
     def _parse_model_names(self, model_names: Any) -> None:
         if type(model_names) is str:
@@ -137,7 +136,7 @@ class ConfigCommand(BaseConfig):
     ###########################################################################
     # Infer Methods
     ###########################################################################
-    def _infer_settings(self, suppress_debug: bool = False) -> None:
+    def _infer_settings(self) -> None:
         # covers the template creation case
         model_name = self.model_names[0] if self.model_names else ""
         self._infer_subcommand()
@@ -145,7 +144,7 @@ class ConfigCommand(BaseConfig):
         self.endpoint.infer_settings(model_name)
         self.input.infer_settings()
         self.perf_analyzer.infer_settings()
-        self.tokenizer.infer_settings(model_name, suppress_debug)
+        self.tokenizer.infer_settings(model_name)
 
     def _infer_subcommand(self) -> None:
         if self.subcommand != Subcommand.CONFIG:
