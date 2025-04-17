@@ -190,7 +190,7 @@ Config File
 ====================
 -->
 ## Configuration File
-In addition to setting options via the command-line GenAI-Perf supports the passing in of config file (in YAML format). The command is:</br>
+In addition to setting options via the command-line, GenAI-Perf supports the passing in of a config file (in YAML format). The command is:</br>
 ```bash
 genai-perf config -f <config_file>
 ```
