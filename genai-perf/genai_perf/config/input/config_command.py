@@ -53,6 +53,7 @@ class ConfigCommand(BaseConfig):
 
         self.model_names: Any = ConfigField(
             default=TopLevelDefaults.MODEL_NAMES,
+            required=True,
             add_to_template=True,
             verbose_template_comment="The name of the model(s) to benchmark.",
         )

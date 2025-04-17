@@ -32,17 +32,15 @@ import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.input.config_command import ConfigCommand, Subcommand
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.config.input.create_config import CreateConfig
-from genai_perf.constants import DEFAULT_ARTIFACT_DIR, DEFAULT_PROFILE_EXPORT_FILE
 from genai_perf.inputs.input_constants import (
     AudioFormat,
     ImageFormat,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
-    Subcommand,
 )
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
