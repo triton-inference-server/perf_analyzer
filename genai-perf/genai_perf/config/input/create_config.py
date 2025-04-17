@@ -53,8 +53,9 @@ class CreateConfig:
             config = CreateConfig._add_cli_options_to_config(config, args)
             config.infer_and_check_options()
             CreateConfig._print_warnings(config)
-
-            logger.info(f"Profiling these models: {', '.join(config.model_names)}")
+            print(args.func.__name__)
+            if config.subcommand != Subcommand.PROCESS.value:
+                logger.info(f"Profiling these models: {', '.join(config.model_names)}")
 
         return config
 
@@ -93,18 +94,18 @@ class CreateConfig:
         config: ConfigCommand, args: argparse.Namespace
     ) -> ConfigCommand:
 
-        if args.subcommand == Subcommand.PROCESS.value:
-            CreateConfig._add_process_export_files_to_config(config, args)
-            CreateConfig._add_output_args_to_config(config, args)
-            return config
-
         CreateConfig._check_that_override_is_set(args)
         CreateConfig._add_top_level_args_to_config(config, args)
+        CreateConfig._add_output_args_to_config(config, args)
+
+        if config.subcommand == Subcommand.PROCESS.value:
+            CreateConfig._add_process_export_files_to_config(config, args)
+            return config
+
         CreateConfig._add_analyze_args_to_config(config, args)
         CreateConfig._add_endpoint_args_to_config(config, args)
         CreateConfig._add_perf_analyzer_args_to_config(config, args)
         CreateConfig._add_input_args_to_config(config, args)
-        CreateConfig._add_output_args_to_config(config, args)
         CreateConfig._add_tokenizer_args_to_config(config, args)
 
         return config
@@ -138,8 +139,9 @@ class CreateConfig:
     def _add_top_level_args_to_config(
         config: ConfigCommand, args: argparse.Namespace
     ) -> ConfigCommand:
-        if args.model:
-            config.model_names = args.model
+        if args.subcommand != Subcommand.PROCESS.value:
+            if args.model:
+                config.model_names = args.model
         if args.subcommand:
             config.subcommand = Subcommand(args.subcommand)
         if args.verbose:
@@ -221,7 +223,8 @@ class CreateConfig:
     def _add_process_export_files_to_config(
         config: ConfigCommand, args: argparse.Namespace
     ) -> ConfigCommand:
-        config.process.input_path = args.input_path[0]
+        if hasattr(args, "input_path") and args.input_path:
+            config.process.input_path = args.input_path[0]
         return config
 
     @staticmethod

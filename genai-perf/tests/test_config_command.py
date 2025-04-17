@@ -61,7 +61,7 @@ class TestConfigCommand(unittest.TestCase):
         config = ConfigCommand(user_config)
 
         self.assertEqual(config.model_names, ["gpt2"])
-        self.assertEqual(config.get_field("model_names").required, False)
+        self.assertEqual(config.get_field("model_names").required, True)
 
     def test_multi_model_name_string(self):
         """
