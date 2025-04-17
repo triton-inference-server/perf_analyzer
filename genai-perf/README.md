@@ -186,6 +186,80 @@ See [Tutorial](docs/tutorial.md) for additional examples.
 
 <!--
 =====================
+Config File
+====================
+-->
+## Configuration File
+In addition to setting options via the command-line GenAI-Perf supports the passing in of config file (in YAML format). The command is:</br>
+```bash
+genai-perf config -f <config_file>
+```
+
+### Creating a Template Config File
+In order to make it easier for you to use config files we have added a new subcommand that creates a template config file containing all possible options, pre-populated to their default settings. The command to create this is:</br>
+```bash
+genai-perf create-template
+```
+By default the config file is named `genai_perf_config.yaml`, but you can change that by passing in a custom name using the `-f` option.</br>
+For less experienced users, you can include `-v/--verbose` and the config file will also contain descriptions for each option (similar to what you would see using `-h` from the command line).
+
+Here is a sample section of what the template config file looks like:
+```
+  endpoint:
+    model_selection_strategy: round_robin
+    backend: tensorrtllm
+    custom:
+    type: kserve
+    streaming: False
+    server_metrics_urls: http://localhost:8002/metrics
+    url: localhost:8001
+    grpc_method:
+```
+and with `--verbose`:
+```bash
+ endpoint:
+    # When multiple model are specified, this is how a specific model should be assigned to a prompt.
+    # round_robin: nth prompt in the list gets assigned to n-mod len(models).
+    # random: assignment is uniformly random
+    model_selection_strategy: round_robin
+
+    # When benchmarking Triton, this is the backend of the model.
+    # For the TENSORRT-LLM backend,you currently must set 'exclude_input_in_output' to true
+    # in the model config to not echo the input tokens
+    backend: tensorrtllm
+
+    # Set a custom endpoint that differs from the OpenAI defaults.
+    custom:
+
+    # The type to send requests to on the server.
+    type: kserve
+
+    # An option to enable the use of the streaming API.
+    streaming: False
+
+    # The list of Triton server metrics URLs.
+    # These are used for Telemetry metric reporting with Triton.
+    server_metrics_urls: http://localhost:8002/metrics
+
+    # URL of the endpoint to target for benchmarking.
+    url: localhost:8001
+
+    # A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
+    # The option is only supported by dynamic gRPC service kind and is
+    # required to identify the RPC to use when sending requests to the server.
+    grpc_method:
+```
+
+### Overriding Config Options
+Once you have setup your config file to your liking, there could be times where you might want to re-profile with just a few options changed.</br>
+Rather than editing your config you can include the `--override-config` option on the CLI along with the options you want to change. For example:
+```bash
+genai-perf config -f genai_perf_config.yaml --override-config --warmup-request-count 100 --concurrency 32
+```
+</br>
+
+<!--
+=====================
 Analyze Subcommand
 ====================
 -->
