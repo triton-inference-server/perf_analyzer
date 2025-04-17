@@ -43,9 +43,7 @@ class ConfigEndPoint(BaseConfig):
         self.backend: Any = ConfigField(
             default=EndPointDefaults.BACKEND,
             choices=list(OutputFormat)[:2],
-            verbose_template_comment="When benchmarking Triton, this is the backend of the model.\
-                \nFor the TENSORRT-LLM backend,you currently must set 'exclude_input_in_output' to true\
-                \nin the model config to not echo the input tokens",
+            verbose_template_comment="When benchmarking Triton, this is the backend of the model.",
         )
         self.custom: Any = ConfigField(
             default=EndPointDefaults.CUSTOM,
