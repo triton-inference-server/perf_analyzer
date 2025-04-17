@@ -196,7 +196,7 @@ genai-perf config -f <config_file>
 ```
 
 ### Creating a Template Config File
-In order to make it easier for you to use config files we have added a new subcommand that creates a template config file containing all possible options, pre-populated to their default settings. The command to create this is:</br>
+In order to make it easier for you to use config files, we have added a new subcommand that generates a template config file containing all possible options, pre-populated to their default settings. The command to create this is:</br>
 ```bash
 genai-perf create-template
 ```
