@@ -36,7 +36,6 @@ class ConfigProcess(BaseConfig):
 
         self.input_path: Any = ConfigField(
             default=ProcessDefaults.INPUT_PATH,
-            required=True,
             add_to_template=False,
             template_comment=process_export_files_comment,
         )

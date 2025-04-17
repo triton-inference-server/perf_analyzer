@@ -799,7 +799,6 @@ def _parse_config_args(subparsers) -> argparse.ArgumentParser:
     _add_profile_args(config)
     _add_session_args(config)
     _add_tokenizer_args(config)
-    _add_process_export_files_args(config)
 
     config.set_defaults(func=config_handler)
     return config

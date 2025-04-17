@@ -53,6 +53,7 @@ class ConfigCommand(BaseConfig):
 
         self.model_names: Any = ConfigField(
             default=TopLevelDefaults.MODEL_NAMES,
+            required=True,
             add_to_template=True,
             verbose_template_comment="The name of the model(s) to benchmark.",
         )
@@ -155,6 +156,8 @@ class ConfigCommand(BaseConfig):
 
         if self.analyze.any_field_set_by_user():
             self.subcommand = Subcommand.ANALYZE
+        elif self.process.any_field_set_by_user():
+            self.subcommand = Subcommand.PROCESS
         else:
             self.subcommand = Subcommand.PROFILE
 
