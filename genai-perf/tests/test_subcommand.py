@@ -15,7 +15,6 @@
 import subprocess
 from unittest.mock import MagicMock, patch
 
-import pytest
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_field import ConfigField
