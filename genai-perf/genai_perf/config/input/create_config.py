@@ -96,17 +96,10 @@ class CreateConfig:
 
         CreateConfig._check_that_override_is_set(args)
         CreateConfig._add_top_level_args_to_config(config, args)
-        CreateConfig._add_output_args_to_config(config, args)
-
         if config.subcommand == Subcommand.PROCESS:
-            CreateConfig._add_process_export_files_to_config(config, args)
-            return config
-
-        CreateConfig._add_analyze_args_to_config(config, args)
-        CreateConfig._add_endpoint_args_to_config(config, args)
-        CreateConfig._add_perf_analyzer_args_to_config(config, args)
-        CreateConfig._add_input_args_to_config(config, args)
-        CreateConfig._add_tokenizer_args_to_config(config, args)
+            CreateConfig._add_process_args_to_config(config, args)
+        else:
+            CreateConfig._add_profile_analyze_args_to_config(config, args)
 
         return config
 
@@ -136,12 +129,33 @@ class CreateConfig:
                 )
 
     @staticmethod
+    def _add_profile_analyze_args_to_config(
+        config: ConfigCommand, args: argparse.Namespace
+    ) -> ConfigCommand:
+        CreateConfig._add_analyze_args_to_config(config, args)
+        CreateConfig._add_endpoint_args_to_config(config, args)
+        CreateConfig._add_perf_analyzer_args_to_config(config, args)
+        CreateConfig._add_input_args_to_config(config, args)
+        CreateConfig._add_output_args_to_config(config, args)
+        CreateConfig._add_tokenizer_args_to_config(config, args)
+
+        return config
+
+    @staticmethod
+    def _add_process_args_to_config(
+        config: ConfigCommand, args: argparse.Namespace
+    ) -> ConfigCommand:
+        CreateConfig._add_process_export_files_args_to_config(config, args)
+        CreateConfig._add_output_args_to_config(config, args)
+
+        return config
+
+    @staticmethod
     def _add_top_level_args_to_config(
         config: ConfigCommand, args: argparse.Namespace
     ) -> ConfigCommand:
-        if args.subcommand != Subcommand.PROCESS.value:
-            if args.model:
-                config.model_names = args.model
+        if hasattr(args, "model") and args.model:
+            config.model_names = args.model
         if args.subcommand:
             config.subcommand = Subcommand(args.subcommand)
         if args.verbose:
@@ -220,7 +234,7 @@ class CreateConfig:
         return config
 
     @staticmethod
-    def _add_process_export_files_to_config(
+    def _add_process_export_files_args_to_config(
         config: ConfigCommand, args: argparse.Namespace
     ) -> ConfigCommand:
         if hasattr(args, "input_path") and args.input_path:

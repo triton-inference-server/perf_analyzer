@@ -603,7 +603,7 @@ def _add_process_export_files_args(parser):
         "-d",
         dest="input_path",
         nargs=1,
-        type=directory,
+        type=str,
         required=True,
         help="The path to the directory containing the profile export files.",
     )

@@ -153,7 +153,8 @@ class TestConfigCommand(unittest.TestCase):
         # yapf: enable
 
         user_config = yaml.safe_load(yaml_str)
-        config = ConfigCommand(user_config)
+        with patch.object(Path, "is_dir", return_value=True):
+            config = ConfigCommand(user_config)
 
         self.assertEqual(config.process.input_path, Path("test_dir"))
         self.assertEqual(

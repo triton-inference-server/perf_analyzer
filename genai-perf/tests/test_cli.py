@@ -1411,9 +1411,10 @@ class TestCLIArguments:
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", args)
         args, _ = parser.parse_args()
-        config = CreateConfig.create(args)
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
 
-        assert args.input_path[0] == Path("test_dir")
+        assert args.input_path[0] == "test_dir"
         assert config.process.input_path == Path("test_dir")
 
     @pytest.mark.parametrize(
@@ -1435,7 +1436,8 @@ class TestCLIArguments:
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
-        config = CreateConfig.create(args)
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
 
         if expected_artifact_dir is None:
             assert args.artifact_dir is None
@@ -1462,7 +1464,8 @@ class TestCLIArguments:
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
-        config = CreateConfig.create(args)
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
 
         if expected_profile_json_path is None:
             assert args.profile_export_file is None
@@ -1497,7 +1500,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", args)
 
         args, _ = parser.parse_args()
-        config = CreateConfig.create(args)
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
 
-        assert args.input_path[0] == Path("test_dir")
+        assert args.input_path[0] == "test_dir"
         assert config.process.input_path == Path("test_dir")
