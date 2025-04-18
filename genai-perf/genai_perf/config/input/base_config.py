@@ -19,7 +19,6 @@ from textwrap import indent
 from typing import Any, Dict
 
 from genai_perf.config.input.config_field import ConfigField
-from genai_perf.inputs.input_constants import Subcommand
 
 
 class BaseConfig:
@@ -57,9 +56,6 @@ class BaseConfig:
 
     def check_required_fields_are_set(self) -> None:
         for name, field in self._fields.items():
-            # Skip validation model_names is set for process-export-files subcommand
-            if name == "model_names" and self.subcommand == Subcommand.PROCESS:
-                continue
             if field.required and not field.is_set_by_user:
                 raise ValueError(f"Required field {name} is not set")
 
