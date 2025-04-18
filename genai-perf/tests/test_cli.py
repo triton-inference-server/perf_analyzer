@@ -35,6 +35,7 @@ from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import EndPointDefaults
 from genai_perf.config.input.create_config import CreateConfig
+from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.input_constants import (
     AudioFormat,
     ImageFormat,
