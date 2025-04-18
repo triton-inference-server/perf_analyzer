@@ -164,10 +164,6 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(
             config.output.artifact_directory, Path("test_artifact_directory")
         )
-<<<<<<< HEAD
-=======
-        print(config.output.artifact_directory)
->>>>>>> 3c605ed (Fix process-export-files subcommand (#342))
         self.assertEqual(
             config.output.profile_export_file,
             Path("test_profile_export_file.json"),

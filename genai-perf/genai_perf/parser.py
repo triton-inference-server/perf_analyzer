@@ -39,7 +39,6 @@ from genai_perf.subcommand.config import config_handler
 from genai_perf.subcommand.process_export_files import process_export_files_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
-from genai_perf.subcommand.process_export_files import process_export_files_handler
 
 from . import __version__
 
