@@ -25,6 +25,7 @@ from genai_perf.config.input.config_field import ConfigField
 from genai_perf.config.input.config_input import ConfigInput
 from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
+from genai_perf.config.input.config_process import ConfigProcess
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
 from genai_perf.inputs.input_constants import (
     OutputFormat,
@@ -78,6 +79,7 @@ class ConfigCommand(BaseConfig):
         self.input = ConfigInput()
         self.output = ConfigOutput()
         self.tokenizer = ConfigTokenizer(enable_debug_logging)
+        self.process = ConfigProcess()
 
         self._parse_yaml(user_config, skip_inferencing_and_checking)
 
@@ -104,6 +106,8 @@ class ConfigCommand(BaseConfig):
                     self._parse_model_names(value)
                 elif key == "analyze":
                     self.analyze.parse(value)
+                elif key == "process":
+                    self.process.parse(value)
                 elif key == "endpoint":
                     self.endpoint.parse(value)
                 elif key == "perf_analyzer":
@@ -131,6 +135,9 @@ class ConfigCommand(BaseConfig):
             raise ValueError("User Config: model_names must be a string or list")
 
     def _check_required_fields_are_set(self) -> None:
+        if self.subcommand == Subcommand.PROCESS:
+            # Skip checking model_names for process-export-files subcommand
+            self.get_field("model_names").required = False
         super().check_required_fields_are_set()
 
     ###########################################################################
@@ -152,6 +159,8 @@ class ConfigCommand(BaseConfig):
 
         if self.analyze.any_field_set_by_user():
             self.subcommand = Subcommand.ANALYZE
+        elif self.process.any_field_set_by_user():
+            self.subcommand = Subcommand.PROCESS
         else:
             self.subcommand = Subcommand.PROFILE
 

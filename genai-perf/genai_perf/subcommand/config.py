@@ -29,6 +29,7 @@ from typing import List, Optional
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import Subcommand
 from genai_perf.subcommand.analyze import analyze_handler
+from genai_perf.subcommand.process_export_files import process_export_files_handler
 from genai_perf.subcommand.profile import profile_handler
 
 
@@ -43,5 +44,7 @@ def config_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> No
         profile_handler(config, extra_args)
     elif config.subcommand == Subcommand.ANALYZE:
         analyze_handler(config, extra_args)
+    elif config.subcommand == Subcommand.PROCESS:
+        process_export_files_handler(config, extra_args)
     else:
         raise ValueError(f"User Config: {config.subcommand} handler not found.")

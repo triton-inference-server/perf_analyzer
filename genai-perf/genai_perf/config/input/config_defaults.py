@@ -175,3 +175,8 @@ class TokenizerDefaults:
     NAME = ""
     REVISION = "main"
     TRUST_REMOTE_CODE = False
+
+
+@dataclass(frozen=True)
+class ProcessDefaults:
+    INPUT_PATH = None
