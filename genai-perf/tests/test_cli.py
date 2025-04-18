@@ -1413,7 +1413,7 @@ class TestCLIArguments:
         assert config.process.input_path == Path("test_dir")
 
     def test_process_export_files_input_path(self, monkeypatch, capsys):
-        args = ["genai-perf", "process-export-files", "test_dir"]
+        args = ["genai-perf", "process-export-files", "--input-directory", "test_dir"]
         monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", args)
         parsed_args, config, _ = parser.parse_args()
