@@ -135,6 +135,9 @@ class ConfigCommand(BaseConfig):
             raise ValueError("User Config: model_names must be a string or list")
 
     def _check_required_fields_are_set(self) -> None:
+        if self.subcommand == Subcommand.PROCESS:
+            # Skip checking model_names for process-export-files subcommand
+            self.get_field("model_names").required = False
         super().check_required_fields_are_set()
 
     ###########################################################################

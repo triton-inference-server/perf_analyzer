@@ -30,7 +30,6 @@ from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
-from genai_perf.inputs import input_constants as ic
 from genai_perf.inputs.input_constants import OutputFormat, PromptSource
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
@@ -194,8 +193,7 @@ class Subcommand:
         if self._tokenizer:
             return
 
-        if self._config.subcommand != ic.Subcommand.PROCESS:
-            logger.info(f"Creating tokenizer for: {self._config.tokenizer.name}")
+        logger.info(f"Creating tokenizer for: {self._config.tokenizer.name}")
         self._tokenizer = get_tokenizer(self._config)
 
     def _create_inputs_config(
