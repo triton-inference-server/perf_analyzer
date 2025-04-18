@@ -53,8 +53,8 @@ class CreateConfig:
             config = CreateConfig._add_cli_options_to_config(config, args)
             config.infer_and_check_options()
             CreateConfig._print_warnings(config)
-            print(args.func.__name__)
-            if config.subcommand != Subcommand.PROCESS.value:
+
+            if config.subcommand != Subcommand.PROCESS:
                 logger.info(f"Profiling these models: {', '.join(config.model_names)}")
 
         return config
@@ -98,7 +98,7 @@ class CreateConfig:
         CreateConfig._add_top_level_args_to_config(config, args)
         CreateConfig._add_output_args_to_config(config, args)
 
-        if config.subcommand == Subcommand.PROCESS.value:
+        if config.subcommand == Subcommand.PROCESS:
             CreateConfig._add_process_export_files_to_config(config, args)
             return config
 
