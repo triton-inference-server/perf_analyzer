@@ -159,7 +159,6 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(
             config.output.artifact_directory, Path("test_artifact_directory")
         )
-        print(config.output.artifact_directory)
         self.assertEqual(
             config.output.profile_export_file,
             Path("test_profile_export_file.json"),
