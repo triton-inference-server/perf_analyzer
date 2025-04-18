@@ -599,9 +599,12 @@ def _add_output_args(parser):
 def _add_process_export_files_args(parser):
     process_export_files_group = parser.add_argument_group("Process Export Files")
     process_export_files_group.add_argument(
-        "input_path",
+        "--input-directory",
+        "-d",
+        dest="input_path",
         nargs=1,
         type=directory,
+        required=True,
         help="The path to the directory containing the profile export files.",
     )
 
