@@ -487,7 +487,7 @@ class Subcommand:
             load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
         elif "request_rate" in self._config.perf_analyzer.stimulus:
             infer_mode = "request_rate"
-            load_level = f'{self._config.perf_analyzer.stimulus["concurrency"]}'
+            load_level = f'{self._config.perf_analyzer.stimulus["request_rate"]}'
         else:
             raise GenAIPerfException("Cannot determine infer_mode/load_level")
 
