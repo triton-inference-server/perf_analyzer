@@ -25,14 +25,19 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
-import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, DefaultDict, Dict, List, Optional
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
+from genai_perf.metrics import (
+    LLMMetrics,
+    Statistics,
+    TelemetryMetrics,
+    TelemetryStatistics,
+)
 from genai_perf.subcommand.subcommand import Subcommand
 from genai_perf.types import ModelObjectiveParameters
 
@@ -155,12 +160,9 @@ class ProcessExportFiles(Subcommand):
         perf_analyzer_config: PerfAnalyzerConfig,
         objectives: ModelObjectiveParameters,
     ) -> None:
-        perf_stats = self._create_perf_stats(perf_analyzer_config, objectives)
-        telemetry_stats = self._create_merged_telemetry_stats()
-        session_stats = self._create_session_stats(perf_analyzer_config, objectives)
-
-        telemetry_stats_dict = self._input_profile_data["telemetry_stats"]
-        telemetry_stats.set_stats_dict(telemetry_stats_dict)
+        perf_stats = self._get_perf_stats()
+        telemetry_stats = self._get_telemetry_stats()
+        session_stats = self._get_session_stats()
 
         OutputReporter(
             perf_stats,

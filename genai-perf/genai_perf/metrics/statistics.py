@@ -80,6 +80,17 @@ class Statistics:
                     self._stats_dict[attr]["max"] = max
                     self._stats_dict[attr]["std"] = self._calculate_std(data)
 
+    def scale_data(self, factor: float = 1 / 1e6) -> None:
+        """Scale the time-based metrics by the factor."""
+        for k1, v1 in self.stats_dict.items():
+            if self._is_time_metric(k1):
+                for k2, v2 in v1.items():
+                    if k2 != "unit":
+                        self.stats_dict[k1][k2] = v2 * factor
+
+    def set_stats_dict(self, stats_dict: Dict) -> None:
+        self._stats_dict = stats_dict
+
     def _should_skip(self, data: List[Union[int, float]], attr: str) -> bool:
         """Checks if some metrics should be skipped."""
         # No data points
@@ -107,14 +118,6 @@ class Statistics:
     def _calculate_std(self, data: List[Union[int, float]]) -> float:
         std = np.std(data)
         return float(std)
-
-    def scale_data(self, factor: float = 1 / 1e6) -> None:
-        """Scale the time-based metrics by the factor."""
-        for k1, v1 in self.stats_dict.items():
-            if self._is_time_metric(k1):
-                for k2, v2 in v1.items():
-                    if k2 != "unit":
-                        self.stats_dict[k1][k2] = v2 * factor
 
     def _add_units(self, key) -> None:
         if self._is_time_metric(key):
