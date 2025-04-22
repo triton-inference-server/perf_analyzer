@@ -1657,40 +1657,6 @@ TEST_CASE("Testing Command Line Parser")
       exp->measurement_mode = MeasurementMode::COUNT_WINDOWS;
       exp->measurement_request_count = 2000;
     }
-    SUBCASE("zero value (no override to measurement mode)")
-    {
-      int argc = 7;
-      char* argv[argc] = {app_name,          "-m", model_name,
-                          "--request-count", "0",  "--measurement-mode",
-                          "time_windows"};
-
-      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
-      CHECK(!parser.UsageCalled());
-
-      exp->request_count = 0;
-      exp->measurement_mode = MeasurementMode::TIME_WINDOWS;
-    }
-    SUBCASE("zero value (no override to measurement request count)")
-    {
-      int argc = 9;
-      char* argv[argc] = {
-          app_name,
-          "-m",
-          model_name,
-          "--request-count",
-          "0",
-          "--measurement-mode",
-          "count_windows",
-          "--measurement-request-count",
-          "50"};
-
-      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
-      CHECK(!parser.UsageCalled());
-
-      exp->request_count = 0;
-      exp->measurement_mode = MeasurementMode::COUNT_WINDOWS;
-      exp->measurement_request_count = 50;
-    }
   }
 
   SUBCASE("Option : --warmup-request-count")

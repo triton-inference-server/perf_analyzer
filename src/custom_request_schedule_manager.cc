@@ -43,6 +43,15 @@ CustomRequestScheduleManager::Create(
   return cb::Error::Success;
 }
 
+void
+CustomRequestScheduleManager::Start()
+{
+  if (!warmup_schedule_.empty()) {
+    PerformWarmup();
+  }
+  StartBenchmark();
+}
+
 CustomRequestScheduleManager::CustomRequestScheduleManager(
     const PerfAnalyzerParameters& params,
     const std::shared_ptr<ModelParser>& parser,
@@ -52,32 +61,125 @@ CustomRequestScheduleManager::CustomRequestScheduleManager(
           params.batch_size, params.measurement_window_ms, params.max_trials,
           params.max_threads, params.num_of_sequences,
           params.shared_memory_type, params.output_shm_size,
-          params.serial_sequences, parser, factory, params.request_parameters)
+          params.serial_sequences, parser, factory, params.request_parameters),
+      warmup_request_count_(params.warmup_request_count),
+      benchmark_request_count_(params.request_count)
 {
-  max_threads_ = std::min(max_threads_, params.request_count);
-}
-
-cb::Error
-CustomRequestScheduleManager::InitCustomSchedule(const size_t request_count)
-{
-  PauseWorkers();
-  ConfigureThreads(request_count);
-  GenerateSchedule();
-  ResumeWorkers();
-
-  return cb::Error::Success;
 }
 
 void
-CustomRequestScheduleManager::GenerateSchedule()
+CustomRequestScheduleManager::DistributeScheduleToWorkers(
+    const Schedule& schedule)
 {
-  auto worker_schedules = CreateWorkerSchedules(schedule_);
+  auto worker_schedules = CreateWorkerSchedules(schedule);
   GiveSchedulesToWorkers(worker_schedules);
 }
 
+void
+CustomRequestScheduleManager::InitManagerFinalize()
+{
+  auto [warmup_schedule, benchmark_schedule]{GetSchedulesFromDataset()};
+  warmup_schedule_ = std::move(warmup_schedule);
+  benchmark_schedule_ = std::move(benchmark_schedule);
+  parser_->Inputs()->erase("timestamp");
+}
+
+std::pair<
+    CustomRequestScheduleManager::Schedule,
+    CustomRequestScheduleManager::Schedule>
+CustomRequestScheduleManager::GetSchedulesFromDataset() const
+{
+  Schedule warmup_schedule{}, benchmark_schedule{};
+
+  if (data_loader_->GetDataStreamsCount() != 1) {
+    throw std::runtime_error(
+        "Expected input data JSON to have one stream. Fixed schedule mode "
+        "must have an input data JSON with a single flat array for the "
+        "\"data\" field with one element per request payload.");
+  }
+
+  const size_t dataset_size{data_loader_->GetTotalSteps(0)};
+
+  if (dataset_size == 0) {
+    throw std::runtime_error(
+        "Expected input data JSON to have at least one request payload.");
+  }
+
+  if (warmup_request_count_ >= dataset_size) {
+    throw std::runtime_error(
+        "Expected warmup request count to be less than the dataset size.");
+  }
+
+  if (dataset_size != warmup_request_count_ + benchmark_request_count_) {
+    throw std::runtime_error(
+        "Expected input data JSON size to be equal to the warmup request count "
+        "plus the benchmark request count.");
+  }
+
+  for (size_t dataset_index{0}; dataset_index < warmup_request_count_;
+       ++dataset_index) {
+    const auto timestamp{GetTimestamp(dataset_index)};
+    warmup_schedule.push_back(timestamp);
+  }
+
+  for (size_t dataset_index{warmup_request_count_};
+       dataset_index < dataset_size; ++dataset_index) {
+    const auto timestamp{GetTimestamp(dataset_index)};
+    benchmark_schedule.push_back(timestamp);
+  }
+
+  return {warmup_schedule, benchmark_schedule};
+}
+
+std::chrono::milliseconds
+CustomRequestScheduleManager::GetTimestamp(size_t dataset_index) const
+{
+  TensorData timestamp_tensor_data{};
+
+  const auto error{data_loader_->GetInputData(
+      (*parser_->Inputs())["timestamp"], 0, dataset_index,
+      timestamp_tensor_data)};
+
+  if (!error.IsOk()) {
+    throw std::runtime_error(error.Message());
+  }
+
+  const uint64_t timestamp_ms{
+      *reinterpret_cast<const uint64_t*>(timestamp_tensor_data.data_ptr)};
+
+  return std::chrono::milliseconds(timestamp_ms);
+}
+
+void
+CustomRequestScheduleManager::PerformWarmup()
+{
+  if (warmup_schedule_.empty()) {
+    throw std::runtime_error("Expected warmup schedule to be non-empty.");
+  }
+
+  const size_t old_max_threads_{max_threads_};
+
+  max_threads_ = std::min(max_threads_, warmup_schedule_.size());
+
+  InitCustomSchedule(warmup_schedule_);
+  WaitForWarmupAndCleanup();
+
+  max_threads_ = old_max_threads_;
+}
+
+void
+CustomRequestScheduleManager::InitCustomSchedule(
+    const Schedule& schedule, size_t dataset_offset)
+{
+  PauseWorkers();
+  const size_t request_count{schedule.size()};
+  ConfigureThreads(request_count, dataset_offset);
+  DistributeScheduleToWorkers(schedule);
+  ResumeWorkers();
+}
+
 std::vector<RateSchedulePtr_t>
-CustomRequestScheduleManager::CreateWorkerSchedules(
-    const std::vector<std::chrono::milliseconds>& schedule)
+CustomRequestScheduleManager::CreateWorkerSchedules(const Schedule& schedule)
 {
   std::vector<RateSchedulePtr_t> worker_schedules =
       CreateEmptyWorkerSchedules();
@@ -98,53 +200,17 @@ CustomRequestScheduleManager::CreateWorkerSchedules(
 }
 
 void
-CustomRequestScheduleManager::InitManagerFinalize()
+CustomRequestScheduleManager::StartBenchmark()
 {
-  schedule_ = GetScheduleFromDataset();
-  parser_->Inputs()->erase("timestamp");
-}
-
-std::vector<std::chrono::milliseconds>
-CustomRequestScheduleManager::GetScheduleFromDataset() const
-{
-  std::vector<std::chrono::milliseconds> schedule{};
-
-  if (data_loader_->GetDataStreamsCount() != 1) {
-    throw std::runtime_error(
-        "Expected input data JSON to have one stream. Fixed schedule mode "
-        "must have an input data JSON with a single flat array for the "
-        "\"data\" field with one element per request payload.");
+  if (benchmark_schedule_.empty()) {
+    throw std::runtime_error("Expected benchmark schedule to be non-empty.");
   }
 
-  const size_t dataset_size{data_loader_->GetTotalSteps(0)};
+  max_threads_ = std::min(max_threads_, benchmark_schedule_.size());
 
-  for (size_t dataset_index{0}; dataset_index < dataset_size; ++dataset_index) {
-    const auto timestamp{GetTimestamp(dataset_index)};
-    schedule.push_back(timestamp);
-  }
+  const size_t dataset_offset{warmup_schedule_.size()};
 
-  std::sort(schedule.begin(), schedule.end());
-
-  return schedule;
-}
-
-std::chrono::milliseconds
-CustomRequestScheduleManager::GetTimestamp(size_t dataset_index) const
-{
-  TensorData timestamp_tensor_data{};
-
-  const auto error{data_loader_->GetInputData(
-      (*parser_->Inputs())["timestamp"], 0, dataset_index,
-      timestamp_tensor_data)};
-
-  if (!error.IsOk()) {
-    throw std::runtime_error(error.Message());
-  }
-
-  const uint64_t timestamp_ms{
-      *reinterpret_cast<const uint64_t*>(timestamp_tensor_data.data_ptr)};
-
-  return std::chrono::milliseconds(timestamp_ms);
+  InitCustomSchedule(benchmark_schedule_, dataset_offset);
 }
 
 }  // namespace triton::perfanalyzer

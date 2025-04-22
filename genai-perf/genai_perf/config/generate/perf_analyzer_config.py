@@ -246,12 +246,16 @@ class PerfAnalyzerConfig:
     def _add_perf_analyzer_args(self, config: ConfigCommand) -> List[str]:
         perf_analyzer_args = []
 
+        if config.perf_analyzer.warmup_request_count > 0:
+            perf_analyzer_args += [
+                "--warmup-request-count",
+                f"{config.perf_analyzer.warmup_request_count}",
+            ]
+
         if config.input.prompt_source != PromptSource.PAYLOAD:
             perf_analyzer_args += [
                 f"--stability-percentage",
                 f"{config.perf_analyzer.stability_percentage}",
-                f"--warmup-request-count",
-                f"{config.perf_analyzer.warmup_request_count}",
             ]
 
             mode = config.perf_analyzer.measurement.mode
@@ -290,8 +294,6 @@ class PerfAnalyzerConfig:
                 protocol_args += ["--shape", "max_tokens:1", "--shape", "text_input:1"]
         elif config.endpoint.service_kind == "openai":
             protocol_args += ["-i", "http"]
-        elif config.endpoint.service_kind == "tensorrtllm_engine":
-            protocol_args += ["--service-kind", "triton_c_api", "--streaming"]
 
         return protocol_args
 
@@ -346,7 +348,10 @@ class PerfAnalyzerConfig:
 
     def _add_endpoint_args(self, config: ConfigCommand) -> List[str]:
         endpoint_args = []
-        endpoint_args += ["--service-kind", f"{config.endpoint.service_kind}"]
+        if config.endpoint.service_kind == "tensorrtllm_engine":
+            endpoint_args += ["--service-kind", "triton_c_api", "--streaming"]
+        else:
+            endpoint_args += ["--service-kind", f"{config.endpoint.service_kind}"]
 
         if config.endpoint.custom:
             endpoint_args += ["--endpoint", f"{config.endpoint.custom}"]

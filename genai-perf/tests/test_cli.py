@@ -1115,10 +1115,6 @@ class TestCLIArguments:
                 ["--request-count", "3"],
                 "User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source.",
             ),
-            (
-                ["--warmup-request-count", "7"],
-                "User Config: perf_analyzer.warmup_request_count is not supported with the payload input source.",
-            ),
         ],
     )
     def test_check_payload_input_args_invalid_args(

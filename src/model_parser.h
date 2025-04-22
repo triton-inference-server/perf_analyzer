@@ -68,15 +68,8 @@ class ModelParser {
     ENSEMBLE_SEQUENCE
   };
 
-  explicit ModelParser()
-      : inputs_(std::make_shared<ModelTensorMap>()),
-        outputs_(std::make_shared<ModelTensorMap>()),
-        composing_models_map_(std::make_shared<ComposingModelMap>()),
-        scheduler_type_(NONE), max_batch_size_(0), is_decoupled_(false),
-        response_cache_enabled_(false),
-        top_level_response_caching_enabled_(false)
-  {
-  }
+  explicit ModelParser(
+      InferenceLoadMode inference_load_mode = InferenceLoadMode::None);
 
   /// Initializes the ModelParser with the metadata and config rapidjson DOM
   /// for the target model obtained from Triton service
@@ -118,7 +111,7 @@ class ModelParser {
 
   cb::Error InitOpenAI(
       const std::string& model_name, const std::string& model_version,
-      const int32_t batch_size, InferenceLoadMode inference_load_mode);
+      const int32_t batch_size);
 
   cb::Error InitTorchServe(
       const std::string& model_name, const std::string& model_version,

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -98,3 +98,45 @@ where `my_intervals.txt` contains:
 
 Perf Analyzer will attempt to send requests at the following times: 0.1s, 0.3s,
 0.8s, 0.9s, 1.1s, 1.6s, and so on, during profiling.
+
+## Fixed Schedule Mode
+
+In fixed schedule inference load mode, Perf Analyzer runs through the
+[`--input-data`](cli.md#--input-datazerorandompath) JSON once. Each entry
+represents a request and must have a `timestamp` "input", which tells Perf
+Analyzer when to send that request. A timestamp of `N` means Perf Analyzer will
+send that request `N` milliseconds after the start of the benchmark. For
+example:
+
+```json
+# input_data.json
+{
+  "data": [
+    {
+      "payload": [{
+          "model": "facebook/opt-125m",
+          "messages": [{"role": "user","content": "What is the capital of France?"}],
+          "max_completion_tokens": 1
+        }],
+      "timestamp": [1000]
+    },
+    {
+      "payload": [{
+          "model": "facebook/opt-125m",
+          "messages": [{"role": "user","content": "What is 1+1?"}],
+          "max_completion_tokens": 1
+        }],
+      "timestamp": [2000]
+    }
+  ]
+}
+```
+
+Using this `input_data.json` with fixed schedule mode will run a benchmark that
+sends 2 requests total.
+
+The first request gets sent 1000ms after the start of the benchmark with the
+prompt `What is the capital of France?`.
+
+The second request gets sent 2000ms after the start of the benchmark with the
+prompt `What is 1+1?`.
