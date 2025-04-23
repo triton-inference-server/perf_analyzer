@@ -37,8 +37,6 @@ from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics import Statistics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
-from genai_perf.plots.plot_config_parser import PlotConfigParser
-from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.profile_data_parser import (
     ImageRetrievalProfileDataParser,
     LLMProfileDataParser,
@@ -76,18 +74,6 @@ class Subcommand:
         # These fields can change (based on objectives), vary from run to run
         # and are used by multiple methods
         self._data_parser: Optional[ProfileDataParser] = None
-
-    def create_plots(self) -> None:
-        # TMA-1911: support plots CLI option
-        plot_dir = self._config.output.artifact_directory / "plots"
-        PlotConfigParser.create_init_yaml_config(
-            filenames=[self._config.output.profile_export_file],  # single run
-            output_dir=plot_dir,
-        )
-        config_parser = PlotConfigParser(plot_dir / "config.yaml")
-        plot_configs = config_parser.generate_configs(self._config)
-        plot_manager = PlotManager(plot_configs)
-        plot_manager.generate_plots()
 
     ###########################################################################
     # Perf Analyzer Methods

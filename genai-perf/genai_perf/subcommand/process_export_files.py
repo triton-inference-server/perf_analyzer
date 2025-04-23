@@ -45,8 +45,6 @@ def process_export_files_handler(
     """
     process = ProcessExportFiles(config, extra_args)
     process.process_export_files()
-    if config.output.generate_plots:
-        process.create_plots()
 
 
 class ProcessExportFiles(Subcommand):
@@ -69,7 +67,6 @@ class ProcessExportFiles(Subcommand):
 
         self._create_tokenizer()
         self._create_artifact_directory(perf_analyzer_config)
-        self._create_plot_directory(perf_analyzer_config)
 
         self._copy_profile_export_to_artifact_dir(perf_analyzer_config)
 

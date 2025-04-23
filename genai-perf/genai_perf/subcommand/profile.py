@@ -87,3 +87,15 @@ class Profile(Subcommand):
                 genai_perf_config, perf_analyzer_config, objectives
             )
             self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
+
+    def create_plots(self) -> None:
+        # TMA-1911: support plots CLI option
+        plot_dir = self._config.output.artifact_directory / "plots"
+        PlotConfigParser.create_init_yaml_config(
+            filenames=[self._config.output.profile_export_file],  # single run
+            output_dir=plot_dir,
+        )
+        config_parser = PlotConfigParser(plot_dir / "config.yaml")
+        plot_configs = config_parser.generate_configs(self._config)
+        plot_manager = PlotManager(plot_configs)
+        plot_manager.generate_plots()
