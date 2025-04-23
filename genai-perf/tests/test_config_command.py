@@ -135,6 +135,38 @@ class TestConfigCommand(unittest.TestCase):
         )
 
     ###########################################################################
+    # Test PROCESS-EXPORT-FILES Subcommand
+    ###########################################################################
+    def test_process_export_files_subcommand(self):
+        """
+        Test that the process-export-files subcommand is parsed correctly
+        """
+        # yapf: disable
+        yaml_str = ("""
+            process:
+                input_path: test_dir
+            output:
+                artifact_directory: "test_artifact_directory"
+                profile_export_file: "test_profile_export_file.json"
+                generate_plots: True
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        with patch.object(Path, "is_dir", return_value=True):
+            config = ConfigCommand(user_config)
+
+        self.assertEqual(config.process.input_path, Path("test_dir"))
+        self.assertEqual(
+            config.output.artifact_directory, Path("test_artifact_directory")
+        )
+        self.assertEqual(
+            config.output.profile_export_file,
+            Path("test_profile_export_file.json"),
+        )
+        self.assertEqual(config.output.generate_plots, True)
+
+    ###########################################################################
     # Test Endpoint Configuration
     ###########################################################################
     def test_endpoint_config(self):

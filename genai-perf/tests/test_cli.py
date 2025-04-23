@@ -1367,3 +1367,136 @@ class TestCLIArguments:
         config = CreateConfig.create(args)
 
         assert config.verbose is True
+
+    # ================================================
+    # PROCESS-EXPORT-FILES SUBCOMMAND
+    # ================================================
+    expected_help_output = (
+        "Subcommand to process export files and aggregate the results."
+    )
+
+    @pytest.mark.parametrize(
+        "args, expected_output",
+        [
+            (["-h"], expected_help_output),
+            (["--help"], expected_help_output),
+        ],
+    )
+    def test_process_export_files_help_arguments_output_and_exit(
+        self, monkeypatch, args, expected_output, capsys
+    ):
+        monkeypatch.setattr("sys.argv", ["genai-perf", "process-export-files"] + args)
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code == 0
+
+        captured = capsys.readouterr()
+        assert expected_output in captured.out
+
+    def test_process_export_files_missing_input_path(self, monkeypatch, capsys):
+        args = ["genai-perf", "process-export-files"]
+        monkeypatch.setattr("sys.argv", args)
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code != 0
+        captured = capsys.readouterr()
+        assert "input-directory" in captured.err
+
+    def test_process_export_files_input_path(self, monkeypatch, capsys):
+        args = ["genai-perf", "process-export-files", "--input-directory", "test_dir"]
+        monkeypatch.setattr("sys.argv", args)
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        assert args.input_path[0] == "test_dir"
+        assert config.process.input_path == Path("test_dir")
+
+    @pytest.mark.parametrize(
+        "arg, expected_artifact_dir, config_artifact_dir",
+        [
+            (["--artifact-dir", "test_dir"], "test_dir", "test_dir"),
+            ([], None, "artifacts"),
+        ],
+    )
+    def test_process_export_files_artifact_dir(
+        self, monkeypatch, arg, expected_artifact_dir, config_artifact_dir
+    ):
+        combined_args = [
+            "genai-perf",
+            "process-export-files",
+            "--input-directory",
+            "test_dir",
+        ] + arg
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        if expected_artifact_dir is None:
+            assert args.artifact_dir is None
+        else:
+            assert args.artifact_dir == Path(expected_artifact_dir)
+        assert config.output.artifact_directory == Path(config_artifact_dir)
+
+    @pytest.mark.parametrize(
+        "arg, expected_profile_json_path, config_profile_json_path",
+        [
+            (["--profile-export-file", "test.json"], "test.json", "test.json"),
+            ([], None, "profile_export.json"),
+        ],
+    )
+    def test_process_export_files_profile_export_filepath(
+        self, monkeypatch, arg, expected_profile_json_path, config_profile_json_path
+    ):
+        combined_args = [
+            "genai-perf",
+            "process-export-files",
+            "--input-directory",
+            "test_dir",
+        ] + arg
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        if expected_profile_json_path is None:
+            assert args.profile_export_file is None
+        else:
+            assert args.profile_export_file == Path(expected_profile_json_path)
+        assert config.output.profile_export_file == Path(config_profile_json_path)
+
+    def test_process_export_files_unrecognized_arg(self, monkeypatch, capsys):
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "genai-perf",
+                "process-export-files",
+                "--input-directory",
+                "test_dir",
+                "--wrong-arg",
+            ],
+        )
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code == 2
+
+        captured = capsys.readouterr()
+        assert "unrecognized arguments: --wrong-arg" in captured.err
+
+    def test_process_export_files_short_input_directory_option(self, monkeypatch):
+        args = ["genai-perf", "process-export-files", "-d", "test_dir"]
+        monkeypatch.setattr("sys.argv", args)
+
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        assert args.input_path[0] == "test_dir"
+        assert config.process.input_path == Path("test_dir")

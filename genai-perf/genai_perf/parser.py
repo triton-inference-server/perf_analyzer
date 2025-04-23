@@ -36,6 +36,7 @@ from genai_perf.config.endpoint_config import endpoint_type_map
 from genai_perf.inputs import input_constants as ic
 from genai_perf.subcommand.analyze import analyze_handler
 from genai_perf.subcommand.config import config_handler
+from genai_perf.subcommand.process_export_files import process_export_files_handler
 from genai_perf.subcommand.profile import profile_handler
 from genai_perf.subcommand.template import template_handler
 
@@ -154,6 +155,8 @@ def _create_sweep_list(args):
 
 
 ### Types ###
+
+
 def file_or_directory(value: str) -> Path:
     if value.startswith("synthetic:") or value.startswith("payload"):
         return Path(value)
@@ -586,6 +589,19 @@ def _add_output_args(parser):
     )
 
 
+def _add_process_export_files_args(parser):
+    process_export_files_group = parser.add_argument_group("Process Export Files")
+    process_export_files_group.add_argument(
+        "--input-directory",
+        "-d",
+        dest="input_path",
+        nargs=1,
+        type=str,
+        required=True,
+        help="The path to the directory containing the profile export files.",
+    )
+
+
 def _add_profile_args(parser):
     profile_group = parser.add_argument_group("Profiling")
     load_management_group = profile_group.add_mutually_exclusive_group(required=False)
@@ -784,6 +800,18 @@ def _parse_config_args(subparsers) -> argparse.ArgumentParser:
     return config
 
 
+def _parse_process_export_files_args(subparsers) -> argparse.ArgumentParser:
+    process_export_files = subparsers.add_parser(
+        ic.Subcommand.PROCESS.value,
+        description="Subcommand to process export files and aggregate the results.",
+    )
+    _add_process_export_files_args(process_export_files)
+    _add_output_args(process_export_files)
+    _add_other_args(process_export_files)
+    process_export_files.set_defaults(func=process_export_files_handler)
+    return process_export_files
+
+
 ### Parser Initialization ###
 
 
@@ -808,6 +836,7 @@ def init_parsers():
     _ = _parse_profile_args(subparsers)
     _ = _parse_analyze_args(subparsers)
     _ = _parse_template_args(subparsers)
+    _ = _parse_process_export_files_args(subparsers)
     subparsers.required = False
 
     return parser
@@ -837,6 +866,8 @@ def refine_args(
         args = _process_sweep_args(args)
         args = _check_goodput_args(args)
     elif args.subcommand == ic.Subcommand.TEMPLATE.value:
+        pass
+    elif args.subcommand == ic.Subcommand.PROCESS.value:
         pass
     else:
         raise ValueError(f"Unknown subcommand: {args.subcommand}")

@@ -25,6 +25,7 @@ from genai_perf.config.input.config_field import ConfigField
 from genai_perf.config.input.config_input import ConfigInput
 from genai_perf.config.input.config_output import ConfigOutput
 from genai_perf.config.input.config_perf_analyzer import ConfigPerfAnalyzer
+from genai_perf.config.input.config_process import ConfigProcess
 from genai_perf.config.input.config_tokenizer import ConfigTokenizer
 from genai_perf.inputs.input_constants import (
     OutputFormat,
@@ -78,6 +79,7 @@ class ConfigCommand(BaseConfig):
         self.input = ConfigInput()
         self.output = ConfigOutput()
         self.tokenizer = ConfigTokenizer(enable_debug_logging)
+        self.process = ConfigProcess()
 
         self._parse_yaml(user_config, skip_inferencing_and_checking)
 
@@ -92,6 +94,8 @@ class ConfigCommand(BaseConfig):
         self._check_required_fields_are_set()
         self._check_for_illegal_combinations()
         self._check_profile_export_file()
+        if self.subcommand == Subcommand.PROCESS:
+            self._check_input_path_is_valid()
 
     def _parse_yaml(
         self,
@@ -104,6 +108,8 @@ class ConfigCommand(BaseConfig):
                     self._parse_model_names(value)
                 elif key == "analyze":
                     self.analyze.parse(value)
+                elif key == "process":
+                    self.process.parse(value)
                 elif key == "endpoint":
                     self.endpoint.parse(value)
                 elif key == "perf_analyzer":
@@ -131,6 +137,9 @@ class ConfigCommand(BaseConfig):
             raise ValueError("User Config: model_names must be a string or list")
 
     def _check_required_fields_are_set(self) -> None:
+        if self.subcommand == Subcommand.PROCESS:
+            # Skip checking model_names for process-export-files subcommand
+            self.get_field("model_names").required = False
         super().check_required_fields_are_set()
 
     ###########################################################################
@@ -152,6 +161,8 @@ class ConfigCommand(BaseConfig):
 
         if self.analyze.any_field_set_by_user():
             self.subcommand = Subcommand.ANALYZE
+        elif self.process.any_field_set_by_user():
+            self.subcommand = Subcommand.PROCESS
         else:
             self.subcommand = Subcommand.PROFILE
 
@@ -229,6 +240,14 @@ class ConfigCommand(BaseConfig):
                     "Please use artifact_directory option to define intermediary paths to "
                     "the profile_export_file."
                 )
+
+    def _check_input_path_is_valid(self) -> None:
+        input_path = Path(self.process.input_path)
+        if not input_path.is_dir():
+            raise ValueError(
+                f"User Config: input path '{self.process.input_path}' is not a directory."
+            )
+        self.process.input_path = input_path
 
     def _preprocess_model_name(self, model_name: str) -> List[str]:
         # Preprocess Huggingface model names that include '/' in their model name.
