@@ -157,13 +157,6 @@ def _create_sweep_list(args):
 ### Types ###
 
 
-def directory(value: str) -> Path:
-    path = Path(value)
-    if path.is_dir():
-        return path
-    raise ValueError(f"'{value}' is not a valid directory")
-
-
 def file_or_directory(value: str) -> Path:
     if value.startswith("synthetic:") or value.startswith("payload"):
         return Path(value)

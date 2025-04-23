@@ -135,9 +135,14 @@ class ProcessExportFiles(Subcommand):
         self._config.endpoint.infer_settings(self._config.model_names[0])
 
     def _set_tokenizer_fields(self) -> None:
-        self._config.tokenizer.parse(
-            self._input_profile_data["input_config"]["tokenizer"]
-        )
+        keys_to_exclude = ["_enable_debug_logging"]
+        tokenizer_data = {
+            k: v
+            for k, v in self._input_profile_data["input_config"]["tokenizer"].items()
+            if k not in keys_to_exclude
+        }
+        self._config.tokenizer.parse(tokenizer_data)
+        self._config.tokenizer.infer_settings(self._config.model_names[0])
 
     def _copy_profile_export_to_artifact_dir(
         self, perf_analyzer_config: PerfAnalyzerConfig

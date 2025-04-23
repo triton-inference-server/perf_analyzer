@@ -1408,7 +1408,6 @@ class TestCLIArguments:
 
     def test_process_export_files_input_path(self, monkeypatch, capsys):
         args = ["genai-perf", "process-export-files", "--input-directory", "test_dir"]
-        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", args)
         args, _ = parser.parse_args()
         with patch.object(Path, "is_dir", return_value=True):
@@ -1433,7 +1432,6 @@ class TestCLIArguments:
             "--input-directory",
             "test_dir",
         ] + arg
-        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
         with patch.object(Path, "is_dir", return_value=True):
@@ -1461,7 +1459,6 @@ class TestCLIArguments:
             "--input-directory",
             "test_dir",
         ] + arg
-        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
         with patch.object(Path, "is_dir", return_value=True):
@@ -1474,7 +1471,6 @@ class TestCLIArguments:
         assert config.output.profile_export_file == Path(config_profile_json_path)
 
     def test_process_export_files_unrecognized_arg(self, monkeypatch, capsys):
-        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr(
             "sys.argv",
             [
@@ -1496,7 +1492,6 @@ class TestCLIArguments:
 
     def test_process_export_files_short_input_directory_option(self, monkeypatch):
         args = ["genai-perf", "process-export-files", "-d", "test_dir"]
-        monkeypatch.setattr("genai_perf.parser.directory", Path)
         monkeypatch.setattr("sys.argv", args)
 
         args, _ = parser.parse_args()
