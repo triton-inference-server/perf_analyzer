@@ -123,7 +123,7 @@ docker compose up -d
 
 ```bash
 cd examples/llm
-dynamo serve graphs.agg:Frontend -f ./configs/agg.yaml 
+dynamo serve graphs.agg:Frontend -f ./configs/agg.yaml
 ```
 
 ### Run GenAI-Perf
