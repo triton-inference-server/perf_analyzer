@@ -26,9 +26,7 @@
 
 from typing import List, Optional
 
-from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
 from genai_perf.subcommand.subcommand import Subcommand

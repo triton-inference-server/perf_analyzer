@@ -35,7 +35,6 @@ from genai_perf.export_data.telemetry_data_exporter_util import (
     merge_telemetry_stats_json,
 )
 from genai_perf.metrics import TelemetryMetrics
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.subcommand.subcommand import Subcommand
 from rich.console import Console
 

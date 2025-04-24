@@ -24,31 +24,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
-import subprocess  # nosec
 from argparse import Namespace
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import genai_perf.logging as logging
-from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
-from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
-from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.inputs import Inputs
-from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
-from genai_perf.profile_data_parser import (
-    ImageRetrievalProfileDataParser,
-    LLMProfileDataParser,
-    ProfileDataParser,
-)
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-    TritonTelemetryDataCollector,
-)
-from genai_perf.tokenizer import Tokenizer
-from genai_perf.utils import load_json_str, remove_file
+from genai_perf.utils import load_json_str
 
 logger = logging.getLogger(__name__)
 

@@ -1073,7 +1073,7 @@ class TestCLIArguments:
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(ValueError):
             args, _ = parser.parse_args()
             CreateConfig.create(args)
 
@@ -1096,7 +1096,7 @@ class TestCLIArguments:
         combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(ValueError):
             args, _ = parser.parse_args()
             CreateConfig.create(args)
 

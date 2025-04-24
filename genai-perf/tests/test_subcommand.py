@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import subprocess
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand

@@ -36,7 +36,6 @@ from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.metrics import Metrics, TelemetryMetrics, TelemetryStatistics
 from genai_perf.metrics.statistics import Statistics
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.profile_data_parser import ProfileDataParser
 from genai_perf.subcommand.profile import Profile
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (

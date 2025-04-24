@@ -264,13 +264,13 @@ class SearchParameters:
         else:
             if min_range is None or max_range is None:
                 raise GenAIPerfException(
-                    f"Both min_range and max_range must be specified"
+                    "Both min_range and max_range must be specified"
                 )
 
             if min_range and max_range:
                 if min_range > max_range:
                     raise GenAIPerfException(
-                        f"min_range cannot be larger than max_range"
+                        "min_range cannot be larger than max_range"
                     )
 
     def _check_for_illegal_list_input(
@@ -281,13 +281,13 @@ class SearchParameters:
     ) -> None:
         if not enumerated_list:
             raise GenAIPerfException(
-                f"enumerated_list must be specified for a SearchCategory.LIST"
+                "enumerated_list must be specified for a SearchCategory.LIST"
             )
         elif min_range is not None:
             raise GenAIPerfException(
-                f"min_range cannot be specified for a SearchCategory.LIST"
+                "min_range cannot be specified for a SearchCategory.LIST"
             )
         elif max_range is not None:
             raise GenAIPerfException(
-                f"max_range cannot be specified for a SearchCategory.LIST"
+                "max_range cannot be specified for a SearchCategory.LIST"
             )

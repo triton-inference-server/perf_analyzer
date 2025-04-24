@@ -25,23 +25,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import csv
-import os
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import genai_perf.logging as logging
-from genai_perf.checkpoint.checkpoint import Checkpoint
-from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
-from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.config.run.run_config import RunConfig
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.export_data.output_reporter import OutputReporter
-from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
-from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.record.types.energy_consumption_p99 import GpuEnergyConsumptionP99
 from genai_perf.record.types.gpu_memory_used_p99 import GpuMemoryUsedP99
 from genai_perf.record.types.gpu_power_limit_avg import GPUPowerLimitAvg
@@ -56,8 +46,6 @@ from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
 from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
 from genai_perf.subcommand.subcommand import Subcommand
-from genai_perf.tokenizer import get_tokenizer
-from genai_perf.types import ModelObjectiveParameters
 
 logger = logging.getLogger(__name__)
 

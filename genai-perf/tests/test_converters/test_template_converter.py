@@ -36,7 +36,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestTemplateConverter:

@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import genai_perf.logging as logging
 from genai_perf.goodput_calculator.goodput_calculator import GoodputCalculator

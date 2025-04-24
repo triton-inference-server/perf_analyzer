@@ -16,7 +16,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
@@ -137,9 +137,9 @@ class PerfAnalyzerConfig:
     ###########################################################################
     def _get_artifact_paths(self) -> List[str]:
         artifact_paths = [
-            f"--input-data",
+            "--input-data",
             f"{self._artifact_directory / DEFAULT_INPUT_DATA_JSON}",
-            f"--profile-export-file",
+            "--profile-export-file",
             f"{self._profile_export_file}",
         ]
 
@@ -195,7 +195,7 @@ class PerfAnalyzerConfig:
     ) -> Optional[List[str]]:
         if (
             config.input.prompt_source == PromptSource.PAYLOAD
-            and not "session_concurrency" in config.perf_analyzer.stimulus
+            and "session_concurrency" not in config.perf_analyzer.stimulus
         ):
             stimulus = None
         elif "concurrency" in config.perf_analyzer.stimulus:
@@ -208,7 +208,7 @@ class PerfAnalyzerConfig:
             session_concurrency = config.perf_analyzer.stimulus["session_concurrency"]
             stimulus = [f"session_concurrency{session_concurrency}"]
         else:
-            raise GenAIPerfException(f"Stimulus type not found in config")
+            raise GenAIPerfException("Stimulus type not found in config")
 
         return stimulus
 
@@ -239,7 +239,7 @@ class PerfAnalyzerConfig:
         required_args = [f"{config.perf_analyzer.path}"]
 
         if config.endpoint.service_kind != "dynamic_grpc":
-            required_args += [f"-m", f"{config.model_names[0]}", f"--async"]
+            required_args += ["-m", f"{config.model_names[0]}", "--async"]
 
         return required_args
 
@@ -248,9 +248,9 @@ class PerfAnalyzerConfig:
 
         if config.input.prompt_source != PromptSource.PAYLOAD:
             perf_analyzer_args += [
-                f"--stability-percentage",
+                "--stability-percentage",
                 f"{config.perf_analyzer.stability_percentage}",
-                f"--warmup-request-count",
+                "--warmup-request-count",
                 f"{config.perf_analyzer.warmup_request_count}",
             ]
 
@@ -262,7 +262,7 @@ class PerfAnalyzerConfig:
                 ]
             elif mode == PerfAnalyzerMeasurementMode.INTERVAL:
                 perf_analyzer_args += [
-                    f"--measurement-interval",
+                    "--measurement-interval",
                     f"{config.perf_analyzer.measurement.num}",
                 ]
 
@@ -338,7 +338,7 @@ class PerfAnalyzerConfig:
         prompt_source_args = []
         if (
             config.input.prompt_source == PromptSource.PAYLOAD
-            and not "session_concurrency" in config.perf_analyzer.stimulus
+            and "session_concurrency" not in config.perf_analyzer.stimulus
         ):
             prompt_source_args += ["--fixed-schedule"]
 

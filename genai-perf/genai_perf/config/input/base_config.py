@@ -196,7 +196,7 @@ class BaseConfig:
         elif name in self._children:
             return self._children[name]
         else:
-            if not name in self._fields:
+            if name not in self._fields:
                 raise AttributeError(f"{name} not found in ConfigFields")
 
             if self._fields[name].is_set_by_user:
