@@ -101,7 +101,6 @@ class TensorRTLLMEngineConverter(BaseConverter):
         """
         Apply the default TRT-LLM engine chat template to the prompt
         """
-        import jinja2
 
         default_template = self._construct_default_template(prompt)
         return self.tokenizer.encode(

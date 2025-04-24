@@ -27,7 +27,7 @@
 import random
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Type
 
 import genai_perf.logging as logging
 import orjson

@@ -25,9 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-import argparse as args
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Dict
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig

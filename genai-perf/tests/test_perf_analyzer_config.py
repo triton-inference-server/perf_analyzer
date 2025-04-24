@@ -17,7 +17,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from genai_perf import parser
 from genai_perf.checkpoint.checkpoint import checkpoint_encoder
 from genai_perf.config.generate.objective_parameter import (
     ObjectiveCategory,

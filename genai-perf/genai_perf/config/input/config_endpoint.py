@@ -219,5 +219,5 @@ class ConfigEndPoint(BaseConfig):
                 return
             else:
                 raise ValueError(
-                    f"The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'"
+                    "The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'"
                 )

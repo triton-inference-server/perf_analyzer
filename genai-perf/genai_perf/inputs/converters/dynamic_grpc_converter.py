@@ -41,7 +41,7 @@ class DynamicGRPCConverter(BaseConverter):
             )
         if self.config.input.file == "":
             raise GenAIPerfException(
-                f"The dynamic GRPC converter only supports the input file path."
+                "The dynamic GRPC converter only supports the input file path."
             )
 
     def convert(

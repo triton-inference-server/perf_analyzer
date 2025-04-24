@@ -40,7 +40,6 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 # Mock tokenizer outputs
 MOCK_TOKENIZED_ONE = [1426, 1881, 697]  # "text input one"

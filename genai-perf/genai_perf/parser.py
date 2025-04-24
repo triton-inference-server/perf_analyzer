@@ -26,7 +26,6 @@
 
 import argparse
 import sys
-from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -53,11 +52,11 @@ def _parse_goodput(values):
             constraints[target_metric] = float(target_val)
     except ValueError:
         raise argparse.ArgumentTypeError(
-            f"Invalid format found for goodput constraints. "
-            f"The expected format is 'key:value' pairs. The key should be a "
-            f"service level objective name (e.g. request_latency). The value "
-            f"should be a number representing either milliseconds "
-            f"or a throughput value per second."
+            "Invalid format found for goodput constraints. "
+            "The expected format is 'key:value' pairs. The key should be a "
+            "service level objective name (e.g. request_latency). The value "
+            "should be a number representing either milliseconds "
+            "or a throughput value per second."
         )
     return constraints
 
@@ -194,17 +193,17 @@ def _add_analyze_args(parser):
             "input_sequence_length",
             "request_rate",
         ],
-        help=f"The stimulus type that GAP will sweep.",
+        help="The stimulus type that GAP will sweep.",
     )
     analyze_group.add_argument(
         "--sweep-range",
         type=str,
-        help=f"The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
+        help="The range the stimulus will be swept. Represented as 'min:max' or 'min:max:step'.",
     )
     analyze_group.add_argument(
         "--sweep-list",
         type=str,
-        help=f"A comma-separated list of values that stimulus will be swept over.",
+        help="A comma-separated list of values that stimulus will be swept over.",
     )
 
 
@@ -214,13 +213,13 @@ def _add_audio_input_args(parser):
     input_group.add_argument(
         "--audio-length-mean",
         type=float,
-        help=f"The mean length of audio data in seconds. Default is 10 seconds.",
+        help="The mean length of audio data in seconds. Default is 10 seconds.",
     )
 
     input_group.add_argument(
         "--audio-length-stddev",
         type=float,
-        help=f"The standard deviation of the length of audio data in seconds. "
+        help="The standard deviation of the length of audio data in seconds. "
         "Default is 0.",
     )
 
@@ -228,7 +227,7 @@ def _add_audio_input_args(parser):
         "--audio-format",
         type=str,
         choices=utils.get_enum_names(ic.AudioFormat),
-        help=f"The format of the audio data. Currently we support wav and "
+        help="The format of the audio data. Currently we support wav and "
         "mp3 format. Default is 'wav'.",
     )
 
@@ -236,7 +235,7 @@ def _add_audio_input_args(parser):
         "--audio-depths",
         type=int,
         nargs="*",
-        help=f"A list of audio bit depths to randomly select from in bits. "
+        help="A list of audio bit depths to randomly select from in bits. "
         "Default is [16].",
     )
 
@@ -244,7 +243,7 @@ def _add_audio_input_args(parser):
         "--audio-sample-rates",
         type=float,
         nargs="*",
-        help=f"A list of audio sample rates to randomly select from in kHz. "
+        help="A list of audio sample rates to randomly select from in kHz. "
         "Default is [16].",
     )
 
@@ -252,7 +251,7 @@ def _add_audio_input_args(parser):
         "--audio-num-channels",
         type=int,
         choices=[1, 2],
-        help=f"The number of audio channels to use for the audio data generation. "
+        help="The number of audio channels to use for the audio data generation. "
         "Currently only 1 (mono) and 2 (stereo) are supported. "
         "Default is 1 (mono channel).",
     )
@@ -294,13 +293,13 @@ def _add_endpoint_args(parser):
         "-m",
         "--model",
         nargs="+",
-        help=f"The name of the model(s) to benchmark.",
+        help="The name of the model(s) to benchmark.",
     )
     endpoint_group.add_argument(
         "--model-selection-strategy",
         type=str,
         choices=utils.get_enum_names(ic.ModelSelectionStrategy),
-        help=f"When multiple model are specified, this is how a specific model "
+        help="When multiple model are specified, this is how a specific model "
         "should be assigned to a prompt.  round_robin means that ith prompt in the "
         "list gets assigned to i mod len(models).  random means that assignment is "
         "uniformly random",
@@ -310,20 +309,20 @@ def _add_endpoint_args(parser):
         "--backend",
         type=str,
         choices=utils.get_enum_names(ic.OutputFormat)[0:2],
-        help=f"When benchmarking Triton, this is the backend of the model. ",
+        help="When benchmarking Triton, this is the backend of the model. ",
     )
 
     endpoint_group.add_argument(
         "--endpoint",
         type=str,
-        help=f"Set a custom endpoint that differs from the OpenAI defaults.",
+        help="Set a custom endpoint that differs from the OpenAI defaults.",
     )
 
     endpoint_group.add_argument(
         "--endpoint-type",
         type=str,
         choices=list(endpoint_type_map.keys()),
-        help=f"The endpoint-type to send requests to on the server.",
+        help="The endpoint-type to send requests to on the server.",
     )
 
     endpoint_group.add_argument(
@@ -340,7 +339,7 @@ def _add_endpoint_args(parser):
     endpoint_group.add_argument(
         "--streaming",
         action="store_true",
-        help=f"An option to enable the use of the streaming API.",
+        help="An option to enable the use of the streaming API.",
     )
 
     endpoint_group.add_argument(
@@ -359,32 +358,32 @@ def _add_image_input_args(parser):
     input_group.add_argument(
         "--image-width-mean",
         type=int,
-        help=f"The mean width of images when generating synthetic image data.",
+        help="The mean width of images when generating synthetic image data.",
     )
 
     input_group.add_argument(
         "--image-width-stddev",
         type=int,
-        help=f"The standard deviation of width of images when generating synthetic image data.",
+        help="The standard deviation of width of images when generating synthetic image data.",
     )
 
     input_group.add_argument(
         "--image-height-mean",
         type=int,
-        help=f"The mean height of images when generating synthetic image data.",
+        help="The mean height of images when generating synthetic image data.",
     )
 
     input_group.add_argument(
         "--image-height-stddev",
         type=int,
-        help=f"The standard deviation of height of images when generating synthetic image data.",
+        help="The standard deviation of height of images when generating synthetic image data.",
     )
 
     input_group.add_argument(
         "--image-format",
         type=str,
         choices=utils.get_enum_names(ic.ImageFormat),
-        help=f"The compression format of the images. "
+        help="The compression format of the images. "
         "If format is not selected, format of generated image is selected at random",
     )
 
@@ -395,14 +394,14 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--batch-size-audio",
         type=int,
-        help=f"The audio batch size of the requests GenAI-Perf should send. "
+        help="The audio batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the OpenAI `multimodal` endpoint type.",
     )
 
     input_group.add_argument(
         "--batch-size-image",
         type=int,
-        help=f"The image batch size of the requests GenAI-Perf should send. "
+        help="The image batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the image retrieval endpoint type.",
     )
 
@@ -411,7 +410,7 @@ def _add_input_args(parser):
         "--batch-size",
         "-b",
         type=int,
-        help=f"The text batch size of the requests GenAI-Perf should send. "
+        help="The text batch size of the requests GenAI-Perf should send. "
         "This is currently supported with the embeddings and rankings "
         "endpoint types.",
     )
@@ -467,14 +466,14 @@ def _add_input_args(parser):
         "--num-dataset-entries",
         "--num-prompts",
         type=positive_integer,
-        help=f"The number of unique payloads to sample from. "
+        help="The number of unique payloads to sample from. "
         "These will be reused until benchmarking is complete.",
     )
 
     input_group.add_argument(
         "--num-prefix-prompts",
         type=int,
-        help=f"The number of prefix prompts to select from. "
+        help="The number of prefix prompts to select from. "
         "If this value is not zero, these are prompts that are "
         "prepended to input prompts. This is useful for "
         "benchmarking models that use a K-V cache.",
@@ -484,14 +483,14 @@ def _add_input_args(parser):
         "--output-tokens-mean",
         "--osl",
         type=int,
-        help=f"The mean number of tokens in each output. "
+        help="The mean number of tokens in each output. "
         "Ensure the --tokenizer value is set correctly. ",
     )
 
     input_group.add_argument(
         "--output-tokens-mean-deterministic",
         action="store_true",
-        help=f"When using --output-tokens-mean, this flag can be set to "
+        help="When using --output-tokens-mean, this flag can be set to "
         "improve precision by setting the minimum number of tokens "
         "equal to the requested number of tokens. This is currently "
         "supported with Triton. "
@@ -503,7 +502,7 @@ def _add_input_args(parser):
     input_group.add_argument(
         "--output-tokens-stddev",
         type=int,
-        help=f"The standard deviation of the number of tokens in each output. "
+        help="The standard deviation of the number of tokens in each output. "
         "This is only used when --output-tokens-mean is provided.",
     )
 
@@ -527,19 +526,19 @@ def _add_input_args(parser):
         "--synthetic-input-tokens-mean",
         "--isl",
         type=int,
-        help=f"The mean of number of tokens in the generated prompts when using synthetic data.",
+        help="The mean of number of tokens in the generated prompts when using synthetic data.",
     )
 
     input_group.add_argument(
         "--synthetic-input-tokens-stddev",
         type=int,
-        help=f"The standard deviation of number of tokens in the generated prompts when using synthetic data.",
+        help="The standard deviation of number of tokens in the generated prompts when using synthetic data.",
     )
 
     input_group.add_argument(
         "--prefix-prompt-length",
         type=int,
-        help=f"The number of tokens in each prefix prompt. This value is only "
+        help="The number of tokens in each prefix prompt. This value is only "
         "used if --num-prefix-prompts is positive. Note that due to "
         "the prefix and user prompts being concatenated, the number of tokens "
         "in the final prompt may be off by one.",
@@ -549,7 +548,7 @@ def _add_input_args(parser):
         "--warmup-request-count",
         "--num-warmup-requests",
         type=int,
-        help=f"The number of warmup requests to send before benchmarking.",
+        help="The number of warmup requests to send before benchmarking.",
     )
 
 
@@ -825,7 +824,7 @@ def init_parsers():
         "--version",
         action="version",
         version="%(prog)s " + __version__,
-        help=f"An option to print the version and exit.",
+        help="An option to print the version and exit.",
     )
 
     # Add subcommands

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -209,7 +208,7 @@ class ConfigCommand(BaseConfig):
 
         if self.perf_analyzer.get_field("warmup_request_count").is_set_by_user:
             raise ValueError(
-                f"User Config: perf_analyzer.warmup_request_count is not supported with the payload input source."
+                "User Config: perf_analyzer.warmup_request_count is not supported with the payload input source."
             )
         if (
             self.perf_analyzer.measurement.get_field("mode").is_set_by_user
@@ -217,7 +216,7 @@ class ConfigCommand(BaseConfig):
             == PerfAnalyzerMeasurementMode.REQUEST_COUNT
         ):
             raise ValueError(
-                f"User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source."
+                "User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source."
             )
 
     ###########################################################################

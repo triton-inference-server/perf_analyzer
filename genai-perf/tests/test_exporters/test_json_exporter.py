@@ -32,7 +32,6 @@ import genai_perf.parser as parser
 import pytest
 from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.export_data.json_exporter import JsonExporter
-from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from tests.test_utils import create_default_exporter_config
 
 

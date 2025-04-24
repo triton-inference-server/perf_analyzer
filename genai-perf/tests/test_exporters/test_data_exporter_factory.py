@@ -25,16 +25,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-from argparse import Namespace
 
 import genai_perf.export_data.data_exporter_factory as factory
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.export_data.csv_exporter import CsvExporter
-from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, Subcommand
-from genai_perf.subcommand.common import get_extra_inputs_as_dict
 from tests.test_utils import create_default_exporter_config
 
 

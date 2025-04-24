@@ -27,7 +27,6 @@
 
 import json
 import os
-from enum import Enum
 from typing import Dict, Union
 
 import genai_perf.logging as logging
