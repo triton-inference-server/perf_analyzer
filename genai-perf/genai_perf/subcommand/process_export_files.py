@@ -25,7 +25,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from collections import defaultdict
 from pathlib import Path
+from statistics import mean
 from typing import Any, DefaultDict, Dict, List, Optional
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
@@ -62,9 +64,13 @@ class ProcessExportFiles(Subcommand):
 
     def process_export_files(self) -> None:
 
-        self._input_profile_data = self._get_profile_export_json_data(
+        input_profile_data_list = self._parse_json_profile_data_files(
             self._config.process.input_path
         )
+
+        # TODO: TPA-1086 - Handle when user provides mismatched profile files
+        self._input_profile_data = input_profile_data_list[0]
+
         self._update_config_from_profile_data()
 
         objectives = self._create_objectives_based_on_stimulus()
@@ -78,22 +84,127 @@ class ProcessExportFiles(Subcommand):
         self._set_data_parser(perf_analyzer_config)
         self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
 
-    def _get_profile_export_json_data(self, input_directory: Path) -> Dict[str, Any]:
+    def _get_all_stats(self, input_profile_data_list: List[Dict[str, Any]]) -> None:
         """
-        Loads the profile_export_genai_perf.json file from the provided input path.
+        Return aggregated stats from all input files
         """
-        profile_export_json_file = input_directory / "profile_export_genai_perf.json"
-        try:
-            with open(profile_export_json_file, "r") as f:
-                profile_data = json.load(f)
-        except FileNotFoundError:
-            raise GenAIPerfException(f"File {profile_export_json_file} not found.")
-        except json.JSONDecodeError:
+        self._perf_stats = self._get_aggregated_perf_stats(input_profile_data_list)
+        self._telemetry_stats = self._get_aggregated_telemetry_stats(
+            input_profile_data_list
+        )
+
+    def _get_aggregated_perf_stats(
+        self, input_profile_data_list: List[Dict[str, Any]]
+    ) -> Statistics:
+        """
+        Aggregates the perf_stats from all input files and returns a Statistics object.
+        """
+        sum_metrics = {
+            "request_throughput",
+            "output_token_throughput",
+            "request_count",
+        }
+        perf_stats_dicts = []
+
+        if not input_profile_data_list:
+            raise GenAIPerfException("No profile data found to aggregate.")
+
+        for profile_data in input_profile_data_list:
+            perf_stats_dict = {
+                key: value
+                for key, value in profile_data.items()
+                if key not in {"input_config", "telemetry_stats", "sessions"}
+            }
+
+            perf_stats_dicts.append(perf_stats_dict)
+
+        aggregated_perf_stats_dict: Dict[str, Any] = {}
+        for metric_name in perf_stats_dicts[0]:
+            values = [
+                stat_dict[metric_name]["avg"]
+                for stat_dict in perf_stats_dicts
+                if metric_name in stat_dict and "avg" in stat_dict[metric_name]
+            ]
+            unit = perf_stats_dicts[0][metric_name].get("unit", "")
+
+            aggregated_value = (
+                sum(values) if metric_name in sum_metrics else mean(values)
+            )
+            aggregated_perf_stats_dict[metric_name] = {
+                "unit": unit,
+                "avg": float(aggregated_value),
+            }
+
+        perf_stats = Statistics(LLMMetrics([]))
+        perf_stats.set_stats_dict(aggregated_perf_stats_dict)
+
+        return perf_stats
+
+    def _get_aggregated_telemetry_stats(
+        self, input_profile_data_list: List[Dict[str, Any]]
+    ) -> TelemetryStatistics:
+        """
+        Aggregates the telemetry_stats from all input files and returns a TelemetryStatistics object.
+        """
+
+        telemetry_dicts = [
+            stats_dict.get("telemetry_stats", {})
+            for stats_dict in input_profile_data_list
+        ]
+        telemetry_stats = TelemetryStatistics(TelemetryMetrics(None))
+        if not telemetry_dicts:
+            return telemetry_stats
+
+        aggregated_telemetry_stats_dict: DefaultDict[str, Any] = defaultdict(dict)
+        for metric_name in telemetry_dicts[0]:
+            aggregated_telemetry_stats_dict[metric_name] = {}
+            unit = telemetry_dicts[0][metric_name].get("unit", "")
+            aggregated_telemetry_stats_dict[metric_name]["unit"] = unit
+
+            gpu_ids = set()
+            for telemetry_dict in telemetry_dicts:
+                gpu_ids.update(telemetry_dict.get(metric_name, {}).keys())
+            gpu_ids.discard("unit")
+
+            for gpu_id in gpu_ids:
+                values = [
+                    telemetry_dict[metric_name][gpu_id]["avg"]
+                    for telemetry_dict in telemetry_dicts
+                    if metric_name in telemetry_dict
+                    and gpu_id in telemetry_dict[metric_name]
+                    and "avg" in telemetry_dict[metric_name][gpu_id]
+                ]
+                if values:
+                    aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
+                        "avg": mean(values)
+                    }
+
+        telemetry_stats.set_stats_dict(aggregated_telemetry_stats_dict)
+
+        return telemetry_stats
+
+    def _parse_json_profile_data_files(
+        self, input_directory: Path
+    ) -> List[Dict[str, Any]]:
+        """
+        Loads all *_genai_perf.json files from the provided input directory.
+        """
+        json_files = list(input_directory.glob("**/*_genai_perf.json"))
+        if not json_files:
             raise GenAIPerfException(
-                f"Invalid JSON format in {profile_export_json_file}."
+                f"No *_genai_perf.json files found in '{input_directory}'"
             )
 
-        return profile_data
+        input_profile_data_list = []
+        for file_path in json_files:
+            try:
+                with open(file_path, "r") as f:
+                    profile_data = json.load(f)
+                    input_profile_data_list.append(profile_data)
+            except Exception as e:
+                raise GenAIPerfException(f"Failed to read '{file_path}': {e}")
+
+        return input_profile_data_list
 
     def _update_config_from_profile_data(self) -> None:
         """
@@ -160,13 +271,12 @@ class ProcessExportFiles(Subcommand):
         perf_analyzer_config: PerfAnalyzerConfig,
         objectives: ModelObjectiveParameters,
     ) -> None:
-        perf_stats = self._get_perf_stats()
-        telemetry_stats = self._get_telemetry_stats()
+
         session_stats = self._get_session_stats()
 
         OutputReporter(
-            perf_stats,
-            telemetry_stats,
+            self._perf_stats,
+            self._telemetry_stats,
             self._config,
             perf_analyzer_config,
             session_stats,
