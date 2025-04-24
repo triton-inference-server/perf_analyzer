@@ -1575,6 +1575,18 @@ TEST_CASE("Testing Command Line Parser")
           PerfAnalyzerException);
       check_params = false;
     }
+    SUBCASE("zero value")
+    {
+      int argc = 5;
+      char* argv[argc] = {app_name, "-m", model_name, "--request-count", "0"};
+
+      expected_msg =
+          CreateUsageMessage("--request-count", "The value must be > 0.");
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv), expected_msg.c_str(),
+          PerfAnalyzerException);
+      check_params = false;
+    }
     SUBCASE("less than request rate")
     {
       int argc = 7;

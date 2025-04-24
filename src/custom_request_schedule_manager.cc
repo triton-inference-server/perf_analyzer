@@ -62,8 +62,7 @@ CustomRequestScheduleManager::CustomRequestScheduleManager(
           params.max_threads, params.num_of_sequences,
           params.shared_memory_type, params.output_shm_size,
           params.serial_sequences, parser, factory, params.request_parameters),
-      warmup_request_count_(params.warmup_request_count),
-      benchmark_request_count_(params.request_count)
+      warmup_request_count_(params.warmup_request_count)
 {
 }
 
@@ -108,12 +107,6 @@ CustomRequestScheduleManager::GetSchedulesFromDataset() const
   if (warmup_request_count_ >= dataset_size) {
     throw std::runtime_error(
         "Expected warmup request count to be less than the dataset size.");
-  }
-
-  if (dataset_size != warmup_request_count_ + benchmark_request_count_) {
-    throw std::runtime_error(
-        "Expected input data JSON size to be equal to the warmup request count "
-        "plus the benchmark request count.");
   }
 
   for (size_t dataset_index{0}; dataset_index < warmup_request_count_;

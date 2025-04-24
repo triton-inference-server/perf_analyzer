@@ -93,7 +93,6 @@ class CustomRequestScheduleManager : public RequestRateManager {
   void InitCustomSchedule(const Schedule& schedule, size_t dataset_offset = 0);
 
   /// Creates worker schedules based on the provided schedule
-  /// \param duration The maximum duration for the schedule
   /// \param schedule The vector containing the schedule for requests
   /// \return A vector of RateSchedulePtr_t representing the worker schedules
   std::vector<RateSchedulePtr_t> CreateWorkerSchedules(
@@ -102,7 +101,6 @@ class CustomRequestScheduleManager : public RequestRateManager {
   void StartBenchmark();
 
   const size_t warmup_request_count_{0};
-  const size_t benchmark_request_count_{0};
   Schedule warmup_schedule_{};
   Schedule benchmark_schedule_{};
 };
