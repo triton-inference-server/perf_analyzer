@@ -110,8 +110,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
             "999",
             "--request-count",
             "128",
-            "--warmup-request-count",
-            "0",
             "--input-data",
             "artifacts/test_model-triton-tensorrtllm-runtime_batch_size1-concurrency64/inputs.json",
             "--profile-export-file",
@@ -144,8 +142,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
                 "999",
                 "--request-count",
                 "128",
-                "--warmup-request-count",
-                "0",
                 "--streaming",
                 "--shape",
                 "max_tokens:1",
@@ -300,10 +296,10 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         self._config.perf_analyzer.warmup_request_count = 30
 
         expected_args = [
-            "--stability-percentage",
-            "567",
             "--warmup-request-count",
             "30",
+            "--stability-percentage",
+            "567",
             "--measurement-interval",
             "5000",
         ]
@@ -350,21 +346,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         self._config.endpoint.service_kind = "openai"
 
         expected_args = ["-i", "http"]
-
-        actual_args = self._default_perf_analyzer_config._add_protocol_args(
-            self._config
-        )
-
-        self.assertEqual(expected_args, actual_args)
-
-    def test_add_protocol_args_with_tensorrtllm_engine(self):
-        """
-        Test that _add_protocol_args returns the correct arguments
-        when service_kind is 'tensorrtllm_engine'
-        """
-        self._config.endpoint.service_kind = "tensorrtllm_engine"
-
-        expected_args = ["--service-kind", "triton_c_api", "--streaming"]
 
         actual_args = self._default_perf_analyzer_config._add_protocol_args(
             self._config
@@ -528,6 +509,21 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         self._config.endpoint.custom = None
 
         expected_args = ["--service-kind", "triton"]
+
+        actual_args = self._default_perf_analyzer_config._add_endpoint_args(
+            self._config
+        )
+
+        self.assertEqual(expected_args, actual_args)
+
+    def test_add_endpoint_args_with_tensorrtllm_engine_endpoint(self):
+        """
+        Test that _add_endpoint_args returns the correct arguments
+        when tensorrtllm_engine endpoint is set
+        """
+        self._config.endpoint.service_kind = "tensorrtllm_engine"
+
+        expected_args = ["--service-kind", "triton_c_api", "--streaming"]
 
         actual_args = self._default_perf_analyzer_config._add_endpoint_args(
             self._config

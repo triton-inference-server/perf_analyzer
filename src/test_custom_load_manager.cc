@@ -1,4 +1,4 @@
-// Copyright 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -70,14 +70,16 @@ class TestCustomLoadManager : public TestLoadManagerBase,
 
   std::shared_ptr<IWorker> MakeWorker(
       std::shared_ptr<ThreadStat> thread_stat,
-      std::shared_ptr<ThreadConfig> thread_config) override
+      std::shared_ptr<ThreadConfig> thread_config,
+      size_t dataset_offset = 0) override
   {
     size_t id = workers_.size();
     auto worker = std::make_shared<MockRequestRateWorker>(
         id, thread_stat, thread_config, parser_, data_loader_, factory_,
         on_sequence_model_, async_, max_threads_, using_json_data_, streaming_,
         batch_size_, wake_signal_, wake_mutex_, execute_, start_time_,
-        serial_sequences_, infer_data_manager_, sequence_manager_);
+        serial_sequences_, infer_data_manager_, sequence_manager_,
+        dataset_offset);
 
     if (use_mock_infer_) {
       EXPECT_CALL(*worker, Infer())

@@ -30,7 +30,7 @@ from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
 from genai_perf.inputs.input_constants import DEFAULT_TENSORRTLLM_MAX_TOKENS
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
@@ -112,3 +112,10 @@ class TensorRTLLMEngineConverter(BaseConverter):
 
     def _construct_default_template(self, prompt: str) -> List[Dict[str, str]]:
         return [{"role": "user", "content": prompt}]
+
+    def _add_payload_optional_data(self, payload: Dict[Any, Any], row: DataRow) -> None:
+        for key, value in row.optional_data.items():
+            if key == "max_tokens":
+                payload["request_output_len"] = [value]
+            else:
+                payload[key] = value

@@ -180,8 +180,7 @@ TEST_CASE("ModelParser: test Init* functions")
 
   SUBCASE("InitOpenAI")
   {
-    status = mmp.InitOpenAI(
-        model_name, model_version, batch_size, InferenceLoadMode::Concurrency);
+    status = mmp.InitOpenAI(model_name, model_version, batch_size);
     expected_input_names.push_back("payload");
     expected_output_names.push_back("response");
   }

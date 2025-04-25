@@ -1,4 +1,4 @@
-// Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -46,12 +46,13 @@ class NaggyMockRequestRateWorker : public RequestRateWorker {
       std::chrono::steady_clock::time_point& start_time,
       const bool serial_sequences,
       const std::shared_ptr<IInferDataManager>& infer_data_manager,
-      std::shared_ptr<SequenceManager> sequence_manager)
+      std::shared_ptr<SequenceManager> sequence_manager, size_t dataset_offset)
       : RequestRateWorker(
             id, thread_stat, thread_config, parser, data_loader, factory,
             on_sequence_model, async, max_threads, using_json_data, streaming,
             batch_size, wake_signal, wake_mutex, execute, start_time,
-            serial_sequences, infer_data_manager, sequence_manager)
+            serial_sequences, infer_data_manager, sequence_manager,
+            dataset_offset)
   {
     ON_CALL(*this, Infer()).WillByDefault([this]() -> void {
       RequestRateWorker::Infer();

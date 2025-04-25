@@ -207,10 +207,6 @@ class ConfigCommand(BaseConfig):
                         f"User Config: perf_analyzer.stimulus: {key} is not supported with the payload input source."
                     )
 
-        if self.perf_analyzer.get_field("warmup_request_count").is_set_by_user:
-            raise ValueError(
-                f"User Config: perf_analyzer.warmup_request_count is not supported with the payload input source."
-            )
         if (
             self.perf_analyzer.measurement.get_field("mode").is_set_by_user
             and self.perf_analyzer.measurement.mode
