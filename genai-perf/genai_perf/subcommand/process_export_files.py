@@ -1,4 +1,4 @@
-# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,21 +25,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from collections import defaultdict
 from pathlib import Path
-from statistics import mean
-from typing import Any, DefaultDict, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
-from genai_perf.metrics import (
-    LLMMetrics,
-    Statistics,
-    TelemetryMetrics,
-    TelemetryStatistics,
-)
+from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
+from genai_perf.metrics.telemetry_stats_aggregator import TelemetryStatsAggregator
+from genai_perf.profile_data_parser.merged_profile_parser import MergedProfileParser
 from genai_perf.subcommand.subcommand import Subcommand
 from genai_perf.types import ModelObjectiveParameters
 
@@ -61,16 +56,25 @@ class ProcessExportFiles(Subcommand):
 
     def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
         super().__init__(config, extra_args)
+        self._pa_profile_data: Dict[str, Any] = {
+            "experiments": [],
+            "version": "",
+            "service_kind": "",
+            "endpoint": "",
+        }
+        self._throughput_metrics_dict: Dict[str, List[float]] = {
+            "request_throughput": [],
+            "output_token_throughput": [],
+        }
+        self._telemetry_dicts: List[Dict[str, Any]] = []
+        self._input_config: Dict[str, Any] = {}
+        self._next_start_timestamp = 0
 
     def process_export_files(self) -> None:
 
-        input_profile_data_list = self._parse_json_profile_data_files(
-            self._config.process.input_path
-        )
+        self._parse_input_dirs(self._config.process.input_path)
 
-        # TODO: TPA-1086 - Handle when user provides mismatched profile files
-        self._input_profile_data = input_profile_data_list[0]
-
+        # TPA-1086: Handle when user provides mismatched profile files
         self._update_config_from_profile_data()
 
         objectives = self._create_objectives_based_on_stimulus()
@@ -79,132 +83,91 @@ class ProcessExportFiles(Subcommand):
         self._create_tokenizer()
         self._create_artifact_directory(perf_analyzer_config)
 
-        self._copy_profile_export_to_artifact_dir(perf_analyzer_config)
-
+        self._create_merged_profile_export_file(perf_analyzer_config)
         self._set_data_parser(perf_analyzer_config)
+        self._set_telemetry_aggregator()
+
         self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
 
-    def _get_all_stats(self, input_profile_data_list: List[Dict[str, Any]]) -> None:
+    def _parse_input_dirs(self, input_directory: Path) -> None:
         """
-        Return aggregated stats from all input files
+        Yields subdirectories that contain both a PA profile export file and GAP profile export file.
         """
-        self._perf_stats = self._get_aggregated_perf_stats(input_profile_data_list)
-        self._telemetry_stats = self._get_aggregated_telemetry_stats(
-            input_profile_data_list
+        for subdir in input_directory.iterdir():
+            if not subdir.is_dir():
+                continue
+
+            json_files = list(subdir.glob("*.json"))
+            has_pa_profile_export_file = any(
+                f.name.endswith(".json") and "_genai_perf" not in f.name
+                for f in json_files
+            )
+            has_gap_profile_export_file = any(
+                f.name.endswith("_genai_perf.json") for f in json_files
+            )
+
+            if has_pa_profile_export_file and has_gap_profile_export_file:
+                self._process_valid_profile_dir(subdir)
+
+    def _process_valid_profile_dir(self, profile_directory: Path) -> None:
+        """
+        Process a valid profile directory containing both PA and GAP profile export files.
+        """
+        pa_profile_file = next(
+            (
+                f
+                for f in profile_directory.glob("*.json")
+                if "_genai_perf" not in f.name
+            ),
+            None,
+        )
+        gap_profile_file = next(
+            (f for f in profile_directory.glob("*_genai_perf.json")), None
         )
 
-    def _get_aggregated_perf_stats(
-        self, input_profile_data_list: List[Dict[str, Any]]
-    ) -> Statistics:
-        """
-        Aggregates the perf_stats from all input files and returns a Statistics object.
-        """
-        sum_metrics = {
-            "request_throughput",
-            "output_token_throughput",
-            "request_count",
-        }
-        perf_stats_dicts = []
+        if not pa_profile_file or not gap_profile_file:
+            return
 
-        if not input_profile_data_list:
-            raise GenAIPerfException("No profile data found to aggregate.")
+        try:
+            with open(pa_profile_file, "r") as f:
 
-        for profile_data in input_profile_data_list:
-            perf_stats_dict = {
-                key: value
-                for key, value in profile_data.items()
-                if key not in {"input_config", "telemetry_stats", "sessions"}
-            }
+                pa_profile_data = json.load(f)
+                experiment = pa_profile_data["experiments"][0]
 
-            perf_stats_dicts.append(perf_stats_dict)
+                if not self._pa_profile_data["experiments"]:
+                    self._pa_profile_data.update(
+                        {
+                            "version": pa_profile_data.get("version", ""),
+                            "service_kind": pa_profile_data.get("service_kind", ""),
+                            "endpoint": pa_profile_data.get("endpoint", ""),
+                            "experiments": [experiment],
+                        }
+                    )
+                else:
+                    self._pa_profile_data["experiments"][0]["requests"].extend(
+                        experiment["requests"]
+                    )
 
-        aggregated_perf_stats_dict: Dict[str, Any] = {}
-        for metric_name in perf_stats_dicts[0]:
-            values = [
-                stat_dict[metric_name]["avg"]
-                for stat_dict in perf_stats_dicts
-                if metric_name in stat_dict and "avg" in stat_dict[metric_name]
-            ]
-            unit = perf_stats_dicts[0][metric_name].get("unit", "")
+        except Exception as e:
+            raise GenAIPerfException(f"Error reading file '{pa_profile_file}': {e}")
 
-            aggregated_value = (
-                sum(values) if metric_name in sum_metrics else mean(values)
-            )
-            aggregated_perf_stats_dict[metric_name] = {
-                "unit": unit,
-                "avg": float(aggregated_value),
-            }
+        try:
+            with open(gap_profile_file, "r") as f:
+                gap_profile_data = json.load(f)
 
-        perf_stats = Statistics(LLMMetrics([]))
-        perf_stats.set_stats_dict(aggregated_perf_stats_dict)
-
-        return perf_stats
-
-    def _get_aggregated_telemetry_stats(
-        self, input_profile_data_list: List[Dict[str, Any]]
-    ) -> TelemetryStatistics:
-        """
-        Aggregates the telemetry_stats from all input files and returns a TelemetryStatistics object.
-        """
-
-        telemetry_dicts = [
-            stats_dict.get("telemetry_stats", {})
-            for stats_dict in input_profile_data_list
-        ]
-        telemetry_stats = TelemetryStatistics(TelemetryMetrics(None))
-        if not telemetry_dicts:
-            return telemetry_stats
-
-        aggregated_telemetry_stats_dict: DefaultDict[str, Any] = defaultdict(dict)
-        for metric_name in telemetry_dicts[0]:
-            aggregated_telemetry_stats_dict[metric_name] = {}
-            unit = telemetry_dicts[0][metric_name].get("unit", "")
-            aggregated_telemetry_stats_dict[metric_name]["unit"] = unit
-
-            gpu_ids = set()
-            for telemetry_dict in telemetry_dicts:
-                gpu_ids.update(telemetry_dict.get(metric_name, {}).keys())
-            gpu_ids.discard("unit")
-
-            for gpu_id in gpu_ids:
-                values = [
-                    telemetry_dict[metric_name][gpu_id]["avg"]
-                    for telemetry_dict in telemetry_dicts
-                    if metric_name in telemetry_dict
-                    and gpu_id in telemetry_dict[metric_name]
-                    and "avg" in telemetry_dict[metric_name][gpu_id]
-                ]
-                if values:
-                    aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
-                        "avg": mean(values)
-                    }
-
-        telemetry_stats.set_stats_dict(aggregated_telemetry_stats_dict)
-
-        return telemetry_stats
-
-    def _parse_json_profile_data_files(
-        self, input_directory: Path
-    ) -> List[Dict[str, Any]]:
-        """
-        Loads all *_genai_perf.json files from the provided input directory.
-        """
-        json_files = list(input_directory.glob("**/*_genai_perf.json"))
-        if not json_files:
-            raise GenAIPerfException(
-                f"No *_genai_perf.json files found in '{input_directory}'"
-            )
-
-        input_profile_data_list = []
-        for file_path in json_files:
-            try:
-                with open(file_path, "r") as f:
-                    profile_data = json.load(f)
-                    input_profile_data_list.append(profile_data)
-            except Exception as e:
-                raise GenAIPerfException(f"Failed to read '{file_path}': {e}")
-
-        return input_profile_data_list
+                for metric in self._throughput_metrics_dict:
+                    if metric in gap_profile_data:
+                        self._throughput_metrics_dict[metric].append(
+                            gap_profile_data[metric]["avg"]
+                        )
+                telemetry_stats = gap_profile_data.get("telemetry_stats", {})
+                if telemetry_stats:
+                    self._telemetry_dicts.append(telemetry_stats)
+                input_config = gap_profile_data.get("input_config", {})
+                if not self._input_config:
+                    self._input_config = input_config
+        except Exception as e:
+            raise GenAIPerfException(f"Error reading file '{gap_profile_file}': {e}")
 
     def _update_config_from_profile_data(self) -> None:
         """
@@ -217,15 +180,13 @@ class ProcessExportFiles(Subcommand):
         self._set_tokenizer_fields()
 
     def _set_model_names(self) -> None:
-        self._config.model_names = self._input_profile_data["input_config"][
-            "model_names"
-        ]
+        self._config.model_names = self._input_config.get("model_names", [])
 
     def _set_input_fields(self) -> None:
         keys_to_exclude = ["prompt_source", "synthetic_files", "payload_file"]
         input_data = {
             k: v
-            for k, v in self._input_profile_data["input_config"]["input"].items()
+            for k, v in self._input_config["input"].items()
             if k not in keys_to_exclude
         }
 
@@ -233,15 +194,13 @@ class ProcessExportFiles(Subcommand):
         self._config.input.infer_settings()
 
     def _set_perf_analyzer_fields(self) -> None:
-        self._config.perf_analyzer.parse(
-            self._input_profile_data["input_config"]["perf_analyzer"]
-        )
+        self._config.perf_analyzer.parse(self._input_config["perf_analyzer"])
 
     def _set_endpoint_fields(self) -> None:
         keys_to_exclude = ["service_kind", "output_format"]
         endpoint_data = {
             k: v
-            for k, v in self._input_profile_data["input_config"]["endpoint"].items()
+            for k, v in self._input_config["endpoint"].items()
             if k not in keys_to_exclude
         }
         self._config.endpoint.parse(endpoint_data)
@@ -251,20 +210,38 @@ class ProcessExportFiles(Subcommand):
         keys_to_exclude = ["_enable_debug_logging"]
         tokenizer_data = {
             k: v
-            for k, v in self._input_profile_data["input_config"]["tokenizer"].items()
+            for k, v in self._input_config["tokenizer"].items()
             if k not in keys_to_exclude
         }
         self._config.tokenizer.parse(tokenizer_data)
         self._config.tokenizer.infer_settings(self._config.model_names[0])
 
-    def _copy_profile_export_to_artifact_dir(
+    def _create_merged_profile_export_file(
         self, perf_analyzer_config: PerfAnalyzerConfig
     ) -> None:
-        source_file = Path(self._config.process.input_path) / "profile_export.json"
-        destination_file = (
-            perf_analyzer_config.get_artifact_directory() / "profile_export.json"
+        """
+        Creates a merged profile export file in artifact directory.
+        """
+        profile_export_file = perf_analyzer_config.get_profile_export_file()
+        try:
+            with open(profile_export_file, "w") as f:
+                json.dump(self._pa_profile_data, f)
+        except Exception as e:
+            raise GenAIPerfException(f"Error writing file '{profile_export_file}': {e}")
+
+    def _calculate_metrics(self, perf_analyzer_config) -> MergedProfileParser:
+        return MergedProfileParser(
+            filename=perf_analyzer_config.get_profile_export_file(),
+            tokenizer=self._tokenizer,  # type: ignore
+            throughput_metrics_dict=self._throughput_metrics_dict,
+            goodput_constraints=self._config.input.goodput,
         )
-        shutil.copy(source_file, destination_file)
+
+    def _set_telemetry_aggregator(self) -> None:
+        self._telemetry_aggregator = TelemetryStatsAggregator(self._telemetry_dicts)
+
+    def _create_telemetry_stats(self) -> TelemetryStatistics:
+        return self._telemetry_aggregator.get_telemetry_stats()
 
     def _add_output_to_artifact_directory(
         self,
@@ -272,11 +249,12 @@ class ProcessExportFiles(Subcommand):
         objectives: ModelObjectiveParameters,
     ) -> None:
 
-        session_stats = self._get_session_stats()
-
+        perf_stats = self._create_perf_stats(perf_analyzer_config, objectives)
+        telemetry_stats = self._create_telemetry_stats()
+        session_stats = self._create_session_stats(perf_analyzer_config, objectives)
         OutputReporter(
-            self._perf_stats,
-            self._telemetry_stats,
+            perf_stats,
+            telemetry_stats,
             self._config,
             perf_analyzer_config,
             session_stats,

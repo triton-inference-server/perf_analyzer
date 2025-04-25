@@ -228,8 +228,11 @@ class LLMProfileDataParser(ProfileDataParser):
 
         # request & output token throughput
         benchmark_duration = (max_res_timestamp - min_req_timestamp) / 1e9  # to seconds
-        request_throughputs = [len(requests) / benchmark_duration]
-        output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
+        request_throughputs, output_token_throughputs = (
+            self._calculate_throughput_metrics(
+                requests, output_sequence_lengths, benchmark_duration
+            )
+        )
 
         llm_metrics = LLMMetrics(
             request_throughputs,
@@ -251,6 +254,19 @@ class LLMProfileDataParser(ProfileDataParser):
             llm_metrics.request_goodputs = goodput_val
 
         return llm_metrics
+
+    def _calculate_throughput_metrics(
+        self,
+        requests: dict,
+        output_sequence_lengths: List[int],
+        benchmark_duration: float,
+    ) -> Tuple[List[float], List[float]]:
+        """Calculate request throughput and output token throughput."""
+        # request throughput
+        request_throughputs = [len(requests) / benchmark_duration]
+        output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
+
+        return request_throughputs, output_token_throughputs
 
     def _postprocess_session_metrics(self) -> None:
         """Postprocess session metrics to calculate request & output token throughput."""

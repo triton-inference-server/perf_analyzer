@@ -53,15 +53,15 @@ class OutputReporter:
         self.telemetry_stats = telemetry_stats
         self.session_stats = session_stats
 
-        # For the process-export-files subcommand, all stats
+        self.stats.scale_data()
+        for stat in self.session_stats.values():
+            stat.scale_data()
+        # For the process-export-files subcommand, telemetry stats
         # are loaded from a previously generated profile_export_genai_perf.json file.
         # As the data is already preprocessed, scaling is not required.
         if config.subcommand != ic.Subcommand.PROCESS:
             # scale the data to be in milliseconds
-            self.stats.scale_data()
             self.telemetry_stats.scale_data()
-            for stat in self.session_stats.values():
-                stat.scale_data()
 
     def report_output(self) -> None:
         factory = DataExporterFactory()
