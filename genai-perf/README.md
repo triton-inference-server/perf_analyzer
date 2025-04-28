@@ -298,6 +298,19 @@ This will generate a [set of default plots](docs/example_plots.md) such as:
 </br>
 
 <!--
+=====================
+PROCESS EXPORT FILES SUBCOMMAND
+====================
+-->
+## Process Export Files
+
+GenAI-Perf can be used to process multiple profile export files from distributed runs and generate outputs with aggregated metrics.
+See [Process Export Files](docs/process-export-files.md) for details on how this subcommand can be utilized.
+
+</br>
+
+
+<!--
 ======================
 MODEL INPUTS
 ======================

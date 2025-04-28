@@ -1412,16 +1412,6 @@ class TestCLIArguments:
         assert args.input_path[0] == "test_dir"
         assert config.process.input_path == Path("test_dir")
 
-    def test_process_export_files_input_path(self, monkeypatch, capsys):
-        args = ["genai-perf", "process-export-files", "--input-directory", "test_dir"]
-        monkeypatch.setattr("genai_perf.parser.directory", Path)
-        monkeypatch.setattr("sys.argv", args)
-        parsed_args, config, _ = parser.parse_args()
-
-        assert parsed_args.input_path[0] == Path("test_dir")
-        assert config.subcommand == Subcommand.PROCESS
-        assert config.process.input_path == Path("test_dir")
-
     @pytest.mark.parametrize(
         "arg, expected_artifact_dir, config_artifact_dir",
         [
@@ -1488,7 +1478,7 @@ class TestCLIArguments:
             ],
         )
 
-        with pytest.raises(ValueError) as excinfo:
+        with pytest.raises(SystemExit) as excinfo:
             parser.parse_args()
 
         assert excinfo.value.code == 2

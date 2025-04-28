@@ -51,7 +51,10 @@ def process_export_files_handler(
 
 class ProcessExportFiles(Subcommand):
     """
-    Contains all the methods needed to run the process-export-files subcommand
+    This class encapsulates the logic for handling the `process-export-files` subcommand.
+
+    The class includes methods for parsing input directories, handling
+    profile files, updating configurations, and generating output artifacts.
     """
 
     def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
@@ -71,8 +74,7 @@ class ProcessExportFiles(Subcommand):
         self._next_start_timestamp = 0
 
     def process_export_files(self) -> None:
-
-        self._parse_input_dirs(self._config.process.input_path)
+        self._parse_input_directory(self._config.process.input_path)
 
         # TPA-1086: Handle when user provides mismatched profile files
         self._update_config_from_profile_data()
@@ -89,50 +91,41 @@ class ProcessExportFiles(Subcommand):
 
         self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
 
-    def _parse_input_dirs(self, input_directory: Path) -> None:
+    def _parse_input_directory(self, input_directory: Path) -> None:
         """
-        Yields subdirectories that contain both a PA profile export file and GAP profile export file.
+        Parse the input directory to find all valid subdirectories containing profile export files.
+        Calls respective functions for parsing PA and GAP profile export files.
         """
         for subdir in input_directory.iterdir():
             if not subdir.is_dir():
                 continue
 
             json_files = list(subdir.glob("*.json"))
-            has_pa_profile_export_file = any(
-                f.name.endswith(".json") and "_genai_perf" not in f.name
-                for f in json_files
+            pa_profile_file = next(
+                (f for f in json_files if "_genai_perf" not in f.name), None
             )
-            has_gap_profile_export_file = any(
-                f.name.endswith("_genai_perf.json") for f in json_files
+            gap_profile_file = next(
+                (f for f in json_files if "_genai_perf.json" in f.name), None
             )
 
-            if has_pa_profile_export_file and has_gap_profile_export_file:
-                self._process_valid_profile_dir(subdir)
+            if pa_profile_file and gap_profile_file:
+                self._process_pa_profile_file(pa_profile_file)
+                self._process_gap_profile_file(gap_profile_file)
 
-    def _process_valid_profile_dir(self, profile_directory: Path) -> None:
+    def _process_pa_profile_file(self, pa_profile_file: Path) -> None:
         """
-        Process a valid profile directory containing both PA and GAP profile export files.
+        Process a PA profile export file and update the pa_profile_data dictionary.
         """
-        pa_profile_file = next(
-            (
-                f
-                for f in profile_directory.glob("*.json")
-                if "_genai_perf" not in f.name
-            ),
-            None,
-        )
-        gap_profile_file = next(
-            (f for f in profile_directory.glob("*_genai_perf.json")), None
-        )
-
-        if not pa_profile_file or not gap_profile_file:
-            return
-
         try:
             with open(pa_profile_file, "r") as f:
 
                 pa_profile_data = json.load(f)
-                experiment = pa_profile_data["experiments"][0]
+                if "experiments" in pa_profile_data and pa_profile_data["experiments"]:
+                    experiment = pa_profile_data["experiments"][0]
+                else:
+                    raise GenAIPerfException(
+                        f"Invalid profile data in file '{pa_profile_file}': 'experiments' key is missing or empty"
+                    )
 
                 if not self._pa_profile_data["experiments"]:
                     self._pa_profile_data.update(
@@ -148,9 +141,16 @@ class ProcessExportFiles(Subcommand):
                         experiment["requests"]
                     )
 
-        except Exception as e:
+        except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
             raise GenAIPerfException(f"Error reading file '{pa_profile_file}': {e}")
 
+        except Exception as e:
+            raise GenAIPerfException(f"Unexpected error: {e}")
+
+    def _process_gap_profile_file(self, gap_profile_file: Path) -> None:
+        """
+        Process a GAP JSON profile export file and updates telemetry and input config data.
+        """
         try:
             with open(gap_profile_file, "r") as f:
                 gap_profile_data = json.load(f)
@@ -163,15 +163,18 @@ class ProcessExportFiles(Subcommand):
                 telemetry_stats = gap_profile_data.get("telemetry_stats", {})
                 if telemetry_stats:
                     self._telemetry_dicts.append(telemetry_stats)
-                input_config = gap_profile_data.get("input_config", {})
                 if not self._input_config:
-                    self._input_config = input_config
-        except Exception as e:
+                    self._input_config = gap_profile_data.get("input_config", {})
+
+        except (FileNotFoundError, json.JSONDecodeError) as e:
             raise GenAIPerfException(f"Error reading file '{gap_profile_file}': {e}")
+
+        except Exception as e:
+            raise GenAIPerfException(f"Unexpected error: {e}")
 
     def _update_config_from_profile_data(self) -> None:
         """
-        Handles uninitialized config fields by loading them from profile_data.
+        Handles uninitialized config fields by loading them from profile data.
         """
         self._set_model_names()
         self._set_input_fields()
@@ -220,16 +223,18 @@ class ProcessExportFiles(Subcommand):
         self, perf_analyzer_config: PerfAnalyzerConfig
     ) -> None:
         """
-        Creates a merged profile export file in artifact directory.
+        Creates a merged PA profile export file in artifact directory.
         """
         profile_export_file = perf_analyzer_config.get_profile_export_file()
         try:
             with open(profile_export_file, "w") as f:
                 json.dump(self._pa_profile_data, f)
-        except Exception as e:
+        except (FileNotFoundError, PermissionError, IOError) as e:
             raise GenAIPerfException(f"Error writing file '{profile_export_file}': {e}")
 
-    def _calculate_metrics(self, perf_analyzer_config) -> MergedProfileParser:
+    def _calculate_metrics(
+        self, perf_analyzer_config: PerfAnalyzerConfig
+    ) -> MergedProfileParser:
         return MergedProfileParser(
             filename=perf_analyzer_config.get_profile_export_file(),
             tokenizer=self._tokenizer,  # type: ignore
@@ -248,7 +253,6 @@ class ProcessExportFiles(Subcommand):
         perf_analyzer_config: PerfAnalyzerConfig,
         objectives: ModelObjectiveParameters,
     ) -> None:
-
         perf_stats = self._create_perf_stats(perf_analyzer_config, objectives)
         telemetry_stats = self._create_telemetry_stats()
         session_stats = self._create_session_stats(perf_analyzer_config, objectives)

@@ -262,7 +262,6 @@ class LLMProfileDataParser(ProfileDataParser):
         benchmark_duration: float,
     ) -> Tuple[List[float], List[float]]:
         """Calculate request throughput and output token throughput."""
-        # request throughput
         request_throughputs = [len(requests) / benchmark_duration]
         output_token_throughputs = [sum(output_sequence_lengths) / benchmark_duration]
 

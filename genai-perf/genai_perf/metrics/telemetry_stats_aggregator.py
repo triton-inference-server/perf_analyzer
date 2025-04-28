@@ -39,39 +39,52 @@ class TelemetryStatsAggregator:
 
     def __init__(self, telemetry_dicts: List[Dict[str, Any]]) -> None:
         self._telemetry_stats = TelemetryStatistics(TelemetryMetrics(None))
-        self._telemety_dicts = telemetry_dicts
+        self._telemetry_dicts = telemetry_dicts
         self._aggregate()
 
     def _aggregate(self) -> None:
         """
         Aggregates telemetry stats from multiplt files to create aggregate Telmetry statistcs.
         """
-        if not self._telemety_dicts:
+        if not self._telemetry_dicts:
             return
 
         aggregated_telemetry_stats_dict: DefaultDict[str, Any] = defaultdict(dict)
-        for metric_name in self._telemety_dicts[0]:
+        for metric_name in self._telemetry_dicts[0]:
             aggregated_telemetry_stats_dict[metric_name] = {}
-            unit = self._telemety_dicts[0][metric_name].get("unit", "")
+            unit = self._telemetry_dicts[0][metric_name].get("unit", "")
             aggregated_telemetry_stats_dict[metric_name]["unit"] = unit
 
             gpu_ids = set()
-            for telemetry_dict in self._telemety_dicts:
+            for telemetry_dict in self._telemetry_dicts:
                 gpu_ids.update(telemetry_dict.get(metric_name, {}).keys())
             gpu_ids.discard("unit")
 
             for gpu_id in gpu_ids:
                 values = [
                     telemetry_dict[metric_name][gpu_id]["avg"]
-                    for telemetry_dict in self._telemety_dicts
+                    for telemetry_dict in self._telemetry_dicts
                     if metric_name in telemetry_dict
                     and gpu_id in telemetry_dict[metric_name]
                     and "avg" in telemetry_dict[metric_name][gpu_id]
                 ]
                 if values:
-                    aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
-                        "avg": mean(values)
-                    }
+                    if metric_name in [
+                        "gpu_power_usage",
+                        "gpu_utilization",
+                        "energy_consumption",
+                    ]:
+                        aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
+                            "avg": mean(values)
+                        }
+                    elif metric_name == "gpu_memory_usage":
+                        aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
+                            "avg": sum(values)
+                        }
+                    else:
+                        aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
+                            "avg": max(values)
+                        }
 
         self._telemetry_stats.set_stats_dict(aggregated_telemetry_stats_dict)
 

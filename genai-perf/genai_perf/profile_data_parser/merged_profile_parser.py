@@ -1,4 +1,4 @@
-# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,8 +39,14 @@ SessionMetrics: TypeAlias = Dict[str, Dict[str, List[float | int]]]
 
 class MergedProfileParser(LLMProfileDataParser):
     """
-    A class that parses a merged profile data file, produced from multiple distributed runs,
-    and calculates aggregated metrics.
+    A class that parses a merged profile data file produced from multiple distributed runs
+    and calculates aggregated metrics for throughput and goodput.
+
+    Parameters:
+    - filename (Path): The path to the merged profile data file.
+    - tokenizer (Tokenizer): The tokenizer used for processing text data.
+    - throughput_metrics_dict (Dict[str, List[float]]): A dictionary containing throughput metrics for requests and outputs.
+    - goodput_constraints (Dict[str, float], optional): Constraints for goodput calculation. Defaults to an empty dictionary.
     """
 
     def __init__(
@@ -61,10 +67,12 @@ class MergedProfileParser(LLMProfileDataParser):
         benchmark_duration: float,
     ) -> Tuple[List[float], List[float]]:
         """Calculate request throughput and output token throughput."""
-        # request throughput
-        request_throughputs = [sum(self._throughput_metrics_dict["request_throughput"])]
+
+        request_throughputs = [
+            sum(self._throughput_metrics_dict.get("request_throughput", []))
+        ]
         output_token_throughputs = [
-            sum(self._throughput_metrics_dict["output_token_throughput"])
+            sum(self._throughput_metrics_dict.get("output_token_throughput", []))
         ]
 
         return request_throughputs, output_token_throughputs
