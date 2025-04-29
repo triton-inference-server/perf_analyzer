@@ -597,7 +597,7 @@ def _add_process_export_files_args(parser):
         dest="input_path",
         nargs=1,
         type=str,
-        required=True,
+        required=False,
         help="The path to the directory containing the profile export files.",
     )
 

@@ -179,4 +179,4 @@ class TokenizerDefaults:
 
 @dataclass(frozen=True)
 class ProcessDefaults:
-    INPUT_PATH = None
+    INPUT_PATH = "aggregated"
