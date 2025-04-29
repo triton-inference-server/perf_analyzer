@@ -1395,12 +1395,12 @@ class TestCLIArguments:
         args = ["genai-perf", "process-export-files"]
         monkeypatch.setattr("sys.argv", args)
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert "input-directory" in captured.err
+        assert args.input_path is None
+        assert config.process.input_path == Path("aggregated")
 
     def test_process_export_files_input_path(self, monkeypatch, capsys):
         args = ["genai-perf", "process-export-files", "--input-directory", "test_dir"]
@@ -1411,6 +1411,27 @@ class TestCLIArguments:
 
         assert args.input_path[0] == "test_dir"
         assert config.process.input_path == Path("test_dir")
+
+    def test_process_input_files_input_path_equals_artifact_dir(
+        self, monkeypatch, mocker
+    ):
+        expected_warning_message = (
+            "Input directory and artifact directory are the same. "
+            "This could lead to potential issues such as file overwriting "
+            "or unintended aggregation of results from previous runs."
+        )
+
+        args = ["genai-perf", "process-export-files", "--input-directory", "artifacts"]
+        logging.init_logging()
+        logger = logging.getLogger("genai_perf.config.input.config_command")
+        mocker.patch.object(Path, "is_dir", return_value=True)
+        monkeypatch.setattr("sys.argv", args)
+        with patch.object(logger, "warning") as mock_logger:
+            args, _ = parser.parse_args()
+            config = CreateConfig.create(args)
+
+        mock_logger.assert_any_call(expected_warning_message)
+        assert config.process.input_path == Path("artifacts")
 
     @pytest.mark.parametrize(
         "arg, expected_artifact_dir, config_artifact_dir",

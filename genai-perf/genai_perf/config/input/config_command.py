@@ -241,7 +241,13 @@ class ConfigCommand(BaseConfig):
         input_path = Path(self.process.input_path)
         if not input_path.is_dir():
             raise ValueError(
-                f"User Config: input path '{self.process.input_path}' is not a directory."
+                f"User Config: input path {Path(self.process.input_path)} is not a valid directory."
+            )
+        if Path(self.process.input_path) == self.output.artifact_directory:
+            logger.warning(
+                "Input directory and artifact directory are the same. "
+                "This could lead to potential issues such as file overwriting "
+                "or unintended aggregation of results from previous runs."
             )
         self.process.input_path = input_path
 

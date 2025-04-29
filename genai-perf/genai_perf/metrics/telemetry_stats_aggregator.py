@@ -34,7 +34,7 @@ from genai_perf.metrics import TelemetryMetrics, TelemetryStatistics
 class TelemetryStatsAggregator:
     """
     A class to aggregate telemetry statistics from multiple profile files
-    and creates an aggregated TelemetryStatistics object.
+    and create an aggregated TelemetryStatistics object.
     """
 
     def __init__(self, telemetry_dicts: List[Dict[str, Any]]) -> None:
@@ -42,9 +42,66 @@ class TelemetryStatsAggregator:
         self._telemetry_dicts = telemetry_dicts
         self._aggregate()
 
+    def _get_gpu_ids(self, metric_name: str) -> set:
+        """
+        Acquires the list of unique GPU IDs for a given metric from the telemetry dictionaries.
+
+        Args:
+            metric_name (str): The name of the metric (e.g., "gpu_power_usage").
+
+        Returns:
+            set: A set of unique GPU IDs.
+        """
+        gpu_ids = set()
+        for telemetry_dict in self._telemetry_dicts:
+            gpu_ids.update(telemetry_dict.get(metric_name, {}).keys())
+        gpu_ids.discard("unit")
+        return gpu_ids
+
+    def _get_values_for_gpu(self, metric_name: str, gpu_id: str) -> List[float]:
+        """
+        Acquires the values for a specific GPU and metric from all telemetry dictionaries.
+
+        Args:
+            metric_name (str): The name of the metric (e.g., "gpu_power_usage").
+            gpu_id (str): The GPU ID (e.g., "gpu0").
+
+        Returns:
+            List[float]: A list of values corresponding to the metric and GPU.
+        """
+        return [
+            telemetry_dict[metric_name][gpu_id]["avg"]
+            for telemetry_dict in self._telemetry_dicts
+            if metric_name in telemetry_dict
+            and gpu_id in telemetry_dict[metric_name]
+            and "avg" in telemetry_dict[metric_name][gpu_id]
+        ]
+
+    def _get_aggregated_value(self, values: List[float], metric_name: str) -> float:
+        """
+        Aggregates the values based on the metric type.
+
+        Args:
+            values (List[float]): The list of values to be aggregated.
+            metric_name (str): The metric name to determine the aggregation method.
+
+        Returns:
+            float: The aggregated value for the metric.
+        """
+        if metric_name in [
+            "gpu_power_usage",
+            "gpu_utilization",
+            "energy_consumption",
+        ]:
+            return mean(values)
+        elif metric_name == "gpu_memory_usage":
+            return sum(values)
+        else:
+            return max(values)
+
     def _aggregate(self) -> None:
         """
-        Aggregates telemetry stats from multiplt files to create aggregate Telmetry statistcs.
+        Aggregates telemetry stats from multiple files to create aggregate telemetry statistics.
         """
         if not self._telemetry_dicts:
             return
@@ -55,36 +112,16 @@ class TelemetryStatsAggregator:
             unit = self._telemetry_dicts[0][metric_name].get("unit", "")
             aggregated_telemetry_stats_dict[metric_name]["unit"] = unit
 
-            gpu_ids = set()
-            for telemetry_dict in self._telemetry_dicts:
-                gpu_ids.update(telemetry_dict.get(metric_name, {}).keys())
-            gpu_ids.discard("unit")
+            gpu_ids = self._get_gpu_ids(metric_name)
 
             for gpu_id in gpu_ids:
-                values = [
-                    telemetry_dict[metric_name][gpu_id]["avg"]
-                    for telemetry_dict in self._telemetry_dicts
-                    if metric_name in telemetry_dict
-                    and gpu_id in telemetry_dict[metric_name]
-                    and "avg" in telemetry_dict[metric_name][gpu_id]
-                ]
+                values = self._get_values_for_gpu(metric_name, gpu_id)
+
                 if values:
-                    if metric_name in [
-                        "gpu_power_usage",
-                        "gpu_utilization",
-                        "energy_consumption",
-                    ]:
-                        aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
-                            "avg": mean(values)
-                        }
-                    elif metric_name == "gpu_memory_usage":
-                        aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
-                            "avg": sum(values)
-                        }
-                    else:
-                        aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
-                            "avg": max(values)
-                        }
+                    aggregated_value = self._get_aggregated_value(values, metric_name)
+                    aggregated_telemetry_stats_dict[metric_name][gpu_id] = {
+                        "avg": aggregated_value
+                    }
 
         self._telemetry_stats.set_stats_dict(aggregated_telemetry_stats_dict)
 

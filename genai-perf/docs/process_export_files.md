@@ -34,7 +34,7 @@ and generate outputs with aggregated metrics.
 ## Process Export Files CLI
 The `process-export-files` uses the following CLI options:
 
-`--input-directory/-d` - The path to the input directory containing directories of profile export files from distributed runs. These directories must include perf analyzer profile export (e.g., profile_export.json) and GenAI-Perf profile export JSON files (e.g., profile_export_genai_perf.json).
+`--input-directory/-d` - The path to the input directory containing directories of profile export files from distributed runs (default: `aggregated`). These directories must include perf analyzer profile export (e.g., profile_export.json) and GenAI-Perf profile export JSON files (e.g., profile_export_genai_perf.json).
 
 Example input directory structure
 
@@ -66,7 +66,7 @@ The `process-export-files` subcommand supports the following output options:
 
 ### CLI Examples
 ```bash
-genai-perf process-export-files --input-directory /path/to/directory
+genai-perf process-export-files --input-directory /path/to/input/directory
 ```
 
 Example output:
@@ -94,3 +94,7 @@ This command processes profile export files from distributed runs located in sub
 It aggregates results across all runs and displays the aggregated metrics on the console.
 The merged profile export file, along with GenAI-Perf JSON and CSV export files, are stored in the specified `artifacts` directory.
 
+> [!Note]
+> Users should ensure that the profile export files provided are comparable.
+> For example, if profile results from different stimuli types (e.g., `concurrency`, `request rate`)
+> are provided, they will be aggregated together, which may lead to unintended results.
