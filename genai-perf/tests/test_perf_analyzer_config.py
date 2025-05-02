@@ -591,6 +591,49 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
 
         self.assertEqual(expected_args, actual_args)
 
+    ###########################################################################
+    # Test _add_header_args
+    ###########################################################################
+    def test_add_header_args_with_no_headers(self):
+        """
+        Test that _add_header_args returns an empty list when no headers are set
+        """
+        self._config.input.header = []
+        expected_args = []
+        actual_args = self._default_perf_analyzer_config._add_header_args(self._config)
+        self.assertEqual(expected_args, actual_args)
+
+    def test_add_header_args_with_single_header(self):
+        """
+        Test that _add_header_args returns correct arguments for a single header
+        """
+        self._config.input.header = ["Authorization: Bearer token123"]
+        expected_args = ["-H", "Authorization: Bearer token123"]
+        actual_args = self._default_perf_analyzer_config._add_header_args(self._config)
+        self.assertEqual(expected_args, actual_args)
+
+    def test_add_header_args_with_multiple_headers(self):
+        """
+        Test that _add_header_args returns correct arguments for multiple headers
+        """
+        self._config.input.header = [
+            "Authorization: Bearer token123",
+            "Content-Type: application/json",
+            "Custom-Header: custom-value",
+        ]
+
+        expected_args = [
+            "-H",
+            "Authorization: Bearer token123",
+            "-H",
+            "Content-Type: application/json",
+            "-H",
+            "Custom-Header: custom-value",
+        ]
+
+        actual_args = self._default_perf_analyzer_config._add_header_args(self._config)
+        self.assertEqual(expected_args, actual_args)
+
 
 if __name__ == "__main__":
     unittest.main()
