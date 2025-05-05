@@ -79,10 +79,9 @@ class TelemetryStatistics:
 
     def scale_data(self) -> None:
         SCALING_FACTORS = {
-            "energy_consumption": 1e-6,  # joules to megajoules (MJ)
-            "gpu_memory_used": 1e-9,  # bytes to gigabytes (GB)
-            "total_gpu_memory": 1e-9,  # bytes to gigabytes (GB)
-            "gpu_utilization": 100,  # ratio to percentage (%)
+            "energy_consumption": 1e-9,  # mJ to megajoules (MJ)
+            "gpu_memory_used": 1.048576 * 1e-3,  # MiB to gigabytes (GB)
+            "total_gpu_memory": 1.048576 * 1e-3,  # MiB to gigabytes (GB)
         }
         for metric, data in self._stats_dict.items():
             if metric in SCALING_FACTORS:

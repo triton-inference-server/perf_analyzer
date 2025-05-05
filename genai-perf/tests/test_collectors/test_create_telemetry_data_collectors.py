@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-#
 # Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,149 +26,107 @@
 
 from unittest.mock import MagicMock, patch
 
+import genai_perf.logging as logging
 import pytest
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
+from genai_perf.constants import DEFAULT_DCGM_METRICS_URL
 from genai_perf.subcommand.subcommand import Subcommand
-from genai_perf.telemetry_data import TritonTelemetryDataCollector
+from genai_perf.telemetry_data.dcgm_telemetry_data_collector import (
+    DCGMTelemetryDataCollector,
+)
 from requests import codes as http_codes
 
 
-class MockArgs:
-    def __init__(self, service_kind, server_metrics_url):
-        self.service_kind = service_kind
-        self.server_metrics_url = server_metrics_url
-
-
-class TestCreateTelemetryDataCollector:
-    test_triton_metrics_url = "http://tritonmetrics.com:8080/metrics"
+class TestCreateTelemetryDataCollectors:
 
     @pytest.mark.parametrize(
-        "server_metrics_url, expected_url",
+        "server_metrics_urls, expected_url",
         [
-            (
-                ["http://tritonmetrics.com:8080/metrics"],
-                "http://tritonmetrics.com:8080/metrics",
-            ),
-            (None, DEFAULT_TRITON_METRICS_URL),
+            (["http://dcgmhost:9400/metrics"], "http://dcgmhost:9400/metrics"),
+            (None, DEFAULT_DCGM_METRICS_URL),
         ],
     )
     @patch("requests.get")
     def test_creates_telemetry_data_collectors_success(
-        self, mock_requests_get, server_metrics_url, expected_url
+        self, mock_requests_get, server_metrics_urls, expected_url
     ):
-        """Test successful creation of a Triton telemetry data collector"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
 
         config = ConfigCommand({"model_name": "test_model"})
-        config.endpoint.service_kind = "triton"
-
-        if server_metrics_url:
-            config.endpoint.server_metrics_urls = server_metrics_url
+        config.endpoint.service_kind = "openai"
+        config.endpoint.server_metrics_urls = server_metrics_urls
 
         subcommand = Subcommand(config)
         telemetry_collectors = subcommand._create_telemetry_data_collectors()
 
-        assert (
-            len(telemetry_collectors) > 0
-        ), "Expected at least one telemetry collector"
-        telemetry_data_collector = telemetry_collectors[0]
-
-        assert isinstance(telemetry_data_collector, TritonTelemetryDataCollector)
-        assert (
-            telemetry_data_collector.metrics_url == expected_url
-        ), f"Expected {expected_url}, got {telemetry_data_collector.metrics_url}"
+        assert len(telemetry_collectors) > 0
+        assert telemetry_collectors[0].metrics_url == expected_url
 
     @pytest.mark.parametrize(
         "server_metrics_urls, expected_urls",
         [
             (
                 [
-                    "http://tritonmetrics1.com:8080/metrics",
-                    "http://tritonmetrics2.com:9090/metrics",
+                    "http://dcgmmetrics1.com:9400/metrics",
+                    "http://dcgmmetrics2.com:9090/metrics",
                 ],
                 [
-                    "http://tritonmetrics1.com:8080/metrics",
-                    "http://tritonmetrics2.com:9090/metrics",
+                    "http://dcgmmetrics1.com:9400/metrics",
+                    "http://dcgmmetrics2.com:9090/metrics",
                 ],
             ),
-            (
-                [],
-                [DEFAULT_TRITON_METRICS_URL],
-            ),
+            ([], [DEFAULT_DCGM_METRICS_URL]),
         ],
     )
     @patch("requests.get")
-    def test_creates_multiple_telemetry_data_collectors_success(
+    def test_creates_multiple_telemetry_collectors(
         self, mock_requests_get, server_metrics_urls, expected_urls
     ):
-        """Test successful creation of multiple Triton telemetry data collectors"""
         mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
-
-        config = ConfigCommand({"model_name": "test_model"})
-        config.endpoint.service_kind = "triton"
-
-        if server_metrics_urls:
-            config.endpoint.server_metrics_urls = server_metrics_urls
-
-        subcommand = Subcommand(config)
-        telemetry_collectors = subcommand._create_telemetry_data_collectors()
-
-        assert len(telemetry_collectors) == len(
-            expected_urls
-        ), "Expected telemetry collectors for all valid URLs"
-
-        for collector, expected_url in zip(telemetry_collectors, expected_urls):
-            assert isinstance(collector, TritonTelemetryDataCollector)
-            assert (
-                collector.metrics_url == expected_url
-            ), f"Expected {expected_url}, got {collector.metrics_url}"
-
-    @pytest.mark.parametrize(
-        "server_metrics_url",
-        [
-            ["http://tritonmetrics.com:8080/metrics"],
-        ],
-    )
-    @patch("requests.get")
-    def test_create_telemetry_data_collectors_unreachable_url(
-        self, mock_requests_get, server_metrics_url
-    ):
-        """Test handling of unreachable Triton metrics URL"""
-        mock_requests_get.return_value = MagicMock(status_code=http_codes.not_found)
-
-        config = ConfigCommand({"model_name": "test_model"})
-        config.endpoint.service_kind = "triton"
-        if server_metrics_url:
-            config.endpoint.server_metrics_urls = server_metrics_url
-
-        subcommand = Subcommand(config)
-        telemetry_collectors = subcommand._create_telemetry_data_collectors()
-
-        assert isinstance(telemetry_collectors, list), "Expected a list return type"
-        assert (
-            len(telemetry_collectors) == 0
-        ), "Expected empty list when URL is unreachable"
-
-    @patch("genai_perf.subcommand.subcommand.TritonTelemetryDataCollector")
-    @patch("requests.get")
-    def test_create_telemetry_data_collectors_service_kind_not_triton(
-        self, mock_requests_get, mock_telemetry_collector
-    ):
-        """Test that telemetry data collectors are NOT created for non-Triton service kinds"""
-        mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
-        mock_telemetry_collector.return_value = MagicMock()
 
         config = ConfigCommand({"model_name": "test_model"})
         config.endpoint.service_kind = "openai"
-
-        if self.test_triton_metrics_url:
-            config.endpoint.server_metrics_urls = [self.test_triton_metrics_url]
+        config.endpoint.server_metrics_urls = server_metrics_urls
 
         subcommand = Subcommand(config)
-        telemetry_collectors = subcommand._create_telemetry_data_collectors()
+        collectors = subcommand._create_telemetry_data_collectors()
 
-        assert isinstance(telemetry_collectors, list), "Expected a list return type"
-        assert (
-            len(telemetry_collectors) == 0
-        ), "Expected empty list for non-Triton service kind"
+        assert len(collectors) == len(expected_urls)
+        for collector, expected_url in zip(collectors, expected_urls):
+            assert isinstance(collector, DCGMTelemetryDataCollector)
+            assert collector.metrics_url == expected_url
+
+    @patch("requests.get")
+    def test_telemetry_data_collectors_unreachable_url(self, mock_requests_get):
+        mock_requests_get.return_value = MagicMock(status_code=http_codes.not_found)
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.service_kind = "openai"
+        config.endpoint.server_metrics_urls = ["http://dcgmhost:9410/metrics"]
+
+        subcommand = Subcommand(config)
+        collectors = subcommand._create_telemetry_data_collectors()
+
+        assert collectors == []
+
+    @patch("requests.get")
+    def test_logs_warning_when_service_kind_triton(self, mock_requests_get):
+        expected_warning_message = (
+            "GPU metrics are no longer collected from Triton's /metrics endpoint.\n"
+            "Telemetry is now collected exclusively from the DCGM-Exporter /metrics endpoint.\n"
+            "If you're using Triton, please ensure DCGM-Exporter is running.\n"
+        )
+
+        mock_requests_get.return_value = MagicMock(status_code=http_codes.ok)
+        logging.init_logging()
+        logger = logging.getLogger("genai_perf.subcommand.subcommand")
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.service_kind = "triton"
+
+        subcommand = Subcommand(config)
+
+        with patch.object(logger, "warning") as mock_logger:
+            _ = subcommand._create_telemetry_data_collectors()
+
+        mock_logger.assert_any_call(expected_warning_message)

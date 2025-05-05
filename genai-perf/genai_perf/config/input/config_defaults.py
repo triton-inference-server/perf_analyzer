@@ -15,6 +15,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 
+from genai_perf.constants import DEFAULT_DCGM_METRICS_URL
 from genai_perf.inputs.input_constants import (
     AudioFormat,
     ImageFormat,
@@ -71,7 +72,7 @@ class EndPointDefaults:
     TYPE = "kserve"
     SERVICE_KIND = "triton"
     STREAMING = False
-    SERVER_METRICS_URLS = ["http://localhost:8002/metrics"]
+    SERVER_METRICS_URLS = [DEFAULT_DCGM_METRICS_URL]
     URL = "localhost:8001"
     GRPC_METHOD = ""
 
