@@ -33,7 +33,6 @@ from typing import Any, Dict, List, Optional
 import genai_perf.logging as logging
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.input.config_command import ConfigCommand
-from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
 from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig

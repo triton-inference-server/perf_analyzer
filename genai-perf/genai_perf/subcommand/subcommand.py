@@ -27,7 +27,7 @@ from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.run_config import RunConfig
-from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
+from genai_perf.constants import DEFAULT_DCGM_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
 from genai_perf.inputs.input_constants import OutputFormat, PromptSource
@@ -42,10 +42,10 @@ from genai_perf.profile_data_parser import (
     LLMProfileDataParser,
     ProfileDataParser,
 )
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-    TritonTelemetryDataCollector,
+from genai_perf.telemetry_data.dcgm_telemetry_data_collector import (
+    DCGMTelemetryDataCollector,
 )
+from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
 from genai_perf.tokenizer import Tokenizer, get_tokenizer
 from genai_perf.types import GpuRecords, ModelObjectiveParameters, PerfRecords
 from genai_perf.utils import remove_file
@@ -196,16 +196,19 @@ class Subcommand:
     def _create_telemetry_data_collectors(
         self,
     ) -> List[Optional[TelemetryDataCollector]]:
+        if self._config.endpoint.service_kind == "triton":
+            logger.warning(
+                "GPU metrics are no longer collected from Triton's /metrics endpoint.\n"
+                "Telemetry is now collected exclusively from the DCGM-Exporter /metrics endpoint.\n"
+                "If you're using Triton, please ensure DCGM-Exporter is running.\n"
+            )
+        server_metrics_urls = self._config.endpoint.server_metrics_urls or [
+            DEFAULT_DCGM_METRICS_URL
+        ]
         telemetry_collectors: List[Optional[TelemetryDataCollector]] = []
 
-        if not self._config.endpoint.service_kind == "triton":
-            return telemetry_collectors
-
-        if not self._config.endpoint.server_metrics_urls:
-            self._config.endpoint.server_metrics_urls = [DEFAULT_TRITON_METRICS_URL]
-
-        for url in self._config.endpoint.server_metrics_urls:
-            collector = TritonTelemetryDataCollector(url.strip())
+        for url in map(str.strip, server_metrics_urls):
+            collector = DCGMTelemetryDataCollector(url)
             if collector.is_url_reachable():
                 telemetry_collectors.append(collector)
             else:
