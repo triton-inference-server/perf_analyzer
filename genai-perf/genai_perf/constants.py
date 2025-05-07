@@ -26,7 +26,7 @@
 
 ABBREVIATIONS = ["gpu"]
 DEFAULT_LRU_CACHE_SIZE = 100_000
-DEFAULT_TRITON_METRICS_URL = "http://localhost:8002/metrics"
+DEFAULT_DCGM_METRICS_URL = "http://localhost:9400/metrics"
 EMPTY_RESPONSE_TOKEN = 0
 
 # These map to the various fields that can be set for PA and model configs
