@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -93,6 +94,7 @@ class ConfigCommand(BaseConfig):
         self._infer_settings()
         self._check_required_fields_are_set()
         self._check_for_illegal_combinations()
+        self._check_fixed_schedule_requirements()
         self._check_profile_export_file()
         if self.subcommand == Subcommand.PROCESS:
             self._check_input_path_is_valid()
@@ -172,10 +174,31 @@ class ConfigCommand(BaseConfig):
     def _check_for_illegal_combinations(self) -> None:
         self._check_output_tokens_and_service_kind()
         self._check_output_format_and_generate_plots()
-        self._check_payload_input()
 
         self.endpoint.check_for_illegal_combinations()
         self.input.check_for_illegal_combinations()
+
+    def _check_fixed_schedule_requirements(self) -> None:
+        if self.perf_analyzer.stimulus == "fixed_schedule":
+            try:
+                with open(self.input.file, "r") as file:
+                    for line in file:
+                        self._check_for_timestamp_on_line(line)
+            except Exception as e:
+                raise ValueError(f"Error validating 'timestamp' field: {e}")
+
+    def _check_for_timestamp_on_line(self, line: str) -> None:
+        if not line.strip():
+            return
+        data = json.loads(line)
+        if "timestamp" not in data:
+            raise ValueError(
+                "User Config: Stimulus 'fixed_schedule' requires a 'timestamp' field in every entry in the input file."
+            )
+        if not isinstance(data["timestamp"], int):
+            raise ValueError(
+                "User Config: Stimulus 'fixed_schedule' requires the 'timestamp' field to be an integer."
+            )
 
     def _check_output_tokens_and_service_kind(self) -> None:
         if self.endpoint.service_kind not in ["triton", "tensorrtllm_engine"]:
@@ -195,26 +218,6 @@ class ConfigCommand(BaseConfig):
                 raise ValueError(
                     f"User Config: generate_plots is not supported with the {self.endpoint.output_format} output format"
                 )
-
-    def _check_payload_input(self) -> None:
-        if self.input.prompt_source != PromptSource.PAYLOAD:
-            return
-
-        if self.perf_analyzer.get_field("stimulus").is_set_by_user:
-            for key in self.perf_analyzer.stimulus.keys():
-                if key in ["concurrency", "request_rate"]:
-                    raise ValueError(
-                        f"User Config: perf_analyzer.stimulus: {key} is not supported with the payload input source."
-                    )
-
-        if (
-            self.perf_analyzer.measurement.get_field("mode").is_set_by_user
-            and self.perf_analyzer.measurement.mode
-            == PerfAnalyzerMeasurementMode.REQUEST_COUNT
-        ):
-            raise ValueError(
-                f"User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source."
-            )
 
     ###########################################################################
     # Set Path Methods

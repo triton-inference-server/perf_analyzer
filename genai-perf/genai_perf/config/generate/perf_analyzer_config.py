@@ -84,7 +84,6 @@ class PerfAnalyzerConfig:
         cli_args += self._add_url_args(config)
         cli_args += self._add_dynamic_grpc_args(config)
         cli_args += self._add_inference_load_args(config)
-        cli_args += self._add_prompt_source_args(config)
         cli_args += self._add_endpoint_args(config)
         cli_args += self._add_header_args(config)
         cli_args += self._add_extra_args(extra_args)
@@ -197,6 +196,7 @@ class PerfAnalyzerConfig:
         if (
             config.input.prompt_source == PromptSource.PAYLOAD
             and not "session_concurrency" in config.perf_analyzer.stimulus
+            and not "fixed_schedule" in config.perf_analyzer.stimulus
         ):
             stimulus = None
         elif "concurrency" in config.perf_analyzer.stimulus:
@@ -208,6 +208,8 @@ class PerfAnalyzerConfig:
         elif "session_concurrency" in config.perf_analyzer.stimulus:
             session_concurrency = config.perf_analyzer.stimulus["session_concurrency"]
             stimulus = [f"session_concurrency{session_concurrency}"]
+        elif "fixed_schedule" in config.perf_analyzer.stimulus:
+            stimulus = [f"fixed_schedule"]
         else:
             raise GenAIPerfException(f"Stimulus type not found in config")
 
@@ -326,6 +328,10 @@ class PerfAnalyzerConfig:
                         "--session-concurrency",
                         f"{config.perf_analyzer.stimulus['session_concurrency']}",
                     ]
+                elif "fixed_schedule" in config.perf_analyzer.stimulus:
+                    inference_load_args += [
+                        "--fixed-schedule",
+                    ]
         else:
             for parameter, value in self._parameters.items():
                 if parameter == "concurrency":
@@ -336,16 +342,6 @@ class PerfAnalyzerConfig:
                     inference_load_args += ["-b", f"{value}"]
 
         return inference_load_args
-
-    def _add_prompt_source_args(self, config: ConfigCommand) -> List[str]:
-        prompt_source_args = []
-        if (
-            config.input.prompt_source == PromptSource.PAYLOAD
-            and not "session_concurrency" in config.perf_analyzer.stimulus
-        ):
-            prompt_source_args += ["--fixed-schedule"]
-
-        return prompt_source_args
 
     def _add_endpoint_args(self, config: ConfigCommand) -> List[str]:
         endpoint_args = []
