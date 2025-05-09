@@ -335,8 +335,8 @@ class TestCsvExporter:
 
         assert returned_data[-2] == expected_content
 
-    def test_triton_telemetry_output(
-        self, monkeypatch, mock_read_write: pytest.MonkeyPatch, llm_metrics: LLMMetrics
+    def test_telemetry_output(
+        self, monkeypatch, mock_read_write, llm_metrics: LLMMetrics
     ) -> None:
         argv = [
             "genai-perf",
@@ -357,8 +357,17 @@ class TestCsvExporter:
             gpu_power_limit={"gpu0": [250.0, 250.0]},
             energy_consumption={"gpu0": [0.5, 0.6]},
             gpu_utilization={"gpu0": [75.0, 80.0]},
+            sm_utilization={"gpu0": [60.0, 70.0]},
+            memory_copy_utilization={"gpu0": [55.0, 60.0]},
+            video_encoder_utilization={"gpu0": [20.0, 25.0]},
+            video_decoder_utilization={"gpu0": [15.0, 18.0]},
             total_gpu_memory={"gpu0": [8.0, 8.0]},
             gpu_memory_used={"gpu0": [4.0, 4.0]},
+            gpu_memory_free={"gpu0": [3.5, 3.6]},
+            gpu_memory_temperature={"gpu0": [60.0, 65.0]},
+            gpu_temperature={"gpu0": [70.0, 75.0]},
+            gpu_clock_sm={"gpu0": [1500.0, 1550.0]},
+            gpu_clock_memory={"gpu0": [5000.0, 5100.0]},
         )
 
         stats = Statistics(metrics=llm_metrics)
@@ -393,8 +402,17 @@ class TestCsvExporter:
             "Metric,GPU,avg,min,max,p99,p95,p90,p75,p50,p25\r\n",
             "GPU Power Usage (W),gpu0,45.85,45.20,46.50,46.49,46.44,46.37,46.17,45.85,45.53\r\n",
             "Energy Consumption (MJ),gpu0,0.55,0.50,0.60,0.60,0.59,0.59,0.57,0.55,0.53\r\n",
-            "GPU Utilization (%),gpu0,77.50,75.00,80.00,79.95,79.75,79.50,78.75,77.50,76.25\r\n",
             "GPU Memory Used (GB),gpu0,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00,4.00\r\n",
+            "GPU Memory Free (GB),gpu0,3.55,3.50,3.60,3.60,3.60,3.59,3.58,3.55,3.52\r\n",
+            "GPU Utilization (%),gpu0,77.50,75.00,80.00,79.95,79.75,79.50,78.75,77.50,76.25\r\n",
+            "Sm Utilization (%),gpu0,65.00,60.00,70.00,69.90,69.50,69.00,67.50,65.00,62.50\r\n",
+            "Memory Copy Utilization (%),gpu0,57.50,55.00,60.00,59.95,59.75,59.50,58.75,57.50,56.25\r\n",
+            "Video Encoder Utilization (%),gpu0,22.50,20.00,25.00,24.95,24.75,24.50,23.75,22.50,21.25\r\n",
+            "Video Decoder Utilization (%),gpu0,16.50,15.00,18.00,17.97,17.85,17.70,17.25,16.50,15.75\r\n",
+            'GPU Clock Sm (MHz),gpu0,"1,525.00","1,500.00","1,550.00","1,549.50","1,547.50","1,545.00","1,537.50","1,525.00","1,512.50"\r\n',
+            'GPU Clock Memory (MHz),gpu0,"5,050.00","5,000.00","5,100.00","5,099.00","5,095.00","5,090.00","5,075.00","5,050.00","5,025.00"\r\n',
+            "GPU Temperature (C),gpu0,72.50,70.00,75.00,74.95,74.75,74.50,73.75,72.50,71.25\r\n",
+            "GPU Memory Temperature (C),gpu0,62.50,60.00,65.00,64.95,64.75,64.50,63.75,62.50,61.25\r\n",
             "\r\n",
             "Metric,GPU,Value\r\n",
             "GPU Power Limit (W),gpu0,250.00\r\n",
@@ -407,6 +425,8 @@ class TestCsvExporter:
             for filename, data in mock_read_write
             if os.path.basename(filename) == expected_filename
         ]
+
+        print(returned_data)
 
         assert returned_data == expected_content
 

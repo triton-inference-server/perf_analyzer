@@ -36,7 +36,7 @@ from genai_perf.metrics import TelemetryMetrics, TelemetryStatistics
 
 class TelemetryDataCollector(ABC):
     def __init__(
-        self, server_metrics_url: str, collection_interval: float = 1.0  # in seconds
+        self, server_metrics_url: str, collection_interval: float = 0.33  # in seconds
     ) -> None:
         self._server_metrics_url = server_metrics_url
         self._collection_interval = collection_interval
