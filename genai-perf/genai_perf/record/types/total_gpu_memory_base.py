@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ class GPUTotalMemoryBase(IncreasingGPURecord):
     """
 
     base_tag = "total_gpu_memory"
-    reduction_factor = ReductionFactor.B_TO_GB
+    reduction_factor = ReductionFactor.MIB_TO_GB
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)

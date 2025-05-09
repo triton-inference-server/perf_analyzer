@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,9 +25,32 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from collections import defaultdict
+from enum import Enum
 from typing import Dict, List, Optional
 
 from genai_perf.metrics.metrics import MetricMetadata
+
+
+class TelemetryMetricName(str, Enum):
+    GPU_UTILIZATION = "gpu_utilization"
+    SM_UTILIZATION = "sm_utilization"
+    MEMORY_COPY_UTILIZATION = "memory_copy_utilization"
+    VIDEO_ENCODER_UTILIZATION = "video_encoder_utilization"
+    VIDEO_DECODER_UTILIZATION = "video_decoder_utilization"
+    GPU_POWER_USAGE = "gpu_power_usage"
+    GPU_POWER_LIMIT = "gpu_power_limit"
+    ENERGY_CONSUMPTION = "energy_consumption"
+    TOTAL_GPU_MEMORY = "total_gpu_memory"
+    GPU_MEMORY_USED = "gpu_memory_used"
+    GPU_MEMORY_FREE = "gpu_memory_free"
+    GPU_MEMORY_TEMPERATURE = "gpu_memory_temperature"
+    GPU_TEMPERATURE = "gpu_temperature"
+    GPU_CLOCK_SM = "gpu_clock_sm"
+    GPU_CLOCK_MEMORY = "gpu_clock_memory"
+
+    @classmethod
+    def values(cls) -> List["TelemetryMetricName"]:
+        return list(cls)
 
 
 class TelemetryMetrics:
@@ -47,14 +68,43 @@ class TelemetryMetrics:
         }
     """
 
-    TELEMETRY_METRICS = [
-        MetricMetadata("gpu_power_usage", "W"),
-        MetricMetadata("gpu_power_limit", "W"),
-        MetricMetadata("energy_consumption", "MJ"),
-        MetricMetadata("gpu_utilization", "%"),
-        MetricMetadata("total_gpu_memory", "GB"),
-        MetricMetadata("gpu_memory_used", "GB"),
+    UTILIZATION_METRICS = [
+        MetricMetadata(TelemetryMetricName.GPU_UTILIZATION.value, "%"),
+        MetricMetadata(TelemetryMetricName.SM_UTILIZATION.value, "%"),
+        MetricMetadata(TelemetryMetricName.MEMORY_COPY_UTILIZATION.value, "%"),
+        MetricMetadata(TelemetryMetricName.VIDEO_ENCODER_UTILIZATION.value, "%"),
+        MetricMetadata(TelemetryMetricName.VIDEO_DECODER_UTILIZATION.value, "%"),
     ]
+
+    POWER_METRICS = [
+        MetricMetadata(TelemetryMetricName.GPU_POWER_USAGE.value, "W"),
+        MetricMetadata(TelemetryMetricName.GPU_POWER_LIMIT.value, "W"),
+        MetricMetadata(TelemetryMetricName.ENERGY_CONSUMPTION.value, "MJ"),
+    ]
+
+    CLOCK_METRICS = [
+        MetricMetadata(TelemetryMetricName.GPU_CLOCK_SM.value, "MHz"),
+        MetricMetadata(TelemetryMetricName.GPU_CLOCK_MEMORY.value, "MHz"),
+    ]
+
+    MEMORY_METRICS = [
+        MetricMetadata(TelemetryMetricName.TOTAL_GPU_MEMORY.value, "GB"),
+        MetricMetadata(TelemetryMetricName.GPU_MEMORY_USED.value, "GB"),
+        MetricMetadata(TelemetryMetricName.GPU_MEMORY_FREE.value, "GB"),
+    ]
+
+    TEMPERATURE_METRICS = [
+        MetricMetadata(TelemetryMetricName.GPU_TEMPERATURE.value, "C"),
+        MetricMetadata(TelemetryMetricName.GPU_MEMORY_TEMPERATURE.value, "C"),
+    ]
+
+    TELEMETRY_METRICS = (
+        POWER_METRICS
+        + MEMORY_METRICS
+        + UTILIZATION_METRICS
+        + CLOCK_METRICS
+        + TEMPERATURE_METRICS
+    )
 
     def __init__(
         self,
@@ -62,15 +112,37 @@ class TelemetryMetrics:
         gpu_power_limit: Optional[Dict[str, List[float]]] = None,
         energy_consumption: Optional[Dict[str, List[float]]] = None,
         gpu_utilization: Optional[Dict[str, List[float]]] = None,
+        sm_utilization: Optional[Dict[str, List[float]]] = None,
+        memory_copy_utilization: Optional[Dict[str, List[float]]] = None,
+        video_encoder_utilization: Optional[Dict[str, List[float]]] = None,
+        video_decoder_utilization: Optional[Dict[str, List[float]]] = None,
         total_gpu_memory: Optional[Dict[str, List[float]]] = None,
         gpu_memory_used: Optional[Dict[str, List[float]]] = None,
+        gpu_memory_free: Optional[Dict[str, List[float]]] = None,
+        gpu_memory_temperature: Optional[Dict[str, List[float]]] = None,
+        gpu_temperature: Optional[Dict[str, List[float]]] = None,
+        gpu_clock_sm: Optional[Dict[str, List[float]]] = None,
+        gpu_clock_memory: Optional[Dict[str, List[float]]] = None,
     ):
         self.gpu_power_usage = defaultdict(list, gpu_power_usage or {})
         self.gpu_power_limit = defaultdict(list, gpu_power_limit or {})
         self.energy_consumption = defaultdict(list, energy_consumption or {})
         self.gpu_utilization = defaultdict(list, gpu_utilization or {})
+        self.sm_utilization = defaultdict(list, sm_utilization or {})
+        self.memory_copy_utilization = defaultdict(list, memory_copy_utilization or {})
+        self.video_encoder_utilization = defaultdict(
+            list, video_encoder_utilization or {}
+        )
+        self.video_decoder_utilization = defaultdict(
+            list, video_decoder_utilization or {}
+        )
         self.total_gpu_memory = defaultdict(list, total_gpu_memory or {})
         self.gpu_memory_used = defaultdict(list, gpu_memory_used or {})
+        self.gpu_memory_free = defaultdict(list, gpu_memory_free or {})
+        self.gpu_memory_temperature = defaultdict(list, gpu_memory_temperature or {})
+        self.gpu_temperature = defaultdict(list, gpu_temperature or {})
+        self.gpu_clock_sm = defaultdict(list, gpu_clock_sm or {})
+        self.gpu_clock_memory = defaultdict(list, gpu_clock_memory or {})
 
     def update_metrics(self, measurement_data: dict) -> None:
         for metric in self.TELEMETRY_METRICS:

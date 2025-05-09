@@ -38,7 +38,7 @@ class TelemetryStatsAggregator:
     """
 
     def __init__(self, telemetry_dicts: List[Dict[str, Any]]) -> None:
-        self._telemetry_stats = TelemetryStatistics(TelemetryMetrics(None))
+        self._telemetry_stats = TelemetryStatistics(TelemetryMetrics())
         self._telemetry_dicts = telemetry_dicts
         self._aggregate()
 

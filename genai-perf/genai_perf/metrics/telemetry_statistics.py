@@ -82,6 +82,8 @@ class TelemetryStatistics:
             "energy_consumption": 1e-9,  # mJ to megajoules (MJ)
             "gpu_memory_used": 1.048576 * 1e-3,  # MiB to gigabytes (GB)
             "total_gpu_memory": 1.048576 * 1e-3,  # MiB to gigabytes (GB)
+            "gpu_memory_free": 1.048576e-3,  # MiB to gigabytes (GB)
+            "sm_utilization": 100,  # ratio to %
         }
         for metric, data in self._stats_dict.items():
             if metric in SCALING_FACTORS:

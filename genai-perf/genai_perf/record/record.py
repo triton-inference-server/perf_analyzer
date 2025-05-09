@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ from genai_perf.types import RecordValue
 class ReductionFactor:
     NS_TO_MS = 6
     NJ_TO_MJ = 6
-    B_TO_GB = 9
+    MIB_TO_GB: float = 1.048576e-3
     PERCENTAGE = -2
     NONE = 0
 
@@ -159,12 +159,12 @@ class Record(metaclass=RecordType):
 
     @property
     @abstractmethod
-    def reduction_factor(self) -> int:
+    def reduction_factor(self) -> float:
         """
         Returns
         -------
-        int
-            the factor (of 10) that the value should be reduced by
+        float
+            the reduction factor of the record type.
         """
 
     def create_checkpoint_object(self):
