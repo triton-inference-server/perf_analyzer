@@ -80,6 +80,31 @@ class TestTelemetryMetrics:
         assert telemetry.gpu_clock_sm == {"gpu0": [13.0]}
         assert telemetry.gpu_clock_memory == {"gpu0": [14.0]}
 
+    def test_update_metrics(self) -> None:
+        telemetry = TelemetryMetrics()
+        measurement_data: Dict[str, Dict[str, List[float]]] = {
+            "gpu_power_usage": {"gpu0": [11.1], "gpu1": [11.2]},
+            "gpu_power_limit": {"gpu0": [101.2], "gpu1": [101.2]},
+            "energy_consumption": {"gpu0": [1004.0], "gpu1": [1005.0]},
+            "gpu_utilization": {"gpu0": [85.0], "gpu1": [90.0]},
+            "sm_utilization": {"gpu0": [65.0], "gpu1": [68.0]},
+            "memory_copy_utilization": {"gpu0": [55.0], "gpu1": [58.0]},
+            "video_encoder_utilization": {"gpu0": [20.0], "gpu1": [25.0]},
+            "video_decoder_utilization": {"gpu0": [15.0], "gpu1": [18.0]},
+            "gpu_clock_sm": {"gpu0": [1520.0], "gpu1": [1510.0]},
+            "gpu_clock_memory": {"gpu0": [5050.0], "gpu1": [5000.0]},
+            "total_gpu_memory": {"gpu0": [9000.0], "gpu1": [9000.0]},
+            "gpu_memory_used": {"gpu0": [4500.0], "gpu1": [4500.0]},
+            "gpu_memory_free": {"gpu0": [4500.0], "gpu1": [4500.0]},
+            "gpu_memory_temperature": {"gpu0": [62.0], "gpu1": [63.0]},
+            "gpu_temperature": {"gpu0": [72.0], "gpu1": [73.0]},
+        }
+
+        telemetry.update_metrics(measurement_data)
+
+        for metric_name, expected in measurement_data.items():
+            assert getattr(telemetry, metric_name) == expected
+
     def test_update_metrics_with_empty_data(self):
         telemetry = TelemetryMetrics()
         telemetry.update_metrics({})

@@ -27,7 +27,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+from genai_perf.metrics.telemetry_metrics import TelemetryMetricName, TelemetryMetrics
 from genai_perf.telemetry_data.dcgm_telemetry_data_collector import (
     DCGMTelemetryDataCollector,
 )
@@ -40,24 +40,7 @@ def collector():
     )
     collector._metrics = MagicMock(spec=TelemetryMetrics)
     collector._metrics.TELEMETRY_METRICS = [
-        MagicMock(name=n)
-        for n in [
-            "gpu_power_usage",
-            "gpu_power_limit",
-            "energy_consumption",
-            "gpu_utilization",
-            "gpu_memory_used",
-            "total_gpu_memory",
-            "gpu_memory_free",
-            "gpu_memory_temperature",
-            "gpu_temperature",
-            "gpu_clock_sm",
-            "gpu_clock_memory",
-            "sm_utilization",
-            "memory_copy_utilization",
-            "video_encoder_utilization",
-            "video_decoder_utilization",
-        ]
+        MagicMock(name=metric.value) for metric in TelemetryMetricName
     ]
     return collector
 
