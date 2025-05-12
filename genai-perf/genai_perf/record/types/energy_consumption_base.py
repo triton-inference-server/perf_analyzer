@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class GPUEnergyConsumptionBase(DecreasingGPURecord):
     def header(aggregation_tag=False):
         return ("Average " if aggregation_tag else "") + "GPU Energy Consumption (MJ)"
 
-    def __eq__(self, other: "GPUEnegryConsumptionBase") -> bool:  # type: ignore
+    def __eq__(self, other: "GPUEnergyConsumptionBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
     def __lt__(self, other: "GPUEnergyConsumptionBase") -> bool:

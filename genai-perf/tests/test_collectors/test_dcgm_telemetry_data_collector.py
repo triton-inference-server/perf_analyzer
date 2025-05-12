@@ -27,7 +27,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
+from genai_perf.metrics.telemetry_metrics import TelemetryMetricName, TelemetryMetrics
 from genai_perf.telemetry_data.dcgm_telemetry_data_collector import (
     DCGMTelemetryDataCollector,
 )
@@ -40,31 +40,44 @@ def collector():
     )
     collector._metrics = MagicMock(spec=TelemetryMetrics)
     collector._metrics.TELEMETRY_METRICS = [
-        MagicMock(name="gpu_power_usage"),
-        MagicMock(name="gpu_power_limit"),
-        MagicMock(name="energy_consumption"),
-        MagicMock(name="gpu_utilization"),
-        MagicMock(name="gpu_memory_used"),
-        MagicMock(name="total_gpu_memory"),
+        MagicMock(name=metric.value) for metric in TelemetryMetricName
     ]
     return collector
 
 
 def test_process_and_update_metrics_success(collector):
     sample_metrics = """
-    # HELP DCGM_FI_DEV_POWER_USAGE Power draw (in W).
     DCGM_FI_DEV_POWER_USAGE{gpu="0"} 25.0
     DCGM_FI_DEV_GPU_UTIL{gpu="0"} 88.5
     DCGM_FI_DEV_FB_USED{gpu="0"} 4096
+    DCGM_FI_DEV_FB_TOTAL{gpu="0"} 49152
+    DCGM_FI_DEV_FB_FREE{gpu="0"} 8192
+    DCGM_FI_DEV_MEMORY_TEMP{gpu="0"} 60
+    DCGM_FI_DEV_GPU_TEMP{gpu="0"} 70
+    DCGM_FI_DEV_SM_CLOCK{gpu="0"} 1530
+    DCGM_FI_DEV_MEM_CLOCK{gpu="0"} 5050
+    DCGM_FI_PROF_SM_ACTIVE{gpu="0"} 65
+    DCGM_FI_DEV_MEM_COPY_UTIL{gpu="0"} 55
+    DCGM_FI_DEV_ENC_UTIL{gpu="0"} 22
+    DCGM_FI_DEV_DEC_UTIL{gpu="0"} 17
     """
 
     collector._process_and_update_metrics(sample_metrics)
-
     update_call = collector.metrics.update_metrics.call_args[0][0]
 
     assert update_call["gpu_power_usage"]["0"] == [25.0]
     assert update_call["gpu_utilization"]["0"] == [88.5]
     assert update_call["gpu_memory_used"]["0"] == [4096.0]
+    assert update_call["total_gpu_memory"]["0"] == [49152.0]
+    assert update_call["gpu_memory_free"]["0"] == [8192.0]
+    assert update_call["gpu_memory_temperature"]["0"] == [60.0]
+    assert update_call["gpu_temperature"]["0"] == [70.0]
+    assert update_call["gpu_clock_sm"]["0"] == [1530.0]
+    assert update_call["gpu_clock_memory"]["0"] == [5050.0]
+    assert update_call["sm_utilization"]["0"] == [65.0]
+    assert update_call["memory_copy_utilization"]["0"] == [55.0]
+    assert update_call["video_encoder_utilization"]["0"] == [22.0]
+    assert update_call["video_decoder_utilization"]["0"] == [17.0]
 
 
 def test_process_and_update_metrics_ignores_unmapped_metrics(collector):
