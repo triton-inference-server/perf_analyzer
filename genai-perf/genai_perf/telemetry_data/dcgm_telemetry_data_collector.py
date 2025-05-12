@@ -27,6 +27,7 @@
 from typing import Dict, List, Optional, Tuple
 
 import genai_perf.logging as logging
+from genai_perf.metrics.telemetry_metrics import TelemetryMetricName
 from genai_perf.telemetry_data.telemetry_data_collector import TelemetryDataCollector
 
 logger = logging.getLogger(__name__)
@@ -35,13 +36,22 @@ logger = logging.getLogger(__name__)
 class DCGMTelemetryDataCollector(TelemetryDataCollector):
     """Collects telemetry metrics from DCGM metrics endpoint."""
 
-    METRIC_NAME_MAPPING = {
-        "DCGM_FI_DEV_POWER_USAGE": "gpu_power_usage",
-        "DCGM_FI_DEV_POWER_MGMT_LIMIT": "gpu_power_limit",
-        "DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION": "energy_consumption",
-        "DCGM_FI_DEV_GPU_UTIL": "gpu_utilization",
-        "DCGM_FI_DEV_FB_USED": "gpu_memory_used",
-        "DCGM_FI_DEV_FB_TOTAL": "total_gpu_memory",
+    DCGM_TO_INTERNAL_METRIC_NAME = {
+        "DCGM_FI_DEV_POWER_USAGE": TelemetryMetricName.GPU_POWER_USAGE,
+        "DCGM_FI_DEV_POWER_MGMT_LIMIT": TelemetryMetricName.GPU_POWER_LIMIT,
+        "DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION": TelemetryMetricName.ENERGY_CONSUMPTION,
+        "DCGM_FI_DEV_GPU_UTIL": TelemetryMetricName.GPU_UTILIZATION,
+        "DCGM_FI_DEV_MEM_COPY_UTIL": TelemetryMetricName.MEMORY_COPY_UTILIZATION,
+        "DCGM_FI_DEV_ENC_UTIL": TelemetryMetricName.VIDEO_ENCODER_UTILIZATION,
+        "DCGM_FI_DEV_DEC_UTIL": TelemetryMetricName.VIDEO_DECODER_UTILIZATION,
+        "DCGM_FI_PROF_SM_ACTIVE": TelemetryMetricName.SM_UTILIZATION,
+        "DCGM_FI_DEV_SM_CLOCK": TelemetryMetricName.GPU_CLOCK_SM,
+        "DCGM_FI_DEV_MEM_CLOCK": TelemetryMetricName.GPU_CLOCK_MEMORY,
+        "DCGM_FI_DEV_FB_USED": TelemetryMetricName.GPU_MEMORY_USED,
+        "DCGM_FI_DEV_FB_TOTAL": TelemetryMetricName.TOTAL_GPU_MEMORY,
+        "DCGM_FI_DEV_FB_FREE": TelemetryMetricName.GPU_MEMORY_FREE,
+        "DCGM_FI_DEV_MEMORY_TEMP": TelemetryMetricName.GPU_MEMORY_TEMPERATURE,
+        "DCGM_FI_DEV_GPU_TEMP": TelemetryMetricName.GPU_TEMPERATURE,
     }
 
     def _process_and_update_metrics(self, metrics_data: str) -> None:
@@ -74,7 +84,7 @@ class DCGMTelemetryDataCollector(TelemetryDataCollector):
 
             metric_full_name, metric_value = parsed
             metric_name = metric_full_name.split("{")[0]
-            mapped_key = self.METRIC_NAME_MAPPING.get(metric_name)
+            mapped_key = self.DCGM_TO_INTERNAL_METRIC_NAME.get(metric_name)
             if not mapped_key:
                 continue
 
