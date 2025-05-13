@@ -62,10 +62,9 @@ docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model Huggin
 ```bash
 genai-perf profile \
     -m HuggingFaceH4/zephyr-7b-beta \
-    --tokenizer HuggingFaceH4/zephyr-7b-beta \
-    --service-kind openai \
     --endpoint-type chat \
     --streaming \
+    --request-count 10 \
     --goodput time_to_first_token:75 inter_token_latency:19.75
 ```
 
@@ -120,8 +119,6 @@ docker run -it --net=host --rm --gpus=all vllm/vllm-openai:latest --model intflo
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
-    --tokenizer intfloat/e5-mistral-7b-instruct \
-    --service-kind openai \
     --endpoint-type embeddings \
     --batch-size-text 2 \
     --input-file embeddings.jsonl \

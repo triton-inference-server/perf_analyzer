@@ -26,34 +26,34 @@
 
 from typing import Any, Dict
 
+from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import DEFAULT_BATCH_SIZE
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
 
 
 class DynamicGRPCConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+    def check_config(self) -> None:
+        if self.config.input.batch_size != InputDefaults.BATCH_SIZE:
             raise GenAIPerfException(
-                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
-        if config.input_filename == "":
+        if self.config.input.file == "":
             raise GenAIPerfException(
                 f"The dynamic GRPC converter only supports the input file path."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 payload = {"message_generator": row.texts[0]}
-                self._add_request_params(payload, config, {})
+                self._add_request_params(payload, {})
                 request_body["data"].append(payload)
 
         return request_body

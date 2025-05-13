@@ -26,53 +26,45 @@
 
 from typing import Any, Dict, List, Union
 
+from genai_perf.config.input.config_defaults import InputDefaults, OutputTokenDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    OutputFormat,
-)
-from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
-from genai_perf.utils import sample_bounded_normal
 
 
 class OpenAIChatCompletionsConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
+    def check_config(self) -> None:
         if (
-            config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
-            or config.output_format == OutputFormat.OPENAI_MULTIMODAL
+            self.config.endpoint.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS
+            or self.config.endpoint.output_format == OutputFormat.OPENAI_MULTIMODAL
         ):
-            if config.batch_size_text != DEFAULT_BATCH_SIZE:
+            if self.config.input.batch_size != InputDefaults.BATCH_SIZE:
                 raise GenAIPerfException(
-                    f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                    f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
                 )
-            if config.batch_size_image != DEFAULT_BATCH_SIZE:
+            if self.config.input.image.batch_size != InputDefaults.BATCH_SIZE:
                 raise GenAIPerfException(
-                    f"The --batch-size-image flag is not supported for {config.output_format.to_lowercase()}."
+                    f"The --batch-size-image flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
                 )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                payload = self._create_payload(index, row, config)
-                request_body["data"].append(
-                    self._finalize_payload(payload, config, row)
-                )
+                payload = self._create_payload(index, row)
+                request_body["data"].append(self._finalize_payload(payload, row))
 
         return request_body
 
-    def _create_payload(
-        self, index: int, row: DataRow, config: InputsConfig
-    ) -> Dict[Any, Any]:
-        model_name = self._select_model_name(config, index)
-        content = self._retrieve_content(row, config)
+    def _create_payload(self, index: int, row: DataRow) -> Dict[Any, Any]:
+        model_name = self._select_model_name(index)
+        content = self._retrieve_content(row)
 
         payload = {
             "model": model_name,
@@ -86,17 +78,15 @@ class OpenAIChatCompletionsConverter(BaseConverter):
 
         return payload
 
-    def _retrieve_content(
-        self, row: DataRow, config: InputsConfig
-    ) -> Union[str, List[Dict[Any, Any]]]:
+    def _retrieve_content(self, row: DataRow) -> Union[str, List[Dict[Any, Any]]]:
         content: Union[str, List[Dict[Any, Any]]] = ""
-        if config.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
+        if self.config.endpoint.output_format == OutputFormat.OPENAI_CHAT_COMPLETIONS:
             content = row.texts[0]
-        elif config.output_format == OutputFormat.OPENAI_MULTIMODAL:
+        elif self.config.endpoint.output_format == OutputFormat.OPENAI_MULTIMODAL:
             content = self._add_multi_modal_content(row)
         else:
             raise GenAIPerfException(
-                f"Output format {config.output_format} is not supported"
+                f"Output format {self.config.endpoint.output_format} is not supported"
             )
         return content
 
@@ -131,13 +121,12 @@ class OpenAIChatCompletionsConverter(BaseConverter):
             )
         return content
 
-    def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
-    ) -> None:
-        if config.add_stream:
+    def _add_request_params(self, payload: Dict, optional_data: Dict[Any, Any]) -> None:
+        if self.config.endpoint.streaming:
             payload["stream"] = True
-        max_tokens = self._get_max_tokens(config, optional_data)
-        if max_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
+        max_tokens = self._get_max_tokens(optional_data)
+        if max_tokens != OutputTokenDefaults.MEAN:
             payload["max_tokens"] = max_tokens
-        for key, value in config.extra_inputs.items():
-            payload[key] = value
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
+                payload[key] = value

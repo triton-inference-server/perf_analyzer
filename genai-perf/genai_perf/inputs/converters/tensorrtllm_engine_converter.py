@@ -26,33 +26,30 @@
 
 from typing import Any, Dict, List
 
+from genai_perf.config.input.config_defaults import InputDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    DEFAULT_TENSORRTLLM_MAX_TOKENS,
-)
-from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.inputs.input_constants import DEFAULT_TENSORRTLLM_MAX_TOKENS
+from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
 from genai_perf.utils import sample_bounded_normal
 
 
 class TensorRTLLMEngineConverter(BaseConverter):
-    def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+    def check_config(self) -> None:
+        if self.config.input.batch_size != InputDefaults.BATCH_SIZE:
             raise GenAIPerfException(
-                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for row in file_data.rows:
-                token_ids = self._encode_tokens(row.texts[0], config)
+                token_ids = self._encode_tokens(row.texts[0])
                 payload = {
                     "input_ids": {
                         "content": token_ids,
@@ -63,57 +60,62 @@ class TensorRTLLMEngineConverter(BaseConverter):
                 }
 
                 request_body["data"].append(
-                    self._finalize_payload(payload, config, row, triton_format=True)
+                    self._finalize_payload(payload, row, triton_format=True)
                 )
 
         return request_body
 
-    def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
-    ) -> None:
-        if config.add_stream:
+    def _add_request_params(self, payload: Dict, optional_data: Dict[Any, Any]) -> None:
+        if self.config.endpoint.streaming:
             payload["streaming"] = [True]
-        if config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+        if self.config.input.output_tokens.get_field("mean").is_set_by_user:
             num_tokens = int(
                 sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
+                    mean=self.config.input.output_tokens.mean,
+                    stddev=self.config.input.output_tokens.stddev,
                     lower=1,  # output token must be >= 1
                 )
             )
             payload["request_output_len"] = [num_tokens]
-            if config.output_tokens_deterministic:
+            if self.config.input.output_tokens.deterministic:
                 payload["min_length"] = [num_tokens]
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
+                if key == "set_end_id":
+                    payload["end_id"] = [self.tokenizer._tokenizer.eos_token_id]
+                elif key == "apply_chat_template":
+                    pass
+                else:
+                    payload[key] = [value]
 
-        for key, value in config.extra_inputs.items():
-            if key == "set_end_id":
-                payload["end_id"] = [config.tokenizer._tokenizer.eos_token_id]
-            elif key == "apply_chat_template":
-                pass
-            else:
-                payload[key] = [value]
+    def _encode_tokens(self, prompt: str) -> List[int]:
+        assert self.tokenizer is not None, "Tokenizer is required for encoding tokens"
 
-    def _encode_tokens(self, prompt: str, config: InputsConfig) -> List[int]:
-        if "apply_chat_template" in config.extra_inputs:
-            token_ids = self._encode_with_chat_template(prompt, config)
+        if self.config.input.extra and "apply_chat_template" in self.config.input.extra:
+            token_ids = self._encode_with_chat_template(prompt)
         else:
-            token_ids = config.tokenizer.encode(prompt, add_special_tokens=False)
+            token_ids = self.tokenizer.encode(prompt, add_special_tokens=False)
         return token_ids
 
-    def _encode_with_chat_template(
-        self, prompt: str, config: InputsConfig
-    ) -> List[int]:
+    def _encode_with_chat_template(self, prompt: str) -> List[int]:
         """
         Apply the default TRT-LLM engine chat template to the prompt
         """
         import jinja2
 
         default_template = self._construct_default_template(prompt)
-        return config.tokenizer.encode(
-            config.tokenizer._tokenizer.apply_chat_template(
+        return self.tokenizer.encode(
+            self.tokenizer._tokenizer.apply_chat_template(
                 default_template, tokenize=False, add_special_tokens=False
             )
         )
 
     def _construct_default_template(self, prompt: str) -> List[Dict[str, str]]:
         return [{"role": "user", "content": prompt}]
+
+    def _add_payload_optional_data(self, payload: Dict[Any, Any], row: DataRow) -> None:
+        for key, value in row.optional_data.items():
+            if key == "max_tokens":
+                payload["request_output_len"] = [value]
+            else:
+                payload[key] = value

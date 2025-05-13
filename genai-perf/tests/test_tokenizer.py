@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,41 +24,51 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import pytest
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.tokenizer import (
-    DEFAULT_TOKENIZER,
-    DEFAULT_TOKENIZER_REVISION,
-    get_tokenizer,
-)
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import TokenizerDefaults
+from genai_perf.tokenizer import get_tokenizer
 
 
 class TestTokenizer:
+    def _create_tokenizer_config(
+        self, name, trust_remote_code=False, revision=TokenizerDefaults.REVISION
+    ):
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = name
+        config.tokenizer.trust_remote_code = trust_remote_code
+        config.tokenizer.revision = revision
+
+        return config
+
     def test_default_tokenizer(self):
-        tokenizer_model = DEFAULT_TOKENIZER
-        get_tokenizer(tokenizer_model)
+        config = self._create_tokenizer_config(name="gpt2")
+        get_tokenizer(config)
 
     def test_non_default_tokenizer(self):
-        tokenizer_model = "gpt2"
-        get_tokenizer(tokenizer_model)
+        config = self._create_tokenizer_config(name="gpt2")
+        get_tokenizer(config)
 
     def test_default_tokenizer_all_args(self):
-        tokenizer_model = DEFAULT_TOKENIZER
-        get_tokenizer(tokenizer_model, False, DEFAULT_TOKENIZER_REVISION)
+        config = self._create_tokenizer_config(
+            name="gpt2",
+            trust_remote_code=False,
+            revision=TokenizerDefaults.REVISION,
+        )
+        get_tokenizer(config)
 
     def test_non_default_tokenizer_all_args(self):
-        tokenizer_model = "gpt2"
-        get_tokenizer(
-            tokenizer_model, False, "11c5a3d5811f50298f278a704980280950aedb10"
+        config = self._create_tokenizer_config(
+            name="gpt2",
+            trust_remote_code=False,
+            revision="11c5a3d5811f50298f278a704980280950aedb10",
         )
-
-    def test_bad_tokenizer(self):
-        with pytest.raises(GenAIPerfException):
-            get_tokenizer("bad_tokenizer")
+        get_tokenizer(config)
 
     def test_default_args(self):
-        tokenizer_model = DEFAULT_TOKENIZER
-        tokenizer = get_tokenizer(tokenizer_model)
+        config = self._create_tokenizer_config(
+            name="hf-internal-testing/llama-tokenizer"
+        )
+        tokenizer = get_tokenizer(config)
 
         # There are 3 special tokens in the default tokenizer
         #  - <unk>: 0  (unknown)

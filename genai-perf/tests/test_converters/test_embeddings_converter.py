@@ -25,6 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import OpenAIEmbeddingsConverter
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
@@ -34,21 +35,19 @@ from genai_perf.inputs.retrievers.generic_dataset import (
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOpenAIEmbeddingsConverter:
 
     def test_check_config_streaming_unsupported(self):
-        config = InputsConfig(
-            add_stream=True,
-            output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
-        converter = OpenAIEmbeddingsConverter()
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.streaming = True
+        config.endpoint.output_format = OutputFormat.OPENAI_EMBEDDINGS
+
+        converter = OpenAIEmbeddingsConverter(config)
 
         with pytest.raises(GenAIPerfException) as exc_info:
-            converter.check_config(config)
+            converter.check_config()
         assert (
             str(exc_info.value)
             == "The --streaming option is not supported for openai_embeddings."
@@ -62,16 +61,12 @@ class TestOpenAIEmbeddingsConverter:
                 )
             }
         )
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_EMBEDDINGS
 
-        converter = OpenAIEmbeddingsConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = OpenAIEmbeddingsConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -108,17 +103,13 @@ class TestOpenAIEmbeddingsConverter:
             }
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            batch_size_text=2,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_EMBEDDINGS
+        config.input.batch_size = 2
 
-        converter = OpenAIEmbeddingsConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = OpenAIEmbeddingsConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -158,16 +149,13 @@ class TestOpenAIEmbeddingsConverter:
             "additional_key": "additional_value",
         }
 
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_EMBEDDINGS
+        config.input.extra = extra_inputs
 
-        converter = OpenAIEmbeddingsConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = OpenAIEmbeddingsConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -200,16 +188,13 @@ class TestOpenAIEmbeddingsConverter:
 
     def test_convert_empty_dataset(self):
         generic_dataset = GenericDataset(files_data={})
-        config = InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
 
-        converter = OpenAIEmbeddingsConverter()
-        result = converter.convert(generic_dataset, config)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_EMBEDDINGS
+
+        converter = OpenAIEmbeddingsConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {"data": []}
         assert result == expected_result
@@ -242,15 +227,12 @@ class TestOpenAIEmbeddingsConverter:
             }
         )
 
-        config = InputsConfig(
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.OPENAI_EMBEDDINGS,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_EMBEDDINGS
 
-        converter = OpenAIEmbeddingsConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = OpenAIEmbeddingsConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

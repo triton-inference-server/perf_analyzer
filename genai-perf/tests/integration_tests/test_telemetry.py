@@ -31,11 +31,14 @@ from unittest.mock import create_autospec, mock_open, patch
 
 import genai_perf.parser as parser
 import pytest
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.metrics import Metrics, TelemetryMetrics, TelemetryStatistics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.profile_data_parser import ProfileDataParser
-from genai_perf.subcommand.profile import _report_output
+from genai_perf.subcommand.profile import Profile
 from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
 )
@@ -114,8 +117,14 @@ class TestIntegrationTelemetry:
         ), patch("csv.writer", return_value=csv_writer), patch(
             "rich.console.Console.print", side_effect=console.print
         ):
+            config = ConfigCommand({"model_name": args.model[0]})
+            config = CreateConfig._add_cli_options_to_config(config, args)
+            profile = Profile(config, extra_args=None)
+            perf_analyzer_config = PerfAnalyzerConfig(config)
 
-            _report_output(mock_parser, telemetry_collectors, args)
+            profile._data_parser = mock_parser
+            profile._telemetry_data_collectors = telemetry_collectors
+            profile._add_output_to_artifact_directory(perf_analyzer_config, None)
 
             mock_file_open.assert_called()
 

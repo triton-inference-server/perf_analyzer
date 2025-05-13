@@ -31,6 +31,8 @@ from unittest.mock import patch
 
 import pytest
 from genai_perf import parser
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.metrics import (
     LLMMetrics,
@@ -76,6 +78,7 @@ class TestCsvExporter:
             time_to_first_tokens=[7, 8, 9],
             time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
+            output_token_throughputs_per_user=[4, 5, 6],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
@@ -93,23 +96,24 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=llm_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = [
@@ -122,7 +126,7 @@ class TestCsvExporter:
             "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50,5.20,5.10,5.02\r\n",
             "\r\n",
             "Metric,Value\r\n",
-            "Output Token Throughput (per sec),456.00\r\n",
+            "Output Token Throughput (tokens/sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
             "Request Count (count),3.00\r\n",
         ]
@@ -147,8 +151,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--profile-export-file",
@@ -156,18 +158,21 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
 
         stats = Statistics(metrics=llm_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
-        expected_filename = f"custom_export_genai_perf.csv"
+        expected_filename = f"artifacts/model_name-openai-chat-concurrency1/custom_export_genai_perf.csv"
         expected_content = [
             "Metric,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
             "Request Latency (ms),5.00,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50,4.20,4.10,4.02\r\n",
@@ -175,7 +180,7 @@ class TestCsvExporter:
             "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50,5.20,5.10,5.02\r\n",
             "\r\n",
             "Metric,Value\r\n",
-            "Output Token Throughput (per sec),456.00\r\n",
+            "Output Token Throughput (tokens/sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
             "Request Count (count),3.00\r\n",
         ]
@@ -193,13 +198,13 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -208,11 +213,11 @@ class TestCsvExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = [
@@ -234,8 +239,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -244,6 +247,8 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -251,6 +256,7 @@ class TestCsvExporter:
             time_to_first_tokens=[7, 8, 9],
             time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
+            output_token_throughputs_per_user=[4, 5, 6],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
@@ -259,11 +265,11 @@ class TestCsvExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = "Request Goodput (per sec),100.00\r\n"
@@ -284,8 +290,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -294,6 +298,8 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -301,6 +307,7 @@ class TestCsvExporter:
             time_to_first_tokens=[7, 8, 9],
             time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
+            output_token_throughputs_per_user=[4, 5, 6],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
@@ -309,11 +316,11 @@ class TestCsvExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = "Request Goodput (per sec),-1.00\r\n"
@@ -335,14 +342,14 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "triton",
             "--streaming",
             "--server-metrics-url",
             "http://tritonserver:8002/metrics",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         telemetry_metrics = TelemetryMetrics(
             gpu_power_usage={"gpu0": [45.2, 46.5]},
@@ -357,14 +364,14 @@ class TestCsvExporter:
         telemetry_stats = TelemetryStatistics(telemetry_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
+        exporter_config = create_default_exporter_config(
             stats=stats.stats_dict,
             metrics=stats.metrics,
-            args=args,
+            config=config,
             telemetry_stats=telemetry_stats.stats_dict,
         )
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         expected_content = [
@@ -377,7 +384,7 @@ class TestCsvExporter:
             "Input Sequence Length (tokens),6.00,5.00,7.00,6.98,6.90,6.80,6.50,6.00,5.50,5.20,5.10,5.02\r\n",
             "\r\n",
             "Metric,Value\r\n",
-            "Output Token Throughput (per sec),456.00\r\n",
+            "Output Token Throughput (tokens/sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
             "Request Count (count),3.00\r\n",
             "\r\n",
@@ -417,8 +424,6 @@ class TestCsvExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--profile-export-file",
@@ -426,20 +431,23 @@ class TestCsvExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
 
         stats = Statistics(metrics=llm_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, args=args, metrics=stats.metrics
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, config=config, metrics=stats.metrics
         )
 
         # Missing data
-        del config.stats["request_latency"]["avg"]
-        del config.stats["output_sequence_length"]["max"]
-        del config.stats["input_sequence_length"]
+        del exporter_config.stats["request_latency"]["avg"]
+        del exporter_config.stats["output_sequence_length"]["max"]
+        del exporter_config.stats["input_sequence_length"]
 
-        exporter = CsvExporter(config)
+        exporter = CsvExporter(exporter_config)
         exporter.export()
 
         mock_logger.error.assert_any_call(
@@ -453,7 +461,7 @@ class TestCsvExporter:
         mock_logger.error.assert_any_call(
             "Metric 'input_sequence_length' is missing in the provided statistics."
         )
-        expected_filename = f"custom_export_genai_perf.csv"
+        expected_filename = f"artifacts/model_name-openai-chat-concurrency1/custom_export_genai_perf.csv"
         expected_content = [
             "Metric,avg,min,max,p99,p95,p90,p75,p50,p25,p10,p5,p1\r\n",
             "Request Latency (ms),N/A,4.00,6.00,5.98,5.90,5.80,5.50,5.00,4.50,4.20,4.10,4.02\r\n",
@@ -461,12 +469,12 @@ class TestCsvExporter:
             "Input Sequence Length (tokens),N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A\r\n",
             "\r\n",
             "Metric,Value\r\n",
-            "Output Token Throughput (per sec),456.00\r\n",
+            "Output Token Throughput (tokens/sec),456.00\r\n",
             "Request Throughput (per sec),123.00\r\n",
             "Request Count (count),3.00\r\n",
         ]
+
         returned_data = [
             data for filename, data in mock_read_write if filename == expected_filename
         ]
-
         assert returned_data == expected_content

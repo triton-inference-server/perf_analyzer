@@ -125,8 +125,10 @@ class Statistics:
             self._stats_dict[key]["unit"] = "count"
         elif key == "image_throughput":
             self._stats_dict[key]["unit"] = "pages/sec"
-        elif key.startswith("output_token_throughput"):
+        elif key == "output_token_throughput":
             self._stats_dict[key]["unit"] = "tokens/sec"
+        elif key == "output_token_throughput_per_user":
+            self._stats_dict[key]["unit"] = "tokens/sec/user"
         elif "sequence_length" in key:
             self._stats_dict[key]["unit"] = "tokens"
         else:

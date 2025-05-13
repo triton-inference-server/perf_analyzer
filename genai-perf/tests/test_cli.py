@@ -31,16 +31,17 @@ from unittest.mock import patch
 import genai_perf.logging as logging
 import pytest
 from genai_perf import __version__, parser
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import EndPointDefaults
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.inputs.input_constants import (
+    AudioFormat,
+    ImageFormat,
     ModelSelectionStrategy,
     OutputFormat,
     PromptSource,
 )
-from genai_perf.inputs.retrievers.synthetic_image_generator import ImageFormat
-
-# TODO (TPA-1002): move AudioFormat to synthetic audio generator
-# from genai_perf.inputs.retrievers.synthetic_audio_generator import AudioFormat
-from genai_perf.parser import AudioFormat
 from genai_perf.subcommand.common import get_extra_inputs_as_dict
 
 
@@ -52,6 +53,18 @@ class TestCLIArguments:
         "CLI to profile LLMs and Generative AI models with Perf Analyzer"
     )
     expected_version_output = f"genai-perf {__version__}"
+    base_args = [
+        "genai-perf",
+        "profile",
+        "--model",
+        "test_model",
+    ]
+    base_config_args = [
+        "genai-perf",
+        "config",
+        "--file",
+        "test_config.yaml",
+    ]
 
     @pytest.mark.parametrize(
         "args, expected_output",
@@ -67,7 +80,8 @@ class TestCLIArguments:
         monkeypatch.setattr("sys.argv", ["genai-perf"] + args)
 
         with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         # Check that the exit was successful
         assert excinfo.value.code == 0
@@ -77,11 +91,12 @@ class TestCLIArguments:
         assert expected_output in captured.out
 
     @pytest.mark.parametrize(
-        "arg, expected_attributes",
+        "arg, expected_cli_attributes, expected_config_attributes",
         [
             (
                 ["--artifact-dir", "test_artifact_dir"],
                 {"artifact_dir": Path("test_artifact_dir")},
+                {"output.artifact_directory": Path("test_artifact_dir")},
             ),
             (
                 [
@@ -89,10 +104,9 @@ class TestCLIArguments:
                     "5",
                     "--endpoint-type",
                     "embeddings",
-                    "--service-kind",
-                    "openai",
                 ],
                 {"batch_size_text": 5},
+                {"input.batch_size": 5},
             ),
             (
                 [
@@ -100,10 +114,9 @@ class TestCLIArguments:
                     "5",
                     "--endpoint-type",
                     "image_retrieval",
-                    "--service-kind",
-                    "openai",
                 ],
                 {"batch_size_image": 5},
+                {"input.image.batch_size": 5},
             ),
             (
                 [
@@ -111,68 +124,74 @@ class TestCLIArguments:
                     "5",
                     "--endpoint-type",
                     "embeddings",
-                    "--service-kind",
-                    "openai",
                 ],
                 {"batch_size_text": 5},
-            ),
-            (["--concurrency", "3"], {"concurrency": 3}),
-            (
-                ["--endpoint-type", "completions", "--service-kind", "openai"],
-                {"endpoint": "v1/completions"},
+                {"input.batch_size": 5},
             ),
             (
-                ["--endpoint-type", "chat", "--service-kind", "openai"],
-                {"endpoint": "v1/chat/completions"},
+                ["--concurrency", "3"],
+                {"concurrency": 3},
+                {"perf_analyzer.stimulus": {"concurrency": 3}},
             ),
             (
-                ["--endpoint-type", "multimodal", "--service-kind", "openai"],
-                {"endpoint": "v1/chat/completions"},
+                ["--endpoint-type", "completions"],
+                {"endpoint": None},
+                {"endpoint.custom": "v1/completions"},
             ),
             (
-                ["--endpoint-type", "rankings", "--service-kind", "openai"],
-                {"endpoint": "v1/ranking"},
+                ["--endpoint-type", "chat"],
+                {"endpoint": None},
+                {"endpoint.custom": "v1/chat/completions"},
             ),
             (
-                ["--endpoint-type", "image_retrieval", "--service-kind", "openai"],
-                {"endpoint": "v1/infer"},
+                ["--endpoint-type", "multimodal"],
+                {"endpoint": None},
+                {"endpoint.custom": "v1/chat/completions"},
+            ),
+            (
+                ["--endpoint-type", "rankings"],
+                {"endpoint": None},
+                {"endpoint.custom": "v1/ranking"},
+            ),
+            (
+                ["--endpoint-type", "image_retrieval"],
+                {"endpoint": None},
+                {"endpoint.custom": "v1/infer"},
             ),
             (
                 [
                     "--endpoint-type",
                     "chat",
-                    "--service-kind",
-                    "openai",
                     "--endpoint",
                     "custom/address",
                 ],
                 {"endpoint": "custom/address"},
+                {"endpoint.custom": "custom/address"},
             ),
             (
                 [
                     "--endpoint-type",
                     "chat",
-                    "--service-kind",
-                    "openai",
                     "--endpoint",
-                    "   /custom/address",
+                    "/custom/address",
                 ],
-                {"endpoint": "custom/address"},
+                {"endpoint": "/custom/address"},
+                {"endpoint.custom": "custom/address"},
             ),
             (
                 [
                     "--endpoint-type",
                     "completions",
-                    "--service-kind",
-                    "openai",
                     "--endpoint",
                     "custom/address",
                 ],
                 {"endpoint": "custom/address"},
+                {"endpoint.custom": "custom/address"},
             ),
             (
                 ["--extra-inputs", "test_key:test_value"],
                 {"extra_inputs": ["test_key:test_value"]},
+                {"input.extra": {"test_key": "test_value"}},
             ),
             (
                 [
@@ -182,6 +201,7 @@ class TestCLIArguments:
                     "another_test_key:6",
                 ],
                 {"extra_inputs": ["test_key:5", "another_test_key:6"]},
+                {"input.extra": {"test_key": 5, "another_test_key": 6}},
             ),
             (
                 [
@@ -193,207 +213,305 @@ class TestCLIArguments:
                         '{"name": "Wolverine","hobbies": ["hacking", "slashing"],"address": {"street": "1407 Graymalkin Lane, Salem Center","city": "NY"}}'
                     ]
                 },
+                {
+                    "input.extra": {
+                        "name": "Wolverine",
+                        "hobbies": ["hacking", "slashing"],
+                        "address": {
+                            "street": "1407 Graymalkin Lane, Salem Center",
+                            "city": "NY",
+                        },
+                    },
+                },
             ),
-            (["-H", "header_name:value"], {"header": ["header_name:value"]}),
-            (["--header", "header_name:value"], {"header": ["header_name:value"]}),
+            (
+                ["-H", "header_name:value"],
+                {"header": ["header_name:value"]},
+                {"input.header": ["header_name:value"]},
+            ),
+            (
+                ["--header", "header_name:value"],
+                {"header": ["header_name:value"]},
+                {"input.header": ["header_name:value"]},
+            ),
             (
                 ["--header", "header_name:value", "--header", "header_name_2:value_2"],
                 {"header": ["header_name:value", "header_name_2:value_2"]},
+                {"input.header": ["header_name:value", "header_name_2:value_2"]},
             ),
-            (["--measurement-interval", "100"], {"measurement_interval": 100}),
+            (
+                ["--measurement-interval", "100"],
+                {"measurement_interval": 100},
+                {"perf_analyzer.measurement.num": 100},
+            ),
             (
                 ["--model-selection-strategy", "random"],
-                {"model_selection_strategy": ModelSelectionStrategy.RANDOM},
+                {"model_selection_strategy": "random"},
+                {"endpoint.model_selection_strategy": ModelSelectionStrategy.RANDOM},
             ),
-            (["--num-dataset-entries", "101"], {"num_dataset_entries": 101}),
-            (["--num-prompts", "101"], {"num_dataset_entries": 101}),
-            (["--num-prefix-prompts", "101"], {"num_prefix_prompts": 101}),
+            (
+                ["--num-dataset-entries", "101"],
+                {"num_dataset_entries": 101},
+                {"input.num_dataset_entries": 101},
+            ),
+            (
+                ["--num-prompts", "101"],
+                {"num_dataset_entries": 101},
+                {"input.num_dataset_entries": 101},
+            ),
+            (
+                ["--num-prefix-prompts", "101"],
+                {"num_prefix_prompts": 101},
+                {"input.prefix_prompt.num": 101},
+            ),
             (
                 ["--output-tokens-mean", "6"],
                 {"output_tokens_mean": 6},
+                {"input.output_tokens.mean": 6},
             ),
             (
                 ["--osl", "6"],
                 {"output_tokens_mean": 6},
+                {"input.output_tokens.mean": 6},
             ),
             (
                 ["--output-tokens-mean", "6", "--output-tokens-stddev", "7"],
                 {"output_tokens_stddev": 7},
+                {"input.output_tokens.stddev": 7},
             ),
             (
                 ["--output-tokens-mean", "6", "--output-tokens-mean-deterministic"],
                 {"output_tokens_mean_deterministic": True},
+                {"input.output_tokens.deterministic": True},
             ),
-            (["-p", "100"], {"measurement_interval": 100}),
+            (
+                ["-p", "100"],
+                {"measurement_interval": 100},
+                {"perf_analyzer.measurement.num": 100},
+            ),
             (
                 ["--profile-export-file", "test.json"],
-                {
-                    "profile_export_file": Path(
-                        "artifacts/test_model-triton-tensorrtllm-concurrency1/test.json"
-                    )
-                },
+                {"profile_export_file": Path("test.json")},
+                {"output.profile_export_file": Path("test.json")},
             ),
-            (["--random-seed", "8"], {"random_seed": 8}),
-            (["--request-count", "100"], {"request_count": 100}),
+            (["--random-seed", "8"], {"random_seed": 8}, {"input.random_seed": 8}),
             (
-                ["--grpc-method", "package.name.v1.ServiceName/MethodName"],
-                {"grpc_method": "package.name.v1.ServiceName/MethodName"},
+                ["--request-count", "100"],
+                {"request_count": 100},
+                {"perf_analyzer.measurement.num": 100},
             ),
-            (["--num-requests", "100"], {"request_count": 100}),
-            (["--warmup-request-count", "100"], {"warmup_request_count": 100}),
-            (["--num-warmup-requests", "100"], {"warmup_request_count": 100}),
-            (["--request-rate", "9.0"], {"request_rate": 9.0}),
-            (["-s", "99.5"], {"stability_percentage": 99.5}),
+            (
+                ["--num-requests", "100"],
+                {"request_count": 100},
+                {"perf_analyzer.measurement.num": 100},
+            ),
+            (
+                ["--warmup-request-count", "100"],
+                {"warmup_request_count": 100},
+                {"perf_analyzer.warmup_request_count": 100},
+            ),
+            (
+                ["--num-warmup-requests", "100"],
+                {"warmup_request_count": 100},
+                {"perf_analyzer.warmup_request_count": 100},
+            ),
+            (
+                ["--request-rate", "9.0"],
+                {"request_rate": 9.0},
+                {"perf_analyzer.stimulus": {"request_rate": 9.0}},
+            ),
+            (
+                ["-s", "99.5"],
+                {"stability_percentage": 99.5},
+                {"perf_analyzer.stability_percentage": 99.5},
+            ),
             (
                 [
-                    "--service-kind",
+                    "--endpoint-type",
                     "dynamic_grpc",
                     "--grpc-method",
                     "package.name.v1.ServiceName/MethodName",
                 ],
                 {
-                    "service_kind": "dynamic_grpc",
-                    "endpoint_type": "dynamic_grpc",
                     "grpc_method": "package.name.v1.ServiceName/MethodName",
                 },
+                {
+                    "endpoint.service_kind": "dynamic_grpc",
+                    "endpoint.type": "dynamic_grpc",
+                    "endpoint.grpc_method": "package.name.v1.ServiceName/MethodName",
+                },
             ),
-            (["--service-kind", "triton"], {"service_kind": "triton"}),
             (
-                ["--service-kind", "tensorrtllm_engine"],
-                {"service_kind": "tensorrtllm_engine"},
+                ["--session-concurrency", "3"],
+                {"session_concurrency": 3},
+                {"perf_analyzer.stimulus": {"session_concurrency": 3}},
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "chat"],
-                {"service_kind": "openai", "endpoint": "v1/chat/completions"},
+                ["--session-delay-ratio", "0.5"],
+                {"session_delay_ratio": 0.5},
+                {"input.sessions.turn_delay.ratio": 0.5},
             ),
-            (["--session-concurrency", "3"], {"session_concurrency": 3}),
-            (["--session-turn-delay-mean", "100"], {"session_turn_delay_mean": 100}),
+            (
+                ["--session-turn-delay-mean", "100"],
+                {"session_turn_delay_mean": 100},
+                {"input.sessions.turn_delay.mean": 100},
+            ),
             (
                 ["--session-turn-delay-stddev", "100"],
                 {"session_turn_delay_stddev": 100},
+                {"input.sessions.turn_delay.stddev": 100},
             ),
-            (["--session-turns-mean", "6"], {"session_turns_mean": 6}),
-            (["--session-turns-stddev", "7"], {"session_turns_stddev": 7}),
-            (["--stability-percentage", "99.5"], {"stability_percentage": 99.5}),
-            (["--streaming"], {"streaming": True}),
+            (
+                ["--session-turns-mean", "6"],
+                {"session_turns_mean": 6},
+                {"input.sessions.turns.mean": 6},
+            ),
+            (
+                ["--session-turns-stddev", "7"],
+                {"session_turns_stddev": 7},
+                {"input.sessions.turns.stddev": 7},
+            ),
+            (
+                ["--stability-percentage", "99.5"],
+                {"stability_percentage": 99.5},
+                {"perf_analyzer.stability_percentage": 99.5},
+            ),
+            (
+                ["--streaming"],
+                {"streaming": True},
+                {"endpoint.streaming": True},
+            ),
             (
                 ["--synthetic-input-tokens-mean", "6"],
                 {"synthetic_input_tokens_mean": 6},
+                {"input.synthetic_tokens.mean": 6},
             ),
             (
                 ["--isl", "6"],
                 {"synthetic_input_tokens_mean": 6},
+                {"input.synthetic_tokens.mean": 6},
             ),
             (
                 ["--synthetic-input-tokens-stddev", "7"],
                 {"synthetic_input_tokens_stddev": 7},
+                {"input.synthetic_tokens.stddev": 7},
             ),
             (
                 ["--prefix-prompt-length", "6"],
                 {"prefix_prompt_length": 6},
+                {"input.prefix_prompt.length": 6},
             ),
             (
                 ["--image-width-mean", "123"],
                 {"image_width_mean": 123},
+                {"input.image.width.mean": 123},
             ),
             (
                 ["--image-width-stddev", "123"],
                 {"image_width_stddev": 123},
+                {"input.image.width.stddev": 123},
             ),
             (
                 ["--image-height-mean", "456"],
                 {"image_height_mean": 456},
+                {"input.image.height.mean": 456},
             ),
             (
-                ["--image-height-stddev", "456"],
-                {"image_height_stddev": 456},
-            ),
-            (["--image-format", "png"], {"image_format": ImageFormat.PNG}),
-            (
-                ["--audio-length-mean", "456"],
-                {"audio_length_mean": 456},
+                ["--image-height-stddev", "789"],
+                {"image_height_stddev": 789},
+                {"input.image.height.stddev": 789},
             ),
             (
-                ["--audio-length-stddev", "456"],
-                {"audio_length_stddev": 456},
+                ["--image-format", "png"],
+                {"image_format": "png"},
+                {"input.image.format": ImageFormat.PNG},
             ),
-            (["--audio-format", "wav"], {"audio_format": AudioFormat.WAV}),
+            (
+                ["--audio-length-mean", "234"],
+                {"audio_length_mean": 234},
+                {"input.audio.length.mean": 234},
+            ),
+            (
+                ["--audio-length-stddev", "345"],
+                {"audio_length_stddev": 345},
+                {"input.audio.length.stddev": 345},
+            ),
+            (
+                ["--audio-format", "wav"],
+                {"audio_format": "wav"},
+                {"input.audio.format": AudioFormat.WAV},
+            ),
             (
                 ["--audio-sample-rates", "16", "44.1", "48"],
                 {"audio_sample_rates": [16, 44.1, 48]},
+                {"input.audio.sample_rates": [16, 44.1, 48]},
             ),
-            (["--audio-depths", "16", "32"], {"audio_depths": [16, 32]}),
-            (["--tokenizer-trust-remote-code"], {"tokenizer_trust_remote_code": True}),
-            (["--tokenizer-revision", "not_main"], {"tokenizer_revision": "not_main"}),
-            (["-v"], {"verbose": True}),
-            (["--verbose"], {"verbose": True}),
-            (["-u", "test_url"], {"u": "test_url"}),
-            (["--url", "test_url"], {"u": "test_url"}),
+            (
+                ["--audio-depths", "16", "32"],
+                {"audio_depths": [16, 32]},
+                {"input.audio.depths": [16, 32]},
+            ),
+            (
+                ["--tokenizer-trust-remote-code"],
+                {"tokenizer_trust_remote_code": True},
+                {"tokenizer.trust_remote_code": True},
+            ),
+            (
+                ["--tokenizer-revision", "not_main"],
+                {"tokenizer_revision": "not_main"},
+                {"tokenizer.revision": "not_main"},
+            ),
+            (["-v"], {"verbose": True}, {"verbose": True}),
+            (["--verbose"], {"verbose": True}, {"verbose": True}),
+            (["-u", "test_url"], {"u": "test_url"}, {"endpoint.url": "test_url"}),
+            (["--url", "test_url"], {"u": "test_url"}, {"endpoint.url": "test_url"}),
             (
                 [
                     "--goodput",
                     "time_to_first_token:5",
-                    "output_token_throughput_per_request:6",
+                    "output_token_throughput_per_user:6",
                 ],
                 {
                     "goodput": {
                         "time_to_first_token": 5,
-                        "output_token_throughput_per_request": 6,
+                        "output_token_throughput_per_user": 6,
+                    }
+                },
+                {
+                    "input.goodput": {
+                        "time_to_first_token": 5,
+                        "output_token_throughput_per_user": 6,
                     }
                 },
             ),
         ],
     )
-    def test_non_file_flags_parsed(self, monkeypatch, arg, expected_attributes, capsys):
-        logging.init_logging()
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
-        monkeypatch.setattr("sys.argv", combined_args)
-        args, _ = parser.parse_args()
-
-        # Check that the attributes are set correctly
-        for key, value in expected_attributes.items():
-            assert getattr(args, key) == value
-
-    @pytest.mark.parametrize(
-        "models, expected_model_list, formatted_name",
-        [
-            (
-                ["--model", "test_model_A"],
-                {"model": ["test_model_A"]},
-                {"formatted_model_name": "test_model_A"},
-            ),
-            (
-                ["--model", "test_model_A", "test_model_B"],
-                {"model": ["test_model_A", "test_model_B"]},
-                {"formatted_model_name": "test_model_A_multi"},
-            ),
-            (
-                ["--model", "test_model_A", "test_model_B", "test_model_C"],
-                {"model": ["test_model_A", "test_model_B", "test_model_C"]},
-                {"formatted_model_name": "test_model_A_multi"},
-            ),
-            (
-                ["--model", "test_model_A:math", "test_model_B:embedding"],
-                {"model": ["test_model_A:math", "test_model_B:embedding"]},
-                {"formatted_model_name": "test_model_A:math_multi"},
-            ),
-        ],
-    )
-    def test_multiple_model_args(
-        self, monkeypatch, models, expected_model_list, formatted_name, capsys
+    def test_non_file_flags_parsed(
+        self,
+        monkeypatch,
+        arg,
+        expected_cli_attributes,
+        expected_config_attributes,
+        capsys,
     ):
         logging.init_logging()
-        combined_args = ["genai-perf", "profile"] + models
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
 
-        # Check that models are handled correctly
-        for key, value in expected_model_list.items():
+        # Check that the attributes are set correctly
+        for key, value in expected_cli_attributes.items():
             assert getattr(args, key) == value
 
-        # Check that the formatted_model_name is correctly generated
-        for key, value in formatted_name.items():
-            assert getattr(args, key) == value
+        for key_str, expected_value in expected_config_attributes.items():
+            keys = key_str.split(".")
+            value = config
+
+            for key in keys:
+                value = getattr(value, key)
+
+            assert value == expected_value
 
     def test_file_flags_parsed(self, monkeypatch, mocker):
         mocker.patch.object(Path, "is_file", return_value=True)
@@ -407,41 +525,41 @@ class TestCLIArguments:
         ]
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         assert args.input_file == Path(
             "fakefile.txt"
         ), "The file argument should be the path to the file"
+        assert config.input.file == args.input_file
 
     @pytest.mark.parametrize(
         "arg, expected_path",
         [
             (
-                ["--service-kind", "openai", "--endpoint-type", "chat"],
+                ["--endpoint-type", "chat"],
                 "artifacts/test_model-openai-chat-concurrency1",
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "completions"],
+                ["--endpoint-type", "completions"],
                 "artifacts/test_model-openai-completions-concurrency1",
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "rankings"],
+                ["--endpoint-type", "rankings"],
                 "artifacts/test_model-openai-rankings-concurrency1",
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "image_retrieval"],
+                ["--endpoint-type", "image_retrieval"],
                 "artifacts/test_model-openai-image_retrieval-concurrency1",
             ),
             (
-                ["--service-kind", "triton", "--backend", "tensorrtllm"],
+                ["--backend", "tensorrtllm"],
                 "artifacts/test_model-triton-tensorrtllm-concurrency1",
             ),
             (
-                ["--service-kind", "triton", "--backend", "vllm"],
+                ["--backend", "vllm"],
                 "artifacts/test_model-triton-vllm-concurrency1",
             ),
             (
                 [
-                    "--service-kind",
-                    "triton",
                     "--backend",
                     "vllm",
                     "--concurrency",
@@ -455,11 +573,15 @@ class TestCLIArguments:
         self, monkeypatch, arg, expected_path, capsys
     ):
         logging.init_logging()
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + arg
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": args.model})
+        config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
+        perf_analyzer_config = PerfAnalyzerConfig(config)
 
-        assert args.artifact_dir == Path(expected_path)
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     @pytest.mark.parametrize(
         "arg, expected_path, expected_output",
@@ -476,8 +598,6 @@ class TestCLIArguments:
                 [
                     "--model",
                     "hello/world/test_model",
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "chat",
                 ],
@@ -493,49 +613,53 @@ class TestCLIArguments:
         self, monkeypatch, arg, expected_path, expected_output, capsys
     ):
         logging.init_logging()
-        combined_args = ["genai-perf", "profile"] + arg
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         args, _ = parser.parse_args()
 
-        assert args.artifact_dir == Path(expected_path)
-        captured = capsys.readouterr()
-        assert expected_output in captured.out
+        config = ConfigCommand({"model_names": args.model})
+        config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
+        perf_analyzer_config = PerfAnalyzerConfig(config)
+
+        assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
     def test_default_load_level(self, monkeypatch, capsys):
         logging.init_logging()
-        monkeypatch.setattr(
-            "sys.argv", ["genai-perf", "profile", "--model", "test_model"]
-        )
+        monkeypatch.setattr("sys.argv", self.base_args)
         args, _ = parser.parse_args()
-        assert args.concurrency == 1
+        config = CreateConfig.create(args)
+        assert config.perf_analyzer.stimulus["concurrency"] == 1
 
     def test_load_manager_args_with_payload(self, monkeypatch, mocker):
         monkeypatch.setattr(
             "sys.argv",
-            [
-                "genai-perf",
-                "profile",
-                "--model",
-                "test_model",
+            self.base_args
+            + [
                 "--input-file",
                 "payload:test",
+                "--measurement-interval",
+                "100",
             ],
         )
         mocker.patch.object(Path, "is_file", return_value=True)
         args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
         assert args.concurrency is None
+        assert config.perf_analyzer.get_field("stimulus").is_set_by_user is False
 
     def test_load_level_mutually_exclusive(self, monkeypatch, capsys):
         monkeypatch.setattr(
             "sys.argv",
-            ["genai-perf", "profile", "--concurrency", "3", "--request-rate", "9.0"],
+            self.base_args + ["--concurrency", "3", "--request-rate", "9.0"],
         )
         expected_output = (
             "argument --request-rate: not allowed with argument --concurrency"
         )
 
         with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
         assert excinfo.value.code != 0
         captured = capsys.readouterr()
@@ -543,19 +667,17 @@ class TestCLIArguments:
 
     def test_model_not_provided(self, monkeypatch, capsys):
         monkeypatch.setattr("sys.argv", ["genai-perf", "profile"])
-        expected_output = "the following arguments are required: -m/--model"
+        expected_error_message = "Required field model_names is not set"
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+        assert expected_error_message == execinfo.value.args[0]
 
     def test_pass_through_args(self, monkeypatch):
-        args = ["genai-perf", "profile", "-m", "test_model"]
         other_args = ["--", "With", "great", "power"]
-        monkeypatch.setattr("sys.argv", args + other_args)
+        monkeypatch.setattr("sys.argv", self.base_args + other_args)
         _, pass_through_args = parser.parse_args()
 
         assert pass_through_args == other_args[1:]
@@ -571,53 +693,30 @@ class TestCLIArguments:
                 "--wrong-arg",
             ],
         )
-        expected_output = "unrecognized arguments: --wrong-arg"
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+        with pytest.raises(SystemExit):
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
-        assert excinfo.value.code != 0
+        expected_error_message = "error: unrecognized arguments: --wrong-arg"
+
+        # Capture that the correct message was displayed
         captured = capsys.readouterr()
-        assert expected_output in captured.err
+        assert expected_error_message in captured.err
+
+    def test_non_default_create_template_filename(self, monkeypatch, capsys):
+        monkeypatch.setattr(
+            "sys.argv",
+            ["genai-perf", "create-template", "--file", "custom_template.yaml"],
+        )
+
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
+        assert config.template_filename == Path("custom_template.yaml")
 
     @pytest.mark.parametrize(
-        "args, expected_output",
+        "args, expected_error_message",
         [
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                ],
-                "The --endpoint-type option is required when using the 'openai' service-kind.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint",
-                    "custom/address",
-                ],
-                "The --endpoint-type option is required when using the 'openai' service-kind.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "dynamic_grpc",
-                ],
-                "The --grpc-method option is required when using the 'dynamic_grpc' service-kind.",
-            ),
             (
                 [
                     "genai-perf",
@@ -627,7 +726,7 @@ class TestCLIArguments:
                     "--output-tokens-stddev",
                     "5",
                 ],
-                "The --output-tokens-mean option is required when using --output-tokens-stddev.",
+                "User Config: If output tokens stddev is set, mean must also be set",
             ),
             (
                 [
@@ -637,7 +736,7 @@ class TestCLIArguments:
                     "test_model",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic.",
+                "User Config: If output tokens deterministic is set, mean must also be set",
             ),
             (
                 [
@@ -647,7 +746,7 @@ class TestCLIArguments:
                     "test_model",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean option is required when using --output-tokens-mean-deterministic.",
+                "User Config: If output tokens deterministic is set, mean must also be set",
             ),
             (
                 [
@@ -655,15 +754,13 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "chat",
                     "--output-tokens-mean",
                     "100",
                     "--output-tokens-mean-deterministic",
                 ],
-                "The --output-tokens-mean-deterministic option is only supported with the Triton and TensorRT-LLM Engine service-kind",
+                "User Config: input.output_tokens.deterministic is only supported with Triton or TensorRT-LLM Engine service kinds",
             ),
             (
                 [
@@ -671,13 +768,11 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "embeddings",
                     "--generate-plots",
                 ],
-                "The --generate-plots option is not currently supported with the embeddings endpoint type",
+                "User Config: generate_plots is not supported with the OutputFormat.OPENAI_EMBEDDINGS output format",
             ),
             (
                 [
@@ -685,13 +780,11 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "rankings",
                     "--generate-plots",
                 ],
-                "The --generate-plots option is not currently supported with the rankings endpoint type",
+                "User Config: generate_plots is not supported with the OutputFormat.RANKINGS output format",
             ),
             (
                 [
@@ -699,13 +792,11 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "image_retrieval",
                     "--generate-plots",
                 ],
-                "The --generate-plots option is not currently supported with the image_retrieval endpoint type",
+                "User Config: generate_plots is not supported with the OutputFormat.IMAGE_RETRIEVAL output format",
             ),
             (
                 [
@@ -713,8 +804,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "vllm",
                     "--server-metrics-url",
                     "ftp://invalid.com:8002/metrics",
                 ],
@@ -726,8 +817,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "vllm",
                     "--server-metrics-url",
                     "http:///metrics",
                 ],
@@ -739,8 +830,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "vllm",
                     "--server-metrics-url",
                     "http://valid.com:8002/invalidpath",
                 ],
@@ -752,8 +843,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "vllm",
                     "--server-metrics-url",
                     "http://valid.com/metrics",
                 ],
@@ -765,8 +856,8 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "vllm",
                     "--server-metrics-url",
                     "invalid_url",
                 ],
@@ -778,142 +869,40 @@ class TestCLIArguments:
                     "profile",
                     "-m",
                     "test_model",
-                    "--num-dataset-entries",
-                    "0",
-                ],
-                "The value must be greater than zero.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--num-dataset-entries",
-                    "not_number",
-                ],
-                "The value must be an integer.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "rankings",
                     "--backend",
                     "vllm",
                 ],
-                "The --backend option should only be used when using the 'triton' service-kind and 'kserve' endpoint-type.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "triton",
-                    "--endpoint-type",
-                    "rankings",
-                    "--backend",
-                    "vllm",
-                ],
-                "Invalid endpoint-type 'rankings' for service-kind 'triton'.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "tensorrtllm_engine",
-                    "--endpoint-type",
-                    "rankings",
-                    "--backend",
-                    "vllm",
-                ],
-                "Invalid endpoint-type 'rankings' for service-kind 'tensorrtllm_engine'.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "openai",
-                    "--endpoint-type",
-                    "kserve",
-                    "--backend",
-                    "vllm",
-                ],
-                "Invalid endpoint-type 'kserve' for service-kind 'openai'.",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--service-kind",
-                    "unknown_service",
-                ],
-                "--service-kind: invalid choice: 'unknown_service'",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--audio-format",
-                    "unknown_format",
-                ],
-                "--audio-format: invalid choice: 'unknown_format'",
-            ),
-            (
-                [
-                    "genai-perf",
-                    "profile",
-                    "-m",
-                    "test_model",
-                    "--audio-num-channels",
-                    "3",
-                ],
-                "--audio-num-channels: invalid choice: 3",
+                "The backend should only be used with the following combination: 'service_kind: triton' & 'type: kserve'",
             ),
         ],
     )
-    def test_conditional_errors(self, args, expected_output, monkeypatch, capsys):
+    def test_conditional_errors(
+        self, args, expected_error_message, monkeypatch, capsys
+    ):
+        logging.init_logging()
         monkeypatch.setattr("sys.argv", args)
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
+        assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(
         "args, expected_format",
         [
             (
-                ["--service-kind", "openai", "--endpoint-type", "chat"],
+                ["--endpoint-type", "chat"],
                 OutputFormat.OPENAI_CHAT_COMPLETIONS,
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "completions"],
+                ["--endpoint-type", "completions"],
                 OutputFormat.OPENAI_COMPLETIONS,
             ),
             (
                 [
-                    "--service-kind",
-                    "openai",
                     "--endpoint-type",
                     "completions",
                     "--endpoint",
@@ -922,31 +911,33 @@ class TestCLIArguments:
                 OutputFormat.OPENAI_COMPLETIONS,
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "rankings"],
+                ["--endpoint-type", "rankings"],
                 OutputFormat.RANKINGS,
             ),
             (
-                ["--service-kind", "openai", "--endpoint-type", "image_retrieval"],
+                ["--endpoint-type", "image_retrieval"],
                 OutputFormat.IMAGE_RETRIEVAL,
             ),
             (
-                ["--service-kind", "triton", "--backend", "tensorrtllm"],
+                ["--backend", "tensorrtllm"],
                 OutputFormat.TENSORRTLLM,
             ),
-            (["--service-kind", "triton", "--backend", "vllm"], OutputFormat.VLLM),
-            (["--service-kind", "tensorrtllm_engine"], OutputFormat.TENSORRTLLM_ENGINE),
+            (["--backend", "vllm"], OutputFormat.VLLM),
+            (
+                ["--endpoint-type", "tensorrtllm_engine"],
+                OutputFormat.TENSORRTLLM_ENGINE,
+            ),
         ],
     )
     def test_inferred_output_format(self, monkeypatch, args, expected_format):
-        monkeypatch.setattr(
-            "sys.argv", ["genai-perf", "profile", "-m", "test_model"] + args
-        )
+        monkeypatch.setattr("sys.argv", self.base_args + args)
 
-        parsed_args, _ = parser.parse_args()
-        assert parsed_args.output_format == expected_format
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
+        assert config.endpoint.output_format == expected_format
 
     @pytest.mark.parametrize(
-        "args, expected_error",
+        "args, expected_error_message",
         [
             (
                 ["--extra-inputs", "hi:"],
@@ -969,19 +960,20 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_get_extra_inputs_as_dict_warning(self, monkeypatch, args, expected_error):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+    def test_get_extra_inputs_as_dict_warning(
+        self, monkeypatch, args, expected_error_message
+    ):
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        parsed_args, _ = parser.parse_args()
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
-        with pytest.raises(ValueError) as exc_info:
-            get_extra_inputs_as_dict(parsed_args)
-
-        assert str(exc_info.value) == expected_error
+        assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(
-        "args, expected_error",
+        "args, expected_error_message",
         [
             (
                 ["--goodput", "time_to_first_token:-1"],
@@ -989,14 +981,15 @@ class TestCLIArguments:
             ),
         ],
     )
-    def test_goodput_args_warning(self, monkeypatch, args, expected_error):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+    def test_goodput_args_warning(self, monkeypatch, args, expected_error_message):
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(ValueError) as exc_info:
-            parser.parse_args()
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
-        assert str(exc_info.value) == expected_error
+        assert expected_error_message == execinfo.value.args[0]
 
     @pytest.mark.parametrize(
         "args, expected_prompt_source, expected_input_file",
@@ -1029,11 +1022,12 @@ class TestCLIArguments:
         expected_input_file,
     ):
         mocker.patch.object(Path, "is_file", return_value=True)
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
         parsed_args, _ = parser.parse_args()
-        assert parsed_args.prompt_source == expected_prompt_source
-        assert parsed_args.payload_input_file == expected_input_file
+        config = CreateConfig.create(parsed_args)
+        assert config.input.prompt_source == expected_prompt_source
+        assert config.input.payload_file == expected_input_file
 
     @pytest.mark.parametrize(
         "args",
@@ -1049,19 +1043,21 @@ class TestCLIArguments:
         args,
     ):
         mocker.patch.object(Path, "is_file", return_value=False)
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(ValueError):
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     def test_inferred_prompt_source_invalid_input(self, monkeypatch, mocker):
-        file_arg = ["--input-file", "invalid_input"]
+        arg = ["--input-file", "invalid_input"]
         mocker.patch.object(Path, "is_file", return_value=False)
         mocker.patch.object(Path, "is_dir", return_value=False)
-        combined_args = ["genai-perf", "profile", "--model", "test_model"] + file_arg
+        combined_args = self.base_args + arg
         monkeypatch.setattr("sys.argv", combined_args)
         with pytest.raises(SystemExit):
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args",
@@ -1074,11 +1070,12 @@ class TestCLIArguments:
         ],
     )
     def test_positive_image_input_args(self, monkeypatch, args):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+        with pytest.raises(ValueError) as excinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args",
@@ -1096,65 +1093,60 @@ class TestCLIArguments:
         ],
     )
     def test_positive_audio_input_args(self, monkeypatch, args):
-        combined_args = ["genai-perf", "profile", "-m", "test_model"] + args
+        combined_args = self.base_args + args
         monkeypatch.setattr("sys.argv", combined_args)
 
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
+        with pytest.raises(ValueError) as excinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
 
     @pytest.mark.parametrize(
         "args , expected_error_message",
         [
             (
                 ["--concurrency", "10"],
-                "--concurrency cannot be used with payload input.",
+                "User Config: perf_analyzer.stimulus: concurrency is not supported with the payload input source.",
             ),
             (
                 ["--request-rate", "5"],
-                "--request-rate cannot be used with payload input.",
+                "User Config: perf_analyzer.stimulus: request_rate is not supported with the payload input source.",
             ),
             (
                 ["--request-count", "3"],
-                "--request-count cannot be used with payload input.",
-            ),
-            (
-                ["--warmup-request-count", "7"],
-                "--warmup-request-count cannot be used with payload input.",
+                "User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source.",
             ),
         ],
     )
     def test_check_payload_input_args_invalid_args(
         self, monkeypatch, mocker, capsys, args, expected_error_message
     ):
-        combined_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
-            "--input-file",
-            "payload:test.jsonl",
-        ] + args
+        combined_args = (
+            self.base_args
+            + [
+                "--input-file",
+                "payload:test.jsonl",
+            ]
+            + args
+        )
 
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", combined_args)
-        with pytest.raises(SystemExit):
-            parser.parse_args()
-        captured = capsys.readouterr()
-        assert expected_error_message in captured.err
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
+
+        assert expected_error_message == execinfo.value.args[0]
 
     def test_check_payload_input_args_valid(self, monkeypatch, mocker):
-        valid_args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
+        valid_args = self.base_args + [
             "--input-file",
             "payload:test.jsonl",
         ]
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", valid_args)
         try:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
         except SystemExit:
             pytest.fail("Unexpected error in test")
 
@@ -1165,77 +1157,22 @@ class TestCLIArguments:
             " will be ignored in favour of per payload settings."
         )
 
-        args = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "test_model",
+        args = self.base_args + [
             "--input-file",
             "payload:test.jsonl",
             "--output-tokens-mean",
             "50",
+            "--measurement-interval",
+            "100",
         ]
         logging.init_logging()
-        logger = logging.getLogger("genai_perf.parser")
+        logger = logging.getLogger("genai_perf.config.input.create_config")
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", args)
         with patch.object(logger, "warning") as mock_logger:
-            parser.parse_args()
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
         mock_logger.assert_any_call(expected_warning_message)
-
-    # ================================================
-    # COMPARE SUBCOMMAND
-    # ================================================
-    expected_compare_help_output = (
-        "Subcommand to generate plots that compare multiple profile runs."
-    )
-
-    @pytest.mark.parametrize(
-        "args, expected_output",
-        [
-            (["-h"], expected_compare_help_output),
-            (["--help"], expected_compare_help_output),
-        ],
-    )
-    def test_compare_help_arguments_output_and_exit(
-        self, monkeypatch, args, expected_output, capsys
-    ):
-        logging.init_logging()
-        monkeypatch.setattr("sys.argv", ["genai-perf", "compare"] + args)
-
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
-
-        # Check that the exit was successful
-        assert excinfo.value.code == 0
-
-        # Capture that the correct message was displayed
-        captured = capsys.readouterr()
-        assert expected_output in captured.out
-
-    def test_compare_mutually_exclusive(self, monkeypatch, capsys):
-        args = ["genai-perf", "compare", "--config", "hello", "--files", "a", "b", "c"]
-        monkeypatch.setattr("sys.argv", args)
-        expected_output = "argument -f/--files: not allowed with argument --config"
-
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
-
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
-
-    def test_compare_not_provided(self, monkeypatch, capsys):
-        args = ["genai-perf", "compare"]
-        monkeypatch.setattr("sys.argv", args)
-        expected_output = "Either the --config or --files option must be specified."
-
-        with pytest.raises(SystemExit) as excinfo:
-            parser.parse_args()
-
-        assert excinfo.value.code != 0
-        captured = capsys.readouterr()
-        assert expected_output in captured.err
 
     @pytest.mark.parametrize(
         "extra_inputs_list, expected_dict",
@@ -1279,8 +1216,8 @@ class TestCLIArguments:
                     "profile",
                     "--model",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "tensorrtllm",
                     "--server-metrics-url",
                     test_triton_metrics_url,
                 ],
@@ -1292,8 +1229,8 @@ class TestCLIArguments:
                     "profile",
                     "--model",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "tensorrtllm",
                     "--server-metrics-urls",
                     test_triton_metrics_url,
                 ],
@@ -1306,8 +1243,8 @@ class TestCLIArguments:
                     "profile",
                     "--model",
                     "test_model",
-                    "--service-kind",
-                    "triton",
+                    "--backend",
+                    "tensorrtllm",
                 ],
                 [],
             ),
@@ -1316,7 +1253,15 @@ class TestCLIArguments:
     def test_server_metrics_url_arg_valid(self, args_list, expected_url, monkeypatch):
         monkeypatch.setattr("sys.argv", args_list)
         args, _ = parser.parse_args()
-        assert args.server_metrics_url == expected_url
+        config = CreateConfig.create(args)
+
+        if expected_url:
+            assert config.endpoint.server_metrics_urls == expected_url
+        else:
+            assert (
+                config.endpoint.server_metrics_urls
+                == EndPointDefaults.SERVER_METRICS_URLS
+            )
 
     def test_tokenizer_args(self, monkeypatch):
         args = [
@@ -1332,7 +1277,243 @@ class TestCLIArguments:
         ]
         monkeypatch.setattr("sys.argv", args)
         parsed_args, _ = parser.parse_args()
+        config = CreateConfig.create(parsed_args)
 
         assert parsed_args.tokenizer == "test_tokenizer"
         assert parsed_args.tokenizer_trust_remote_code
         assert parsed_args.tokenizer_revision == "test_revision"
+
+        assert config.tokenizer.name == "test_tokenizer"
+        assert config.tokenizer.trust_remote_code
+        assert config.tokenizer.revision == "test_revision"
+
+    def test_measurement_group_mutually_exclusive(self, monkeypatch, capsys):
+        combined_args = self.base_args + [
+            "--request-count",
+            "100",
+            "--measurement-interval",
+            "5000",
+        ]
+        monkeypatch.setattr("sys.argv", combined_args)
+
+        with pytest.raises(SystemExit) as excinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
+
+        assert excinfo.value.code != 0
+        captured = capsys.readouterr()
+        expected_error = "argument --measurement-interval/-p: not allowed with argument --request-count/--num-requests"
+        assert expected_error in captured.err
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_config_file_plus_illegal_cli_options(
+        self, mock_yaml, mock_path, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "--model",
+            "test_model_name",
+            "--request-rate",
+            "100",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        with pytest.raises(ValueError) as execinfo:
+            args, _ = parser.parse_args()
+            CreateConfig.create(args)
+
+        expected_error_message = "In order to use the CLI to override the config, the --override-config flag must be set."
+        assert expected_error_message == execinfo.value.args[0]
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_config_file_plus_override_config_options(
+        self, mock_yaml, mock_path, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "--override-config",
+            "--model",
+            "test_model_name",
+            "--request-rate",
+            "100",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
+
+        assert config.model_names == ["test_model_name"]
+        assert config.perf_analyzer.stimulus == {"request_rate": 100}
+
+    @patch("genai_perf.parser.utils.load_yaml", return_value={})
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch(
+        "genai_perf.config.input.base_config.BaseConfig.check_required_fields_are_set",
+        return_value=None,
+    )
+    def test_config_file_plus_verbose(
+        self, mock_yaml, mock_path, mock_check_fields, monkeypatch
+    ):
+        combined_args = self.base_config_args + [
+            "--verbose",
+        ]
+
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
+
+        assert config.verbose is True
+
+    # ================================================
+    # PROCESS-EXPORT-FILES SUBCOMMAND
+    # ================================================
+    expected_help_output = (
+        "Subcommand to process export files and aggregate the results."
+    )
+
+    @pytest.mark.parametrize(
+        "args, expected_output",
+        [
+            (["-h"], expected_help_output),
+            (["--help"], expected_help_output),
+        ],
+    )
+    def test_process_export_files_help_arguments_output_and_exit(
+        self, monkeypatch, args, expected_output, capsys
+    ):
+        monkeypatch.setattr("sys.argv", ["genai-perf", "process-export-files"] + args)
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code == 0
+
+        captured = capsys.readouterr()
+        assert expected_output in captured.out
+
+    def test_process_export_files_missing_input_path(self, monkeypatch, capsys):
+        args = ["genai-perf", "process-export-files"]
+        monkeypatch.setattr("sys.argv", args)
+
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        assert args.input_path is None
+        assert config.process.input_path == Path("aggregated")
+
+    def test_process_export_files_input_path(self, monkeypatch, capsys):
+        args = ["genai-perf", "process-export-files", "--input-directory", "test_dir"]
+        monkeypatch.setattr("sys.argv", args)
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        assert args.input_path[0] == "test_dir"
+        assert config.process.input_path == Path("test_dir")
+
+    def test_process_input_files_input_path_equals_artifact_dir(
+        self, monkeypatch, mocker
+    ):
+        expected_warning_message = (
+            "Input directory and artifact directory are the same. "
+            "This could lead to potential issues such as file overwriting "
+            "or unintended aggregation of results from previous runs."
+        )
+
+        args = ["genai-perf", "process-export-files", "--input-directory", "artifacts"]
+        logging.init_logging()
+        logger = logging.getLogger("genai_perf.config.input.config_command")
+        mocker.patch.object(Path, "is_dir", return_value=True)
+        monkeypatch.setattr("sys.argv", args)
+        with patch.object(logger, "warning") as mock_logger:
+            args, _ = parser.parse_args()
+            config = CreateConfig.create(args)
+
+        mock_logger.assert_any_call(expected_warning_message)
+        assert config.process.input_path == Path("artifacts")
+
+    @pytest.mark.parametrize(
+        "arg, expected_artifact_dir, config_artifact_dir",
+        [
+            (["--artifact-dir", "test_dir"], "test_dir", "test_dir"),
+            ([], None, "artifacts"),
+        ],
+    )
+    def test_process_export_files_artifact_dir(
+        self, monkeypatch, arg, expected_artifact_dir, config_artifact_dir
+    ):
+        combined_args = [
+            "genai-perf",
+            "process-export-files",
+            "--input-directory",
+            "test_dir",
+        ] + arg
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        if expected_artifact_dir is None:
+            assert args.artifact_dir is None
+        else:
+            assert args.artifact_dir == Path(expected_artifact_dir)
+        assert config.output.artifact_directory == Path(config_artifact_dir)
+
+    @pytest.mark.parametrize(
+        "arg, expected_profile_json_path, config_profile_json_path",
+        [
+            (["--profile-export-file", "test.json"], "test.json", "test.json"),
+            ([], None, "profile_export.json"),
+        ],
+    )
+    def test_process_export_files_profile_export_filepath(
+        self, monkeypatch, arg, expected_profile_json_path, config_profile_json_path
+    ):
+        combined_args = [
+            "genai-perf",
+            "process-export-files",
+            "--input-directory",
+            "test_dir",
+        ] + arg
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        if expected_profile_json_path is None:
+            assert args.profile_export_file is None
+        else:
+            assert args.profile_export_file == Path(expected_profile_json_path)
+        assert config.output.profile_export_file == Path(config_profile_json_path)
+
+    def test_process_export_files_unrecognized_arg(self, monkeypatch, capsys):
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "genai-perf",
+                "process-export-files",
+                "--input-directory",
+                "test_dir",
+                "--wrong-arg",
+            ],
+        )
+
+        with pytest.raises(SystemExit) as excinfo:
+            parser.parse_args()
+
+        assert excinfo.value.code == 2
+
+        captured = capsys.readouterr()
+        assert "unrecognized arguments: --wrong-arg" in captured.err
+
+    def test_process_export_files_short_input_directory_option(self, monkeypatch):
+        args = ["genai-perf", "process-export-files", "-d", "test_dir"]
+        monkeypatch.setattr("sys.argv", args)
+
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        assert args.input_path[0] == "test_dir"
+        assert config.process.input_path == Path("test_dir")

@@ -27,19 +27,18 @@
 import copy
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import TensorRTLLMConverter
 from genai_perf.inputs.input_constants import (
     DEFAULT_TENSORRTLLM_MAX_TOKENS,
     ModelSelectionStrategy,
     OutputFormat,
 )
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestTensorRTLLMConverter:
@@ -87,19 +86,17 @@ class TestTensorRTLLMConverter:
 
     @pytest.fixture
     def default_config(self):
-        yield InputsConfig(
-            extra_inputs={},
-            model_name=["test_model"],
-            model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-            output_format=OutputFormat.TENSORRTLLM,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.TENSORRTLLM
+
+        yield config
 
     def test_convert_default(self, default_config):
         generic_dataset = self.create_generic_dataset()
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, default_config)
+        trtllm_converter = TensorRTLLMConverter(default_config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -107,11 +104,13 @@ class TestTensorRTLLMConverter:
                     "model": "test_model",
                     "text_input": ["text input one"],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                    "exclude_input_in_output": [True],
                 },
                 {
                     "model": "test_model",
                     "text_input": ["text input two"],
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
+                    "exclude_input_in_output": [True],
                 },
             ]
         }
@@ -127,12 +126,12 @@ class TestTensorRTLLMConverter:
             "additional_key": "additional_value",
         }
 
-        config = copy.deepcopy(default_config)
-        config.add_stream = True
-        config.extra_inputs.update(extra_inputs)
+        config = default_config
+        config.input.extra = extra_inputs
+        config.endpoint.streaming = True
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, config)
+        trtllm_converter = TensorRTLLMConverter(config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -143,6 +142,7 @@ class TestTensorRTLLMConverter:
                     "max_tokens": [1234],
                     "stream": [True],
                     "additional_key": ["additional_value"],
+                    "exclude_input_in_output": [True],
                 },
                 {
                     "model": "test_model",
@@ -151,6 +151,7 @@ class TestTensorRTLLMConverter:
                     "max_tokens": [1234],
                     "stream": [True],
                     "additional_key": ["additional_value"],
+                    "exclude_input_in_output": [True],
                 },
             ]
         }
@@ -160,8 +161,8 @@ class TestTensorRTLLMConverter:
     def test_convert_empty_dataset(self, default_config):
         generic_dataset = GenericDataset(files_data={})
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, default_config)
+        trtllm_converter = TensorRTLLMConverter(default_config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {"data": []}
         assert result == expected_result
@@ -169,8 +170,8 @@ class TestTensorRTLLMConverter:
     def test_convert_with_payload_parameters(self, default_config):
         generic_dataset = self.create_generic_dataset_with_payload_parameters()
 
-        trtllm_converter = TensorRTLLMConverter()
-        result = trtllm_converter.convert(generic_dataset, default_config)
+        trtllm_converter = TensorRTLLMConverter(default_config)
+        result = trtllm_converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -180,6 +181,7 @@ class TestTensorRTLLMConverter:
                     "max_tokens": [DEFAULT_TENSORRTLLM_MAX_TOKENS],
                     "session_id": "abcd",
                     "timestamp": [0],
+                    "exclude_input_in_output": [True],
                 },
                 {
                     "model": "test_model",
@@ -189,6 +191,7 @@ class TestTensorRTLLMConverter:
                     "input_length": "6755",
                     "output_length": "500",
                     "timestamp": [2345],
+                    "exclude_input_in_output": [True],
                 },
             ]
         }

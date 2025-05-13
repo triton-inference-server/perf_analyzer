@@ -29,7 +29,8 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-from genai_perf.exceptions import GenAIPerfException
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -47,12 +48,16 @@ class TestPayloadInputRetriever:
     def mock_config(self):
         class MockConfig:
             def __init__(self):
+                self.config = ConfigCommand({"model_name": "test_model"})
+                self.config.endpoint.model_selection_strategy = (
+                    ModelSelectionStrategy.ROUND_ROBIN
+                )
+                self.config.input.synthetic_tokens.mean = 10
+                self.config.input.synthetic_tokens.stddev = 2
+                self.config.input.sessions.turn_delay.ratio = 1.0
+                self.config.input.payload_file = Path("test_input.jsonl")
                 self.tokenizer = get_empty_tokenizer()
-                self.model_name = ["test_model"]
-                self.model_selection_strategy = "round_robin"
-                self.payload_input_filename = Path("test_input.jsonl")
-                self.prompt_tokens_mean = 10
-                self.prompt_tokens_stddev = 2
+                self.output_directory = Path("test_output")
 
         return MockConfig()
 
@@ -174,9 +179,9 @@ class TestPayloadInputRetriever:
         dataset = retriever.retrieve_data()
 
         assert isinstance(dataset, GenericDataset)
-        assert str(retriever.config.payload_input_filename) in dataset.files_data
+        assert str(retriever.config.input.payload_file) in dataset.files_data
         assert (
-            dataset.files_data[str(retriever.config.payload_input_filename)]
+            dataset.files_data[str(retriever.config.input.payload_file)]
             == mock_file_data
         )
 
@@ -190,3 +195,27 @@ class TestPayloadInputRetriever:
             match="Each data entry must have only one of 'text_input' or 'text' key name.",
         ):
             retriever._get_content_from_input_file(Path("test_input.jsonl"))
+
+    @pytest.mark.parametrize(
+        "delay, delay_ratio, expected_delay",
+        [
+            (1000, 1.0, 1000),  # No change with ratio 1.0
+            (1000, 0.5, 500),  # Half the delay
+            (1000, 2.0, 2000),  # Double the delay
+            (0, 1.5, 0),  # Zero delay stays zero
+        ],
+    )
+    def test_delay_ratio_application(
+        self, retriever, delay, delay_ratio, expected_delay
+    ):
+        # Set the delay ratio in the config
+        retriever.config.input.sessions.turn_delay.ratio = delay_ratio
+
+        # Create test data with a delay
+        data = {"delay": delay}
+
+        # Get the payload metadata
+        metadata = retriever._get_payload_metadata(data)
+
+        # Check that the delay was properly scaled
+        assert metadata["delay"] == expected_delay

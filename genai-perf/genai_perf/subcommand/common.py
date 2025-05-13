@@ -27,14 +27,15 @@
 import os
 import subprocess  # nosec
 from argparse import Namespace
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import genai_perf.logging as logging
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.constants import DEFAULT_TRITON_METRICS_URL
-from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import DEFAULT_STARTING_INDEX
-from genai_perf.inputs.inputs import Inputs, OutputFormat
+from genai_perf.inputs.input_constants import OutputFormat
+from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.metrics.telemetry_metrics import TelemetryMetrics
 from genai_perf.profile_data_parser import (
@@ -46,9 +47,8 @@ from genai_perf.telemetry_data.triton_telemetry_data_collector import (
     TelemetryDataCollector,
     TritonTelemetryDataCollector,
 )
-from genai_perf.tokenizer import Tokenizer, get_tokenizer
-from genai_perf.utils import load_json_str
-from genai_perf.wrapper import Profiler
+from genai_perf.tokenizer import Tokenizer
+from genai_perf.utils import load_json_str, remove_file
 
 logger = logging.getLogger(__name__)
 
@@ -56,35 +56,6 @@ logger = logging.getLogger(__name__)
 """
 Contains methods that are used by multiple subcommands
 """
-
-
-def generate_inputs(config_options: InputsConfig) -> None:
-    inputs = Inputs(config_options)
-    inputs.create_inputs()
-
-
-def calculate_metrics(args: Namespace, tokenizer: Tokenizer) -> ProfileDataParser:
-    if args.output_format == OutputFormat.TEMPLATE:
-        return ProfileDataParser(
-            args.profile_export_file,
-            goodput_constraints=args.goodput,
-        )
-    if args.endpoint_type in ["embeddings", "nvclip", "rankings", "dynamic_grpc"]:
-        return ProfileDataParser(
-            args.profile_export_file,
-            goodput_constraints=args.goodput,
-        )
-    elif args.endpoint_type == "image_retrieval":
-        return ImageRetrievalProfileDataParser(
-            args.profile_export_file,
-            goodput_constraints=args.goodput,
-        )
-    else:
-        return LLMProfileDataParser(
-            filename=args.profile_export_file,
-            tokenizer=tokenizer,
-            goodput_constraints=args.goodput,
-        )
 
 
 def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
@@ -132,139 +103,3 @@ def get_extra_inputs_as_dict(args: Namespace) -> Dict[str, Any]:
                 )
 
     return request_inputs
-
-
-def create_telemetry_data_collectors(
-    args: Namespace,
-) -> List[TelemetryDataCollector]:
-    """
-    Initializes telemetry data collectors for all endpoints.
-    """
-    telemetry_collectors: List[TelemetryDataCollector] = []
-
-    if not args.service_kind == "triton":
-        return telemetry_collectors
-
-    if not args.server_metrics_url:
-        args.server_metrics_url = [DEFAULT_TRITON_METRICS_URL]
-
-    for url in args.server_metrics_url:
-        collector = TritonTelemetryDataCollector(url.strip())
-        if collector.is_url_reachable():
-            telemetry_collectors.append(collector)
-        else:
-            logger.warning(f"Skipping unreachable metrics URL: {url}")
-
-    return telemetry_collectors
-
-
-def create_artifacts_dirs(args: Namespace) -> None:
-    plot_dir = args.artifact_dir / "plots"
-    os.makedirs(args.artifact_dir, exist_ok=True)
-    if hasattr(args, "generate_plots") and args.generate_plots:
-        os.makedirs(plot_dir, exist_ok=True)
-
-
-def create_config_options(args: Namespace) -> InputsConfig:
-    try:
-        extra_input_dict = get_extra_inputs_as_dict(args)
-    except ValueError as e:
-        raise GenAIPerfException(e)
-
-    return InputsConfig(
-        audio_length_mean=args.audio_length_mean,
-        audio_length_stddev=args.audio_length_stddev,
-        audio_sample_rates=args.audio_sample_rates,
-        audio_depths=args.audio_depths,
-        audio_num_channels=args.audio_num_channels,
-        audio_format=args.audio_format,
-        input_type=args.prompt_source,
-        output_format=args.output_format,
-        model_name=args.model,
-        model_selection_strategy=args.model_selection_strategy,
-        input_filename=args.input_file,
-        payload_input_filename=args.payload_input_file,
-        synthetic_input_filenames=args.synthetic_input_files,
-        starting_index=DEFAULT_STARTING_INDEX,
-        length=args.num_dataset_entries,
-        prompt_tokens_mean=args.synthetic_input_tokens_mean,
-        prompt_tokens_stddev=args.synthetic_input_tokens_stddev,
-        output_tokens_mean=args.output_tokens_mean,
-        output_tokens_stddev=args.output_tokens_stddev,
-        output_tokens_deterministic=args.output_tokens_mean_deterministic,
-        image_width_mean=args.image_width_mean,
-        image_width_stddev=args.image_width_stddev,
-        image_height_mean=args.image_height_mean,
-        image_height_stddev=args.image_height_stddev,
-        image_format=args.image_format,
-        random_seed=args.random_seed,
-        num_dataset_entries=args.num_dataset_entries,
-        add_stream=args.streaming,
-        tokenizer=get_tokenizer(
-            args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
-        ),
-        batch_size_audio=args.batch_size_audio,
-        batch_size_image=args.batch_size_image,
-        batch_size_text=args.batch_size_text,
-        output_dir=args.artifact_dir,
-        num_prefix_prompts=args.num_prefix_prompts,
-        prefix_prompt_length=args.prefix_prompt_length,
-        num_sessions=args.num_sessions,
-        session_turns_mean=args.session_turns_mean,
-        session_turns_stddev=args.session_turns_stddev,
-        session_turn_delay_mean=args.session_turn_delay_mean,
-        session_turn_delay_stddev=args.session_turn_delay_stddev,
-        extra_inputs=extra_input_dict,
-    )
-
-
-def run_perf_analyzer(
-    args: Namespace,
-    extra_args: Optional[List[str]] = None,
-    perf_analyzer_config: Optional[PerfAnalyzerConfig] = None,
-    telemetry_data_collectors: List[TelemetryDataCollector] = [],
-) -> None:
-    try:
-        for collector in telemetry_data_collectors:
-            collector.start()
-
-        if perf_analyzer_config is not None:
-            cmd = perf_analyzer_config.create_command()
-            logger.info(
-                f"Running Perf Analyzer : '{perf_analyzer_config.create_cli_string()}'"
-            )
-        else:
-            cmd = Profiler.build_cmd(args, extra_args)
-            logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
-
-        if args and args.verbose:
-            subprocess.run(cmd, check=True, stdout=None)  # nosec
-        else:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)  # nosec
-    finally:
-        for collector in telemetry_data_collectors:
-            collector.stop()
-
-
-def merge_telemetry_metrics(metrics_list: List[TelemetryMetrics]) -> TelemetryMetrics:
-    """
-    Merges multiple TelemetryMetrics objects into a single one.
-
-    Args:
-        metrics_list (List[TelemetryMetrics]): A list of TelemetryMetrics instances.
-
-    Returns:
-        TelemetryMetrics: A new TelemetryMetrics instance with merged raw data.
-    """
-
-    merged_metrics = TelemetryMetrics()
-
-    for metrics in metrics_list:
-        for metric in TelemetryMetrics.TELEMETRY_METRICS:
-            metric_key = metric.name
-            metric_dict = getattr(merged_metrics, metric_key)
-            source_dict = getattr(metrics, metric_key)
-
-            for gpu_id, values in source_dict.items():
-                metric_dict[gpu_id].extend(values)
-    return merged_metrics

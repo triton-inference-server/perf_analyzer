@@ -291,6 +291,17 @@ duration of execution exceeds the amount of time specified by the intervals.
 This option can not be used with `--request-rate-range` or
 `--concurrency-range`.
 
+#### `--fixed-schedule`
+
+Enables fixed schedule inference load mode. In this mode, Perf Analyzer runs
+through the `--input-data` JSON once. Each entry represents a request and must
+have a `timestamp` "input", which tells Perf Analyzer when to send that request.
+A timestamp of `N` means Perf Analyzer will send that request `N` milliseconds
+after the start of the benchmark.
+
+See [fixed schedule](inference_load_modes.md#fixed-schedule-mode) documentation
+for more info.
+
 #### `--max-threads=<n>`
 
 Specifies the maximum number of threads that will be created for providing

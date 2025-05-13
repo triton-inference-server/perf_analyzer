@@ -618,12 +618,12 @@ InferenceProfiler::Profile(
   auto* custom_manager =
       dynamic_cast<CustomRequestScheduleManager*>(manager_.get());
   if (custom_manager) {
-    RETURN_IF_ERROR(custom_manager->InitCustomSchedule(request_count));
+    custom_manager->Start();
   } else {
     auto* request_rate_manager =
         dynamic_cast<RequestRateManager*>(manager_.get());
-    RETURN_IF_ERROR(
-        request_rate_manager->PerformWarmup(request_rate, request_count));
+    RETURN_IF_ERROR(request_rate_manager->PerformWarmup(
+        request_rate, warmup_request_count));
     std::cout << "Request Rate: " << request_rate
               << " inference requests per second" << std::endl;
     RETURN_IF_ERROR(

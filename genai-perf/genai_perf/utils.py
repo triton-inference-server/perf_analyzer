@@ -24,13 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
 import random
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Type
 
 import genai_perf.logging as logging
+import orjson
 
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
@@ -97,8 +97,11 @@ def load_json_str(json_str: str, func: Callable = lambda x: x) -> Dict[str, Any]
           run validation checks on the object. Defaults to identity function.
     """
     try:
-        return func(json.loads(json_str))
-    except json.JSONDecodeError:
+        # Note: orjson may not parse JSON the same way as Python's standard json library,
+        # notably being stricter on UTF-8 conformance.
+        # Refer to https://github.com/ijl/orjson?tab=readme-ov-file#str for details.
+        return func(orjson.loads(json_str))
+    except orjson.JSONDecodeError:
         snippet = json_str[:200] + ("..." if len(json_str) > 200 else "")
         logger.error("Failed to parse JSON string: '%s'", snippet)
         raise
@@ -109,22 +112,11 @@ def remove_file(file: Path) -> None:
         file.unlink()
 
 
-def convert_option_name(name: str) -> str:
-    return name.replace("_", "-")
-
-
 def get_enum_names(enum: Type[Enum]) -> List[str]:
     names = []
     for e in enum:
         names.append(e.name.lower())
     return names
-
-
-def get_enum_entry(name: str, enum: Type[Enum]) -> Optional[Enum]:
-    for e in enum:
-        if e.name.lower() == name.lower():
-            return e
-    return None
 
 
 def scale(value, factor):
@@ -151,3 +143,10 @@ def is_power_of_two(n: int) -> bool:
     if n <= 0:
         return False
     return (n & (n - 1)) == 0
+
+
+def split_and_strip_whitespace(input_string: str) -> List[str]:
+    """
+    Split a string by comma and strip whitespace from each item
+    """
+    return [item.strip() for item in input_string.split(",")]

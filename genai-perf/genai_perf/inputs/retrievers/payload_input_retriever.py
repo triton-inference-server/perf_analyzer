@@ -63,7 +63,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
 
         files_data: Dict[str, FileData] = {}
-        input_file = self.config.payload_input_filename
+        input_file = self.config.input.payload_file
         if input_file is None:
             raise ValueError("Input file cannot be None")
         file_data = self._get_input_dataset_from_file(input_file)
@@ -150,9 +150,11 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         """
         input_length = data.get("input_length")
         prompt_tokens_mean = (
-            input_length if input_length else self.config.prompt_tokens_mean
+            input_length if input_length else self.config.input.synthetic_tokens.mean
         )
-        prompt_tokens_stddev = 0 if input_length else self.config.prompt_tokens_stddev
+        prompt_tokens_stddev = (
+            0 if input_length else self.config.input.synthetic_tokens.stddev
+        )
         hash_ids = data.get("hash_ids", None)
         prompt = data.get("text")
         prompt_alt = data.get("text_input")
@@ -164,7 +166,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         # If none of the keys are provided, generate a synthetic prompt
         if not prompt and not prompt_alt:
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
-                self.config.tokenizer,
+                self.tokenizer,
                 prompt_tokens_mean,
                 prompt_tokens_stddev,
                 hash_ids,
@@ -175,13 +177,21 @@ class PayloadInputRetriever(BaseFileInputRetriever):
     def _get_payload_metadata(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Retrieves and payload metadata from input data
+        and scales the delay if the delay_ratio is not 1.0
         """
 
-        return {
+        metadata = {
             key: (int(data[key]) if key in PAYLOAD_METADATA_INT_FIELDS else data[key])
             for key in PAYLOAD_METADATA_FIELDS
             if key in data
         }
+
+        if "delay" in metadata and self.config.input.sessions.turn_delay.ratio != 1.0:
+            metadata["delay"] = int(
+                metadata["delay"] * self.config.input.sessions.turn_delay.ratio
+            )
+
+        return metadata
 
     def _get_optional_data(self, data: Dict[str, Any]) -> Dict[Any, Any]:
         """

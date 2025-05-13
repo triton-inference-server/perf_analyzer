@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,11 +28,16 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.file_input_retriever import FileInputRetriever
 from genai_perf.tokenizer import get_empty_tokenizer
 from PIL import Image
+
+FILE_INPUT_RETRIEVER_PREFIX = (
+    "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever"
+)
 
 
 class TestFileInputRetriever:
@@ -75,28 +80,85 @@ class TestFileInputRetriever:
 
     @staticmethod
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     def mock_encode_image(mock_encode_image):
         return mock_encode_image
 
     @patch("pathlib.Path.exists", return_value=True)
+    @patch("builtins.open", side_effect=open_side_effect)
+    def test_retrieve_data_single_prompt(self, mock_file, mock_exists):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.input.file = Path("single_prompt.jsonl")
+
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                config=config,
+                tokenizer=get_empty_tokenizer(),
+                output_directory=Path("."),
+            )
+        )
+
+        data = file_retriever.retrieve_data()
+        assert len(data.files_data) == 1
+        assert "single_prompt.jsonl" in data.files_data
+
+        file_data = data.files_data["single_prompt.jsonl"]
+        assert len(file_data.rows) == 1
+        assert file_data.rows[0].texts[0] == "What is the capital of France?"
+
+    @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
+        return_value="mock_base64_image",
+    )
+    @patch("builtins.open", side_effect=open_side_effect)
+    def test_retrieve_data_multi_modal(
+        self, mock_file, mock_image, mock_encode_image, mock_exists
+    ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.input.file = Path("multi_modal.jsonl")
+
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                config=config,
+                tokenizer=get_empty_tokenizer(),
+                output_directory=Path("."),
+            )
+        )
+
+        data = file_retriever.retrieve_data()
+        assert len(data.files_data) == 1
+        assert "multi_modal.jsonl" in data.files_data
+
+        file_data = data.files_data["multi_modal.jsonl"]
+        assert len(file_data.rows) == 2
+        assert file_data.rows[0].texts[0] == "What is this image?"
+        assert file_data.rows[0].images[0] == "mock_base64_image"
+        assert file_data.rows[1].texts[0] == "Who is this person?"
+        assert file_data.rows[1].images[0] == "mock_base64_image"
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
+    @patch(
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_single_image(
         self, mock_file, mock_image, mock_encode_image, mock_exists
     ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("single_image.jsonl")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("single_image.jsonl"),
+                output_directory=Path("."),
             )
         )
         file_data = file_retriever._get_input_dataset_from_file(
@@ -110,21 +172,25 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         side_effect=["mock_base64_image1", "mock_base64_image2", "mock_base64_image3"],
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_multiple_images(
         self, mock_file, mock_image_open, mock_encode_image, mock_exists
     ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("multiple_images.jsonl")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("multiple_images.jsonl"),
+                output_directory=Path("."),
             )
         )
+
         file_data = file_retriever._get_input_dataset_from_file(
             Path("multiple_images.jsonl")
         )
@@ -142,14 +208,18 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_single_prompt(self, mock_file, mock_exists):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("single_prompt.jsonl")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("single_prompt.jsonl"),
+                output_directory=Path("."),
             )
         )
+
         file_data = file_retriever._get_input_dataset_from_file(
             Path("single_prompt.jsonl")
         )
@@ -161,14 +231,18 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_multiple_prompts(self, mock_file, mock_exists):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("multiple_prompts.jsonl")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("multiple_prompts.jsonl"),
+                output_directory=Path("."),
             )
         )
+
         file_data = file_retriever._get_input_dataset_from_file(
             Path("multiple_prompts.jsonl")
         )
@@ -186,21 +260,25 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_multi_modal(
         self, mock_file, mock_image, mock_encode_image, mock_exists
     ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("multi_modal.jsonl")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("multi_modal.jsonl"),
+                output_directory=Path("."),
             )
         )
+
         file_data = file_retriever._get_input_dataset_from_file(
             Path("multi_modal.jsonl")
         )
@@ -213,14 +291,18 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_deprecated_text_input(self, mock_file, mock_exists):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("deprecated_text_input.jsonl")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("deprecated_text_input.jsonl"),
+                output_directory=Path("."),
             )
         )
+
         file_data = file_retriever._get_input_dataset_from_file(
             Path("deprecated_text_input.jsonl")
         )
@@ -233,15 +315,18 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_conflicting_key(self, mock_file, mock_exists):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("conflicting_key.jsonl")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                batch_size_image=1,
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("conflicting_key.jsonl"),
+                output_directory=Path("."),
             )
         )
+
         with pytest.raises(
             ValueError,
             match="Each data entry must have only one of 'text_input' or 'text' key name.",
@@ -249,12 +334,16 @@ class TestFileInputRetriever:
             file_retriever._get_input_dataset_from_file(Path("conflicting_key.jsonl"))
 
     def test_get_input_file_without_file_existing(self):
+        config = ConfigCommand({"model_name": "test_model_A"})
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                input_filename=Path("nonexistent_file.jsonl"),
+                output_directory=Path("."),
             )
         )
+
         with pytest.raises(FileNotFoundError):
             file_retriever._get_input_dataset_from_file(Path("nonexistent_file.jsonl"))
 
@@ -264,11 +353,17 @@ class TestFileInputRetriever:
     def test_get_input_datasets_from_dir_no_jsonl_files(
         self, mock_exists, mock_is_dir, mock_glob
     ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.input.file = Path("empty_dir")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
-                tokenizer=get_empty_tokenizer(), input_filename=Path("empty_dir")
+                config=config,
+                tokenizer=get_empty_tokenizer(),
+                output_directory=Path("."),
             )
         )
+
         with pytest.raises(ValueError, match="No JSONL files found in directory"):
             _ = file_retriever._get_input_datasets_from_dir()
 
@@ -285,7 +380,7 @@ class TestFileInputRetriever:
     )
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        "genai_perf.inputs.retrievers.file_input_retriever.FileInputRetriever._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
@@ -298,12 +393,15 @@ class TestFileInputRetriever:
         mock_is_dir,
         mock_exists,
     ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("test_dir")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("test_dir"),
+                output_directory=Path("."),
             )
         )
 
@@ -339,11 +437,17 @@ class TestFileInputRetriever:
     def test_get_input_datasets_from_empty_dir(
         self, mock_exists, mock_is_dir, mock_glob
     ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.input.file = Path("empty_dir")
+
         file_retriever = FileInputRetriever(
             InputsConfig(
-                tokenizer=get_empty_tokenizer(), input_filename=Path("empty_dir")
+                config=config,
+                tokenizer=get_empty_tokenizer(),
+                output_directory=Path("."),
             )
         )
+
         with pytest.raises(ValueError, match="No JSONL files found in directory"):
             _ = file_retriever._get_input_datasets_from_dir()
 
@@ -363,16 +467,20 @@ class TestFileInputRetriever:
         mock_create_prefix_prompts_pool,
         mock_file,
     ):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("multiple_prompts.jsonl")
+        config.input.prefix_prompt.num = 3
+        config.input.prefix_prompt.length = 15
+
         file_retriever = FileInputRetriever(
             InputsConfig(
+                config=config,
                 tokenizer=get_empty_tokenizer(),
-                model_name=["test_model_A"],
-                model_selection_strategy=ModelSelectionStrategy.ROUND_ROBIN,
-                input_filename=Path("multiple_prompts.jsonl"),
-                num_prefix_prompts=3,
-                prefix_prompt_length=15,
+                output_directory=Path("."),
             )
         )
+
         file_data = file_retriever._get_input_dataset_from_file(
             Path("multiple_prompts.jsonl")
         )

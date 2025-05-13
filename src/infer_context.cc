@@ -104,6 +104,12 @@ InferContext::CompleteOngoingSequence(uint32_t seq_stat_index)
 }
 
 void
+InferContext::ApplyDatasetOffset(size_t dataset_offset)
+{
+  data_step_id_ += dataset_offset;
+}
+
+void
 InferContext::SendRequest(
     const uint64_t request_id, const bool delayed, const uint64_t sequence_id)
 {

@@ -24,36 +24,32 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
 from typing import Any, Dict
 
+import orjson
+from genai_perf.config.input.config_defaults import InputDefaults, OutputTokenDefaults
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.input_constants import (
-    DEFAULT_BATCH_SIZE,
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-)
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
-from genai_perf.utils import sample_bounded_normal
 
 
 class VLLMConverter(BaseConverter):
 
-    def check_config(self, config: InputsConfig) -> None:
-        if config.batch_size_text != DEFAULT_BATCH_SIZE:
+    def check_config(self) -> None:
+        if self.config.input.batch_size != InputDefaults.BATCH_SIZE:
             raise GenAIPerfException(
-                f"The --batch-size-text flag is not supported for {config.output_format.to_lowercase()}."
+                f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
             )
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
         request_body: Dict[str, Any] = {"data": []}
 
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
-                model_name = self._select_model_name(config, index)
+                model_name = self._select_model_name(index)
                 text = row.texts
 
                 payload = {
@@ -62,24 +58,23 @@ class VLLMConverter(BaseConverter):
                     "exclude_input_in_output": [True],  # default
                 }
                 request_body["data"].append(
-                    self._finalize_payload(payload, config, row, triton_format=True)
+                    self._finalize_payload(payload, row, triton_format=True)
                 )
 
         return request_body
 
-    def _add_request_params(
-        self, payload: Dict, config: InputsConfig, optional_data: Dict[Any, Any]
-    ) -> None:
-        if config.add_stream:
+    def _add_request_params(self, payload: Dict, optional_data: Dict[Any, Any]) -> None:
+        if self.config.endpoint.streaming:
             payload["stream"] = [True]
-        number_of_tokens = self._get_max_tokens(config, optional_data)
-        if number_of_tokens != DEFAULT_OUTPUT_TOKENS_MEAN:
+        number_of_tokens = self._get_max_tokens(optional_data)
+        if number_of_tokens != OutputTokenDefaults.MEAN:
             sampling_parameters = {
                 "max_tokens": f"{number_of_tokens}",
             }
-            if config.output_tokens_deterministic:
+            if self.config.input.output_tokens.deterministic:
                 sampling_parameters["min_tokens"] = f"{number_of_tokens}"
-            sampling_parameters_str = json.dumps(sampling_parameters)
+            sampling_parameters_str = orjson.dumps(sampling_parameters).decode("utf-8")
             payload["sampling_parameters"] = [sampling_parameters_str]
-        for key, value in config.extra_inputs.items():
-            payload[key] = [value]
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
+                payload[key] = [value]

@@ -66,13 +66,12 @@ class CsvExporter:
         self._stats = config.stats
         self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
-        self._output_dir = config.artifact_dir
-        self._args = config.args
+        self._output_dir = config.perf_analyzer_config.get_artifact_directory()
+        self._profile_export_file = config.config.output.profile_export_file
+        self._config = config.config
 
     def export(self) -> None:
-        filename = (
-            self._output_dir / f"{self._args.profile_export_file.stem}_genai_perf.csv"
-        )
+        filename = self._output_dir / f"{self._profile_export_file.stem}_genai_perf.csv"
         logger.info(f"Generating {filename}")
 
         with open(filename, mode="w", newline="") as f:
@@ -101,29 +100,22 @@ class CsvExporter:
         csv_writer.writerow(self.SYSTEM_METRICS_HEADER)
         for metric in self._metrics.system_metrics:
             metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
-            if metric.name == "request_goodput" and not self._args.goodput:
+            if metric.name == "request_goodput" and not self._config.input.goodput:
                 continue
             value = exporter_utils.fetch_stat(self._stats, metric.name, "avg")
             csv_writer.writerow([metric_str, exporter_utils.format_stat_value(value)])
 
     def _should_skip(self, metric_name: str) -> bool:
-        if self._args.endpoint_type == "embeddings":
+        if self._config.endpoint.type == "embeddings":
             return False  # skip nothing
 
-        # TODO (TMA-1712): need to decide if we need this metric. Remove
-        # from statistics display for now.
-        # TODO (TMA-1678): output_token_throughput_per_request is treated
-        # separately since the current code treats all throughput metrics to
-        # be displayed outside of the statistics table.
-        if metric_name == "output_token_throughput_per_request":
-            return True
-
-        # When non-streaming, skip ITL and TTFT
+        # Skip following streaming metrics when non-streaming mode
         streaming_metrics = [
             "inter_token_latency",
             "time_to_first_token",
             "time_to_second_token",
+            "output_token_throughput_per_user",
         ]
-        if not self._args.streaming and metric_name in streaming_metrics:
+        if not self._config.endpoint.streaming and metric_name in streaming_metrics:
             return True
         return False

@@ -50,8 +50,6 @@ Use GenAI-Perf to generate/send text and image request data to the server
 ```bash
 genai-perf profile \
     -m llava-hf/llava-v1.6-mistral-7b-hf \
-    --tokenizer llava-hf/llava-v1.6-mistral-7b-hf \
-    --service-kind openai \
     --endpoint-type multimodal \
     --image-width-mean 50 \
     --image-height-mean 50 \
@@ -92,7 +90,6 @@ export NVIDIA_API_KEY=your_api_key
 genai-perf profile \
     -m microsoft/phi-4-multimodal-instruct \
     -u https://integrate.api.nvidia.com \
-    --service-kind openai \
     --endpoint-type multimodal \
     --synthetic-input-tokens-mean 10 \
     --output-tokens-mean 10 \
@@ -144,7 +141,6 @@ that you can tweak for different modalities.
 ```bash
 genai-perf profile \
     -m <multimodal_model> \
-    --service-kind openai \
     --endpoint-type multimodal \
     # audio parameters
     --audio-length-mean 10 \
@@ -199,7 +195,6 @@ After you create the file, you can run GenAI-Perf using the following command:
 ```bash
 genai-perf profile \
     -m <multimodal_model> \
-    --service-kind openai \
     --endpoint-type multimodal \
     --input-file input.jsonl \
     --streaming

@@ -29,12 +29,13 @@ from typing import cast
 from unittest.mock import patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
-from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from genai_perf.profile_data_parser.profile_data_parser import ResponseFormat
+from genai_perf.tokenizer import get_tokenizer
 from tests.test_utils import check_statistics, ns_to_sec
 
 
@@ -44,8 +45,8 @@ def check_llm_metrics(m1: LLMMetrics, m2: LLMMetrics) -> None:
     assert m1.time_to_first_tokens == m2.time_to_first_tokens
     assert m1.time_to_second_tokens == m2.time_to_second_tokens
     assert m1.inter_token_latencies == m2.inter_token_latencies
-    assert m1.output_token_throughputs_per_request == pytest.approx(
-        m2.output_token_throughputs_per_request
+    assert m1.output_token_throughputs_per_user == pytest.approx(
+        m2.output_token_throughputs_per_user
     )
     assert m1.output_token_throughputs == pytest.approx(m2.output_token_throughputs)
     assert m1.output_sequence_lengths == m2.output_sequence_lengths
@@ -137,9 +138,9 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 2],
                     "time_to_second_tokens": [2, 3],
                     "inter_token_latencies": [2, 1],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(7),
-                        2 / ns_to_sec(3),
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(2),
+                        1 / ns_to_sec(1),
                     ],
                     "output_token_throughputs": [9 / ns_to_sec(10)],
                     "output_sequence_lengths": [3, 6],
@@ -155,9 +156,9 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 3],
                     "time_to_second_tokens": [1, 2],
                     "inter_token_latencies": [4, 1],
-                    "output_token_throughputs_per_request": [
-                        4 / ns_to_sec(13),
-                        6 / ns_to_sec(8),
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(4),
+                        1 / ns_to_sec(1),
                     ],
                     "output_token_throughputs": [2 / ns_to_sec(3)],
                     "output_sequence_lengths": [4, 6],
@@ -195,9 +196,9 @@ class TestLLMProfileDataParser:
             - experiment 2: [((18 - 5) - 2)/(4 - 1), ((11 - 3) - 3)/(6 - 1)]
                           : [11/3, 1]
                           : [4, 1]  # rounded
-        * output token throughputs per request
-            - experiment 1: [3/(8 - 1), 6/(11 - 2)] = [3/7, 6/9]
-            - experiment 2: [4/(18 - 5), 6/(11 - 3)] = [4/13, 6/8]
+        * output token throughputs per user
+            - experiment 1: [1 / ns_to_sec(2), 1 / ns_to_sec(1)]
+            - experiment 2: [1 / ns_to_sec(4), 1 / ns_to_sec(1)]
         * output token throughputs
             - experiment 1: [(3 + 6)/(11 - 1)] = [9/10]
             - experiment 2: [(4 + 6)/(18 - 3)] = [2/3]
@@ -208,7 +209,9 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
             tokenizer=tokenizer,
@@ -226,7 +229,7 @@ class TestLLMProfileDataParser:
         # Check that Records can be created
         records = statistics.create_records()
         assert records is not None
-        assert records[RequestThroughputAvg.tag] is not None
+        assert records["request_throughput_avg"] is not None
 
         # check non-existing profile data
         with pytest.raises(KeyError):
@@ -377,9 +380,9 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [4, 5],
                     "time_to_second_tokens": [3, 4],
                     "inter_token_latencies": [4, 2],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(11),
-                        6 / ns_to_sec(13),
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(4),
+                        1 / ns_to_sec(2),
                     ],
                     "output_token_throughputs": [9 / ns_to_sec(14)],
                     "output_sequence_lengths": [3, 6],
@@ -410,8 +413,8 @@ class TestLLMProfileDataParser:
             - experiment 1: [((12 - 1) - 4)/(3 - 1), ((15 - 2) - 5)/(6 - 1)]
                           : [3.5, 1.6]
                           : [4, 2]  # rounded
-        * output token throughputs per request
-            - experiment 1: [3/(12 - 1), 6/(15 - 2)] = [3/11, 6/13]
+        * output token throughputs per user
+            - experiment 1: [1 / ns_to_sec(4), 1 / ns_to_sec(2)]
         * output token throughputs
             - experiment 1: [(3 + 6)/(15 - 1)] = [9/14]
         * output sequence lengths
@@ -419,7 +422,9 @@ class TestLLMProfileDataParser:
         * input sequence lengths
             - experiment 1: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -524,9 +529,9 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [4, 5],
                     "time_to_second_tokens": [3, 4],
                     "inter_token_latencies": [4, 2],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(11),
-                        6 / ns_to_sec(13),
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(4),
+                        1 / ns_to_sec(2),
                     ],
                     "output_token_throughputs": [9 / ns_to_sec(14)],
                     "output_sequence_lengths": [3, 6],
@@ -557,8 +562,8 @@ class TestLLMProfileDataParser:
             - experiment 1: [((12 - 1) - 4)/(3 - 1), ((15 - 2) - 5)/(6 - 1)]
                           : [3.5, 1.6]
                           : [4, 2]  # rounded
-        * output token throughputs per request
-            - experiment 1: [3/(12 - 1), 6/(15 - 2)] = [3/11, 6/13]
+        * output token throughputs per user
+            - experiment 1: [1 / ns_to_sec(4), 1 / ns_to_sec(2)]
         * output token throughputs
             - experiment 1: [(3 + 6)/(15 - 1)] = [9/14]
         * output sequence lengths
@@ -566,7 +571,9 @@ class TestLLMProfileDataParser:
         * input sequence lengths
             - experiment 1: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_vlm_profile_export.json"),
             tokenizer=tokenizer,
@@ -748,9 +755,9 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 2],
                     "time_to_second_tokens": [2, 3],
                     "inter_token_latencies": [2, 4],
-                    "output_token_throughputs_per_request": [
-                        3 / ns_to_sec(7),
-                        1 / ns_to_sec(3),
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(2),
+                        1 / ns_to_sec(4),
                     ],
                     "output_token_throughputs": [3 / ns_to_sec(5)],
                     "output_sequence_lengths": [3, 3],
@@ -766,9 +773,9 @@ class TestLLMProfileDataParser:
                     "time_to_first_tokens": [2, 3],
                     "time_to_second_tokens": [1, 2],
                     "inter_token_latencies": [4, 2],
-                    "output_token_throughputs_per_request": [
-                        4 / ns_to_sec(13),
-                        3 / ns_to_sec(8),
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(4),
+                        1 / ns_to_sec(2),
                     ],
                     "output_token_throughputs": [7 / ns_to_sec(15)],
                     "output_sequence_lengths": [4, 3],
@@ -806,9 +813,9 @@ class TestLLMProfileDataParser:
             - experiment 2: [((18 - 5) - 2)/(4 - 1), ((11 - 3) - 3)/(3 - 1)]
                           : [11/3, 2.5]
                           : [4, 2]  # rounded
-        * output token throughputs per request
-            - experiment 1: [3/(8 - 1), 3/(11 - 2)] = [3/7, 1/3]
-            - experiment 2: [4/(18 - 5), 3/(11 - 3)] = [4/13, 3/8]
+        * output token throughputs per user
+            - experiment 1: [1 / ns_to_sec(2), 1 / ns_to_sec(4)]
+            - experiment 2: [1 / ns_to_sec(4), 1 / ns_to_sec(2)]
         * output token throughputs
             - experiment 1: [(3 + 3)/(11 - 1)] = [3/5]
             - experiment 2: [(4 + 3)/(18 - 3)] = [7/15]
@@ -819,7 +826,9 @@ class TestLLMProfileDataParser:
             - experiment 1: [3, 4]
             - experiment 2: [3, 4]
         """
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("tensorrtllm_engine_profile_export.json"),
             tokenizer=tokenizer,
@@ -860,7 +869,9 @@ class TestLLMProfileDataParser:
             response = f'data: {{"choices":[{{"delta":{{"content":"{text}"}}}}],"object":"chat.completion.chunk"}}\n\n'
             res_outputs.append({"response": response})
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -894,7 +905,9 @@ class TestLLMProfileDataParser:
         for text in output_texts:
             res_outputs.append({"text_output": text})
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("triton_profile_export.json"),
             tokenizer=tokenizer,
@@ -944,7 +957,9 @@ class TestLLMProfileDataParser:
     )
     def test_empty_response(self, mock_json) -> None:
         """Check if it handles all empty responses."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
 
         # Should not throw error
         _ = LLMProfileDataParser(
@@ -968,7 +983,7 @@ class TestLLMProfileDataParser:
                     },
                     {"response": "data: [DONE]\n\n"},
                 ],
-                '{"object": "text_completion", "model": "test_model", "choices": [{"text": "abc1234helloworld"}]}',
+                '{"object":"text_completion","model":"test_model","choices":[{"text":"abc1234helloworld"}]}',
             ),
             # OpenAI Chat Completions
             (
@@ -983,7 +998,7 @@ class TestLLMProfileDataParser:
                     },
                     {"response": "data: [DONE]\n\n"},
                 ],
-                '{"choices": [{"delta": {"content": "abc1234helloworld"}}], "object": "chat.completion.chunk"}',
+                '{"choices":[{"delta":{"content":"abc1234helloworld"}}],"object":"chat.completion.chunk"}',
             ),
         ],
     )
@@ -995,7 +1010,9 @@ class TestLLMProfileDataParser:
             target="genai_perf.profile_data_parser.profile_data_parser.load_json",
             return_value=profile_data,
         ):
-            tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+            config = ConfigCommand({"model_name": "test_model"})
+            config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+            tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
                 filename=Path("profile_export.json"),
                 tokenizer=tokenizer,
@@ -1070,7 +1087,9 @@ class TestLLMProfileDataParser:
             target="genai_perf.profile_data_parser.profile_data_parser.load_json",
             return_value=profile_data,
         ):
-            tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+            config = ConfigCommand({"model_name": "test_model"})
+            config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+            tokenizer = get_tokenizer(config)
             pd = LLMProfileDataParser(
                 filename=Path("profile_export.json"),
                 tokenizer=tokenizer,
@@ -1120,7 +1139,9 @@ class TestLLMProfileDataParser:
             'data: {"object":"chat.completion.chunk","choices":[{"index":0,"delta":{"token_id":4477,"role":"assistant","content":"world!"}}],"model":"meta-llama"}\n\n',
         ]
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1162,7 +1183,9 @@ class TestLLMProfileDataParser:
     )
     def test_handle_sse_error(self, mock_json, res_outputs) -> None:
         """Check if the parser can handle SSE error field."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1186,12 +1209,14 @@ class TestLLMProfileDataParser:
         ]
         res_outputs = [
             {
-                "response": '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+                "response": '{"id":"1","object":"chat.completion","created":2,"model":"hf-internal-testing/llama-tokenizer","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
             },
         ]
-        expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"gpt2","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
+        expected_response = '{"id":"1","object":"chat.completion","created":2,"model":"hf-internal-testing/llama-tokenizer","choices":[{"index":0,"message":{"role":"assistant","content":"A friend of mine, who is also a cook, writes a blog.","tool_calls":[]},"logprobs":null,"finish_reason":"length","stop_reason":null}],"usage":{"prompt_tokens":47,"total_tokens":1024,"completion_tokens":977}}'
 
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1282,7 +1307,9 @@ class TestLLMProfileDataParser:
     )
     def test_session_metrics(self, mock_json) -> None:
         """Check if it handles session metrics."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("session_profile_export.json"),
             tokenizer=tokenizer,
@@ -1295,15 +1322,10 @@ class TestLLMProfileDataParser:
             "request_throughputs": [2 / ns_to_sec(16)],
             # Same as request_latencies
             "time_to_first_tokens": [4, 3],
-            # N/A
+            # N/A (not streaming)
             "time_to_second_tokens": [],
-            # [((5 - 1) - 4)/(4 - 1), ((17 - 14) - 3)/(4 - 1)]
-            "inter_token_latencies": [0, 0],
-            # [4/(5 - 1), 4/(17 - 14)]
-            "output_token_throughputs_per_request": [
-                4 / ns_to_sec(4),
-                4 / ns_to_sec(3),
-            ],
+            "inter_token_latencies": [],
+            "output_token_throughputs_per_user": [],
             # [(4 + 4)/(17 - 1)]
             "output_token_throughputs": [8 / ns_to_sec(16)],
             # [4, 4]
@@ -1323,7 +1345,9 @@ class TestLLMProfileDataParser:
     )
     def test_no_session_metrics(self, mock_json) -> None:
         """Check if it handles profile export files without session metrics."""
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
         pd = LLMProfileDataParser(
             filename=Path("openai_profile_export.json"),
             tokenizer=tokenizer,
@@ -1331,3 +1355,206 @@ class TestLLMProfileDataParser:
 
         session_metrics = pd._session_metrics
         assert session_metrics == {}
+
+    ###############################
+    # COMMON FUNCTIONALITY
+    ###############################
+
+    @pytest.mark.parametrize(
+        "response_format,response_text,expected",
+        [
+            (
+                ResponseFormat.HUGGINGFACE_GENERATE,
+                '[{"generated_text":"Hello"}]',
+                "Hello",
+            ),
+            (ResponseFormat.HUGGINGFACE_GENERATE, "[]", ""),
+            (ResponseFormat.HUGGINGFACE_GENERATE, '["not a dict"]', None),
+            (ResponseFormat.HUGGINGFACE_GENERATE, '{"generated_text":"Hello"}', None),
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"object":"chat.completion","choices":[{"message":{"content":"Hi"}}]}',
+                "Hi",
+            ),
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"object":"chat.completion.chunk","choices":[{"delta":{"content":"Stream"}}]}',
+                "Stream",
+            ),
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"choices":[{"text":"Fallback"}]}',
+                "Fallback",
+            ),
+            (
+                ResponseFormat.OPENAI_COMPLETIONS,
+                '{"object":"text_completion","choices":[{"text":"Complete"}]}',
+                "Complete",
+            ),
+            (
+                ResponseFormat.OPENAI_COMPLETIONS,
+                '{"choices":[{"text":"Legacy"}]}',
+                "Legacy",
+            ),
+            (ResponseFormat.TRITON_GENERATE, '{"text_output":"Triton"}', "Triton"),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "", ""),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "data: [DONE]", ""),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, ": ping", ""),
+            # Unknown format (should raise)
+            ("UNKNOWN_FORMAT", "any response", None),
+        ],
+    )
+    def test_extract_text_output(self, response_format, response_text, expected):
+        parser = LLMProfileDataParser.__new__(LLMProfileDataParser)  # Bypass init
+        parser._response_format = response_format  # type: ignore
+
+        if expected is None:
+            with pytest.raises(ValueError):
+                parser._extract_text_output(response_text)
+        else:
+            assert parser._extract_text_output(response_text) == expected
+
+    @pytest.mark.parametrize(
+        "response_format, response_text, expected_is_empty",
+        [
+            (
+                ResponseFormat.OPENAI_CHAT_COMPLETIONS,
+                '{"object":"chat.completion","choices":[{"message":{"content":"Hello"}}]}',
+                False,
+            ),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "", True),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, "data: [DONE]", True),
+            (ResponseFormat.OPENAI_CHAT_COMPLETIONS, ": ping", True),
+            (
+                ResponseFormat.HUGGINGFACE_GENERATE,
+                '[{"generated_text":"Hello"}]',
+                False,
+            ),
+            (ResponseFormat.HUGGINGFACE_GENERATE, "[]", True),
+        ],
+    )
+    def test_is_empty_response(self, response_format, response_text, expected_is_empty):
+        parser = LLMProfileDataParser.__new__(LLMProfileDataParser)
+        parser._response_format = response_format
+        assert parser._is_empty_response(response_text) == expected_is_empty
+
+    ###############################
+    # HUGGINGFACE GENERATE
+    ###############################
+    huggingface_generate_profile_data = {
+        "service_kind": "openai",
+        "endpoint": "huggingface/generate",
+        "experiments": [
+            {
+                "experiment": {
+                    "mode": "concurrency",
+                    "value": 10,
+                },
+                "requests": [
+                    {
+                        "timestamp": 1,
+                        "request_inputs": {
+                            "payload": '{"inputs":"This is test","parameters":{"max_new_tokens":10}}',
+                        },
+                        "response_timestamps": [3, 5, 8],
+                        "response_outputs": [
+                            {"response": '[{"generated_text":" I"}]'},
+                            {"response": '[{"generated_text":" like"}]'},
+                            {"response": '[{"generated_text":" dogs"}]'},
+                        ],
+                    },
+                    {
+                        "timestamp": 2,
+                        "request_inputs": {
+                            "payload": '{"inputs":"This is test too","parameters":{"max_new_tokens":10}}',
+                        },
+                        "response_timestamps": [4, 7, 11],
+                        "response_outputs": [
+                            {"response": '[{"generated_text":" I"}]'},
+                            {"response": '[{"generated_text":" like"}]'},
+                            {"response": '[{"generated_text":" cats"}]'},
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+
+    @patch(
+        "genai_perf.profile_data_parser.profile_data_parser.load_json",
+        return_value=huggingface_generate_profile_data,
+    )
+    @pytest.mark.parametrize(
+        "infer_mode, load_level, expected_metrics",
+        [
+            (
+                "concurrency",
+                "10",
+                {
+                    "request_latencies": [7, 9],
+                    "request_throughputs": [2 / ns_to_sec(10)],
+                    "time_to_first_tokens": [2, 2],
+                    "time_to_second_tokens": [2, 3],
+                    "inter_token_latencies": [2, 2],
+                    "output_token_throughputs_per_user": [
+                        1 / ns_to_sec(2),
+                        1 / ns_to_sec(2),
+                    ],
+                    "output_token_throughputs": [9 / ns_to_sec(10)],
+                    "output_sequence_lengths": [4, 5],
+                    "input_sequence_lengths": [3, 4],
+                },
+            ),
+        ],
+    )
+    def test_huggingface_generate_llm_profile_data(
+        self,
+        mock_json,
+        infer_mode,
+        load_level,
+        expected_metrics,
+    ) -> None:
+        """Collect LLM metrics from HuggingFace generate profile export data and check values.
+
+        Metrics
+        * request_latencies
+            - experiment 1: [8 - 1, 11 - 2] = [7, 9]
+        * request_throughputs
+            - experiment 1: [2/(11 - 1)] = [2/10]
+        * time to first tokens
+            - experiment 1: [3 - 1, 4 - 2] = [2, 2]
+        * time to second tokens
+            - experiment 1: [5 - 3, 7 - 4] = [2, 3]
+        * inter token latencies
+            - experiment 1: [((8 - 1) - 2)/(4 - 1), ((11 - 2) - 2)/(5 - 1)]
+                          : [5/3, 9/5]
+                          : [2, 2]  # rounded
+        * output token throughputs per user
+            - experiment 1: [1 / ns_to_sec(2), 1 / ns_to_sec(2)]
+        * output token throughputs
+            - experiment 1: [(4 + 5)/(11 - 1)] = [9/10]
+        * output sequence lengths
+            - experiment 1: [4, 5]
+        * input sequence lengths
+            - experiment 1: [3, 4]
+        """
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "hf-internal-testing/llama-tokenizer"
+        tokenizer = get_tokenizer(config)
+        pd = LLMProfileDataParser(
+            filename=Path("huggingface_generate_profile_export.json"),
+            tokenizer=tokenizer,
+        )
+
+        statistics = pd.get_statistics(infer_mode=infer_mode, load_level=load_level)
+        metrics = cast(LLMMetrics, statistics.metrics)
+
+        expected_metrics = LLMMetrics(**expected_metrics)
+        expected_statistics = Statistics(expected_metrics)
+
+        check_llm_metrics(metrics, expected_metrics)
+        check_statistics(statistics, expected_statistics)
+
+        # check non-existing profile data
+        with pytest.raises(KeyError):
+            pd.get_statistics(infer_mode="concurrency", load_level="40")

@@ -25,14 +25,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import TritonGenerateConverter
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
     GenericDataset,
 )
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestTritonGenerateConverter:
@@ -41,31 +40,26 @@ class TestTritonGenerateConverter:
         return GenericDataset(files_data={"file1": FileData(rows)})
 
     def test_check_config_raises_exception_for_deterministic_tokens(self):
-        config = InputsConfig(
-            output_tokens_deterministic=True,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.output_tokens.deterministic = True
 
-        converter = TritonGenerateConverter()
+        converter = TritonGenerateConverter(config)
 
         with pytest.raises(
             ValueError,
             match="The --output-tokens-deterministic flag is not supported for Triton Generate.",
         ):
-            converter.check_config(config)
+            converter.check_config()
 
     def test_convert_default(self):
         generic_dataset = self.create_generic_dataset(
             [DataRow(texts=["sample_prompt_1"]), DataRow(texts=["sample_prompt_2"])]
         )
 
-        config = InputsConfig(
-            extra_inputs={},
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
 
-        converter = TritonGenerateConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = TritonGenerateConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -81,14 +75,11 @@ class TestTritonGenerateConverter:
             [DataRow(texts=["extra_input_prompt"])]
         )
 
-        extra_inputs = {"temperature": 0.7, "top_p": 0.9}
-        config = InputsConfig(
-            extra_inputs=extra_inputs,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.extra = {"temperature": 0.7, "top_p": 0.9}
 
-        converter = TritonGenerateConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = TritonGenerateConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -111,13 +102,11 @@ class TestTritonGenerateConverter:
             [DataRow(texts=["streaming_prompt"])]
         )
 
-        config = InputsConfig(
-            add_stream=True,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.streaming = True
 
-        converter = TritonGenerateConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = TritonGenerateConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -139,11 +128,9 @@ class TestTritonGenerateConverter:
             [DataRow(texts=["tokens_mean_prompt"])]
         )
 
-        config = InputsConfig(
-            output_tokens_mean=100,
-            output_tokens_stddev=10,
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.output_tokens.mean = 100
+        config.input.output_tokens.stddev = 10
 
         def mock_sample_bounded_normal(mean, stddev, lower):
             assert mean == 100
@@ -156,8 +143,8 @@ class TestTritonGenerateConverter:
             mock_sample_bounded_normal,
         )
 
-        converter = TritonGenerateConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = TritonGenerateConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [
@@ -186,12 +173,10 @@ class TestTritonGenerateConverter:
             ]
         )
 
-        config = InputsConfig(
-            tokenizer=get_empty_tokenizer(),
-        )
+        config = ConfigCommand({"model_name": "test_model"})
 
-        converter = TritonGenerateConverter()
-        result = converter.convert(generic_dataset, config)
+        converter = TritonGenerateConverter(config)
+        result = converter.convert(generic_dataset)
 
         expected_result = {
             "data": [

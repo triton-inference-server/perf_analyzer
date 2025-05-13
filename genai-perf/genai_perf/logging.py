@@ -26,13 +26,43 @@
 
 import logging
 import logging.config
+import os
+from typing import Optional
 
-DEFAULT_LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s:%(lineno)s - %(message)s"
-DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M"
+from rich.highlighter import NullHighlighter
+from rich.logging import RichHandler
+
+DEFAULT_LOG_FORMAT = "%(message)s"
+DEFAULT_DATE_FORMAT = "[%Y-%m-%d %H:%M:%S]"
+HANDLER = "rich.logging.RichHandler"
+MOCK_HANDLER = "genai_perf.logging.MockRichHandler"
 
 
-def init_logging() -> None:
-    LOGGING_CONFIG = {
+class MockRichHandler(RichHandler):
+    """A mock RichHandler that prints the raw message for testing purposes."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def emit(self, record):
+        # In test mode, just print the raw message
+        message = self.format(record)
+        print(message)
+
+
+def init_logging(log_level: Optional[str] = None) -> None:
+    """Initialize logging configuration for the genai_perf package.
+
+    Args:
+        log_level: Override default log level (DEBUG/INFO/WARNING/ERROR/CRITICAL)
+    """
+    # Use environment variable or passed parameter to override default log level
+    log_level = log_level or os.environ.get("GENAI_PERF_LOG_LEVEL", "DEBUG")
+
+    # Check if we are running pytest
+    is_testing = os.environ.get("PYTEST_CURRENT_TEST") is not None
+
+    logging_config = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
@@ -43,82 +73,42 @@ def init_logging() -> None:
         },
         "handlers": {
             "console": {
-                "level": "INFO",
+                "class": MOCK_HANDLER if is_testing else HANDLER,
                 "formatter": "standard",
-                "class": "logging.StreamHandler",
-                "stream": "ext://sys.stdout",  # Default is stderr
+                "highlighter": NullHighlighter(),
+                "omit_repeated_times": False,
+                "rich_tracebacks": True,
+                "show_path": True,
             },
         },
         "loggers": {
-            "": {  # root logger - avoid using
+            "": {  # root logger
                 "handlers": ["console"],
                 "level": "WARNING",
                 "propagate": False,
             },
             "__main__": {  # if __name__ == '__main__'
                 "handlers": ["console"],
-                "level": "DEBUG",
+                "level": log_level,
                 "propagate": False,
             },
-            "genai_perf.parser": {  # must use module name for loggers
+            "genai_perf": {  # All modules in genai_perf package
                 "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.wrapper": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.plots.plot_config_parser": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.plots.plot_manager": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.export_data.json_exporter": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.export_data.csv_exporter": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.goodput_calculator.llm_goodput_calculator": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.subcommand.analyze": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.subcommand.common": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.inputs.retrievers.synthetic_prompt_generator": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": False,
-            },
-            "genai_perf.profile_data_parser": {
-                "handlers": ["console"],
-                "level": "DEBUG",
+                "level": log_level,
                 "propagate": False,
             },
         },
     }
-    logging.config.dictConfig(LOGGING_CONFIG)
+    logging.config.dictConfig(logging_config)
 
 
 def getLogger(name):
+    """Get a logger with the specified name.
+
+    Args:
+        name (str): Name of the logger, typically __name__
+
+    Returns:
+        logging.Logger: Configured logger instance
+    """
     return logging.getLogger(name)

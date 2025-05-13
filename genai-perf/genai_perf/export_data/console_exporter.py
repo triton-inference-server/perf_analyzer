@@ -24,16 +24,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-import genai_perf.logging as logging
 from rich.console import Console
 from rich.table import Table
 
 from . import exporter_utils
 from . import telemetry_data_exporter_util as telem_utils
 from .exporter_config import ExporterConfig
-
-logger = logging.getLogger(__name__)
 
 
 class ConsoleExporter:
@@ -47,35 +43,39 @@ class ConsoleExporter:
         self._stats = config.stats
         self._telemetry_stats = config.telemetry_stats
         self._metrics = config.metrics
-        self._args = config.args
+        self._config = config.config
+
+        # Set the maximum width of the 'Statistic' column.
+        # Any metric name+unit longer than this width will be wrapped.
+        self._max_width = 36
 
     def _get_title(self):
         title = "NVIDIA GenAI-Perf | "
-        if self._args.endpoint_type == "embeddings":
+        if self._config.endpoint.type == "embeddings":
             title += "Embeddings Metrics"
-        elif self._args.endpoint_type == "rankings":
+        elif self._config.endpoint.type == "rankings":
             title += "Rankings Metrics"
-        elif self._args.endpoint_type == "image_retrieval":
+        elif self._config.endpoint.type == "image_retrieval":
             title += "Image Retrieval Metrics"
-        elif self._args.endpoint_type == "multimodal":
+        elif self._config.endpoint.type == "multimodal":
             title += "Multi-Modal Metrics"
         else:
             title += "LLM Metrics"
         return title
 
-    def export(self) -> None:
+    def export(self, **kwargs) -> None:
         table = Table(title=self._get_title())
 
-        table.add_column("Statistic", justify="right", style="cyan", no_wrap=True)
+        table.add_column("Statistic", justify="right", style="cyan")
         for stat in self.STAT_COLUMN_KEYS:
             table.add_column(stat, justify="right", style="green")
 
         # Request metrics table
         self._construct_table(table)
 
-        console = Console()
+        console = Console(**kwargs)
         console.print(table)
-        if self._args.verbose:
+        if self._config.verbose:
             telem_utils.export_telemetry_stats_console(
                 self._telemetry_stats, self.STAT_COLUMN_KEYS, console
             )
@@ -86,7 +86,9 @@ class ConsoleExporter:
             if self._should_skip(metric.name):
                 continue
 
-            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
+            metric_str = exporter_utils.format_metric_name(
+                metric.name, metric.unit, self._max_width
+            )
             row_values = [metric_str]
 
             for stat in self.STAT_COLUMN_KEYS:
@@ -97,8 +99,10 @@ class ConsoleExporter:
             table.add_row(*row_values)
 
         for metric in self._metrics.system_metrics:
-            metric_str = exporter_utils.format_metric_name(metric.name, metric.unit)
-            if metric.name == "request_goodput" and not self._args.goodput:
+            metric_str = exporter_utils.format_metric_name(
+                metric.name, metric.unit, self._max_width
+            )
+            if metric.name == "request_goodput" and not self._config.input.goodput:
                 continue
 
             row_values = [metric_str]
@@ -114,23 +118,16 @@ class ConsoleExporter:
 
     # (TMA-1976) Refactor this method as the csv exporter shares identical method.
     def _should_skip(self, metric_name: str) -> bool:
-        if self._args.endpoint_type == "embeddings":
+        if self._config.endpoint.type == "embeddings":
             return False  # skip nothing
 
-        # TODO (TMA-1712): need to decide if we need this metric. Remove
-        # from statistics display for now.
-        # TODO (TMA-1678): output_token_throughput_per_request is treated
-        # separately since the current code treats all throughput metrics to
-        # be displayed outside of the statistics table.
-        if metric_name == "output_token_throughput_per_request":
-            return True
-
-        # When non-streaming, skip ITL and TTFT
+        # Skip following streaming metrics when non-streaming mode
         streaming_metrics = [
             "inter_token_latency",
             "time_to_first_token",
             "time_to_second_token",
+            "output_token_throughput_per_user",
         ]
-        if not self._args.streaming and metric_name in streaming_metrics:
+        if not self._config.endpoint.streaming and metric_name in streaming_metrics:
             return True
         return False

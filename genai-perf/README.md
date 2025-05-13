@@ -159,8 +159,6 @@ Now we can run GenAI-Perf inside the Triton Inference Server SDK container:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --tokenizer gpt2 \
-  --service-kind triton \
   --backend tensorrtllm \
   --streaming
 ```
@@ -188,6 +186,80 @@ See [Tutorial](docs/tutorial.md) for additional examples.
 
 <!--
 =====================
+Config File
+====================
+-->
+## Configuration File
+In addition to setting options via the command-line, GenAI-Perf supports the passing in of a config file (in YAML format). The command is:</br>
+```bash
+genai-perf config -f <config_file>
+```
+
+### Creating a Template Config File
+In order to make it easier for you to use config files, we have added a new subcommand that generates a template config file containing all possible options, pre-populated to their default settings. The command to create this is:</br>
+```bash
+genai-perf create-template
+```
+By default the config file is named `genai_perf_config.yaml`, but you can change that by passing in a custom name using the `-f` option.</br>
+For less experienced users, you can include `-v/--verbose` and the config file will also contain descriptions for each option (similar to what you would see using `-h` from the command line).
+
+Here is a sample section of what the template config file looks like:
+```
+  endpoint:
+    model_selection_strategy: round_robin
+    backend: tensorrtllm
+    custom:
+    type: kserve
+    streaming: False
+    server_metrics_urls: http://localhost:8002/metrics
+    url: localhost:8001
+    grpc_method:
+```
+and with `--verbose`:
+```bash
+ endpoint:
+    # When multiple model are specified, this is how a specific model should be assigned to a prompt.
+    # round_robin: nth prompt in the list gets assigned to n-mod len(models).
+    # random: assignment is uniformly random
+    model_selection_strategy: round_robin
+
+    # When benchmarking Triton, this is the backend of the model.
+    # For the TENSORRT-LLM backend,you currently must set 'exclude_input_in_output' to true
+    # in the model config to not echo the input tokens
+    backend: tensorrtllm
+
+    # Set a custom endpoint that differs from the OpenAI defaults.
+    custom:
+
+    # The type to send requests to on the server.
+    type: kserve
+
+    # An option to enable the use of the streaming API.
+    streaming: False
+
+    # The list of Triton server metrics URLs.
+    # These are used for Telemetry metric reporting with Triton.
+    server_metrics_urls: http://localhost:8002/metrics
+
+    # URL of the endpoint to target for benchmarking.
+    url: localhost:8001
+
+    # A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
+    # The option is only supported by dynamic gRPC service kind and is
+    # required to identify the RPC to use when sending requests to the server.
+    grpc_method:
+```
+
+### Overriding Config Options
+Once you have setup your config file to your liking, there could be times where you might want to re-profile with just a few options changed.</br>
+Rather than editing your config you can include the `--override-config` option on the CLI along with the options you want to change. For example:
+```bash
+genai-perf config -f genai_perf_config.yaml --override-config --warmup-request-count 100 --concurrency 32
+```
+</br>
+
+<!--
+=====================
 Analyze Subcommand
 ====================
 -->
@@ -210,72 +282,33 @@ by passing the `--generate-plots` option when running the benchmark:
 ```bash
 genai-perf profile \
   -m gpt2 \
-  --tokenizer gpt2 \
-  --service-kind triton \
   --backend tensorrtllm \
   --streaming \
   --concurrency 1 \
   --generate-plots
 ```
 
-This will generate a [set of default plots](docs/compare.md#example-plots) such as:
+This will generate a [set of default plots](docs/example_plots.md) such as:
 - Time to first token (TTFT) analysis
 - Request latency analysis
 - TTFT vs Input sequence lengths
 - Inter token latencies vs Token positions
 - Input sequence lengths vs Output sequence lengths
 
+</br>
 
-### Using `compare` Subcommand to Visualize Multiple Runs
+<!--
+=====================
+PROCESS EXPORT FILES SUBCOMMAND
+====================
+-->
+## Process Export Files
 
-The `compare` subcommand in GenAI-Perf facilitates users in comparing multiple
-profile runs and visualizing the differences through plots.
-
-#### Usage
-Assuming the user possesses two profile export JSON files,
-namely `profile1.json` and `profile2.json`,
-they can execute the `compare` subcommand using the `--files` option:
-
-```bash
-genai-perf compare --files profile1.json profile2.json
-```
-
-Executing the above command will perform the following actions under the
-`compare` directory:
-1. Generate a YAML configuration file (e.g. `config.yaml`) containing the
-metadata for each plot generated during the comparison process.
-2. Automatically generate the [default set of plots](docs/compare.md#example-plots)
-(e.g. TTFT vs. Input Sequence Lengths) that compare the two profile runs.
-
-```
-compare
-├── config.yaml
-├── distribution_of_input_sequence_lengths_to_output_sequence_lengths.jpeg
-├── request_latency.jpeg
-├── time_to_first_token.jpeg
-├── time_to_first_token_vs_input_sequence_lengths.jpeg
-├── token-to-token_latency_vs_output_token_position.jpeg
-└── ...
-```
-
-#### Customization
-Users have the flexibility to iteratively modify the generated YAML configuration
-file to suit their specific requirements.
-They can make alterations to the plots according to their preferences and execute
-the command with the `--config` option followed by the path to the modified
-configuration file:
-
-```bash
-genai-perf compare --config compare/config.yaml
-```
-
-This command will regenerate the plots based on the updated configuration settings,
-enabling users to refine the visual representation of the comparison results as
-per their needs.
-
-See [Compare documentation](docs/compare.md) for more details.
+GenAI-Perf can be used to process multiple profile export files from distributed runs and generate outputs with aggregated metrics.
+See [Process Export Files](docs/process-export-files.md) for details on how this subcommand can be utilized.
 
 </br>
+
 
 <!--
 ======================
@@ -315,8 +348,8 @@ For any dataset, you can specify the following options:
   in each output. This is only used when output-tokens-mean is provided, >= 1.
 * `--output-tokens-mean-deterministic`: When using `--output-tokens-mean`, this
   flag can be set to improve precision by setting the minimum number of tokens
-  equal to the requested number of tokens. This is currently supported with the
-  Triton service-kind. Note that there is still some variability in the
+  equal to the requested number of tokens. This is currently supported with
+  Triton. Note that there is still some variability in the
   requested number of output tokens, but GenAi-Perf attempts its best effort
   with your model to get the right number of output tokens.
 * `--prefix-prompt-length <int>`: The number of tokens to include in each
@@ -370,6 +403,7 @@ the inference server.
 | <span id="time_to_first_token_metric">Time to First Token</span> | Time between when a request is sent and when its first response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | <span id="time_to_second_token_metric">Time to Second Token</span> | Time between when the first streaming response is received and when the second streaming response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | <span id="inter_token_latency_metric">Inter Token Latency</span> | Time between intermediate responses for a single request divided by the number of generated tokens of the latter response, one value per response per request in benchmark | Avg, min, max, p99, p90, p75 |
+| <span id="output_token_throughput_per_user_metric">Output Token Throughput Per User</span> | Total number of output tokens (excluding the first token) divided by the total duration of the generation phase of each request | Avg, min, max, p99, p90, p75 |
 | Request Latency | Time between when a request is sent and when its final response is received, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Output Sequence Length | Total number of output tokens of a request, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
 | Input Sequence Length | Total number of input tokens of a request, one value per request in benchmark | Avg, min, max, p99, p90, p75 |
@@ -380,7 +414,7 @@ the inference server.
 
 ### Telemetry Metrics
 
-When using the Triton service kind, Telemetry metrics will be reported in
+When benchmarking Triton, Telemetry metrics will be reported in
 the GenAI-Perf profile export files. These include GPU power usage, GPU
 utilization, energy consumption, total GPU memory, and more. If you would like
 these to be printed as output, you can use the `--verbose` flag.
@@ -397,6 +431,24 @@ COMMAND LINE OPTIONS
 ##### `--help`
 
 Show the help message and exit.
+
+### Config Options
+
+##### `-f`
+##### `--file`
+
+The path to the config file - REQUIRED.
+
+##### `--override-config`
+
+An option that allows the user to override values specified in the config file.
+
+### Template Options
+
+##### `-f`
+##### `--file`
+
+The name of the template file to be created. Default is `genai_perf_config.yaml`.
 
 ### Endpoint Options:
 
@@ -416,30 +468,23 @@ a request in order. Random means that assignment is uniformly random
 
 ##### `--backend {tensorrtllm,vllm}`
 
-When using the "triton" service-kind, this is the backend of the model. For the
-TRT-LLM backend, you currently must set `exclude_input_in_output` to true in the
-model config to not echo the input tokens in the output. (default: tensorrtllm)
+When benchmarking Triton, this is the backend of the model.
+(default: tensorrtllm)
 
 ##### `--endpoint <str>`
 
 Set a custom endpoint that differs from the OpenAI defaults. (default: `None`)
 
-##### `--endpoint-type {chat,completions,embeddings,rankings}`
+##### `--endpoint-type <str>`
 
-The endpoint-type to send requests to on the server. This is only used with the
-`openai` service-kind. (default: `None`)
+The endpoint-type to send requests to on the server. (default: `kserve`)
 
 ##### `--server-metrics-urls <list>`
 
 The list of Triton server metrics URLs. These are used for Telemetry metric
-reporting with the Triton service-kind. Example usage: --server-metrics-urls
+reporting with Triton. Example usage: --server-metrics-urls
 http://server1:8002/metrics http://server2:8002/metrics.
 (default: `http://localhost:8002/metrics`)
-
-##### `--service-kind {triton,openai}`
-
-The kind of service perf_analyzer will generate load for. In order to use
-`openai`, you must specify an api via `--endpoint-type`. (default: `triton`)
 
 ##### `--streaming`
 
@@ -453,14 +498,14 @@ URL of the endpoint to target for benchmarking. (default: `None`)
 ##### `--grpc-method <str>`
 
 A fully-qualified gRPC method name in '<package>.<service>/<method>' format.
-The option is only supported by dynamic gRPC service kind and is required to
+The option is only supported with dynamic gRPC and is required to
 identify the RPC to use when sending requests to the server. (default: `None`)
 
 ### Input Options
 
 ##### `--audio-length-mean <int>`
 
-The mean length of audio data in seconds. (default: `10`)
+The mean length of audio data in seconds. (default: `0`)
 
 ##### `--audio-length-stddev <int>`
 
@@ -490,6 +535,14 @@ Currently only 1 (mono) and 2 (stereo) are supported.
 
 ##### `-b <int>`
 ##### `--batch-size <int>`
+##### `--batch-size-text <int>
+
+The text batch size of the requests GenAI-Perf should send.
+(default: `1`)
+##### `--batch-size-text <int>
+
+The text batch size of the requests GenAI-Perf should send.
+(default: `1`)
 
 ##### `--batch-size-audio <int>`
 
@@ -556,7 +609,7 @@ correctly. (default: `-1`)
 
 When using `--output-tokens-mean`, this flag can be set to improve precision by
 setting the minimum number of tokens equal to the requested number of tokens.
-This is currently supported with the Triton service-kind. Note that there is
+This is currently supported with Triton. Note that there is
 still some variability in the requested number of output tokens, but GenAi-Perf
 attempts its best effort with your model to get the right number of output
 tokens. (default: `False`)
@@ -568,14 +621,14 @@ when `--output-tokens-mean` is provided. (default: `0`)
 
 ##### `--random-seed <int>`
 
-The seed used to generate random values. (default: `0`)
+The seed used to generate random values. If not provided, a random seed will be
+used.
 
 ##### `--request-count <int>`
 ##### `--num-requests <int>`
 
 The number of requests to use for measurement.
-By default, the benchmark does not terminate based on request count.
-Instead, it continues until stabilization is detected. (default: `0`)
+(default: `10`)
 
 ##### `--synthetic-input-tokens-mean <int>`
 ##### `--isl`
@@ -634,9 +687,11 @@ The concurrency value to benchmark. (default: `None`)
 ##### `--measurement-interval <int>`
 ##### `-p <int>`
 
-The time interval used for each measurement in milliseconds. Perf Analyzer
-will sample a time interval specified and take measurement over the requests
-completed within that time interval. (default: `10000`)
+The time interval used for each measurement in milliseconds.
+Perf Analyzer will sample a time interval specified and take
+measurement over the requests completed within that time interval.
+When using the default stability percentage, GenAI-Perf will benchmark
+for 3*(measurement_interval) milliseconds.
 
 ##### `--request-rate <float>`
 
@@ -680,7 +735,13 @@ session data. (default: `0`)
 ##### `--session-concurrency <int>`
 
 The number of concurrent sessions to benchmark. This must be specified
-when using benchmarking sessions. (default: `0`)
+when benchmarking sessions. (default: `0`)
+
+##### `--session-delay-ratio <float>`
+
+A ratio to scale multi-turn delays when using a payload file. This allows adjusting
+the timing between turns in a session without changing the payload file.
+(default: `1.0`)
 
 ##### `--session-turn-delay-mean`
 
@@ -702,13 +763,14 @@ The mean number of turns per session.
 The standard deviation of the number of turns per session.
 (default: `0`)
 
-### Other Options
+### Tokenizer Options
 
 ##### `--tokenizer <str>`
 
 The HuggingFace tokenizer to use to interpret token metrics from prompts and
 responses. The value can be the name of a tokenizer or the filepath of the
-tokenizer. (default: `hf-internal-testing/llama-tokenizer`)
+tokenizer. The default value is the model name.
+(default: "<model_value>")
 
 ##### `--tokenizer-revision <str>`
 
@@ -720,6 +782,8 @@ name, tag name, or commit ID. (default: `main`)
 Allow custom tokenizer to be downloaded and executed. This carries security
 risks and should only be used for repositories you trust. This is only
 necessary for custom tokenizers stored in HuggingFace Hub.  (default: `False`)
+
+### Other Options
 
 ##### `-v`
 ##### `--verbose`
@@ -737,8 +801,9 @@ An option to provide constraints in order to compute goodput. Specify goodput
 constraints as 'key:value' pairs, where the key is a valid metric name, and the
 value is a number representing either milliseconds or a throughput value per
 second. For example, 'request_latency:300' or
-'output_token_throughput_per_request:600'. Multiple key:value pairs can be
+'output_token_throughput_per_user:600'. Multiple key:value pairs can be
 provided, separated by spaces. (default: `None`)
+
 
 </br>
 

@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -23,31 +23,28 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-import os
-from argparse import Namespace
-from pathlib import Path
 
-from genai_perf.constants import DEFAULT_COMPARE_DIR
-from genai_perf.plots.plot_config_parser import PlotConfigParser
-from genai_perf.plots.plot_manager import PlotManager
+from typing import List, Optional
+
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.inputs.input_constants import Subcommand
+from genai_perf.subcommand.analyze import analyze_handler
+from genai_perf.subcommand.process_export_files import process_export_files_handler
+from genai_perf.subcommand.profile import profile_handler
 
 
-def compare_handler(args: Namespace) -> None:
+###########################################################################
+# Config Subcommand Handler
+###########################################################################
+def config_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
     """
-    Handles `compare` subcommand workflow
+    Handles `config` subcommand workflow
     """
-    if args.files:
-        _create_compare_dir()
-        output_dir = Path(f"{DEFAULT_COMPARE_DIR}")
-        PlotConfigParser.create_init_yaml_config(args.files, output_dir)
-        args.config = output_dir / "config.yaml"
-
-    config_parser = PlotConfigParser(args.config)
-    plot_configs = config_parser.generate_configs(args.tokenizer)
-    plot_manager = PlotManager(plot_configs)
-    plot_manager.generate_plots()
-
-
-def _create_compare_dir() -> None:
-    if not os.path.exists(DEFAULT_COMPARE_DIR):
-        os.mkdir(DEFAULT_COMPARE_DIR)
+    if config.subcommand == Subcommand.PROFILE:
+        profile_handler(config, extra_args)
+    elif config.subcommand == Subcommand.ANALYZE:
+        analyze_handler(config, extra_args)
+    elif config.subcommand == Subcommand.PROCESS:
+        process_export_files_handler(config, extra_args)
+    else:
+        raise ValueError(f"User Config: {config.subcommand} handler not found.")

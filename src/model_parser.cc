@@ -31,6 +31,36 @@
 
 namespace triton { namespace perfanalyzer {
 
+ModelParser::ModelParser(InferenceLoadMode inference_load_mode)
+    : inputs_(std::make_shared<ModelTensorMap>()),
+      outputs_(std::make_shared<ModelTensorMap>()),
+      composing_models_map_(std::make_shared<ComposingModelMap>()),
+      scheduler_type_(NONE), max_batch_size_(0), is_decoupled_(false),
+      response_cache_enabled_(false), top_level_response_caching_enabled_(false)
+{
+  // Fixed schedule mode takes a timestamp input
+  if (inference_load_mode == InferenceLoadMode::FixedSchedule) {
+    auto delay_input = inputs_->emplace("timestamp", ModelTensor()).first;
+    delay_input->second.name_ = "timestamp";
+    delay_input->second.datatype_ = "UINT64";
+    delay_input->second.shape_.push_back(1);
+  }
+
+  // Session concurrency mode takes an optional delay input
+  if (inference_load_mode == InferenceLoadMode::SessionConcurrency) {
+    auto delay_input = inputs_->emplace("delay", ModelTensor()).first;
+    delay_input->second.name_ = "delay";
+    delay_input->second.datatype_ = "UINT64";
+    delay_input->second.shape_.push_back(1);
+    delay_input->second.is_optional_ = true;
+
+    auto session_id_input = inputs_->emplace("session_id", ModelTensor()).first;
+    session_id_input->second.name_ = "session_id";
+    session_id_input->second.datatype_ = "BYTES";
+    session_id_input->second.shape_.push_back(1);
+  }
+}
+
 cb::Error
 ModelParser::InitTriton(
     const rapidjson::Document& metadata, const rapidjson::Document& config,
@@ -299,7 +329,7 @@ ModelParser::InitDynamicGrpc(
 cb::Error
 ModelParser::InitOpenAI(
     const std::string& model_name, const std::string& model_version,
-    const int32_t batch_size, InferenceLoadMode inference_load_mode)
+    const int32_t batch_size)
 {
   // OpenAI does not return model metadata hence we can not obtain any
   // parameters.
@@ -318,28 +348,6 @@ ModelParser::InitOpenAI(
   response_output->second.name_ = "response";
   response_output->second.datatype_ = "JSON";
   response_output->second.shape_.push_back(1);
-
-  // OpenAI in fixed schedule mode takes a timestamp input
-  if (inference_load_mode == InferenceLoadMode::FixedSchedule) {
-    auto delay_input = inputs_->emplace("timestamp", ModelTensor()).first;
-    delay_input->second.name_ = "timestamp";
-    delay_input->second.datatype_ = "UINT64";
-    delay_input->second.shape_.push_back(1);
-  }
-
-  // OpenAI in session concurrency mode takes an optional delay input
-  if (inference_load_mode == InferenceLoadMode::SessionConcurrency) {
-    auto delay_input = inputs_->emplace("delay", ModelTensor()).first;
-    delay_input->second.name_ = "delay";
-    delay_input->second.datatype_ = "UINT64";
-    delay_input->second.shape_.push_back(1);
-    delay_input->second.is_optional_ = true;
-
-    auto session_id_input = inputs_->emplace("session_id", ModelTensor()).first;
-    session_id_input->second.name_ = "session_id";
-    session_id_input->second.datatype_ = "BYTES";
-    session_id_input->second.shape_.push_back(1);
-  }
 
   return cb::Error::Success;
 }

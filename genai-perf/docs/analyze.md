@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -64,7 +64,7 @@ As when running `profile`, an artifact directory will be created for each scenar
 ### Example
 For this command:
 ```bash
-genai-perf analyze -m gpt2 --service-kind triton --backend vllm --sweep-type num_dataset_entries --sweep-range 100:200:50
+genai-perf analyze -m gpt2 --backend vllm --sweep-type num_dataset_entries --sweep-range 100:200:50
 ```
 
 The following artifact directories would be created:
@@ -97,13 +97,13 @@ A new feature of `analyze` is the ability to save and restore results from scena
 
 ### Example
 ```bash
-genai-perf analyze -m gpt2 --service-kind triton --backend vllm --sweep-type num_dataset_entries --sweep-range 100:200:50
+genai-perf analyze -m gpt2 --backend vllm --sweep-type num_dataset_entries --sweep-range 100:200:50
 ```
 This command will profile three scenarios: num_dataset_entries with values 100, 150, & 200.
 
 On a subsequent rerun with this command:
 ```bash
-genai-perf analyze -m gpt2 --service-kind triton --backend vllm --sweep-type num_dataset_entries --sweep-range 100:300:50
+genai-perf analyze -m gpt2 --backend vllm --sweep-type num_dataset_entries --sweep-range 100:300:50
 ```
 The first 3 scenarios would not be re-profiled, and you would see the following message:
 ```

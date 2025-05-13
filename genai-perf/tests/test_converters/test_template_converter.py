@@ -27,10 +27,10 @@
 from unittest.mock import mock_open, patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters import TemplateConverter
 from genai_perf.inputs.input_constants import OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import (
     DataRow,
     FileData,
@@ -53,14 +53,12 @@ class TestTemplateConverter:
         fake_template_path = "/fake/path/template.jinja2"
 
         with patch("os.path.isfile", return_value=True):
-            config = InputsConfig(
-                output_format=OutputFormat.TEMPLATE,
-                tokenizer=get_empty_tokenizer(),
-                extra_inputs={"payload_template": fake_template_path},
-            )
+            config = ConfigCommand({"model_name": "test_model"})
+            config.endpoint.output_format = OutputFormat.TEMPLATE
+            config.input.extra = {"payload_template": fake_template_path}
 
-            converter = TemplateConverter()
-            converter.check_config(config)
+            converter = TemplateConverter(config)
+            converter.check_config()
 
     @patch(
         "builtins.open",
@@ -69,17 +67,16 @@ class TestTemplateConverter:
     )
     def test_check_config_invalid_template(self, mock_open_fn):
         fake_template_path = "/fake/path/invalid_template.jinja2"
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
 
-        template_converter = TemplateConverter()
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
+
+        template_converter = TemplateConverter(config)
 
         with patch("os.path.isfile", return_value=True):
             with pytest.raises(GenAIPerfException, match="unexpected ']'"):
-                template_converter.check_config(config)
+                template_converter.check_config()
 
     @patch(
         "builtins.open",
@@ -89,81 +86,70 @@ class TestTemplateConverter:
     def test_check_config_invalid_type_conversion(self, mock_open_fn):
         fake_template_path = "/fake/path/invalid_template.jinja2"
 
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
 
-        converter = TemplateConverter()
+        converter = TemplateConverter(config)
 
         with patch("os.path.isfile", return_value=True):
             with pytest.raises(
                 GenAIPerfException,
                 match="Template does not render a list of strings to a list of items",
             ):
-                converter.check_config(config)
+                converter.check_config()
 
     def test_check_config_missing_payload_template(self):
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={},  # Missing 'payload_template'
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
 
-        converter = TemplateConverter()
+        converter = TemplateConverter(config)
 
         with pytest.raises(
             GenAIPerfException,
             match="The template converter requires the extra input payload_template",
         ):
-            converter.check_config(config)
+            converter.check_config()
 
     def test_check_config_with_named_template(self):
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": "nv-embedqa"},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": "nv-embedqa"}
 
-        converter = TemplateConverter()
-        converter.check_config(config)
+        converter = TemplateConverter(config)
+        converter.check_config()
 
     def test_check_config_with_nonexistent_template_file(self):
         fake_template_path = "/nonexistent/path/template.jinja2"
 
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
 
-        converter = TemplateConverter()
+        converter = TemplateConverter(config)
 
         with pytest.raises(
             GenAIPerfException,
             match=f"Template file not found: {fake_template_path}",
         ):
             with patch("os.path.isfile", return_value=False):  # Simulate missing file
-                converter.check_config(config)
+                converter.check_config()
 
     @patch("builtins.open", side_effect=IOError("File read error"))
     def test_check_config_with_unreadable_template_file(self, mock_open_fn):
         fake_template_path = "/fake/path/template.jinja2"
 
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": fake_template_path},
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": fake_template_path}
 
-        converter = TemplateConverter()
+        converter = TemplateConverter(config)
 
         with pytest.raises(
             GenAIPerfException, match="Error reading template file: File read error"
         ):
             with patch("os.path.isfile", return_value=True):  # Simulate file exists
-                converter.check_config(config)
+                converter.check_config()
 
     @patch(
         "builtins.open",
@@ -171,22 +157,20 @@ class TestTemplateConverter:
         read_data='{ "invalid_format": {{ texts|tojson }} }',
     )
     def test_check_config_with_invalid_extra_inputs(self, mock_open_fn):
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={
-                "invalid_key": "value",
-                "payload_template": "template.jinja2",
-            },
-        )
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {
+            "invalid_key": "value",
+            "payload_template": "template.jinja2",
+        }
 
-        converter = TemplateConverter()
+        converter = TemplateConverter(config)
 
         with pytest.raises(
             GenAIPerfException,
             match="Template only supports the extra input 'payload_template'",
         ):
-            converter.check_config(config)
+            converter.check_config()
 
     @patch("builtins.open", new_callable=mock_open)
     def test_convert_custom_template(self, mock_open_fn):
@@ -203,14 +187,12 @@ class TestTemplateConverter:
                 ]
             )
 
-            config = InputsConfig(
-                output_format=OutputFormat.TEMPLATE,
-                tokenizer=get_empty_tokenizer(),
-                extra_inputs={"payload_template": fake_template_path},
-            )
+            config = ConfigCommand({"model_name": "test_model"})
+            config.endpoint.output_format = OutputFormat.TEMPLATE
+            config.input.extra = {"payload_template": fake_template_path}
 
-            converter = TemplateConverter()
-            result = converter.convert(generic_dataset, config)
+            converter = TemplateConverter(config)
+            result = converter.convert(generic_dataset)
 
             expected_result = {
                 "data": [
@@ -230,13 +212,13 @@ class TestTemplateConverter:
                 DataRow(texts=["sample_prompt_2", "sample_prompt_3"]),
             ]
         )
-        config = InputsConfig(
-            output_format=OutputFormat.TEMPLATE,
-            tokenizer=get_empty_tokenizer(),
-            extra_inputs={"payload_template": "nv-embedqa"},
-        )
-        converter = TemplateConverter()
-        result = converter.convert(generic_dataset, config)
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.TEMPLATE
+        config.input.extra = {"payload_template": "nv-embedqa"}
+
+        converter = TemplateConverter(config)
+        result = converter.convert(generic_dataset)
         expected_result = {
             "data": [
                 {"text": ["sample_prompt_1"]},
@@ -253,6 +235,6 @@ class TestTemplateConverter:
         with patch("builtins.open", mock_open(read_data=fake_template_content)), patch(
             "os.path.isfile", return_value=True
         ):
-            converter = TemplateConverter()
+            converter = TemplateConverter(ConfigCommand({"model_names": "test_model"}))
             template = converter.resolve_template("/path/to/template.jinja2")
             assert template.render(texts=["sample"]) == '[{"custom_key": ["sample"] }]'

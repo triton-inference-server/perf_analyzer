@@ -24,15 +24,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
 import os
 from typing import Any, Dict, cast
 
 import jinja2
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.converters.base_converter import BaseConverter
-from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.generic_dataset import GenericDataset
+from genai_perf.utils import load_json_str
 
 NAMED_TEMPLATES = {
     "nv-embedqa": """[
@@ -73,26 +72,34 @@ class TemplateConverter(BaseConverter):
         environment = jinja2.Environment(autoescape=True)
         return environment.from_string(template_content)
 
-    def check_config(self, config: InputsConfig) -> None:
-        for key, value in config.extra_inputs.items():
-            if key != "payload_template":
-                raise GenAIPerfException(
-                    "Template only supports the extra input 'payload_template'. "
-                )
+    def check_config(self) -> None:
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
+                if key != "payload_template":
+                    raise GenAIPerfException(
+                        "Template only supports the extra input 'payload_template'. "
+                    )
 
-        payload_template = config.extra_inputs.get("payload_template")
+        payload_template = (
+            self.config.input.extra.get("payload_template")
+            if self.config.input.extra
+            else None
+        )
         if not payload_template:
+            keys = (
+                list(self.config.input.extra.keys()) if self.config.input.extra else []
+            )
             raise GenAIPerfException(
                 "The template converter requires the "
                 "extra input payload_template, only "
                 "detected the following --extra-inputs: "
-                f"{list(config.extra_inputs.keys())}."
+                f"{keys}."
             )
         try:
             template = self.resolve_template(payload_template)
             test_texts = ["test1", "test2"]
             payloads_json = template.render(texts=test_texts)
-            payloads = json.loads(payloads_json)
+            payloads = load_json_str(payloads_json)
             if not isinstance(payloads, list):
                 raise ValueError(
                     "Template does not render a list of strings to a list of items. "
@@ -102,9 +109,10 @@ class TemplateConverter(BaseConverter):
             raise GenAIPerfException(e)
 
     def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
+        self,
+        generic_dataset: GenericDataset,
     ) -> Dict[Any, Any]:
-        payload_template = config.extra_inputs.get("payload_template")
+        payload_template = self.config.input.extra.get("payload_template")
         payload_template = cast(str, payload_template)
         template = self.resolve_template(payload_template)
 
@@ -113,5 +121,5 @@ class TemplateConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for _, row in enumerate(file_data.rows):
                 payloads_json = template.render(texts=row.texts)
-                request_body["data"] += json.loads(payloads_json)
+                request_body["data"] += load_json_str(payloads_json)
         return request_body

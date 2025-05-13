@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import OutputFormat
 from genai_perf.inputs.inputs import Inputs
 from genai_perf.inputs.inputs_config import InputsConfig
@@ -60,20 +61,24 @@ class TestInputs:
         mock_converter = mock_converter_factory.return_value
         mock_converter.convert.return_value = expected_output
 
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
+
         inputs = Inputs(
             InputsConfig(
-                output_format=OutputFormat.OPENAI_COMPLETIONS,
+                config=config,
                 tokenizer=mock_tokenizer,
+                output_directory=Path("."),
             )
         )
 
         inputs.create_inputs()
 
         mock_retriever_factory.return_value.retrieve_data.assert_called_once()
-        mock_converter.convert.assert_called_once_with(generic_dataset, inputs.config)
+        mock_converter.convert.assert_called_once_with(generic_dataset)
 
         mock_open_fn.assert_called_once_with(
-            str(inputs.config.output_dir / "inputs.json"), "w"
+            str(inputs.output_directory / "inputs.json"), "w"
         )
         mock_open_fn().write.assert_called_once_with(
             json.dumps(expected_output, indent=2)
@@ -105,11 +110,14 @@ class TestInputs:
         expected_output = {"data": "some converted data"}
         mock_converter_factory.return_value.convert.return_value = expected_output
 
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.output_format = OutputFormat.OPENAI_COMPLETIONS
+
         inputs = Inputs(
             InputsConfig(
-                output_format=OutputFormat.OPENAI_COMPLETIONS,
+                config=config,
                 tokenizer=mock_tokenizer,
-                output_dir=Path("."),
+                output_directory=Path("."),
             )
         )
 
@@ -117,11 +125,11 @@ class TestInputs:
 
         mock_retriever_factory.return_value.retrieve_data.assert_called_once()
         mock_converter_factory.return_value.convert.assert_called_once_with(
-            generic_dataset, inputs.config
+            generic_dataset
         )
 
         mock_open_fn.assert_called_once_with(
-            str(inputs.config.output_dir / "inputs.json"), "w"
+            str(inputs.output_directory / "inputs.json"), "w"
         )
         mock_open_fn().write.assert_called_once_with(
             json.dumps(expected_output, indent=2)

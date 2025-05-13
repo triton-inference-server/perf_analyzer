@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,14 +33,11 @@ import genai_perf.logging as logging
 # Skip type checking to avoid mypy error
 # Issue: https://github.com/python/mypy/issues/10632
 import yaml  # type: ignore
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.metrics import Statistics
 from genai_perf.plots.plot_config import PlotConfig, PlotType, ProfileRunData
 from genai_perf.profile_data_parser import LLMProfileDataParser
-from genai_perf.tokenizer import (
-    DEFAULT_TOKENIZER,
-    DEFAULT_TOKENIZER_REVISION,
-    get_tokenizer,
-)
+from genai_perf.tokenizer import get_tokenizer
 from genai_perf.utils import load_yaml, scale
 
 logger = logging.getLogger(__name__)
@@ -54,43 +51,39 @@ class PlotConfigParser:
 
     def generate_configs(
         self,
-        tokenizer: str = DEFAULT_TOKENIZER,
-        tokenizer_trust_remote_code: bool = False,
-        tokenizer_revision: str = DEFAULT_TOKENIZER_REVISION,
+        config: ConfigCommand,
     ) -> List[PlotConfig]:
         """Load YAML configuration file and convert to PlotConfigs."""
         logger.info(
             f"Generating plot configurations by parsing {self._filename}. "
             "This may take a few seconds.",
         )
-        configs = load_yaml(self._filename)
+        file_configs = load_yaml(self._filename)
 
         plot_configs = []
-        for _, config in configs.items():
+        for _, file_config in file_configs.items():
             # Collect profile run data
             profile_data: List[ProfileRunData] = []
-            for filepath in config["paths"]:
-                stats = self._get_statistics(
-                    filepath, tokenizer, tokenizer_trust_remote_code, tokenizer_revision
-                )
+            for filepath in file_config["paths"]:
+                stats = self._get_statistics(filepath, config)
                 profile_data.append(
                     ProfileRunData(
                         name=self._get_run_name(Path(filepath)),
-                        x_metric=self._get_metric(stats, config["x_metric"]),
-                        y_metric=self._get_metric(stats, config["y_metric"]),
+                        x_metric=self._get_metric(stats, file_config["x_metric"]),
+                        y_metric=self._get_metric(stats, file_config["y_metric"]),
                     )
                 )
 
             plot_configs.append(
                 PlotConfig(
-                    title=config["title"],
+                    title=file_config["title"],
                     data=profile_data,
-                    x_label=config["x_label"],
-                    y_label=config["y_label"],
-                    width=config["width"],
-                    height=config["height"],
-                    type=self._get_plot_type(config["type"]),
-                    output=Path(config["output"]),
+                    x_label=file_config["x_label"],
+                    y_label=file_config["y_label"],
+                    width=file_config["width"],
+                    height=file_config["height"],
+                    type=self._get_plot_type(file_config["type"]),
+                    output=Path(file_config["output"]),
                 )
             )
 
@@ -99,16 +92,11 @@ class PlotConfigParser:
     def _get_statistics(
         self,
         filepath: str,
-        tokenizer: str,
-        tokenizer_trust_remote_code: bool = False,
-        tokenizer_revision: str = DEFAULT_TOKENIZER_REVISION,
+        config: ConfigCommand,
     ) -> Statistics:
         """Extract a single profile run data."""
         data_parser = LLMProfileDataParser(
-            filename=Path(filepath),
-            tokenizer=get_tokenizer(
-                tokenizer, tokenizer_trust_remote_code, tokenizer_revision
-            ),
+            filename=Path(filepath), tokenizer=get_tokenizer(config)
         )
         load_info = data_parser.get_profile_load_info()
 

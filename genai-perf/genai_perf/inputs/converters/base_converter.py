@@ -25,25 +25,28 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import random
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
 
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.config_defaults import OutputTokenDefaults
 from genai_perf.exceptions import GenAIPerfException
-from genai_perf.inputs.input_constants import (
-    DEFAULT_OUTPUT_TOKENS_MEAN,
-    ModelSelectionStrategy,
-)
-from genai_perf.inputs.inputs_config import InputsConfig
+from genai_perf.inputs.input_constants import ModelSelectionStrategy
 from genai_perf.inputs.retrievers.generic_dataset import DataRow, GenericDataset
+from genai_perf.tokenizer import Tokenizer, get_empty_tokenizer
 from genai_perf.utils import sample_bounded_normal
 
 
 class BaseConverter:
+    def __init__(self, config: ConfigCommand, tokenizer: Optional[Tokenizer] = None):
+        self.config = config
+        self.tokenizer = tokenizer if tokenizer else get_empty_tokenizer()
+
     """
     Base class for all converters that take generic JSON payloads
     and convert them to endpoint-specific payloads.
     """
 
-    def check_config(self, config: InputsConfig) -> None:
+    def check_config(self) -> None:
         """
         Check whether the provided configuration is valid for this converter.
 
@@ -51,27 +54,29 @@ class BaseConverter:
         """
         pass
 
-    def convert(
-        self, generic_dataset: GenericDataset, config: InputsConfig
-    ) -> Dict[Any, Any]:
+    def convert(self, generic_dataset: GenericDataset) -> Dict[Any, Any]:
         """
         Construct a request body using the endpoint specific request format.
         """
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-    def _select_model_name(self, config: InputsConfig, index: int) -> str:
-        if config.model_selection_strategy == ModelSelectionStrategy.ROUND_ROBIN:
-            return config.model_name[index % len(config.model_name)]
-        elif config.model_selection_strategy == ModelSelectionStrategy.RANDOM:
-            return random.choice(config.model_name)
+    def _select_model_name(self, index: int) -> str:
+        if (
+            self.config.endpoint.model_selection_strategy
+            == ModelSelectionStrategy.ROUND_ROBIN
+        ):
+            return self.config.model_names[index % len(self.config.model_names)]
+        elif (
+            self.config.endpoint.model_selection_strategy
+            == ModelSelectionStrategy.RANDOM
+        ):
+            return random.choice(self.config.model_names)
         else:
             raise GenAIPerfException(
-                f"Model selection strategy '{config.model_selection_strategy}' is unsupported"
+                f"Model selection strategy '{self.config.endpoint.model_selection_strategy}' is unsupported"
             )
 
-    def _get_max_tokens(
-        self, config: InputsConfig, optional_data: Dict[Any, Any]
-    ) -> int:
+    def _get_max_tokens(self, optional_data: Dict[Any, Any]) -> Union[int, None]:
         """
         Return the `max_tokens` value to be added in the payload.
         If `max_tokens` is present in `optional_data`, that value is used.
@@ -80,24 +85,24 @@ class BaseConverter:
         """
         if "max_tokens" in optional_data:
             return optional_data["max_tokens"]
-        elif config.output_tokens_mean != DEFAULT_OUTPUT_TOKENS_MEAN:
+        elif self.config.input.output_tokens.get_field("mean").is_set_by_user:
             return int(
                 sample_bounded_normal(
-                    mean=config.output_tokens_mean,
-                    stddev=config.output_tokens_stddev,
+                    mean=self.config.input.output_tokens.mean,
+                    stddev=self.config.input.output_tokens.stddev,
                     lower=1,  # output token must be >= 1
                 )
             )
-        return DEFAULT_OUTPUT_TOKENS_MEAN
+        return OutputTokenDefaults.MEAN
 
     def _add_request_params(
         self,
         payload: Dict[Any, Any],
-        config: InputsConfig,
         optional_data: Dict[Any, Any],
     ) -> None:
-        for key, value in config.extra_inputs.items():
-            payload[key] = value
+        if self.config.input.extra:
+            for key, value in self.config.input.extra.items():
+                payload[key] = value
 
     def _add_payload_optional_data(self, payload: Dict[Any, Any], row: DataRow) -> None:
         for key, value in row.optional_data.items():
@@ -110,11 +115,10 @@ class BaseConverter:
     def _finalize_payload(
         self,
         payload: Dict[Any, Any],
-        config: InputsConfig,
         row: DataRow,
         triton_format=False,
     ) -> Dict[str, Any]:
-        self._add_request_params(payload, config, row.optional_data)
+        self._add_request_params(payload, row.optional_data)
         self._add_payload_optional_data(payload, row)
         record: Dict[str, Any] = {}
         if not triton_format:

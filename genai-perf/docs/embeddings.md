@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -44,8 +44,6 @@ To profile embeddings models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
-    --tokenizer intfloat/e5-mistral-7b-instruct \
-    --service-kind openai \
     --endpoint-type embeddings \
     --batch-size-text 2
 ```
@@ -77,8 +75,6 @@ To profile embeddings models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
-    --tokenizer intfloat/e5-mistral-7b-instruct \
-    --service-kind openai \
     --endpoint-type embeddings \
     --batch-size-text 2 \
     --input-file embeddings.jsonl
@@ -86,10 +82,8 @@ genai-perf profile \
 
 * `-m intfloat/e5-mistral-7b-instruct` is to specify what model you want to run
   (`intfloat/e5-mistral-7b-instruct`)
-* `--service-kind openai` is to specify that the server type is OpenAI-API
-  compatible
 * `--endpoint-type embeddings` is to specify that the sent requests should be
-  formatted to follow the [embeddings
+  formatted to follow the OpenAI [embeddings
   API](https://platform.openai.com/docs/api-reference/embeddings/create)
 * `--batch-size-text 2` is to specify that each request will contain the inputs for 2
   individual inferences, making a batch size of 2
@@ -103,8 +97,6 @@ For example, you could use this command:
 ```bash
 genai-perf profile \
     -m intfloat/e5-mistral-7b-instruct \
-    --tokenizer intfloat/e5-mistral-7b-instruct \
-    --service-kind openai \
     --endpoint-type embeddings \
     --extra-inputs user:sample_user
 ```

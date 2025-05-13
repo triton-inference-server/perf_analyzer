@@ -24,100 +24,78 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from argparse import Namespace
 from typing import List, Optional
 
-from genai_perf.exceptions import GenAIPerfException
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.export_data.output_reporter import OutputReporter
-from genai_perf.inputs import input_constants as ic
-from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.plots.plot_config_parser import PlotConfigParser
 from genai_perf.plots.plot_manager import PlotManager
-from genai_perf.profile_data_parser import ProfileDataParser
-from genai_perf.subcommand.common import (
-    calculate_metrics,
-    create_artifacts_dirs,
-    create_config_options,
-    create_telemetry_data_collectors,
-    generate_inputs,
-    merge_telemetry_metrics,
-    run_perf_analyzer,
-)
-from genai_perf.telemetry_data.triton_telemetry_data_collector import (
-    TelemetryDataCollector,
-)
-from genai_perf.tokenizer import get_tokenizer
+from genai_perf.subcommand.subcommand import Subcommand
 
 
-def profile_handler(args: Namespace, extra_args: Optional[List[str]]) -> None:
+###########################################################################
+# Profile Handler
+###########################################################################
+def profile_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
     """
     Handles `profile` subcommand workflow
     """
-    config_options = create_config_options(args)
-    create_artifacts_dirs(args)
-    tokenizer = get_tokenizer(
-        args.tokenizer,
-        args.tokenizer_trust_remote_code,
-        args.tokenizer_revision,
-    )
-    generate_inputs(config_options)
-    telemetry_data_collectors = create_telemetry_data_collectors(args)
-    run_perf_analyzer(
-        args=args,
-        extra_args=extra_args,
-        telemetry_data_collectors=telemetry_data_collectors,
-    )
-    data_parser = calculate_metrics(args, tokenizer)
-    _report_output(data_parser, telemetry_data_collectors, args)
+    profile = Profile(config, extra_args)
+    profile.profile()
+
+    if config.output.generate_plots:
+        profile.create_plots()
 
 
-def _report_output(
-    data_parser: ProfileDataParser,
-    telemetry_data_collectors: List[TelemetryDataCollector],
-    args: Namespace,
-) -> None:
-    if args.session_concurrency:
-        # [TPA-985] Profile export file should have a session concurrency mode
-        infer_mode = "request_rate"
-        load_level = "0.0"
-    elif args.concurrency:
-        infer_mode = "concurrency"
-        load_level = f"{args.concurrency}"
-    elif args.request_rate:
-        infer_mode = "request_rate"
-        load_level = f"{args.request_rate}"
-    # When using fixed schedule mode, infer mode is not set.
-    # Setting to default values to avoid an error.
-    elif args.prompt_source == ic.PromptSource.PAYLOAD:
-        infer_mode = "request_rate"
-        load_level = "0.0"
-    else:
-        raise GenAIPerfException("No valid infer mode specified")
+###########################################################################
+# Profile Class
+###########################################################################
+class Profile(Subcommand):
+    """
+    Contains all the methods needed to run the profile subcommand
+    """
 
-    stats = data_parser.get_statistics(infer_mode, load_level)
-    session_stats = data_parser.get_session_statistics()
+    def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
+        super().__init__(config, extra_args)
 
-    telemetry_metrics = [c.get_metrics() for c in telemetry_data_collectors]
-    merged_telemetry_metrics = merge_telemetry_metrics(telemetry_metrics)
-    telemetry_stats = TelemetryStatistics(merged_telemetry_metrics)
+    def profile(self) -> None:
+        """
+        Profiles the model based on the user's stimulus
+        """
+        objectives = self._create_objectives_based_on_stimulus()
+        genai_perf_config = self._create_genai_perf_config(objectives)
+        perf_analyzer_config = self._create_perf_analyzer_config(objectives)
 
-    reporter = OutputReporter(stats, telemetry_stats, args, session_stats)
-    reporter.report_output()
+        if self._is_config_present_in_results(genai_perf_config, perf_analyzer_config):
+            self._found_config_in_checkpoint(
+                genai_perf_config, perf_analyzer_config, objectives
+            )
+        else:
+            # Pre-amble
+            self._create_tokenizer()
+            self._create_artifact_directory(perf_analyzer_config)
+            self._create_plot_directory(perf_analyzer_config)
+            self._generate_inputs(perf_analyzer_config)
 
-    if args.generate_plots:
-        _create_plots(args)
+            # Profile using Perf Analyzer
+            self._run_perf_analyzer(perf_analyzer_config)
 
+            # Post-amble
+            self._set_data_parser(perf_analyzer_config)
+            self._add_results_to_checkpoint(
+                genai_perf_config, perf_analyzer_config, objectives
+            )
+            self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
 
-def _create_plots(args: Namespace) -> None:
-    # TMA-1911: support plots CLI option
-    plot_dir = args.artifact_dir / "plots"
-    PlotConfigParser.create_init_yaml_config(
-        filenames=[args.profile_export_file],  # single run
-        output_dir=plot_dir,
-    )
-    config_parser = PlotConfigParser(plot_dir / "config.yaml")
-    plot_configs = config_parser.generate_configs(
-        args.tokenizer, args.tokenizer_trust_remote_code, args.tokenizer_revision
-    )
-    plot_manager = PlotManager(plot_configs)
-    plot_manager.generate_plots()
+    def create_plots(self) -> None:
+        # TMA-1911: support plots CLI option
+        plot_dir = self._config.output.artifact_directory / "plots"
+        PlotConfigParser.create_init_yaml_config(
+            filenames=[self._config.output.profile_export_file],  # single run
+            output_dir=plot_dir,
+        )
+        config_parser = PlotConfigParser(plot_dir / "config.yaml")
+        plot_configs = config_parser.generate_configs(self._config)
+        plot_manager = PlotManager(plot_configs)
+        plot_manager.generate_plots()

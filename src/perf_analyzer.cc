@@ -93,7 +93,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
       factory->CreateClientBackend(&backend_),
       "failed to create triton client backend");
 
-  parser_ = std::make_shared<pa::ModelParser>();
+  parser_ = std::make_shared<pa::ModelParser>(params_->inference_load_mode);
   if (params_->kind == cb::BackendKind::TRITON ||
       params_->kind == cb::BackendKind::TRITON_C_API) {
     rapidjson::Document model_metadata;
@@ -120,8 +120,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
   } else if (params_->kind == cb::BackendKind::OPENAI) {
     FAIL_IF_ERR(
         parser_->InitOpenAI(
-            params_->model_name, params_->model_version, params_->batch_size,
-            params_->inference_load_mode),
+            params_->model_name, params_->model_version, params_->batch_size),
         "failed to create model parser");
   } else if (params_->kind == cb::BackendKind::TENSORFLOW_SERVING) {
     rapidjson::Document model_metadata;

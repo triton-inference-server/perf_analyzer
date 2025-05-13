@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.input_constants import DEFAULT_SYNTHETIC_FILENAME
 from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.inputs.retrievers.synthetic_data_retriever import SyntheticDataRetriever
@@ -40,12 +42,16 @@ class TestSyntheticDataRetriever:
         """
         Test default synthetic data generation where only text is generated.
         """
-        config = InputsConfig(
-            num_dataset_entries=num_dataset_entries,
-            batch_size_text=batch_size_text,
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.num_dataset_entries = num_dataset_entries
+        config.input.batch_size = batch_size_text
+
+        inputs_config = InputsConfig(
+            config=config,
             tokenizer=get_empty_tokenizer(),
+            output_directory=Path("output"),
         )
-        synthetic_retriever = SyntheticDataRetriever(config)
+        synthetic_retriever = SyntheticDataRetriever(inputs_config)
         dataset = synthetic_retriever.retrieve_data()
 
         file_data = dataset.files_data[DEFAULT_SYNTHETIC_FILENAME]
@@ -90,16 +96,20 @@ class TestSyntheticDataRetriever:
         Test synthetic data generation where text, image, and audio are generated.
         Assume single batch size for all modalities.
         """
-        config = InputsConfig(
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.num_dataset_entries = num_dataset_entries
+        # Set image and audio sizes to non-zero values
+        # to ensure they are generated
+        config.input.image.width.mean = image_width_height
+        config.input.image.height.mean = image_width_height
+        config.input.audio.length.mean = audio_length
+
+        inputs_config = InputsConfig(
+            config=config,
             tokenizer=get_empty_tokenizer(),
-            num_dataset_entries=num_dataset_entries,
-            # Set image and audio sizes to non-zero values
-            # to ensure they are generated
-            image_width_mean=image_width_height,
-            image_height_mean=image_width_height,
-            audio_length_mean=audio_length,
+            output_directory=Path("output"),
         )
-        synthetic_retriever = SyntheticDataRetriever(config)
+        synthetic_retriever = SyntheticDataRetriever(inputs_config)
         dataset = synthetic_retriever.retrieve_data()
 
         file_data = dataset.files_data[DEFAULT_SYNTHETIC_FILENAME]
@@ -155,19 +165,23 @@ class TestSyntheticDataRetriever:
         Test synthetic data generation when both text and image are generated.
         Assume different batch sizes for text and image.
         """
-        config = InputsConfig(
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.num_dataset_entries = num_dataset_entries
+        config.input.batch_size = batch_size_text
+        config.input.image.batch_size = batch_size_image
+        config.input.audio.batch_size = batch_size_audio
+        # Set image and audio sizes to non-zero values
+        # to ensure they are generated
+        config.input.image.width.mean = 10
+        config.input.image.height.mean = 10
+        config.input.audio.length.mean = 5
+
+        inputs_config = InputsConfig(
+            config=config,
             tokenizer=get_empty_tokenizer(),
-            batch_size_text=batch_size_text,
-            batch_size_image=batch_size_image,
-            batch_size_audio=batch_size_audio,
-            num_dataset_entries=num_dataset_entries,
-            # Set image and audio sizes to non-zero values
-            # to ensure they are generated
-            image_width_mean=10,
-            image_height_mean=10,
-            audio_length_mean=5,
+            output_directory=Path("output"),
         )
-        synthetic_retriever = SyntheticDataRetriever(config)
+        synthetic_retriever = SyntheticDataRetriever(inputs_config)
         dataset = synthetic_retriever.retrieve_data()
 
         file_data = dataset.files_data[DEFAULT_SYNTHETIC_FILENAME]
@@ -201,12 +215,16 @@ class TestSyntheticDataRetriever:
         """
         Test synthetic data generation when multiple synthetic files are specified.
         """
-        config = InputsConfig(
-            synthetic_input_filenames=input_filenames,
-            num_dataset_entries=num_dataset_entries,
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.num_dataset_entries = num_dataset_entries
+        config.input.synthetic_files = input_filenames
+
+        inputs_config = InputsConfig(
+            config=config,
             tokenizer=get_empty_tokenizer(),
+            output_directory=Path("output"),
         )
-        synthetic_retriever = SyntheticDataRetriever(config)
+        synthetic_retriever = SyntheticDataRetriever(inputs_config)
         dataset = synthetic_retriever.retrieve_data()
 
         assert len(dataset.files_data) == len(input_filenames)
@@ -247,11 +265,15 @@ class TestSyntheticDataRetriever:
         prefix_prompt_length,
         num_dataset_entries,
     ):
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.num_dataset_entries = num_dataset_entries
+        config.input.prefix_prompt.num = num_prefix_prompts
+        config.input.prefix_prompt.length = prefix_prompt_length
+
         config = InputsConfig(
-            num_dataset_entries=num_dataset_entries,
-            num_prefix_prompts=num_prefix_prompts,
-            prefix_prompt_length=prefix_prompt_length,
+            config=config,
             tokenizer=get_empty_tokenizer(),
+            output_directory=Path("output"),
         )
 
         synthetic_retriever = SyntheticDataRetriever(config)
@@ -304,15 +326,20 @@ class TestSyntheticDataRetriever:
         session_turns_stddev,
     ):
         session_turn_delay_ms = 50
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.input.prefix_prompt.num = 3
+        config.input.prefix_prompt.length = 20
+        config.input.sessions.num = num_sessions
+        config.input.sessions.turn_delay.mean = session_turn_delay_ms
+        config.input.sessions.turn_delay.stddev = 0
+        config.input.sessions.turns.mean = session_turns_mean
+        config.input.sessions.turns.stddev = session_turns_stddev
+
         config = InputsConfig(
-            num_sessions=num_sessions,
-            num_prefix_prompts=3,
-            prefix_prompt_length=20,
-            session_turn_delay_mean=session_turn_delay_ms,
-            session_turn_delay_stddev=0,
-            session_turns_mean=session_turns_mean,
-            session_turns_stddev=session_turns_stddev,
+            config=config,
             tokenizer=get_empty_tokenizer(),
+            output_directory=Path("output"),
         )
         synthetic_retriever = SyntheticDataRetriever(config)
         dataset = synthetic_retriever.retrieve_data()

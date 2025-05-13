@@ -24,13 +24,13 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 from unittest.mock import patch
 
 import pytest
-from genai_perf import parser
+from genai_perf import logging, parser
+from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.input.create_config import CreateConfig
 from genai_perf.export_data.console_exporter import ConsoleExporter
-from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.metrics import (
     ImageRetrievalMetrics,
     LLMMetrics,
@@ -51,13 +51,13 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -71,10 +71,10 @@ class TestConsoleExporter:
         )
         stats = Statistics(metrics=metrics)
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
-        return config
+        return exporter_config
 
     def test_streaming_llm_output(self, monkeypatch, capsys) -> None:
         argv = [
@@ -82,14 +82,14 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -97,90 +97,63 @@ class TestConsoleExporter:
             time_to_first_tokens=[7, 8, 9],
             time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
+            output_token_throughputs_per_user=[4, 5, 6],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
         )
         stats = Statistics(metrics=metrics)
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
-        exporter.export()
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
-            "│          Time To First Token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│         Time To Second Token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│              Request Latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
-            "│          Inter Token Latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
-            "│   Output Sequence Length (tokens) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
-            "│ Output Token Throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│             Request Count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
+            "                             NVIDIA GenAI-Perf | LLM Metrics                             \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩\n"
+            "│             Time To First Token (ms) │   8.00 │  7.00 │  9.00 │  8.98 │  8.80 │  8.50 │\n"
+            "│            Time To Second Token (ms) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│                 Request Latency (ms) │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│             Inter Token Latency (ms) │  11.00 │ 10.00 │ 12.00 │ 11.98 │ 11.80 │ 11.50 │\n"
+            "│     Output Token Throughput Per User │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│                    (tokens/sec/user) │        │       │       │       │       │       │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│       Input Sequence Length (tokens) │   6.00 │  5.00 │  7.00 │  6.98 │  6.80 │  6.50 │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│                Request Count (count) │   3.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "└──────────────────────────────────────┴────────┴───────┴───────┴───────┴───────┴───────┘\n"
         )
 
         returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
+        assert expected_content in returned_data
 
-    def test_nonstreaming_llm_output(self, monkeypatch, capsys) -> None:
-        argv = [
-            "genai-perf",
-            "profile",
-            "-m",
-            "model_name",
-            "--service-kind",
-            "openai",
-            "--endpoint-type",
-            "chat",
-        ]
-        monkeypatch.setattr("sys.argv", argv)
-        args, _ = parser.parse_args()
-
-        metrics = LLMMetrics(
-            request_throughputs=[123],
-            request_latencies=[4, 5, 6],
-            time_to_first_tokens=[4, 5, 6],  # same as request_latency
-            time_to_second_tokens=[1, 2, 3],
-            inter_token_latencies=[],  # no ITL
-            output_token_throughputs=[456],
-            output_sequence_lengths=[1, 2, 3],
-            input_sequence_lengths=[5, 6, 7],
-        )
-        stats = Statistics(metrics=metrics)
-
-        assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
-        )
-
-        exporter = ConsoleExporter(config)
-        exporter.export()
+    def test_nonstreaming_llm_output(self, capsys, exporter_config) -> None:
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         # No TTFT and ITL in the output
         expected_content = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃   avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
-            "│              Request Latency (ms) │  5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
-            "│   Output Sequence Length (tokens) │  2.00 │ 1.00 │ 3.00 │ 2.98 │ 2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │  6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
-            "│ Output Token Throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│             Request Count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
+            "                          NVIDIA GenAI-Perf | LLM Metrics                           \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│                 Request Latency (ms) │   5.00 │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │ 1.00 │ 3.00 │ 2.98 │ 2.80 │ 2.50 │\n"
+            "│       Input Sequence Length (tokens) │   6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│                Request Count (count) │   3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "└──────────────────────────────────────┴────────┴──────┴──────┴──────┴──────┴──────┘\n"
         )
 
         returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
+        assert expected_content in returned_data
 
     def test_embedding_output(self, monkeypatch, capsys) -> None:
         argv = [
@@ -188,13 +161,13 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "embeddings",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = Metrics(
             request_throughputs=[123],
@@ -203,12 +176,12 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
-        exporter.export()
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
             "                   NVIDIA GenAI-Perf | Embeddings Metrics                   \n"
@@ -222,7 +195,7 @@ class TestConsoleExporter:
         )
 
         returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
+        assert expected_content in returned_data
 
     def test_valid_goodput(self, monkeypatch, capsys) -> None:
         argv = [
@@ -230,8 +203,6 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -240,6 +211,8 @@ class TestConsoleExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -247,6 +220,7 @@ class TestConsoleExporter:
             time_to_first_tokens=[7, 8, 9],
             time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
+            output_token_throughputs_per_user=[4, 5, 6],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
@@ -255,32 +229,34 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
-        exporter.export()
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
-            "│          Time To First Token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│         Time To Second Token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│              Request Latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
-            "│          Inter Token Latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
-            "│   Output Sequence Length (tokens) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
-            "│ Output Token Throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│         Request Goodput (per sec) │ 100… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│             Request Count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
+            "                             NVIDIA GenAI-Perf | LLM Metrics                             \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩\n"
+            "│             Time To First Token (ms) │   8.00 │  7.00 │  9.00 │  8.98 │  8.80 │  8.50 │\n"
+            "│            Time To Second Token (ms) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│                 Request Latency (ms) │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│             Inter Token Latency (ms) │  11.00 │ 10.00 │ 12.00 │ 11.98 │ 11.80 │ 11.50 │\n"
+            "│     Output Token Throughput Per User │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│                    (tokens/sec/user) │        │       │       │       │       │       │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│       Input Sequence Length (tokens) │   6.00 │  5.00 │  7.00 │  6.98 │  6.80 │  6.50 │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│            Request Goodput (per sec) │ 100.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│                Request Count (count) │   3.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "└──────────────────────────────────────┴────────┴───────┴───────┴───────┴───────┴───────┘\n"
         )
         returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
+        assert expected_content in returned_data
 
     def test_invalid_goodput_output(self, monkeypatch, capsys) -> None:
         argv = [
@@ -288,8 +264,6 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
             "--streaming",
@@ -298,6 +272,8 @@ class TestConsoleExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -305,6 +281,7 @@ class TestConsoleExporter:
             time_to_first_tokens=[7, 8, 9],
             time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
+            output_token_throughputs_per_user=[4, 5, 6],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
@@ -314,32 +291,34 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
-        exporter.export()
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
-            "│          Time To First Token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│         Time To Second Token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│              Request Latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
-            "│          Inter Token Latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
-            "│   Output Sequence Length (tokens) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
-            "│ Output Token Throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│         Request Goodput (per sec) │ -1.… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│             Request Count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
+            "                             NVIDIA GenAI-Perf | LLM Metrics                             \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩\n"
+            "│             Time To First Token (ms) │   8.00 │  7.00 │  9.00 │  8.98 │  8.80 │  8.50 │\n"
+            "│            Time To Second Token (ms) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│                 Request Latency (ms) │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│             Inter Token Latency (ms) │  11.00 │ 10.00 │ 12.00 │ 11.98 │ 11.80 │ 11.50 │\n"
+            "│     Output Token Throughput Per User │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│                    (tokens/sec/user) │        │       │       │       │       │       │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│       Input Sequence Length (tokens) │   6.00 │  5.00 │  7.00 │  6.98 │  6.80 │  6.50 │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│            Request Goodput (per sec) │  -1.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│                Request Count (count) │   3.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "└──────────────────────────────────────┴────────┴───────┴───────┴───────┴───────┴───────┘\n"
         )
         returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
+        assert expected_content in returned_data
 
     @patch(
         "genai_perf.export_data.console_exporter.ConsoleExporter._construct_table",
@@ -367,23 +346,23 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             endpoint_type,
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, metrics=stats.metrics, args=args
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, metrics=stats.metrics, config=config
         )
 
-        exporter = ConsoleExporter(config)
-        exporter.export()
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         returned_data = capsys.readouterr().out
         assert expected_title in returned_data
@@ -394,8 +373,8 @@ class TestConsoleExporter:
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "triton",
+            "--backend",
+            "tensorrtllm",
             "--streaming",
             "--server-metrics-url",
             "http://tritonmetrics:8002/metrics",
@@ -403,6 +382,8 @@ class TestConsoleExporter:
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -410,6 +391,7 @@ class TestConsoleExporter:
             time_to_first_tokens=[7, 8, 9],
             time_to_second_tokens=[1, 2, 3],
             inter_token_latencies=[10, 11, 12],
+            output_token_throughputs_per_user=[4, 5, 6],
             output_token_throughputs=[456],
             output_sequence_lengths=[1, 2, 3],
             input_sequence_lengths=[5, 6, 7],
@@ -428,31 +410,33 @@ class TestConsoleExporter:
         telemetry_stats = TelemetryStatistics(telemetry_metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
+        exporter_config = create_default_exporter_config(
             stats=stats.stats_dict,
             metrics=stats.metrics,
-            args=args,
+            config=config,
             telemetry_stats=telemetry_stats.stats_dict,
         )
 
-        exporter = ConsoleExporter(config)
-        exporter.export()
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         expected_content = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃  avg ┃  min ┃  max ┃  p99 ┃   p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━╇━━━━━━┩\n"
-            "│          Time To First Token (ms) │ 8.00 │ 7.00 │ 9.00 │ 8.98 │  8.80 │ 8.50 │\n"
-            "│         Time To Second Token (ms) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│              Request Latency (ms) │ 5.00 │ 4.00 │ 6.00 │ 5.98 │  5.80 │ 5.50 │\n"
-            "│          Inter Token Latency (ms) │ 11.… │ 10.… │ 12.… │ 11.… │ 11.80 │ 11.… │\n"
-            "│   Output Sequence Length (tokens) │ 2.00 │ 1.00 │ 3.00 │ 2.98 │  2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │ 6.00 │ 5.00 │ 7.00 │ 6.98 │  6.80 │ 6.50 │\n"
-            "│ Output Token Throughput (per sec) │ 456… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123… │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "│             Request Count (count) │ 3.00 │  N/A │  N/A │  N/A │   N/A │  N/A │\n"
-            "└───────────────────────────────────┴──────┴──────┴──────┴──────┴───────┴──────┘\n"
+            "                             NVIDIA GenAI-Perf | LLM Metrics                             \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃   min ┃   max ┃   p99 ┃   p90 ┃   p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩\n"
+            "│             Time To First Token (ms) │   8.00 │  7.00 │  9.00 │  8.98 │  8.80 │  8.50 │\n"
+            "│            Time To Second Token (ms) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│                 Request Latency (ms) │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│             Inter Token Latency (ms) │  11.00 │ 10.00 │ 12.00 │ 11.98 │ 11.80 │ 11.50 │\n"
+            "│     Output Token Throughput Per User │   5.00 │  4.00 │  6.00 │  5.98 │  5.80 │  5.50 │\n"
+            "│                    (tokens/sec/user) │        │       │       │       │       │       │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │  1.00 │  3.00 │  2.98 │  2.80 │  2.50 │\n"
+            "│       Input Sequence Length (tokens) │   6.00 │  5.00 │  7.00 │  6.98 │  6.80 │  6.50 │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "│                Request Count (count) │   3.00 │   N/A │   N/A │   N/A │   N/A │   N/A │\n"
+            "└──────────────────────────────────────┴────────┴───────┴───────┴───────┴───────┴───────┘\n"
             "                NVIDIA GenAI-Perf | Power Metrics                \n"
             "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n"
             "┃                                                               ┃\n"
@@ -507,21 +491,22 @@ class TestConsoleExporter:
         )
 
         returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
+        assert expected_content in returned_data
 
     def test_missing_data(self, monkeypatch, capsys) -> None:
+        logging.init_logging()
         argv = [
             "genai-perf",
             "profile",
             "-m",
             "model_name",
-            "--service-kind",
-            "openai",
             "--endpoint-type",
             "chat",
         ]
         monkeypatch.setattr("sys.argv", argv)
         args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": "model_name"})
+        config = CreateConfig._add_cli_options_to_config(config, args)
 
         metrics = LLMMetrics(
             request_throughputs=[123],
@@ -536,35 +521,42 @@ class TestConsoleExporter:
         stats = Statistics(metrics=metrics)
 
         assert isinstance(stats.metrics, Metrics)
-        config = create_default_exporter_config(
-            stats=stats.stats_dict, args=args, metrics=stats.metrics
+        exporter_config = create_default_exporter_config(
+            stats=stats.stats_dict, config=config, metrics=stats.metrics
         )
 
         # Missing data
-        del config.stats["request_latency"]["avg"]
-        del config.stats["output_sequence_length"]["max"]
-        del config.stats["input_sequence_length"]
+        del exporter_config.stats["request_latency"]["avg"]
+        del exporter_config.stats["output_sequence_length"]["max"]
+        del exporter_config.stats["input_sequence_length"]
 
-        exporter = ConsoleExporter(config)
-        exporter.export()
+        exporter = ConsoleExporter(exporter_config)
+        exporter.export(width=100)  # fix width for consistent output
 
         # No TTFT and ITL in the output
         expected_content = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃   avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
-            "│              Request Latency (ms) │   N/A │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
-            "│   Output Sequence Length (tokens) │  2.00 │ 1.00 │  N/A │ 2.98 │ 2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │   N/A │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│ Output Token Throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│             Request Count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
+            "                          NVIDIA GenAI-Perf | LLM Metrics                           \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│                 Request Latency (ms) │    N/A │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │ 1.00 │  N/A │ 2.98 │ 2.80 │ 2.50 │\n"
+            "│       Input Sequence Length (tokens) │    N/A │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│                Request Count (count) │   3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "└──────────────────────────────────────┴────────┴──────┴──────┴──────┴──────┴──────┘\n"
         )
-
         returned_data = capsys.readouterr().out
-        assert returned_data == expected_content
+
+        assert (
+            "Statistic 'avg' for metric 'request_latency' is missing." in returned_data
+        )
+        assert (
+            "Statistic 'max' for metric 'output_sequence_length' is missing."
+            in returned_data
+        )
+        assert expected_content in returned_data
 
     @patch("genai_perf.export_data.exporter_utils.logger")
     def test_missing_statistics(self, mock_logger, exporter_config, capsys):
@@ -576,7 +568,7 @@ class TestConsoleExporter:
         del exporter_config.stats["output_sequence_length"]["max"]
 
         exporter = ConsoleExporter(exporter_config)
-        exporter.export()
+        exporter.export(width=100)  # fix width for consistent output
 
         returned_data = capsys.readouterr().out
 
@@ -591,17 +583,17 @@ class TestConsoleExporter:
 
         # Validate output reflects missing statistics as 'N/A'
         expected_output = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃   avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
-            "│              Request Latency (ms) │   N/A │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
-            "│   Output Sequence Length (tokens) │  2.00 │ 1.00 │  N/A │ 2.98 │ 2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │  6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
-            "│ Output Token Throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│             Request Count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
+            "                          NVIDIA GenAI-Perf | LLM Metrics                           \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│                 Request Latency (ms) │    N/A │ 4.00 │ 6.00 │ 5.98 │ 5.80 │ 5.50 │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │ 1.00 │  N/A │ 2.98 │ 2.80 │ 2.50 │\n"
+            "│       Input Sequence Length (tokens) │   6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│                Request Count (count) │   3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "└──────────────────────────────────────┴────────┴──────┴──────┴──────┴──────┴──────┘\n"
         )
 
         assert returned_data == expected_output
@@ -615,7 +607,7 @@ class TestConsoleExporter:
         exporter_config.stats["request_latency"] = "invalid_structure"
 
         exporter = ConsoleExporter(exporter_config)
-        exporter.export()
+        exporter.export(width=100)  # fix width for consistent output
 
         returned_data = capsys.readouterr().out
 
@@ -626,17 +618,17 @@ class TestConsoleExporter:
 
         # Validate the output reflects invalid stats as 'N/A'
         expected_content = (
-            "                        NVIDIA GenAI-Perf | LLM Metrics                         \n"
-            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
-            "┃                         Statistic ┃   avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
-            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
-            "│              Request Latency (ms) │   N/A │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│   Output Sequence Length (tokens) │  2.00 │ 1.00 │ 3.00 │ 2.98 │ 2.80 │ 2.50 │\n"
-            "│    Input Sequence Length (tokens) │  6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
-            "│ Output Token Throughput (per sec) │ 456.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│      Request Throughput (per sec) │ 123.… │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "│             Request Count (count) │  3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
-            "└───────────────────────────────────┴───────┴──────┴──────┴──────┴──────┴──────┘\n"
+            "                          NVIDIA GenAI-Perf | LLM Metrics                           \n"
+            "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━┓\n"
+            "┃                            Statistic ┃    avg ┃  min ┃  max ┃  p99 ┃  p90 ┃  p75 ┃\n"
+            "┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━┩\n"
+            "│                 Request Latency (ms) │    N/A │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│      Output Sequence Length (tokens) │   2.00 │ 1.00 │ 3.00 │ 2.98 │ 2.80 │ 2.50 │\n"
+            "│       Input Sequence Length (tokens) │   6.00 │ 5.00 │ 7.00 │ 6.98 │ 6.80 │ 6.50 │\n"
+            "│ Output Token Throughput (tokens/sec) │ 456.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│         Request Throughput (per sec) │ 123.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "│                Request Count (count) │   3.00 │  N/A │  N/A │  N/A │  N/A │  N/A │\n"
+            "└──────────────────────────────────────┴────────┴──────┴──────┴──────┴──────┴──────┘\n"
         )
 
         assert returned_data == expected_content

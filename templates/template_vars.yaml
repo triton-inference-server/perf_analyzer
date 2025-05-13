@@ -33,9 +33,9 @@ README:
   template: genai-perf-templates/README_template
   output_dir: ../genai-perf/
 
-compare:
-  filename: compare.md
-  template: genai-perf-templates/compare_template
+example_plots:
+  filename: example_plots.md
+  template: genai-perf-templates/example_plots_template
   output_dir: ../genai-perf/docs/
 
 customizable_frontends:

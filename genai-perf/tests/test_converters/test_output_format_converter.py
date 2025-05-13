@@ -15,13 +15,12 @@
 import random
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.inputs.converters import *
 from genai_perf.inputs.converters.output_format_converter_factory import (
     OutputFormatConverterFactory,
 )
 from genai_perf.inputs.input_constants import ModelSelectionStrategy, OutputFormat
-from genai_perf.inputs.inputs_config import InputsConfig
-from genai_perf.tokenizer import get_empty_tokenizer
 
 
 class TestOutputFormatConverter:
@@ -68,7 +67,9 @@ class TestOutputFormatConverter:
         ],
     )
     def test_create(self, format, expected_converter):
-        converter = OutputFormatConverterFactory.create(format)
+        converter = OutputFormatConverterFactory.create(
+            format, ConfigCommand({"model_names": "test_model"})
+        )
         assert isinstance(converter, expected_converter)
 
     @pytest.mark.parametrize(
@@ -143,13 +144,14 @@ class TestOutputFormatConverter:
         """
         Test that model selection strategy controls the model selected
         """
+
         random.seed(seed)
-        config = InputsConfig(
-            model_name=model_name_list,
-            model_selection_strategy=model_selection_strategy,
-            random_seed=seed,
-            tokenizer=get_empty_tokenizer(),
+        config = ConfigCommand({"model_names": model_name_list})
+        config.endpoint.model_selection_strategy = model_selection_strategy
+        config.endpoint.random_seed = seed
+
+        converter = OutputFormatConverterFactory.create(
+            OutputFormat.IMAGE_RETRIEVAL, config
         )
-        converter = OutputFormatConverterFactory.create(OutputFormat.IMAGE_RETRIEVAL)
-        actual_model = converter._select_model_name(config, index)
+        actual_model = converter._select_model_name(index)
         assert actual_model == expected_model

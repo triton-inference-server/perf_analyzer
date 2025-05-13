@@ -26,8 +26,8 @@
 
 import csv
 import os
-from argparse import Namespace
-from typing import List, Tuple
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 import genai_perf.logging as logging
 from genai_perf.checkpoint.checkpoint import Checkpoint
@@ -35,10 +35,11 @@ from genai_perf.config.generate.genai_perf_config import GenAIPerfConfig
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
-from genai_perf.config.input.config_command import ConfigCommand, Range, Subcommand
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.export_data.output_reporter import OutputReporter
+from genai_perf.inputs.inputs_config import InputsConfig
 from genai_perf.measurements.run_config_measurement import RunConfigMeasurement
 from genai_perf.metrics.telemetry_statistics import TelemetryStatistics
 from genai_perf.record.types.energy_consumption_p99 import GpuEnergyConsumptionP99
@@ -54,15 +55,7 @@ from genai_perf.record.types.request_latency_p99 import RequestLatencyP99
 from genai_perf.record.types.request_throughput_avg import RequestThroughputAvg
 from genai_perf.record.types.time_to_first_token_p99 import TimeToFirstTokenP99
 from genai_perf.record.types.total_gpu_memory_avg import GPUTotalMemoryAvg
-from genai_perf.subcommand.common import (
-    calculate_metrics,
-    create_artifacts_dirs,
-    create_config_options,
-    create_telemetry_data_collectors,
-    generate_inputs,
-    merge_telemetry_metrics,
-    run_perf_analyzer,
-)
+from genai_perf.subcommand.subcommand import Subcommand
 from genai_perf.tokenizer import get_tokenizer
 from genai_perf.types import ModelObjectiveParameters
 
@@ -72,11 +65,11 @@ logger = logging.getLogger(__name__)
 ###########################################################################
 # Analyze Handler
 ###########################################################################
-def analyze_handler(args: Namespace) -> None:
+def analyze_handler(config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
     """
     Handles `analyze` subcommand workflow
     """
-    analyze = Analyze(args)
+    analyze = Analyze(config, extra_args)
     analyze.sweep()
     analyze.report()
 
@@ -84,7 +77,7 @@ def analyze_handler(args: Namespace) -> None:
 ###########################################################################
 # Analyze Class
 ###########################################################################
-class Analyze:
+class Analyze(Subcommand):
     """
     Contains all the methods needed to run the analyze subcommand
     """
@@ -125,42 +118,15 @@ class Analyze:
         GPUTotalMemoryAvg.tag,
     ]
 
-    def __init__(self, args: Namespace) -> None:
-        self._args = args
-        self._config = self._setup_config(args)
-        self._model_name = self._config.model_names[0]
+    def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
+        super().__init__(config, extra_args)
+
         self._model_search_parameters = {
-            self._model_name: SearchParameters(
-                config=self._config, subcommand=Subcommand.ANALYZE
-            )
+            self._model_name: SearchParameters(config=self._config)
         }
         self._sweep_objective_generator = SweepObjectiveGenerator(
             self._config, self._model_search_parameters
         )
-        self._telemetry_data_collectors = create_telemetry_data_collectors(args)
-        self._checkpoint = Checkpoint(self._config)
-        self._results = self._checkpoint.results
-
-    def _setup_config(self, args: Namespace) -> ConfigCommand:
-        config = ConfigCommand(model_names=args.model)
-        sweep_type = self._map_args_to_config_sweep_type(args.sweep_type)
-
-        if args.sweep_list:
-            config.analyze.sweep_parameters = {sweep_type: args.sweep_list}
-        else:
-            config.analyze.sweep_parameters = {
-                sweep_type: Range(min=args.sweep_min, max=args.sweep_max)
-            }
-
-        return config
-
-    def _map_args_to_config_sweep_type(self, sweep_type: str) -> str:
-        # The CLI arg sweep type name doesn't have a 1:1 mapping to
-        # what was implemented in the config
-        if sweep_type == "batch_size":
-            return "runtime_batch_size"
-        else:
-            return sweep_type
 
     ###########################################################################
     # Sweep Methods
@@ -169,115 +135,35 @@ class Analyze:
         """
         Sweeps over the objectives
         """
+
         for count, objectives in enumerate(
             self._sweep_objective_generator.get_objectives()
         ):
-            #
-            # Create GAP/PA Configs
-            genai_perf_config = GenAIPerfConfig(
-                config=self._config,
-                args=self._args,
-                model_objective_parameters=objectives,
-            )
+            genai_perf_config = self._create_genai_perf_config(objectives)
+            perf_analyzer_config = self._create_perf_analyzer_config(objectives)
 
-            # The GAP/PA Configs will (for now) modify the CLI args
-            # based on the objective being swept
-            gap_obj_args = genai_perf_config.get_obj_args()
-
-            perf_analyzer_config = PerfAnalyzerConfig(
-                model_name=self._model_name,
-                args=gap_obj_args,
-                config=self._config,
-                model_objective_parameters=objectives,
-            )
-            obj_args = perf_analyzer_config.get_obj_args()
-
-            #
-            # Check if this configuration has already been profiled (is in the checkpoint)
-            representation = RunConfig(
-                genai_perf_config=genai_perf_config,
-                perf_analyzer_config=perf_analyzer_config,
-            ).representation()
-
-            run_config_found = self._results.found_representation(representation)
-            run_config_name = self._results.get_run_config_name_based_on_representation(
-                self._model_name, representation
-            )
-
-            if not run_config_found:
-                #
-                # Create Input/Artifacts
-                input_config_options = create_config_options(obj_args)
-                create_artifacts_dirs(obj_args)
-                tokenizer = get_tokenizer(
-                    obj_args.tokenizer,
-                    obj_args.tokenizer_trust_remote_code,
-                    obj_args.tokenizer_revision,
+            if self._is_config_present_in_results(
+                genai_perf_config, perf_analyzer_config
+            ):
+                self._found_config_in_checkpoint(
+                    genai_perf_config, perf_analyzer_config, objectives
                 )
-                generate_inputs(input_config_options)
-
-                #
-                # Run PA
-                run_perf_analyzer(
-                    args=obj_args,
-                    perf_analyzer_config=perf_analyzer_config,
-                    telemetry_data_collectors=self._telemetry_data_collectors,
-                )
-
-                #
-                # Extract Perf Metrics
-                infer_mode, load_level = self._determine_infer_mode_and_load_level(
-                    obj_args, objectives, self._model_name
-                )
-                data_parser = calculate_metrics(obj_args, tokenizer)
-                perf_stats = data_parser.get_statistics(infer_mode, load_level)
-                session_stats = data_parser.get_session_statistics()
-                perf_metrics = perf_stats.create_records()
-
-                #
-                # Extract Telemetry Metrics
-                telemetry_metrics_list = [
-                    collector.get_metrics()
-                    for collector in self._telemetry_data_collectors
-                ]
-
-                merged_telemetry_metrics = merge_telemetry_metrics(
-                    telemetry_metrics_list
-                )
-                merged_telemetry_stats = TelemetryStatistics(merged_telemetry_metrics)
-                gpu_metrics = merged_telemetry_stats.create_records()
-
-                #
-                # Create output CSV in artifact directory
-                OutputReporter(
-                    perf_stats, merged_telemetry_stats, obj_args, session_stats
-                ).report_output()
-
-                #
-                # Create RunConfigMeasurement
-                run_config_measurement = RunConfigMeasurement(gpu_metrics)
-                run_config_measurement.add_perf_metrics(self._model_name, perf_metrics)
-
-                #
-                # Create RunConfig
-                run_config = RunConfig(
-                    name=run_config_name,
-                    genai_perf_config=genai_perf_config,
-                    perf_analyzer_config=perf_analyzer_config,
-                    measurement=run_config_measurement,
-                )
-
-                #
-                # Add to results and write checkpoint
-                self._results.add_run_config(run_config)
-                self._checkpoint.create_checkpoint_object()
-
             else:
-                objective = list(objectives[self._model_name])[0]
-                value = list(objectives[self._model_name].values())[0].value
-                logger.info(
-                    f"{run_config_name}:{objective}{value} found in checkpoint - skipping profiling..."
+                # Pre-amble
+                self._create_tokenizer()
+                self._create_artifact_directory(perf_analyzer_config)
+                self._create_plot_directory(perf_analyzer_config)
+                self._generate_inputs(perf_analyzer_config)
+
+                # Profile using Perf Analyzer
+                self._run_perf_analyzer(perf_analyzer_config)
+
+                # Post-amble
+                self._set_data_parser(perf_analyzer_config)
+                self._add_results_to_checkpoint(
+                    genai_perf_config, perf_analyzer_config, objectives
                 )
+                self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
 
     ###########################################################################
     # Report Methods
@@ -286,22 +172,28 @@ class Analyze:
         """
         Creates a CSV report based on checkpointed results
         """
-        filename = os.getcwd() + "/analyze_export_genai_perf.csv"
-        logger.info(f"Generating {filename}")
+        filename = self._create_analyze_summary_path()
 
+        logger.info(f"Generating {filename}")
         with open(filename, mode="w", newline="") as f:
             csv_writer = csv.writer(f)
 
-            #
             # Perf Metrics
             self._write_perf_metrics_header(csv_writer)
             self._write_perf_metrics_body(csv_writer)
             csv_writer.writerow("")
 
-            #
             # GPU Metrics
             self._write_gpu_metrics_header(csv_writer)
             self._write_gpu_metrics_body(csv_writer)
+
+    def _create_analyze_summary_path(self) -> Path:
+        """
+        Creates the path for the analyze summary file
+        """
+        path = self._config.output.artifact_directory / "analyze_export_genai_perf.csv"
+
+        return path
 
     ###########################################################################
     # Report - Perf Metrics Methods
@@ -327,7 +219,7 @@ class Analyze:
                     self._model_name, InputSequenceLengthP99.tag
                 )
             )
-            num_dataset_entries = run_config.genai_perf_config.input.num_dataset_entries
+            num_dataset_entries = self._get_num_dataset_entries(run_config)
 
             metrics = []
             for tag in Analyze.PERF_METRICS_TAGS:
@@ -367,55 +259,3 @@ class Analyze:
             gpus = list(gpu_power_usage.keys())
 
         return gpus
-
-    ###########################################################################
-    # Inference Determination Methods
-    ###########################################################################
-    def _determine_infer_mode_and_load_level(
-        self, args: Namespace, objectives: ModelObjectiveParameters, model_name: str
-    ) -> Tuple[str, str]:
-        if args.sweep_type == "concurrency":
-            infer_mode = "concurrency"
-            load_level = (
-                f"{objectives[model_name][infer_mode].get_value_based_on_category()}"
-            )
-        elif args.sweep_type == "request_rate":
-            infer_mode = "request_rate"
-            load_level = f"{float(objectives[model_name][infer_mode].get_value_based_on_category())}"
-        elif (
-            args.sweep_type == "input_sequence_length"
-            or args.sweep_type == "num_dataset_entries"
-            or args.sweep_type == "batch_size"
-        ):
-            if args.session_concurrency:
-                # [TPA-985] Profile export file should have a session concurrency mode
-                infer_mode = "request_rate"
-                load_level = "0.0"
-            elif args.concurrency:
-                infer_mode = "concurrency"
-                load_level = f"{args.concurrency}"
-            elif args.request_rate:
-                infer_mode = "request_rate"
-                load_level = f"{args.request_rate}"
-            else:
-                infer_mode = "concurrency"
-                load_level = "1"
-        else:
-            raise GenAIPerfException("Cannot determine infer_mode/load_level")
-
-        return infer_mode, load_level
-
-    def _determine_infer_type(self):
-        if self._args.sweep_type == "concurrency":
-            infer_type = "concurrency"
-        elif self._args.sweep_type == "request_rate":
-            infer_type = "request_rate"
-        else:
-            if self._args.concurrency:
-                infer_type = "concurrency"
-            elif self._args.request_rate:
-                infer_type = "request_rate"
-            else:
-                infer_type = "concurrency"
-
-        return infer_type

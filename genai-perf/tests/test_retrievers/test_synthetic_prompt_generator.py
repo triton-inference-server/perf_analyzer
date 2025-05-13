@@ -27,21 +27,26 @@
 from contextlib import nullcontext as does_not_raise
 
 import pytest
+from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.retrievers.synthetic_prompt_generator import (
     SyntheticPromptGenerator,
 )
-from genai_perf.tokenizer import DEFAULT_TOKENIZER, get_tokenizer
+from genai_perf.tokenizer import get_tokenizer
 
 
 class TestSyntheticPromptGenerator:
 
     def test_synthetic_prompt_default(self):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "gpt2"
+        tokenizer = get_tokenizer(config)
         _ = SyntheticPromptGenerator.create_synthetic_prompt(tokenizer)
 
     def test_synthetic_prompt_zero_token(self):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "gpt2"
+        tokenizer = get_tokenizer(config)
         prompt = SyntheticPromptGenerator.create_synthetic_prompt(
             tokenizer=tokenizer,
             prompt_tokens_mean=0,
@@ -52,9 +57,11 @@ class TestSyntheticPromptGenerator:
         assert len(tokenizer.encode(prompt)) == 0
 
     def test_synthetic_prompt_nonzero_tokens(self):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
         prompt_tokens = 123
         tolerance = 2
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "gpt2"
+        tokenizer = get_tokenizer(config)
         prompt = SyntheticPromptGenerator.create_synthetic_prompt(
             tokenizer=tokenizer,
             prompt_tokens_mean=prompt_tokens,
@@ -72,7 +79,9 @@ class TestSyntheticPromptGenerator:
         ],
     )
     def test_generate_prompt_with_token_reuse(self, test_num_tokens, context):
-        tokenizer = get_tokenizer(DEFAULT_TOKENIZER)
+        config = ConfigCommand({"model_name": "test_model"})
+        config.tokenizer.name = "gpt2"
+        tokenizer = get_tokenizer(config)
         with context:
             _ = SyntheticPromptGenerator._generate_prompt_with_token_reuse(
                 tokenizer=tokenizer,

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -51,8 +51,6 @@ To profile ranking models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m BAAI/bge-reranker-base \
-    --tokenizer BAAI/bge-reranker-base \
-    --service-kind openai \
     --endpoint-type rankings \
     --endpoint rerank \
     --input-file synthetic:queries,passages \
@@ -97,8 +95,6 @@ To profile ranking models using GenAI-Perf, use the following command:
 ```bash
 genai-perf profile \
     -m BAAI/bge-reranker-base \
-    --tokenizer BAAI/bge-reranker-base \
-    --service-kind openai \
     --endpoint-type rankings \
     --endpoint rerank \
     --input-file rankings_jsonl/ \

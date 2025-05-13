@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,15 @@ from genai_perf.export_data.console_exporter import ConsoleExporter
 from genai_perf.export_data.csv_exporter import CsvExporter
 from genai_perf.export_data.exporter_config import ExporterConfig
 from genai_perf.export_data.json_exporter import JsonExporter
+from genai_perf.inputs.input_constants import Subcommand
 
 ProfileDataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
-AnalyzeDataExporterList = [CsvExporter]
+AnalyzeDataExporterList = [ConsoleExporter, JsonExporter, CsvExporter]
 
 
 class DataExporterFactory:
     def create_data_exporters(self, config: ExporterConfig) -> List[Any]:
-        if config.args.subcommand == "analyze":
+        if config.config.subcommand == Subcommand.ANALYZE:
             DataExporterList: List[Any] = AnalyzeDataExporterList
         else:
             DataExporterList = ProfileDataExporterList
