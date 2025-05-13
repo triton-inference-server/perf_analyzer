@@ -178,16 +178,19 @@ genai-perf profile \
 Instead of letting GenAI-Perf create the synthetic data,
 you can also provide GenAI-Perf with your own data using
 [`--input-file`](../README.md#--input-file-path) CLI option.
-The file needs to be in JSONL format and should contain both the prompt and
-the filepath to the image to send.
+The input file must be in JSONL format, where each line can define both `text` and `image` data.
+The `image` field can be either a path to a local image file or a URL.
+GenAI-Perf converts local image filepaths to base64-encoded strings and leaves URL paths as is,
+consistent with the [OpenAI Vision Guide](https://platform.openai.com/docs/guides/images-vision?api-mode=chat&format=url#giving-a-model-images-as-input).
 
-For instance, an example of input file would look something as following:
+A sample input file `input.jsonl` would look like
 ```bash
-// input.jsonl
+// texts and local image files
 {"text": "What is in this image?", "image": "path/to/image1.png"}
 {"text": "What is the color of the dog?", "image": "path/to/image2.jpeg"}
-{"text": "Describe the scene in the picture.", "image": "path/to/image3.png"}
-...
+
+// Or, text and URL path
+{"text": "What is in this image?", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"}
 ```
 
 After you create the file, you can run GenAI-Perf using the following command:

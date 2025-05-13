@@ -78,14 +78,6 @@ class TestFileInputRetriever:
         filename = Path(filepath).name
         return mock_open(read_data=file_contents.get(filename))()
 
-    @staticmethod
-    @patch(
-        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
-        return_value="mock_base64_image",
-    )
-    def mock_encode_image(mock_encode_image):
-        return mock_encode_image
-
     @patch("pathlib.Path.exists", return_value=True)
     @patch("builtins.open", side_effect=open_side_effect)
     def test_retrieve_data_single_prompt(self, mock_file, mock_exists):
@@ -111,12 +103,12 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_retrieve_data_multi_modal(
-        self, mock_file, mock_image, mock_encode_image, mock_exists
+        self, mock_file, mock_image, mock_image_content, mock_exists
     ):
         config = ConfigCommand({"model_name": "test_model_A"})
         config.input.file = Path("multi_modal.jsonl")
@@ -143,12 +135,12 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_single_image(
-        self, mock_file, mock_image, mock_encode_image, mock_exists
+        self, mock_file, mock_image, mock_image_content, mock_exists
     ):
         config = ConfigCommand({"model_name": "test_model_A"})
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
@@ -172,12 +164,12 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         side_effect=["mock_base64_image1", "mock_base64_image2", "mock_base64_image3"],
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_multiple_images(
-        self, mock_file, mock_image_open, mock_encode_image, mock_exists
+        self, mock_file, mock_image_open, mock_image_content, mock_exists
     ):
         config = ConfigCommand({"model_name": "test_model_A"})
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
@@ -260,12 +252,12 @@ class TestFileInputRetriever:
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_multi_modal(
-        self, mock_file, mock_image, mock_encode_image, mock_exists
+        self, mock_file, mock_image, mock_image_content, mock_exists
     ):
         config = ConfigCommand({"model_name": "test_model_A"})
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
@@ -380,7 +372,7 @@ class TestFileInputRetriever:
     )
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
-        f"{FILE_INPUT_RETRIEVER_PREFIX}._encode_image",
+        f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
@@ -388,7 +380,7 @@ class TestFileInputRetriever:
         self,
         mock_file,
         mock_image_open,
-        mock_encode_image,
+        mock_image_content,
         mock_glob,
         mock_is_dir,
         mock_exists,
