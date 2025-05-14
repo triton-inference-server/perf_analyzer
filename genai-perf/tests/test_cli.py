@@ -1101,26 +1101,15 @@ class TestCLIArguments:
             CreateConfig.create(args)
 
     @pytest.mark.parametrize(
-        "args , expected_error_message",
+        "args",
         [
-            (
-                ["--concurrency", "10"],
-                "User Config: perf_analyzer.stimulus: concurrency is not supported with the payload input source.",
-            ),
-            (
-                ["--request-rate", "5"],
-                "User Config: perf_analyzer.stimulus: request_rate is not supported with the payload input source.",
-            ),
-            (
-                ["--request-count", "3"],
-                "User Config: perf_analyzer.measurement.mode of request_count is not supported with the payload input source.",
-            ),
+            ["--concurrency", "10"],
+            ["--request-rate", "5"],
+            ["--request-count", "3"],
         ],
     )
-    def test_check_payload_input_args_invalid_args(
-        self, monkeypatch, mocker, capsys, args, expected_error_message
-    ):
-        combined_args = (
+    def test_check_payload_input_args_valid(self, monkeypatch, mocker, args):
+        valid_args = (
             self.base_args
             + [
                 "--input-file",
@@ -1128,20 +1117,6 @@ class TestCLIArguments:
             ]
             + args
         )
-
-        mocker.patch.object(Path, "is_file", return_value=True)
-        monkeypatch.setattr("sys.argv", combined_args)
-        with pytest.raises(ValueError) as execinfo:
-            args, _ = parser.parse_args()
-            CreateConfig.create(args)
-
-        assert expected_error_message == execinfo.value.args[0]
-
-    def test_check_payload_input_args_valid(self, monkeypatch, mocker):
-        valid_args = self.base_args + [
-            "--input-file",
-            "payload:test.jsonl",
-        ]
         mocker.patch.object(Path, "is_file", return_value=True)
         monkeypatch.setattr("sys.argv", valid_args)
         try:
