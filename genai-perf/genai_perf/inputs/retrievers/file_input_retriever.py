@@ -27,6 +27,7 @@
 import random
 from pathlib import Path
 from typing import Dict, List, Tuple, cast
+from urllib.parse import urlparse
 
 from genai_perf import utils
 from genai_perf.config.input.config_defaults import InputDefaults
@@ -189,10 +190,16 @@ class FileInputRetriever(BaseFileInputRetriever):
         str
             The processed image content.
         """
-
-        if "://" in content:  # URL path
+        # Check if the content is a URL with a scheme and netloc
+        url = urlparse(content)
+        if url.scheme and url.netloc:
             return content
+        elif any([url.scheme, url.netloc]):
+            raise GenAIPerfException(
+                f"Valid URL must have both a scheme and netloc: {content}"
+            )
 
+        # Otherwise, it's a local file path
         try:
             img = Image.open(content)
         except FileNotFoundError:

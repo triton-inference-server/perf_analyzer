@@ -43,6 +43,13 @@ FILE_INPUT_RETRIEVER_PREFIX = (
 class TestFileInputRetriever:
 
     @staticmethod
+    def image_open_side_effect(*args, **kwargs):
+        """Use this side effect to set the format of the mock image."""
+        img = Image.new("RGB", (10, 10))
+        img.format = "PNG"
+        return img
+
+    @staticmethod
     def open_side_effect(filepath, *args, **kwargs):
         single_prompt = '{"text": "What is the capital of France?"}\n'
         multiple_prompts = (
@@ -60,6 +67,11 @@ class TestFileInputRetriever:
             '{"text": "What is this image?", "image": "image1.png"}\n'
             '{"text": "Who is this person?", "image": "image2.png"}\n'
         )
+        multi_modal_url = (
+            '{"text": "What is this image?", "image": "https://some/path/to/image1.png"}\n'
+            '{"text": "Who is this person?", "image": "s3://some/path/to/image2.png"}\n'
+            '{"text": "What the color of the sky?", "image": "file://some/path/to/image3.png"}\n'
+        )
         deprecated_text_input = (
             '{"text_input": "Who is Albert Einstein?"}\n'
             '{"text_input": "What is the speed of light?"}\n'
@@ -72,6 +84,7 @@ class TestFileInputRetriever:
             "single_image.jsonl": single_image,
             "multiple_images.jsonl": multiple_images,
             "multi_modal.jsonl": multi_modal,
+            "multi_modal_url.jsonl": multi_modal_url,
             "deprecated_text_input.jsonl": deprecated_text_input,
             "conflicting_key.jsonl": conflicting_key,
         }
@@ -101,14 +114,13 @@ class TestFileInputRetriever:
         assert file_data.rows[0].texts[0] == "What is the capital of France?"
 
     @patch("pathlib.Path.exists", return_value=True)
-    @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
         f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_retrieve_data_multi_modal(
-        self, mock_file, mock_image, mock_image_content, mock_exists
+        self, mock_file, mock_image_content, mock_exists
     ):
         config = ConfigCommand({"model_name": "test_model_A"})
         config.input.file = Path("multi_modal.jsonl")
@@ -131,6 +143,34 @@ class TestFileInputRetriever:
         assert file_data.rows[0].images[0] == "mock_base64_image"
         assert file_data.rows[1].texts[0] == "Who is this person?"
         assert file_data.rows[1].images[0] == "mock_base64_image"
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("builtins.open", side_effect=open_side_effect)
+    def test_get_input_file_multi_modal_url(self, mock_file, mock_exists):
+        config = ConfigCommand({"model_name": "test_model_A"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.input.file = Path("multi_modal_url.jsonl")
+
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                config=config,
+                tokenizer=get_empty_tokenizer(),
+                output_directory=Path("."),
+            )
+        )
+
+        data = file_retriever.retrieve_data()
+        assert len(data.files_data) == 1
+        assert "multi_modal_url.jsonl" in data.files_data
+
+        file_data = data.files_data["multi_modal_url.jsonl"]
+        assert len(file_data.rows) == 3
+        assert file_data.rows[0].texts[0] == "What is this image?"
+        assert file_data.rows[0].images[0] == "https://some/path/to/image1.png"
+        assert file_data.rows[1].texts[0] == "Who is this person?"
+        assert file_data.rows[1].images[0] == "s3://some/path/to/image2.png"
+        assert file_data.rows[2].texts[0] == "What the color of the sky?"
+        assert file_data.rows[2].images[0] == "file://some/path/to/image3.png"
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
@@ -162,14 +202,13 @@ class TestFileInputRetriever:
         assert file_data.rows[0].images[0] == "mock_base64_image"
 
     @patch("pathlib.Path.exists", return_value=True)
-    @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
         f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         side_effect=["mock_base64_image1", "mock_base64_image2", "mock_base64_image3"],
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_multiple_images(
-        self, mock_file, mock_image_open, mock_image_content, mock_exists
+        self, mock_file, mock_image_content, mock_exists
     ):
         config = ConfigCommand({"model_name": "test_model_A"})
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
@@ -250,14 +289,13 @@ class TestFileInputRetriever:
             assert file_data.rows[i].texts[0] == prompt
 
     @patch("pathlib.Path.exists", return_value=True)
-    @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
         f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         return_value="mock_base64_image",
     )
     @patch("builtins.open", side_effect=open_side_effect)
     def test_get_input_file_multi_modal(
-        self, mock_file, mock_image, mock_image_content, mock_exists
+        self, mock_file, mock_image_content, mock_exists
     ):
         config = ConfigCommand({"model_name": "test_model_A"})
         config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
@@ -370,7 +408,6 @@ class TestFileInputRetriever:
             Path("multi_modal.jsonl"),
         ],
     )
-    @patch("PIL.Image.open", return_value=Image.new("RGB", (10, 10)))
     @patch(
         f"{FILE_INPUT_RETRIEVER_PREFIX}._handle_image_content",
         return_value="mock_base64_image",
@@ -379,7 +416,6 @@ class TestFileInputRetriever:
     def test_get_input_datasets_from_dir(
         self,
         mock_file,
-        mock_image_open,
         mock_image_content,
         mock_glob,
         mock_is_dir,
@@ -482,3 +518,39 @@ class TestFileInputRetriever:
         mock_create_prefix_prompts_pool.assert_called_once()
         for row in file_data.rows:
             assert row.texts[0].startswith("prefix prompt ")
+
+    @patch("pathlib.Path.exists", return_value=True)
+    @patch("PIL.Image.open", side_effect=image_open_side_effect)
+    @patch("genai_perf.utils.encode_image", return_value="mock_base64_image")
+    @patch("builtins.open", side_effect=open_side_effect)
+    @pytest.mark.parametrize(
+        "image_path, expected_result",
+        [
+            # URL paths
+            ("file://path/to/image1.png", "file://path/to/image1.png"),
+            ("https://path/to/image2.png", "https://path/to/image2.png"),
+            ("s3://path/to/image3.png", "s3://path/to/image3.png"),
+            # Local file paths
+            ("/path/to/image1.png", "data:image/png;base64,mock_base64_image"),
+            ("/path/to/image2.png", "data:image/png;base64,mock_base64_image"),
+        ],
+    )
+    def test_handle_image_content(
+        self,
+        mock_file,
+        mock_image,
+        mock_encode_image,
+        mock_exists,
+        image_path,
+        expected_result,
+    ):
+        file_retriever = FileInputRetriever(
+            InputsConfig(
+                config=ConfigCommand({"model_name": "test_model_A"}),
+                tokenizer=None,
+                output_directory=None,
+            )
+        )
+
+        parsed_img = file_retriever._handle_image_content(image_path)
+        assert parsed_img == expected_result
