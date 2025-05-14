@@ -14,22 +14,22 @@
 
 from functools import total_ordering
 
-from genai_perf.record.types.output_token_throughput_per_request_base import (
-    OutputTokenThroughputPerRequestBase,
+from genai_perf.record.types.output_token_throughput_per_user_base import (
+    OutputTokenThroughputPerUserBase,
 )
 
 
 @total_ordering
-class OutputTokenThroughputPerRequestP5(OutputTokenThroughputPerRequestBase):
+class OutputTokenThroughputPerUserP5(OutputTokenThroughputPerUserBase):
     """
-    A record for p5 Output token throughput per request metric
+    A record for p5 Output token throughput per user metric
     """
 
-    tag = OutputTokenThroughputPerRequestBase.base_tag + "_p5"
+    tag = OutputTokenThroughputPerUserBase.base_tag + "_p5"
 
     def __init__(self, value, timestamp=0):
         super().__init__(value, timestamp)
 
     @classmethod
     def header(cls, aggregation_tag=False) -> str:
-        return "p5 Output Token Per Request (tokens/sec)"
+        return "p5 Output Token Throughput Per User (tokens/sec/user)"
