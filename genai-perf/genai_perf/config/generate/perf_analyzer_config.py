@@ -88,6 +88,16 @@ class PerfAnalyzerConfig:
         cli_args += self._add_endpoint_args(config)
         cli_args += self._add_extra_args(extra_args)
 
+        header = getattr(config.input, 'header', None)
+        
+        if header:
+            headers = header if isinstance(header, list) else [header]
+            cli_args += [
+                "--header", str(h).strip()
+                for h in headers
+                if h and str(h).strip()
+            ]
+
         return cli_args
 
     def _set_options_based_on_objective(
