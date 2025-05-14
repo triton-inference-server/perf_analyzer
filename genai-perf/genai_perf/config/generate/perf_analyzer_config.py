@@ -86,6 +86,7 @@ class PerfAnalyzerConfig:
         cli_args += self._add_inference_load_args(config)
         cli_args += self._add_prompt_source_args(config)
         cli_args += self._add_endpoint_args(config)
+        cli_args += self._add_header_args(config)
         cli_args += self._add_extra_args(extra_args)
 
         return cli_args
@@ -357,6 +358,14 @@ class PerfAnalyzerConfig:
             endpoint_args += ["--endpoint", f"{config.endpoint.custom}"]
 
         return endpoint_args
+
+    def _add_header_args(self, config: ConfigCommand) -> List[str]:
+        header_args = []
+
+        for h in config.input.header:
+            header_args += ["-H", h]
+
+        return header_args
 
     def _add_extra_args(self, extra_args: Optional[List[str]]) -> List[str]:
         if not extra_args:
