@@ -23,3 +23,23 @@
 # OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+from functools import total_ordering
+
+from genai_perf.record.types.sm_utilization_base import SMUtilizationBase
+
+
+@total_ordering
+class SMUtilizationP25(SMUtilizationBase):
+    """
+    A record for p25 SM Utilization metric
+    """
+
+    tag = SMUtilizationBase.base_tag + "_p25"
+
+    def __init__(self, value, device_uuid=None, timestamp=0):
+        super().__init__(value, device_uuid, timestamp)
+
+    @classmethod
+    def header(cls, aggregation_tag=False) -> str:
+        return "P25 SM Utilization (%)"

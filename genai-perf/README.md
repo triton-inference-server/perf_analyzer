@@ -237,9 +237,9 @@ and with `--verbose`:
     # An option to enable the use of the streaming API.
     streaming: False
 
-    # The list of Triton server metrics URLs.
-    # These are used for Telemetry metric reporting with Triton.
-    server_metrics_urls: http://localhost:8002/metrics
+    # The list of server metrics URLs.
+    # These are used for Telemetry metric reporting.
+    server_metrics_urls: http://localhost:9400/metrics
 
     # URL of the endpoint to target for benchmarking.
     url: localhost:8001
@@ -412,12 +412,46 @@ the inference server.
 
 </br>
 
-### Telemetry Metrics
+### GPU Telemetry
 
-When benchmarking Triton, Telemetry metrics will be reported in
-the GenAI-Perf profile export files. These include GPU power usage, GPU
-utilization, energy consumption, total GPU memory, and more. If you would like
-these to be printed as output, you can use the `--verbose` flag.
+During benchmarking, gpu metrics such as GPU power usage, GPU utilization, energy consumption, total GPU memory,
+are automatically collected. These metrics are collected from the `/metrics` endpoint
+exposed by the [DCGM Exporter](https://github.com/NVIDIA/dcgm-exporter), which must be running on the **same machine** as the inference server.
+
+GenAI-Perf collects the following GPU metrics during benchmarking:
+
+### Power Metrics
+- `gpu_power_usage`
+- `gpu_power_limit`
+- `energy_consumption`
+
+### Memory Metrics
+- `total_gpu_memory`
+- `gpu_memory_used`
+- `gpu_memory_free`
+
+### Temperature Metrics
+- `gpu_temperature`
+- `gpu_memory_temperature`
+
+### Clock Metrics
+- `gpu_clock_sm`
+- `gpu_clock_memory`
+
+### Utilization Metrics
+- `gpu_utilization`
+- `sm_utilization`
+- `memory_copy_utilization`
+- `video_encoder_utilization`
+- `video_decoder_utilization`
+
+> [!Note]
+> Use the `--verbose` flag to print telemetry metrics on the console.
+
+To collect GPU metrics, follow the [GPU Telmetry tutorial](docs/gpu_telemetry.md).
+Use the provided [`custom-metrics.csv`](./custom-metrics.csv) to ensure all required metrics are included in the output.
+
+</br>
 
 <!--
 ======================
@@ -481,10 +515,10 @@ The endpoint-type to send requests to on the server. (default: `kserve`)
 
 ##### `--server-metrics-urls <list>`
 
-The list of Triton server metrics URLs. These are used for Telemetry metric
-reporting with Triton. Example usage: --server-metrics-urls
-http://server1:8002/metrics http://server2:8002/metrics.
-(default: `http://localhost:8002/metrics`)
+The list of server metrics URLs. These are used for Telemetry metric
+reporting when benchmarking. Example usage: --server-metrics-urls
+http://server1:9400/metrics http://server2:8002/metrics.
+(default: `http://localhost:9400/metrics`)
 
 ##### `--streaming`
 
