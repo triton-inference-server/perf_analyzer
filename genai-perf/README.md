@@ -449,7 +449,7 @@ GenAI-Perf collects the following GPU metrics during benchmarking:
 > Use the `--verbose` flag to print telemetry metrics on the console.
 
 To collect GPU metrics, follow the [GPU Telmetry tutorial](docs/gpu_telemetry.md).
-Use the provided [`custom-metrics.csv`](./custom-metrics.csv) to ensure all required metrics are included in the output.
+Use the provided [`custom-metrics.csv`](./docs/assets/custom_gpu_metrics.csv) to ensure all required metrics are included in the output.
 
 </br>
 
@@ -517,7 +517,7 @@ The endpoint-type to send requests to on the server. (default: `kserve`)
 
 The list of server metrics URLs. These are used for Telemetry metric
 reporting when benchmarking. Example usage: --server-metrics-urls
-http://server1:9400/metrics http://server2:8002/metrics.
+http://server1:9400/metrics http://server2:9400/metrics.
 (default: `http://localhost:9400/metrics`)
 
 ##### `--streaming`

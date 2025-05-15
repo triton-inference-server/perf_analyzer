@@ -32,25 +32,63 @@ This guide explains how to enable GPU metric collection during benchmarking with
 It also covers setting up the NVIDIA DCGM Exporter on the same machine as the inference server.
 
 ## Run the DCGM Exporter container
-Start DCGM Exporter using Docker on the machine your inference server is running
+
+Create a custom GPU metrics file using the following command:
+
+```
+cat > custom_gpu_metrics.csv << 'EOF'
+# Format
+# If line starts with a '#' it is considered a comment
+# DCGM FIELD, Prometheus metric type, help message
+
+# Clocks
+DCGM_FI_DEV_SM_CLOCK, gauge, SM clock frequency (in MHz)
+DCGM_FI_DEV_MEM_CLOCK, gauge, Memory clock frequency (in MHz)
+
+# Temperature
+DCGM_FI_DEV_MEMORY_TEMP, gauge, Memory temperature (in °C)
+DCGM_FI_DEV_GPU_TEMP, gauge, GPU temperature (in °C)
+
+# Power
+DCGM_FI_DEV_POWER_USAGE, gauge, Power draw (in W)
+DCGM_FI_DEV_POWER_MGMT_LIMIT, gauge, Power management limit (in W)
+DCGM_FI_DEV_TOTAL_ENERGY_CONSUMPTION, counter, Total energy consumption since boot (in mJ)
+
+# Memory usage
+DCGM_FI_DEV_FB_FREE, gauge, Framebuffer memory free (in MiB)
+DCGM_FI_DEV_FB_TOTAL, gauge, Total framebuffer memory (in MiB)
+DCGM_FI_DEV_FB_USED, gauge, Framebuffer memory used (in MiB)
+
+# Utilization
+DCGM_FI_DEV_GPU_UTIL, gauge, GPU utilization (in %)
+DCGM_FI_DEV_MEM_COPY_UTIL, gauge, Memory copy utilization (in %)
+DCGM_FI_DEV_ENC_UTIL, gauge, Encoder utilization (in %)
+DCGM_FI_DEV_DEC_UTIL, gauge, Decoder utilization (in %)
+DCGM_FI_PROF_SM_ACTIVE, gauge, Ratio of cycles at least one warp is active per SM
+EOF
+```
+This will generate a `custom_gpu_metrics.csv` file that can be mounted into the DCGM Exporter container and
+used directly for GPU telemetry collection with GenAI-Perf.
+
+> [!Note]
+> You can also view the complete metrics file at [custom_gpu_metrics.csv](./assets/custom_gpu_metrics.csv) for reference or direct use.
+
+Start the DCGM Exporter using Docker on the same machine as your inference server:
 
 ```
 docker run -d --gpus all --cap-add SYS_ADMIN \
   -p 9400:9400 \
-  -v "$PWD/genai-perf/docs/assets/custom_gpu_metrics.csv:/etc/dcgm-exporter/custom.csv" \
+  -v "$PWD/custom_gpu_metrics.csv:/etc/dcgm-exporter/custom.csv" \
   -e DCGM_EXPORTER_INTERVAL=33 \
   nvcr.io/nvidia/k8s/dcgm-exporter:4.2.0-4.1.0-ubuntu22.04 \
   -f /etc/dcgm-exporter/custom.csv
 ```
-> [!Note]
-> This assumes your custom metrics file is named `custom_gpu_metrics.csv` and located in `/genai-perf/docs/assets/`.
-> Adjust the file path and name as needed based on your setup.
 
 ###  Configuration Details
 #### Custom Collection Interval
 By default, DCGM Exporter collects telemetry metrics every 30 seconds, which is too infrequent for detailed performance benchmarking.
 GenAI-Perf expects metrics to be collected every 33 milliseconds for fine-grained profiling.
-This is configured via the following environment variable
+This is configured via the following environment variable:
 
 ```
 -e DCGM_EXPORTER_INTERVAL=33
@@ -59,25 +97,26 @@ This is configured via the following environment variable
 ### Custom GPU Metrics
 DCGM Exporter comes with a default set of metrics, but GenAI-Perf supports additional metrics that are not collected by default.
 
-To collect all supported metrics, use the provided [custom gpu metrics](./assets/custom_gpu_metrics.csv) file.
-Mount it into the container using
+To collect all supported metrics,
+you can either use the file you generated using the steps above, or refer to the provided [custom_gpu_metrics.csv](./assets/custom_gpu_metrics.csv) file.
+Mount it into the container using:
 
 ```
--v "$PWD/custom-gpu-metrics.csv:/etc/dcgm-exporter/custom.csv"
+-v "$PWD/custom_gpu_metrics.csv:/etc/dcgm-exporter/custom.csv"
 ```
 
 > [!Note]
-> You may uncomment only the metrics you want to collect in the CSV file.
+> You may comment out any metrics you do not want to collect in the CSV file.
 > Lines starting with # are ignored by the exporter.
 
 ## Verifying DCGM Exporter is running
-Once the container is running, confirm that metrics are being collected by running
+Once the container is running, confirm that metrics are being collected by running:
 
 ```
-curl localhost:9400/metrics
+curl "localhost:9400/metrics"
 ```
 
-You should see an output like this
+You should see an output like this:
 
 ```
 # HELP DCGM_FI_DEV_SM_CLOCK SM clock frequency (in MHz).
@@ -103,7 +142,7 @@ Once the DCGM Exporter is up and running, start benchmarking using GenAI-Perf.
 Use the `--server-metrics-urls <list>` flag to specify one or more DCGM Exporter /metrics endpoints
 from which GPU telemetry will be collected during benchmarking.
 
-Example
+Example:
 
 ```
 --server-metrics-urls http://localhost:9400/metrics http://remote-node:9400/metrics
@@ -112,7 +151,7 @@ Example
 By default, GenAI-Perf collects metrics from `http://localhost:9400/metrics`.
 
 > [!Note]
-> To enable printing GPU telemetry metrics on console, pass the `--verbose`or `-v` flag.
+> To enable printing GPU telemetry metrics on console, pass the `--verbose` or `-v` flag.
 
 Example command:
 
@@ -124,7 +163,7 @@ genai-perf profile \
     --verbose
 ```
 
-Example console output in `verbose` mode
+Example console output in `verbose` mode:
 
 ```
                  NVIDIA GenAI-Perf | Power Metrics
@@ -180,7 +219,7 @@ Example console output in `verbose` mode
 └───────────────────────────────────────────────────┘
 ```
 
-Example output on a machine with multiple GPUs
+Example output on a machine with multiple GPUs:
 
 ```
                 NVIDIA GenAI-Perf | Power Metrics
