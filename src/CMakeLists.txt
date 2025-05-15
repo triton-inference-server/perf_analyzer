@@ -205,6 +205,8 @@ set(
   session_concurrency/response_json_utils.h
   session_concurrency/session_concurrency_manager.h
   rapidjson_utils.h
+  session_concurrency_mode.h
+  coroutine.h
   inference_load_mode.h
 )
 
@@ -365,6 +367,7 @@ add_executable(
   test_ctx_id_tracker.cc
   test_profile_data_collector.cc
   test_profile_data_exporter.cc
+  test_coroutine.cc
   ${TEST_HTTP_CLIENT}
   test_response_json_utils.cc
   test_payload_json_utils.cc
@@ -405,6 +408,7 @@ target_compile_options(
   perf_analyzer_unit_tests
   PRIVATE
     -Wno-write-strings
+    -fcoroutines
 )
 
 target_link_libraries(
