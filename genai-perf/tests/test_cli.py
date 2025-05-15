@@ -1517,3 +1517,83 @@ class TestCLIArguments:
 
         assert args.input_path[0] == "test_dir"
         assert config.process.input_path == Path("test_dir")
+
+    # test that the --header option is forwarded to the -H argument of perf analyzer command line arguments
+    @pytest.mark.parametrize(
+        "args, expected_headers, expected_cli_args",
+        [
+            (
+                ["--header", "Authorization: Bearer token"],
+                ["Authorization: Bearer token"],
+                ["-H", "Authorization: Bearer token"],
+            ),
+            (
+                ["--header", "Content-Type: application/json"],
+                ["Content-Type: application/json"],
+                ["-H", "Content-Type: application/json"],
+            ),
+            (
+                ["--header", "X-Custom-Header: CustomValue"],
+                ["X-Custom-Header: CustomValue"],
+                ["-H", "X-Custom-Header: CustomValue"],
+            ),
+            (
+                ["-H", "X-Another-Header: AnotherValue"],
+                ["X-Another-Header: AnotherValue"],
+                ["-H", "X-Another-Header: AnotherValue"],
+            ),
+            (
+                ["--header", "X-Header: Value1", "--header", "X-Header2: Value2"],
+                ["X-Header: Value1", "X-Header2: Value2"],
+                ["-H", "X-Header: Value1", "-H", "X-Header2: Value2"],
+            ),
+            (
+                ["--header", "X-Header: Value1", "--header", "X-Header: Value2"],
+                ["X-Header: Value1", "X-Header: Value2"],
+                ["-H", "X-Header: Value1", "-H", "X-Header: Value2"],
+            ),
+            (
+                ["--header", "X-Header: Value1", "-H", "X-Header2: Value2"],
+                ["X-Header: Value1", "X-Header2: Value2"],
+                ["-H", "X-Header: Value1", "-H", "X-Header2: Value2"],
+            ),
+        ],
+    )
+    def test_profile_add_header(
+        self, monkeypatch, args, expected_headers, expected_cli_args, mocker
+    ):
+        # Test the CLI argument parsing
+        combined_args = self.base_args + args
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        with patch.object(Path, "is_dir", return_value=True):
+            config = CreateConfig.create(args)
+
+        # Verify headers are set in config
+        assert config.input.header == expected_headers
+
+        # Create PerfAnalyzerConfig to test command line argument generation
+        from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
+
+        perf_analyzer_config = PerfAnalyzerConfig(config)
+
+        # Test that the expected header groups are present somewhere in the _cli_args
+        header_args = perf_analyzer_config._cli_args
+        # Extract header groups (each group is "-H" followed immediately by the header string)
+        found_header_groups = []
+        i = 0
+        while i < len(header_args) - 1:
+            if header_args[i] == "-H":
+                found_header_groups.append((header_args[i], header_args[i + 1]))
+                i += 2
+            else:
+                i += 1
+
+        expected_header_groups = []
+        for j in range(0, len(expected_cli_args), 2):
+            expected_header_groups.append(
+                (expected_cli_args[j], expected_cli_args[j + 1])
+            )
+
+        # The header groups may be placed anywhere in _cli_args so order doesn't matter
+        assert sorted(found_header_groups) == sorted(expected_header_groups)
