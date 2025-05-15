@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -37,11 +37,14 @@ Start DCGM Exporter using Docker on the machine your inference server is running
 ```
 docker run -d --gpus all --cap-add SYS_ADMIN \
   -p 9400:9400 \
-  -v "$PWD/custom-gpu-metrics.csv:/etc/dcgm-exporter/custom.csv" \
+  -v "$PWD/genai-perf/docs/assets/custom_gpu_metrics.csv:/etc/dcgm-exporter/custom.csv" \
   -e DCGM_EXPORTER_INTERVAL=33 \
   nvcr.io/nvidia/k8s/dcgm-exporter:4.2.0-4.1.0-ubuntu22.04 \
   -f /etc/dcgm-exporter/custom.csv
 ```
+> [!Note]
+> This assumes your custom metrics file is named `custom_gpu_metrics.csv` and located in `/genai-perf/docs/assets/`.
+> Adjust the file path and name as needed based on your setup.
 
 ###  Configuration Details
 #### Custom Collection Interval
@@ -56,7 +59,7 @@ This is configured via the following environment variable
 ### Custom GPU Metrics
 DCGM Exporter comes with a default set of metrics, but GenAI-Perf supports additional metrics that are not collected by default.
 
-To collect all supported metrics, use the provided [custom gpu metrics](/perf_analyzer/custom_gpu_metrics.csv) file.
+To collect all supported metrics, use the provided [custom gpu metrics](./assets/custom_gpu_metrics.csv) file.
 Mount it into the container using
 
 ```
@@ -97,16 +100,16 @@ DCGM_FI_DEV_MEMORY_TEMP{gpu="0", UUID="GPU-604ac76c-d9cf-fef3-62e9-d92044ab6e52"
 
 Once the DCGM Exporter is up and running, start benchmarking using GenAI-Perf.
 
-`--server-metrics-url <list>` - List of DCGM Exporter /metrics endpoints to collect
-GPU telemetry from during benchmarking. Use space-separated URLs for multi-node setup.
+Use the `--server-metrics-urls <list>` flag to specify one or more DCGM Exporter /metrics endpoints
+from which GPU telemetry will be collected during benchmarking.
 
 Example
 
 ```
---server-metrics-url http://localhost:9400/metrics http://remote-node:9400/metrics
+--server-metrics-urls http://localhost:9400/metrics http://remote-node:9400/metrics
 ```
 
-(default: `http://localhost:9400/metrics`)
+By default, GenAI-Perf collects metrics from `http://localhost:9400/metrics`.
 
 > [!Note]
 > To enable printing GPU telemetry metrics on console, pass the `--verbose`or `-v` flag.
@@ -114,17 +117,11 @@ Example
 Example command:
 
 ```
-genai-perf profile -m gpt2 \
-	--endpoint-type chat \
-	--url http://localhost:8000 \
-  --server-metrics-url http://localhost:9400/metrics \
-	--synthetic-input-tokens-mean 100 \
-	--synthetic-input-tokens-stddev 20 \
-	--output-tokens-mean 50 \
-	--output-tokens-stddev 15 \
-	--streaming \
-	--concurrency 1 \
-	-v
+genai-perf profile \
+    -m gpt2 \
+    --endpoint-type chat \
+    --server-metrics-urls http://localhost:9400/metrics \
+    --verbose
 ```
 
 Example console output in `verbose` mode
@@ -256,3 +253,8 @@ Example output on a machine with multiple GPUs
 │ └───────────┴─────┴─────┴─────┴─────┴─────┴─────┘ │
 └───────────────────────────────────────────────────┘
 ```
+
+> [!Note]
+> GenAI-Perf prints a limited set of GPU metrics (as shown in the example output above) to the console
+> when the --verbose (-v) flag is set. If GPU telemetry collection is configured correctly,
+> all supported metrics enabled in the custom DCGM metrics file are always exported to CSV and JSON output files.

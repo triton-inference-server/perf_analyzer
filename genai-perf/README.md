@@ -414,7 +414,7 @@ the inference server.
 
 ### GPU Telemetry
 
-During benchmarking, gpu metrics such as GPU power usage, GPU utilization, energy consumption, total GPU memory,
+During benchmarking, GPU metrics such as GPU power usage, GPU utilization, energy consumption, and total GPU memory
 are automatically collected. These metrics are collected from the `/metrics` endpoint
 exposed by the [DCGM Exporter](https://github.com/NVIDIA/dcgm-exporter), which must be running on the **same machine** as the inference server.
 
