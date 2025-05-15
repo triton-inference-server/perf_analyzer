@@ -92,7 +92,7 @@ class ConfigPerfAnalyzer(BaseConfig):
         elif type(stimulus) is dict:
             self.stimulus = stimulus
         else:
-            raise ValueError("User Config: stimulus must be a string or list")
+            raise ValueError("User Config: stimulus must be a string or dict")
 
     def infer_settings(self) -> None:
         self.measurement._infer_measurement_num_based_on_mode()
