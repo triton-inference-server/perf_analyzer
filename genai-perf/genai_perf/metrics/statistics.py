@@ -43,7 +43,7 @@ class Statistics:
     The Statistics class goes through each metric in the metrics class and
     calculates several statistics such as:
       - average (arithmetic mean)
-      - percentiles (p25, p50, p75, p90, p95, p99)
+      - percentiles (p1, p5, p10, p25, p50, p75, p90, p95, p99)
       - minimum & maximum
       - standard deviation
     The class will store each calculated statistics as part of its attribute.
@@ -95,7 +95,7 @@ class Statistics:
         return float(avg)
 
     def _calculate_percentiles(self, data: List[Union[int, float]]) -> Dict[str, float]:
-        percentiles = [25, 50, 75, 90, 95, 99]
+        percentiles = [1, 5, 10, 25, 50, 75, 90, 95, 99]
         percentile_labels = [f"p{p}" for p in percentiles]
         percentile_values = [float(np.percentile(data, p)) for p in percentiles]
         return dict(zip(percentile_labels, percentile_values))

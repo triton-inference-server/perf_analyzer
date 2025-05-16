@@ -52,6 +52,9 @@ class CsvExporter:
         "p75",
         "p50",
         "p25",
+        "p10",
+        "p5",
+        "p1",
     ]
 
     SYSTEM_METRICS_HEADER = [

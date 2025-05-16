@@ -574,11 +574,11 @@ class TestConsoleExporter:
 
         mock_logger.error.assert_any_call(
             "Statistic 'avg' for metric 'request_latency' is missing. "
-            "Available stats: ['unit', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'max', 'std']."
+            "Available stats: ['unit', 'p1', 'p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'max', 'std']."
         )
         mock_logger.error.assert_any_call(
             "Statistic 'max' for metric 'output_sequence_length' is missing. "
-            "Available stats: ['unit', 'avg', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'std']."
+            "Available stats: ['unit', 'avg', 'p1', 'p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99', 'min', 'std']."
         )
 
         # Validate output reflects missing statistics as 'N/A'
