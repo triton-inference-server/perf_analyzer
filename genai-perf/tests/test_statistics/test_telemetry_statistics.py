@@ -40,9 +40,9 @@ class TestTelemetryStatistics:
             {
                 "gpu_power_usage": {"gpu0": [10.0, 20.0, 30.0], "gpu1": [40.0, 50.0]},
                 "gpu_utilization": {"gpu0": [60.0, 70.0, 80.0], "gpu1": [90.0]},
-                "energy_consumption": {"gpu0": [1000000.0], "gpu1": [2000000.0]},
+                "energy_consumption": {"gpu0": [1000000000.0], "gpu1": [2000000000.0]},
                 "total_gpu_memory": {"gpu0": [8000000000.0], "gpu1": [16000000000.0]},
-                "gpu_memory_used": {"gpu0": [4000000000.0], "gpu1": [8000000000.0]},
+                "gpu_memory_used": {"gpu0": [4000], "gpu1": [5000]},
             }
         )
         return telemetry
@@ -87,8 +87,12 @@ class TestTelemetryStatistics:
         assert stats_dict["energy_consumption"]["gpu0"]["avg"] == 1.0  # 1 MJ
         assert stats_dict["energy_consumption"]["gpu1"]["avg"] == 2.0  # 2 MJ
 
-        assert stats_dict["gpu_memory_used"]["gpu0"]["avg"] == 4.0  # 4 GB
-        assert stats_dict["gpu_memory_used"]["gpu1"]["avg"] == 8.0  # 8 GB
+        assert (
+            round(stats_dict["gpu_memory_used"]["gpu0"]["avg"], 2) == 4.19
+        )  # 4.194304 GB
+        assert (
+            round(stats_dict["gpu_memory_used"]["gpu1"]["avg"], 2) == 5.24
+        )  # 5.24288 GB
 
     def test_create_records(self, telemetry_statistics):
         telemetry_statistics._stats_dict = telemetry_statistics.stats_dict

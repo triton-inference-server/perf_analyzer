@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from genai_perf.record.types.gpu_utilization_base import GPUUtilizationBase
 @total_ordering
 class GPUUtilizationStd(GPUUtilizationBase):
     """
-    A record for min GPU Utilization metric
+    A record for std GPU Utilization metric
     """
 
     tag = GPUUtilizationBase.base_tag + "_std"
