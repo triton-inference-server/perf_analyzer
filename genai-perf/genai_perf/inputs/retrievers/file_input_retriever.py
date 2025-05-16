@@ -27,6 +27,7 @@
 import random
 from pathlib import Path
 from typing import Dict, List, Tuple, cast
+from urllib.parse import urlparse
 
 from genai_perf import utils
 from genai_perf.config.input.config_defaults import InputDefaults
@@ -167,40 +168,51 @@ class FileInputRetriever(BaseFileInputRetriever):
                         prompt = f"{prefix_prompt} {prompt}"
                     if prompt is not None:
                         prompts.append(prompt.strip())
+
                     image = data.get("image")
                     if image is not None:
-                        image = self._encode_image(image.strip())
+                        image = self._handle_image_content(image.strip())
                         images.append(image)
         return prompts, images
 
-    def _encode_image(self, filename: str) -> str:
+    def _handle_image_content(self, content: str) -> str:
         """
-        Encodes the image file from a given filepath to
-        the base64 format of the image.
+        Handles the image content by either encoding it to the base64 format
+        if it's a local file or returning the content as is if it's a URL.
 
         Args
         ----------
-        filename : str
-            The file path of the image to encode.
+        content : str
+            The content of the image. Either a local file path or a URL.
 
         Returns
         -------
         str
-            The base64-encoded image string.
+            The processed image content.
         """
+        # Check if the content is a URL with a scheme and netloc
+        url = urlparse(content)
+        if url.scheme and url.netloc:
+            return content
+        elif any([url.scheme, url.netloc]):
+            raise GenAIPerfException(
+                f"Valid URL must have both a scheme and netloc: {content}"
+            )
+
+        # Otherwise, it's a local file path
         try:
-            img = Image.open(filename)
+            img = Image.open(content)
         except FileNotFoundError:
-            raise GenAIPerfException(f"Failed to open image '{filename}'.")
+            raise GenAIPerfException(f"Failed to open image '{content}'.")
+
         if img.format is None:
             raise GenAIPerfException(
-                f"Failed to determine image format of '{filename}'."
+                f"Failed to determine image format of '{content}'."
             )
 
         if img.format.lower() not in utils.get_enum_names(ImageFormat):
             raise GenAIPerfException(
-                f"Unsupported image format '{img.format}' of "
-                f"the image '{filename}'."
+                f"Unsupported image format '{img.format}' of " f"the image '{content}'."
             )
 
         img_base64 = utils.encode_image(img, img.format)
