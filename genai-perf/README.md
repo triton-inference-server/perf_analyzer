@@ -373,7 +373,7 @@ inference. Other modes such as the [embeddings](docs/embeddings.md) and
 
 Genai-perf supports `--input-file payload:<file>` as the command option to use a payload file with a fixed schedule workload for profiling.
 
-The payload file is in [moon_cake format](https://github.com/kvcache-ai/Mooncake) which contains a `timestamp` field and you can optionally add `input_length`, `output_length`, `text_input`, `session_id`, `hash_ids` and `priority`.
+The payload file is in [moon_cake format](https://github.com/kvcache-ai/Mooncake) which contains a `timestamp` field and you can optionally add `input_length`, `output_length`, `text_input`, `session_id`, `hash_ids` and `priority`. For further examples using these fields, you can refer to our [multi-turn session benchmark tutorial](https://github.com/triton-inference-server/perf_analyzer/blob/main/genai-perf/docs/multi_turn.md#approach-2-benchmark-with-a-custom-dataset).
 
 Here is an example file:
 
