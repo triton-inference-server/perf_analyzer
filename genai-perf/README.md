@@ -369,6 +369,96 @@ inference. Other modes such as the [embeddings](docs/embeddings.md) and
 
 </br>
 
+### Use moon_cake file as input payload
+
+Genai-perf supports `--input-file payload:<file>` as the command option to use a payload file with a fixed schedule workload for profiling.
+
+The payload file is in [moon_cake format](https://github.com/kvcache-ai/Mooncake) which contains a `timestamp` field and you can optionally add `input_length`, `output_length`, `text_input`, `session_id`, `hash_ids` and `priority`.
+
+Here is an example file:
+
+```
+{
+    "timestamp": 0,
+    "input_length": 6955,
+    "output_length": 52,
+    "hash_ids": [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 2353, 2354]
+}
+{
+    "timestamp": 10535,	# in milli-second
+    "input_length": 6472,
+    "output_length": 26,
+    "hash_ids": [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 2366]
+}
+{
+    "timestamp": 27482,
+    "input_length": 6955,
+    "output_length": 52,
+    "hash_ids": [46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 2353, 2354]
+}
+```
+
+`hash_ids` are a list of hash_id, each of which maps to a unique synthetic prompt sequence with `block_size` (current block size is 512) of tokens after tokenizer encoding, defined in [create_synthetic_prompt](https://github.com/triton-inference-server/perf_analyzer/blob/main/genai-perf/genai_perf/inputs/retrievers/synthetic_prompt_generator.py#L37). Since the same hash_id maps to the same input block, it is effective to test features such as kv cache and speculative decoding.
+
+### How to generate a payload file
+
+#### 1. Synthetic data from sampling
+[Nvidia Dynamo](https://github.com/ai-dynamo/dynamo) provides [a script](https://github.com/ai-dynamo/dynamo/blob/main/docs/guides/planner_benchmark/sin_synth.py) (with [README](https://github.com/ai-dynamo/dynamo/blob/main/docs/guides/planner_benchmark/benchmark_planner.md)) to generate synthetic moon_cake style payload:
+```bash
+python sin_synth.py \
+    --time-duration 600 \
+    --request-rate-min 5 \
+    --request-rate-max 20 \
+    --request-rate-period 150 \
+    --isl1 3000 \
+    --osl1 150 \
+    --isl2 3000 \
+    --osl2 150
+```
+This will generate a mooncake style payload file with
+- duration = 600 seconds
+- isl/osl = 3000/150
+- request rate varies sinusoidally from 0.75 to 3 requests with a period of 150 seconds
+For other models and GPU SKUs, adjust the request rate ranges accordingly to match the load.
+
+Example genai-perf command to run the generated payload:
+```bash
+genai-perf profile \
+    --tokenizer deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
+    -m deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
+    --service-kind openai \
+    --endpoint-type chat \
+    --url http://localhost:8000 \
+    --streaming \
+    --input-file payload:sin_b512_t600_rr5.0-20.0-150.0_io3000150-3000150-0.2-0.8-10.jsonl
+```
+
+#### 2. Record real traffic and replay
+
+We recommend users to build a traffic footprint collector over their inference service to generate the moon_cake format payload file based on real service traffic. Although popular inference servers do not support this feature, users can add this feature to their inference service.
+
+Example code:
+```python
+# Hypothetical integration with the inference engine
+import InferenceEngine  # Assume this exists
+
+engine = InferenceEngine()
+logger = Logger("mooncake_traffic.jsonl")
+
+def process_request(prompt: str):
+    result = engine.infer(prompt)
+    logger.log_request({
+        "input_length": len(engine.tokenize(prompt)),
+        "output_length": len(engine.tokenize(result)),
+        "text_input": prompt,
+        "session_id": str(uuid.uuid4()),
+        "hash_ids": engine.get_kvcache_hashes(prompt),
+        "priority": 1
+    })
+    return result
+```
+
+
 <!--
 ======================
 AUTHENTICATION
