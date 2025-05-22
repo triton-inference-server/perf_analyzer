@@ -482,7 +482,7 @@ class Subcommand:
             load_level = "0.0"
         # When using fixed schedule mode, infer mode is not set.
         # Setting to default values to avoid an error.
-        elif self._config.input.prompt_source == PromptSource.PAYLOAD:
+        elif "fixed_schedule" in self._config.perf_analyzer.stimulus:
             infer_mode = "request_rate"
             load_level = "0.0"
         elif "concurrency" in self._config.perf_analyzer.stimulus:
