@@ -535,6 +535,25 @@ GenAI-Perf collects the following GPU metrics during benchmarking:
 - `video_encoder_utilization`
 - `video_decoder_utilization`
 
+### ECC Metrics
+- `total_ecc_sbe_volatile`
+- `total_ecc_dbe_volatile`
+- `total_ecc_sbe_aggregate`
+- `total_ecc_dbe_aggregate`
+
+### Errors and Violations Metrics
+- `xid_last_error`
+- `power_throttle_duration`
+- `thermal_throttle_duration`
+
+### Retired Pages Metrics
+- `retired_pages_sbe`
+- `retired_pages_dbe`
+
+### NVLink Error Metrics
+- `total_nvlink_crc_flit_errors`
+- `total_nvlink_crc_data_errors`
+
 > [!Note]
 > Use the `--verbose` flag to print telemetry metrics on the console.
 
