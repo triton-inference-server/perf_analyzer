@@ -47,6 +47,17 @@ class TelemetryMetricName(str, Enum):
     GPU_TEMPERATURE = "gpu_temperature"
     GPU_CLOCK_SM = "gpu_clock_sm"
     GPU_CLOCK_MEMORY = "gpu_clock_memory"
+    ECC_SBE_VOLATILE_TOTAL = "total_ecc_sbe_volatile"
+    ECC_DBE_VOLATILE_TOTAL = "total_ecc_dbe_volatile"
+    ECC_SBE_AGGREGATE_TOTAL = "total_ecc_sbe_aggregate"
+    ECC_DBE_AGGREGATE_TOTAL = "total_ecc_dbe_aggregate"
+    XID_LAST_ERROR = "xid_last_error"
+    POWER_THROTTLE_DURATION = "power_throttle_duration"
+    THERMAL_THROTTLE_DURATION = "thermal_throttle_duration"
+    RETIRED_PAGES_SBE = "retired_pages_sbe"
+    RETIRED_PAGES_DBE = "retired_pages_dbe"
+    NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL = "total_nvlink_crc_flit_errors"
+    NVLINK_CRC_DATA_ERROR_COUNT_TOTAL = "total_nvlink_crc_data_errors"
 
     @classmethod
     def values(cls) -> List["TelemetryMetricName"]:
@@ -98,12 +109,31 @@ class TelemetryMetrics:
         MetricMetadata(TelemetryMetricName.GPU_MEMORY_TEMPERATURE.value, "C"),
     ]
 
+    ECC_AND_ERROR_METRICS = [
+        MetricMetadata(TelemetryMetricName.ECC_SBE_VOLATILE_TOTAL.value, "errors"),
+        MetricMetadata(TelemetryMetricName.ECC_DBE_VOLATILE_TOTAL.value, "errors"),
+        MetricMetadata(TelemetryMetricName.ECC_SBE_AGGREGATE_TOTAL.value, "errors"),
+        MetricMetadata(TelemetryMetricName.ECC_DBE_AGGREGATE_TOTAL.value, "errors"),
+        MetricMetadata(TelemetryMetricName.XID_LAST_ERROR.value, "errors"),
+        MetricMetadata(TelemetryMetricName.POWER_THROTTLE_DURATION.value, "us"),
+        MetricMetadata(TelemetryMetricName.THERMAL_THROTTLE_DURATION.value, "us"),
+        MetricMetadata(TelemetryMetricName.RETIRED_PAGES_SBE.value, "pages"),
+        MetricMetadata(TelemetryMetricName.RETIRED_PAGES_DBE.value, "pages"),
+        MetricMetadata(
+            TelemetryMetricName.NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL.value, "errors"
+        ),
+        MetricMetadata(
+            TelemetryMetricName.NVLINK_CRC_DATA_ERROR_COUNT_TOTAL.value, "errors"
+        ),
+    ]
+
     TELEMETRY_METRICS = (
         POWER_METRICS
         + MEMORY_METRICS
         + UTILIZATION_METRICS
         + CLOCK_METRICS
         + TEMPERATURE_METRICS
+        + ECC_AND_ERROR_METRICS
     )
 
     def __init__(
@@ -123,6 +153,17 @@ class TelemetryMetrics:
         gpu_temperature: Optional[Dict[str, List[float]]] = None,
         gpu_clock_sm: Optional[Dict[str, List[float]]] = None,
         gpu_clock_memory: Optional[Dict[str, List[float]]] = None,
+        total_ecc_sbe_volatile: Optional[Dict[str, List[float]]] = None,
+        total_ecc_dbe_volatile: Optional[Dict[str, List[float]]] = None,
+        total_ecc_sbe_aggregate: Optional[Dict[str, List[float]]] = None,
+        total_ecc_dbe_aggregate: Optional[Dict[str, List[float]]] = None,
+        total_nvlink_crc_flit_errors: Optional[Dict[str, List[float]]] = None,
+        total_nvlink_crc_data_errors: Optional[Dict[str, List[float]]] = None,
+        xid_last_error: Optional[Dict[str, List[float]]] = None,
+        power_throttle_duration: Optional[Dict[str, List[float]]] = None,
+        thermal_throttle_duration: Optional[Dict[str, List[float]]] = None,
+        retired_pages_sbe: Optional[Dict[str, List[float]]] = None,
+        retired_pages_dbe: Optional[Dict[str, List[float]]] = None,
     ):
         self.gpu_power_usage = defaultdict(list, gpu_power_usage or {})
         self.gpu_power_limit = defaultdict(list, gpu_power_limit or {})
@@ -143,6 +184,23 @@ class TelemetryMetrics:
         self.gpu_temperature = defaultdict(list, gpu_temperature or {})
         self.gpu_clock_sm = defaultdict(list, gpu_clock_sm or {})
         self.gpu_clock_memory = defaultdict(list, gpu_clock_memory or {})
+        self.total_ecc_sbe_volatile = defaultdict(list, total_ecc_sbe_volatile or {})
+        self.total_ecc_dbe_volatile = defaultdict(list, total_ecc_dbe_volatile or {})
+        self.total_ecc_sbe_aggregate = defaultdict(list, total_ecc_sbe_aggregate or {})
+        self.total_ecc_dbe_aggregate = defaultdict(list, total_ecc_dbe_aggregate or {})
+        self.xid_last_error = defaultdict(list, xid_last_error or {})
+        self.power_throttle_duration = defaultdict(list, power_throttle_duration or {})
+        self.thermal_throttle_duration = defaultdict(
+            list, thermal_throttle_duration or {}
+        )
+        self.retired_pages_sbe = defaultdict(list, retired_pages_sbe or {})
+        self.retired_pages_dbe = defaultdict(list, retired_pages_dbe or {})
+        self.total_nvlink_crc_flit_errors = defaultdict(
+            list, total_nvlink_crc_flit_errors or {}
+        )
+        self.total_nvlink_crc_data_errors = defaultdict(
+            list, total_nvlink_crc_data_errors or {}
+        )
 
     def update_metrics(self, measurement_data: dict) -> None:
         for metric in self.TELEMETRY_METRICS:

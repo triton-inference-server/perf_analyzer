@@ -52,6 +52,17 @@ class DCGMTelemetryDataCollector(TelemetryDataCollector):
         "DCGM_FI_DEV_FB_FREE": TelemetryMetricName.GPU_MEMORY_FREE,
         "DCGM_FI_DEV_MEMORY_TEMP": TelemetryMetricName.GPU_MEMORY_TEMPERATURE,
         "DCGM_FI_DEV_GPU_TEMP": TelemetryMetricName.GPU_TEMPERATURE,
+        "DCGM_FI_DEV_ECC_SBE_VOL_TOTAL": TelemetryMetricName.ECC_SBE_VOLATILE_TOTAL,
+        "DCGM_FI_DEV_ECC_DBE_VOL_TOTAL": TelemetryMetricName.ECC_DBE_VOLATILE_TOTAL,
+        "DCGM_FI_DEV_ECC_SBE_AGG_TOTAL": TelemetryMetricName.ECC_SBE_AGGREGATE_TOTAL,
+        "DCGM_FI_DEV_ECC_DBE_AGG_TOTAL": TelemetryMetricName.ECC_DBE_AGGREGATE_TOTAL,
+        "DCGM_FI_DEV_XID_ERRORS": TelemetryMetricName.XID_LAST_ERROR,
+        "DCGM_FI_DEV_POWER_VIOLATION": TelemetryMetricName.POWER_THROTTLE_DURATION,
+        "DCGM_FI_DEV_THERMAL_VIOLATION": TelemetryMetricName.THERMAL_THROTTLE_DURATION,
+        "DCGM_FI_DEV_RETIRED_SBE": TelemetryMetricName.RETIRED_PAGES_SBE,
+        "DCGM_FI_DEV_RETIRED_DBE": TelemetryMetricName.RETIRED_PAGES_DBE,
+        "DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL": TelemetryMetricName.NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL,
+        "DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_TOTAL": TelemetryMetricName.NVLINK_CRC_DATA_ERROR_COUNT_TOTAL,
     }
 
     def _process_and_update_metrics(self, metrics_data: str) -> None:

@@ -60,6 +60,17 @@ def test_process_and_update_metrics_success(collector):
     DCGM_FI_DEV_MEM_COPY_UTIL{gpu="0"} 55
     DCGM_FI_DEV_ENC_UTIL{gpu="0"} 22
     DCGM_FI_DEV_DEC_UTIL{gpu="0"} 17
+    DCGM_FI_DEV_ECC_SBE_VOL_TOTAL{gpu="0"} 1
+    DCGM_FI_DEV_ECC_DBE_VOL_TOTAL{gpu="0"} 2
+    DCGM_FI_DEV_ECC_SBE_AGG_TOTAL{gpu="0"} 3
+    DCGM_FI_DEV_ECC_DBE_AGG_TOTAL{gpu="0"} 4
+    DCGM_FI_DEV_XID_ERRORS{gpu="0"} 5
+    DCGM_FI_DEV_POWER_VIOLATION{gpu="0"} 6
+    DCGM_FI_DEV_THERMAL_VIOLATION{gpu="0"} 7
+    DCGM_FI_DEV_RETIRED_SBE{gpu="0"} 8
+    DCGM_FI_DEV_RETIRED_DBE{gpu="0"} 9
+    DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL{gpu="0"} 10
+    DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_TOTAL{gpu="0"} 11
     """
 
     collector._process_and_update_metrics(sample_metrics)
@@ -78,6 +89,17 @@ def test_process_and_update_metrics_success(collector):
     assert update_call["memory_copy_utilization"]["0"] == [55.0]
     assert update_call["video_encoder_utilization"]["0"] == [22.0]
     assert update_call["video_decoder_utilization"]["0"] == [17.0]
+    assert update_call["total_ecc_sbe_volatile"]["0"] == [1.0]
+    assert update_call["total_ecc_dbe_volatile"]["0"] == [2.0]
+    assert update_call["total_ecc_sbe_aggregate"]["0"] == [3.0]
+    assert update_call["total_ecc_dbe_aggregate"]["0"] == [4.0]
+    assert update_call["xid_last_error"]["0"] == [5.0]
+    assert update_call["power_throttle_duration"]["0"] == [6.0]
+    assert update_call["thermal_throttle_duration"]["0"] == [7.0]
+    assert update_call["retired_pages_sbe"]["0"] == [8.0]
+    assert update_call["retired_pages_dbe"]["0"] == [9.0]
+    assert update_call["total_nvlink_crc_flit_errors"]["0"] == [10.0]
+    assert update_call["total_nvlink_crc_data_errors"]["0"] == [11.0]
 
 
 def test_process_and_update_metrics_ignores_unmapped_metrics(collector):

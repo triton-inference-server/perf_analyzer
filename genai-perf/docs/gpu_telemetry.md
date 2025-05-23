@@ -65,6 +65,25 @@ DCGM_FI_DEV_MEM_COPY_UTIL, gauge, Memory copy utilization (in %)
 DCGM_FI_DEV_ENC_UTIL, gauge, Encoder utilization (in %)
 DCGM_FI_DEV_DEC_UTIL, gauge, Decoder utilization (in %)
 DCGM_FI_PROF_SM_ACTIVE, gauge, Ratio of cycles at least one warp is active per SM
+
+# ECC
+DCGM_FI_DEV_ECC_SBE_VOL_TOTAL, counter, Total number of single-bit volatile ECC errors.
+DCGM_FI_DEV_ECC_DBE_VOL_TOTAL, counter, Total number of double-bit volatile ECC errors.
+DCGM_FI_DEV_ECC_SBE_AGG_TOTAL, counter, Total number of single-bit persistent ECC errors.
+DCGM_FI_DEV_ECC_DBE_AGG_TOTAL, counter, Total number of double-bit persistent ECC errors.
+
+# Errors and violations
+DCGM_FI_DEV_XID_ERRORS,              gauge,   Value of the last XID error encountered.
+DCGM_FI_DEV_POWER_VIOLATION,       counter, Throttling duration due to power constraints (in us).
+DCGM_FI_DEV_THERMAL_VIOLATION,     counter, Throttling duration due to thermal constraints (in us).
+
+# Retired pages
+DCGM_FI_DEV_RETIRED_SBE,     counter, Total number of retired pages due to single-bit errors.
+DCGM_FI_DEV_RETIRED_DBE,     counter, Total number of retired pages due to double-bit errors.
+
+# NVLink
+DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL, counter, Total number of NVLink flow-control CRC errors.
+DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_TOTAL, counter, Total number of NVLink data CRC errors.
 EOF
 ```
 This will generate a `custom_gpu_metrics.csv` file that can be mounted into the DCGM Exporter container and
