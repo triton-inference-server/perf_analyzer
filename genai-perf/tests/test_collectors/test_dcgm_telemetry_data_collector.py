@@ -71,6 +71,10 @@ def test_process_and_update_metrics_success(collector):
     DCGM_FI_DEV_RETIRED_DBE{gpu="0"} 9
     DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL{gpu="0"} 10
     DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_TOTAL{gpu="0"} 11
+    DCGM_FI_PROF_PCIE_TX_BYTES{gpu="0"} 1048576
+    DCGM_FI_PROF_PCIE_RX_BYTES{gpu="0"} 2097152
+    DCGM_FI_DEV_PCIE_REPLAY_COUNTER{gpu="0"} 3
+
     """
 
     collector._process_and_update_metrics(sample_metrics)
@@ -100,6 +104,9 @@ def test_process_and_update_metrics_success(collector):
     assert update_call["retired_pages_dbe"]["0"] == [9.0]
     assert update_call["total_nvlink_crc_flit_errors"]["0"] == [10.0]
     assert update_call["total_nvlink_crc_data_errors"]["0"] == [11.0]
+    assert update_call["pcie_transmit_throughput"]["0"] == [1048576.0]
+    assert update_call["pcie_receive_throughput"]["0"] == [2097152.0]
+    assert update_call["pcie_replay_counter"]["0"] == [3.0]
 
 
 def test_process_and_update_metrics_ignores_unmapped_metrics(collector):

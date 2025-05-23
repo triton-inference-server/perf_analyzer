@@ -73,6 +73,9 @@ class TestTelemetryMetrics:
             retired_pages_dbe={"gpu0": [23.0]},
             total_nvlink_crc_flit_errors={"gpu0": [24.0]},
             total_nvlink_crc_data_errors={"gpu0": [25.0]},
+            pcie_transmit_throughput={"gpu0": [26.0]},
+            pcie_receive_throughput={"gpu0": [27.0]},
+            pcie_replay_counter={"gpu0": [0.0]},
         )
 
         assert telemetry.gpu_power_usage == {"gpu0": [0.0]}
@@ -101,6 +104,9 @@ class TestTelemetryMetrics:
         assert telemetry.retired_pages_dbe == {"gpu0": [23.0]}
         assert telemetry.total_nvlink_crc_flit_errors == {"gpu0": [24.0]}
         assert telemetry.total_nvlink_crc_data_errors == {"gpu0": [25.0]}
+        assert telemetry.pcie_transmit_throughput == {"gpu0": [26.0]}
+        assert telemetry.pcie_receive_throughput == {"gpu0": [27.0]}
+        assert telemetry.pcie_replay_counter == {"gpu0": [0.0]}
 
     def test_update_metrics(self) -> None:
         telemetry = TelemetryMetrics()
@@ -120,17 +126,20 @@ class TestTelemetryMetrics:
             "gpu_memory_free": {"gpu0": [4500.0], "gpu1": [4500.0]},
             "gpu_memory_temperature": {"gpu0": [62.0], "gpu1": [63.0]},
             "gpu_temperature": {"gpu0": [72.0], "gpu1": [73.0]},
-            "total_ecc_sbe_volatile": {"gpu0": [1.0]},
-            "total_ecc_dbe_volatile": {"gpu0": [2.0]},
-            "total_ecc_sbe_aggregate": {"gpu0": [3.0]},
-            "total_ecc_dbe_aggregate": {"gpu0": [4.0]},
-            "xid_last_error": {"gpu0": [5.0]},
-            "power_throttle_duration": {"gpu0": [6.0]},
-            "thermal_throttle_duration": {"gpu0": [7.0]},
-            "retired_pages_sbe": {"gpu0": [8.0]},
-            "retired_pages_dbe": {"gpu0": [9.0]},
-            "total_nvlink_crc_flit_errors": {"gpu0": [10.0]},
-            "total_nvlink_crc_data_errors": {"gpu0": [11.0]},
+            "total_ecc_sbe_volatile": {"gpu0": [1.0], "gpu1": [1.1]},
+            "total_ecc_dbe_volatile": {"gpu0": [2.0], "gpu1": [2.1]},
+            "total_ecc_sbe_aggregate": {"gpu0": [3.0], "gpu1": [3.1]},
+            "total_ecc_dbe_aggregate": {"gpu0": [4.0], "gpu1": [4.1]},
+            "xid_last_error": {"gpu0": [5.0], "gpu1": [5.1]},
+            "power_throttle_duration": {"gpu0": [6.0], "gpu1": [6.1]},
+            "thermal_throttle_duration": {"gpu0": [7.0], "gpu1": [7.1]},
+            "retired_pages_sbe": {"gpu0": [8.0], "gpu1": [8.1]},
+            "retired_pages_dbe": {"gpu0": [9.0], "gpu1": [9.1]},
+            "total_nvlink_crc_flit_errors": {"gpu0": [10.0], "gpu1": [10.1]},
+            "total_nvlink_crc_data_errors": {"gpu0": [11.0], "gpu1": [11.1]},
+            "pcie_transmit_throughput": {"gpu0": [26.0], "gpu1": [26.1]},
+            "pcie_receive_throughput": {"gpu0": [27.0], "gpu1": [27.1]},
+            "pcie_replay_counter": {"gpu0": [0.0], "gpu1": [1.0]},
         }
 
         telemetry.update_metrics(measurement_data)

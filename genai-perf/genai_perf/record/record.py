@@ -30,6 +30,7 @@ class ReductionFactor:
     MIB_TO_GB: float = 1.048576e-3
     PERCENTAGE = -2
     NONE = 0
+    BYTES_TO_KB: float = 1 / 1024
 
 
 class RecordType(ABCMeta):

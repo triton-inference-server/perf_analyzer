@@ -63,6 +63,9 @@ class DCGMTelemetryDataCollector(TelemetryDataCollector):
         "DCGM_FI_DEV_RETIRED_DBE": TelemetryMetricName.RETIRED_PAGES_DBE,
         "DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL": TelemetryMetricName.NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL,
         "DCGM_FI_DEV_NVLINK_CRC_DATA_ERROR_COUNT_TOTAL": TelemetryMetricName.NVLINK_CRC_DATA_ERROR_COUNT_TOTAL,
+        "DCGM_FI_PROF_PCIE_TX_BYTES": TelemetryMetricName.PCIE_TRANSMIT_THROUGHPUT,
+        "DCGM_FI_PROF_PCIE_RX_BYTES": TelemetryMetricName.PCIE_RECEIVE_THROUGHPUT,
+        "DCGM_FI_DEV_PCIE_REPLAY_COUNTER": TelemetryMetricName.PCIE_REPLAY_COUNTER,
     }
 
     def _process_and_update_metrics(self, metrics_data: str) -> None:

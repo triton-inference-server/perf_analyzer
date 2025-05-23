@@ -84,6 +84,8 @@ class TelemetryStatistics:
             "total_gpu_memory": 1.048576 * 1e-3,  # MiB to gigabytes (GB)
             "gpu_memory_free": 1.048576e-3,  # MiB to gigabytes (GB)
             "sm_utilization": 100,  # ratio to %
+            "pcie_transmit_throughput": 1 / 1024,  # bytes/sec to KB/sec
+            "pcie_receive_throughput": 1 / 1024,  # bytes/sec to KB/sec
         }
         for metric, data in self._stats_dict.items():
             if metric in SCALING_FACTORS:
