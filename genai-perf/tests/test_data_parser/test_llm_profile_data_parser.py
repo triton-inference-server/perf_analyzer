@@ -1077,7 +1077,7 @@ class TestLLMProfileDataParser:
                     'data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"hello"}}],"model":"test_model"}\n\n',
                 ],
             ),
-            # Edge case: cut-off exactly after 'data: ' prefix.
+            # Edge case: cut-off exactly after 'data:' prefix.
             (
                 openai_profile_data,
                 [
