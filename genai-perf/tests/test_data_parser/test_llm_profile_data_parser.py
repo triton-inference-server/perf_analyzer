@@ -1077,6 +1077,23 @@ class TestLLMProfileDataParser:
                     'data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"hello"}}],"model":"test_model"}\n\n',
                 ],
             ),
+            # Edge case: cut-off exactly after 'data: ' prefix.
+            (
+                openai_profile_data,
+                [
+                    # response 0 and 1 are single SSE response split into two.
+                    {
+                        "response": "data:",
+                    },
+                    {
+                        "response": '{"object":"chat.completion.chunk","choices":[{"delta":{"content":"abc"}}],"model":"test_model"}\n\n',
+                    },
+                    {"response": "data: [DONE]\n\n"},
+                ],
+                [
+                    'data:{"object":"chat.completion.chunk","choices":[{"delta":{"content":"abc"}}],"model":"test_model"}\n\n',
+                ],
+            ),
         ],
     )
     def test_splintered_sse_responses(
