@@ -31,15 +31,8 @@ class PowerThrottleDurationBase(DecreasingGPURecord):
         super().__init__(value, device_uuid, timestamp)
 
     @staticmethod
-    def aggregation_function():
-        def average(seq):
-            return sum(seq[1:], start=seq[0]) / len(seq)
-
-        return average
-
-    @staticmethod
     def header(aggregation_tag=False):
-        return ("Average " if aggregation_tag else "") + "Power Throttle Duration (us)"
+        return ("Max " if aggregation_tag else "") + "Power Throttle Duration (us)"
 
     def __eq__(self, other: "PowerThrottleDurationBase") -> bool:  # type: ignore
         return self.value() == other.value()

@@ -14,38 +14,47 @@
 
 from functools import total_ordering
 
-from genai_perf.record.gpu_record import DecreasingGPURecord
+from genai_perf.record.gpu_record import IncreasingGPURecord
 from genai_perf.record.record import ReductionFactor
 
 
 @total_ordering
-class TotalNVLinkCRCDataErrorsBase(DecreasingGPURecord):
+class PCieReceiveThroughputBase(IncreasingGPURecord):
     """
-    A base class for the Total NVLink CRC Data Errors metric.
+    A base class for the PCie Receive Throughput metric
     """
 
-    base_tag = "total_nvlink_crc_data_errors"
-    reduction_factor = ReductionFactor.NONE
+    base_tag = "pcie_receive_throughput"
+    reduction_factor = ReductionFactor.BYTES_TO_KB
 
     def __init__(self, value, device_uuid=None, timestamp=0):
         super().__init__(value, device_uuid, timestamp)
 
     @staticmethod
-    def header(aggregation_tag=False):
-        return ("Max " if aggregation_tag else "") + "Total NVLink CRC Data Errors"
+    def aggregation_function():
+        def average(seq):
+            return sum(seq[1:], start=seq[0]) / len(seq)
 
-    def __eq__(self, other: "TotalNVLinkCRCDataErrorsBase") -> bool:  # type: ignore
+        return average
+
+    @staticmethod
+    def header(aggregation_tag=False):
+        return (
+            "Average " if aggregation_tag else ""
+        ) + "PCie Receive Throughput (KB/s)"
+
+    def __eq__(self, other: "PCieReceiveThroughputBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "TotalNVLinkCRCDataErrorsBase") -> bool:
-        return other.value() < self.value()
+    def __lt__(self, other: "PCieReceiveThroughputBase") -> bool:
+        return self.value() < other.value()
 
     def __add__(
-        self, other: "TotalNVLinkCRCDataErrorsBase"
-    ) -> "TotalNVLinkCRCDataErrorsBase":
+        self, other: "PCieReceiveThroughputBase"
+    ) -> "PCieReceiveThroughputBase":
         return self.__class__(device_uuid=None, value=(self.value() + other.value()))
 
     def __sub__(
-        self, other: "TotalNVLinkCRCDataErrorsBase"
-    ) -> "TotalNVLinkCRCDataErrorsBase":
-        return self.__class__(device_uuid=None, value=(other.value() - self.value()))
+        self, other: "PCieReceiveThroughputBase"
+    ) -> "PCieReceiveThroughputBase":
+        return self.__class__(device_uuid=None, value=(self.value() - other.value()))

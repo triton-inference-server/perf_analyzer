@@ -19,12 +19,12 @@ from genai_perf.record.record import ReductionFactor
 
 
 @total_ordering
-class TotalNVLinkCRCDataErrorsBase(DecreasingGPURecord):
+class PCieReplayCounterBase(DecreasingGPURecord):
     """
-    A base class for the Total NVLink CRC Data Errors metric.
+    A base class for the PCie Replay Counter metric
     """
 
-    base_tag = "total_nvlink_crc_data_errors"
+    base_tag = "pcie_replay_counter"
     reduction_factor = ReductionFactor.NONE
 
     def __init__(self, value, device_uuid=None, timestamp=0):
@@ -32,20 +32,16 @@ class TotalNVLinkCRCDataErrorsBase(DecreasingGPURecord):
 
     @staticmethod
     def header(aggregation_tag=False):
-        return ("Max " if aggregation_tag else "") + "Total NVLink CRC Data Errors"
+        return ("Max " if aggregation_tag else "") + "PCIe Replay Counter"
 
-    def __eq__(self, other: "TotalNVLinkCRCDataErrorsBase") -> bool:  # type: ignore
+    def __eq__(self, other: "PCieReplayCounterBase") -> bool:  # type: ignore
         return self.value() == other.value()
 
-    def __lt__(self, other: "TotalNVLinkCRCDataErrorsBase") -> bool:
+    def __lt__(self, other: "PCieReplayCounterBase") -> bool:
         return other.value() < self.value()
 
-    def __add__(
-        self, other: "TotalNVLinkCRCDataErrorsBase"
-    ) -> "TotalNVLinkCRCDataErrorsBase":
+    def __add__(self, other: "PCieReplayCounterBase") -> "PCieReplayCounterBase":
         return self.__class__(device_uuid=None, value=(self.value() + other.value()))
 
-    def __sub__(
-        self, other: "TotalNVLinkCRCDataErrorsBase"
-    ) -> "TotalNVLinkCRCDataErrorsBase":
+    def __sub__(self, other: "PCieReplayCounterBase") -> "PCieReplayCounterBase":
         return self.__class__(device_uuid=None, value=(other.value() - self.value()))

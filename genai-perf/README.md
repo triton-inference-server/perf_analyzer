@@ -554,6 +554,11 @@ GenAI-Perf collects the following GPU metrics during benchmarking:
 - `total_nvlink_crc_flit_errors`
 - `total_nvlink_crc_data_errors`
 
+### PCIE Metrics
+- `pcie_transmit_throughput`
+- `pcie_receive_throughput`
+- `pcie_replay_counter`
+
 > [!Note]
 > Use the `--verbose` flag to print telemetry metrics on the console.
 

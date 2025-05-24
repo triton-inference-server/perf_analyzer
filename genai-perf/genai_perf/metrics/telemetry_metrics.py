@@ -58,6 +58,9 @@ class TelemetryMetricName(str, Enum):
     RETIRED_PAGES_DBE = "retired_pages_dbe"
     NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL = "total_nvlink_crc_flit_errors"
     NVLINK_CRC_DATA_ERROR_COUNT_TOTAL = "total_nvlink_crc_data_errors"
+    PCIE_TRANSMIT_THROUGHPUT = "pcie_transmit_throughput"
+    PCIE_RECEIVE_THROUGHPUT = "pcie_receive_throughput"
+    PCIE_REPLAY_COUNTER = "pcie_replay_counter"
 
     @classmethod
     def values(cls) -> List["TelemetryMetricName"]:
@@ -127,6 +130,12 @@ class TelemetryMetrics:
         ),
     ]
 
+    PCIE_METRICS = [
+        MetricMetadata(TelemetryMetricName.PCIE_TRANSMIT_THROUGHPUT.value, "KB/s"),
+        MetricMetadata(TelemetryMetricName.PCIE_RECEIVE_THROUGHPUT.value, "KB/s"),
+        MetricMetadata(TelemetryMetricName.PCIE_REPLAY_COUNTER.value, "retries"),
+    ]
+
     TELEMETRY_METRICS = (
         POWER_METRICS
         + MEMORY_METRICS
@@ -134,6 +143,7 @@ class TelemetryMetrics:
         + CLOCK_METRICS
         + TEMPERATURE_METRICS
         + ECC_AND_ERROR_METRICS
+        + PCIE_METRICS
     )
 
     def __init__(
@@ -164,6 +174,9 @@ class TelemetryMetrics:
         thermal_throttle_duration: Optional[Dict[str, List[float]]] = None,
         retired_pages_sbe: Optional[Dict[str, List[float]]] = None,
         retired_pages_dbe: Optional[Dict[str, List[float]]] = None,
+        pcie_transmit_throughput: Optional[Dict[str, List[float]]] = None,
+        pcie_receive_throughput: Optional[Dict[str, List[float]]] = None,
+        pcie_replay_counter: Optional[Dict[str, List[float]]] = None,
     ):
         self.gpu_power_usage = defaultdict(list, gpu_power_usage or {})
         self.gpu_power_limit = defaultdict(list, gpu_power_limit or {})
@@ -201,6 +214,11 @@ class TelemetryMetrics:
         self.total_nvlink_crc_data_errors = defaultdict(
             list, total_nvlink_crc_data_errors or {}
         )
+        self.pcie_transmit_throughput = defaultdict(
+            list, pcie_transmit_throughput or {}
+        )
+        self.pcie_receive_throughput = defaultdict(list, pcie_receive_throughput or {})
+        self.pcie_replay_counter = defaultdict(list, pcie_replay_counter or {})
 
     def update_metrics(self, measurement_data: dict) -> None:
         for metric in self.TELEMETRY_METRICS:

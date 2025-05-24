@@ -43,6 +43,8 @@ class TestTelemetryStatistics:
                 "energy_consumption": {"gpu0": [1000000000.0], "gpu1": [2000000000.0]},
                 "total_gpu_memory": {"gpu0": [8000000000.0], "gpu1": [16000000000.0]},
                 "gpu_memory_used": {"gpu0": [4000], "gpu1": [5000]},
+                "pcie_transmit_throughput": {"gpu0": [1024.0], "gpu1": [2048.0]},
+                "pcie_receive_throughput": {"gpu0": [512.0], "gpu1": [4096.0]},
             }
         )
         return telemetry
@@ -93,6 +95,11 @@ class TestTelemetryStatistics:
         assert (
             round(stats_dict["gpu_memory_used"]["gpu1"]["avg"], 2) == 5.24
         )  # 5.24288 GB
+        assert stats_dict["pcie_transmit_throughput"]["gpu0"]["avg"] == 1.0
+        assert stats_dict["pcie_transmit_throughput"]["gpu1"]["avg"] == 2.0
+
+        assert stats_dict["pcie_receive_throughput"]["gpu0"]["avg"] == 0.5
+        assert stats_dict["pcie_receive_throughput"]["gpu1"]["avg"] == 4.0
 
     def test_create_records(self, telemetry_statistics):
         telemetry_statistics._stats_dict = telemetry_statistics.stats_dict
