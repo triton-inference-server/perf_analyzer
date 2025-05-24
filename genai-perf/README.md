@@ -426,7 +426,6 @@ Example genai-perf command to run the generated payload:
 genai-perf profile \
     --tokenizer deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
     -m deepseek-ai/DeepSeek-R1-Distill-Llama-8B \
-    --service-kind openai \
     --endpoint-type chat \
     --url http://localhost:8000 \
     --streaming \
