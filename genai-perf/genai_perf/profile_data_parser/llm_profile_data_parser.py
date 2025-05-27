@@ -305,7 +305,7 @@ class LLMProfileDataParser(ProfileDataParser):
 
                 if not response.startswith("data: "):
                     prefix_idx = response.find("data: ")
-                    if "data: " not in res_outputs[i - 1]["response"]:
+                    if "data:" not in res_outputs[i - 1]["response"]:
                         raise GenAIPerfException(
                             "Detected a splintered SSE response but the "
                             "previous response does not contain proper SSE "
