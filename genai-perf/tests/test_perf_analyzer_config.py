@@ -407,6 +407,23 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
 
         self.assertEqual(expected_args, actual_args)
 
+    def test_add_inference_load_args_with_no_parameters_and_fixed_schedule(self):
+        """
+        Test that _add_inference_load_args returns the correct arguments when
+        there are no parameters and fixed_schedule is set by user
+        """
+        self._default_perf_analyzer_config._parameters = {}
+        self._config.perf_analyzer.get_field("stimulus").is_set_by_user = True
+        self._config.perf_analyzer.stimulus = {"fixed_schedule": None}
+
+        expected_args = ["--fixed-schedule"]
+
+        actual_args = self._default_perf_analyzer_config._add_inference_load_args(
+            self._config
+        )
+
+        self.assertEqual(expected_args, actual_args)
+
     def test_add_inference_load_args_with_parameters(self):
         """
         Test that _add_inference_load_args returns the correct arguments
@@ -428,56 +445,6 @@ class TestPerfAnalyzerConfig(unittest.TestCase):
         ]
 
         actual_args = self._default_perf_analyzer_config._add_inference_load_args(
-            self._config
-        )
-
-        self.assertEqual(expected_args, actual_args)
-
-    ###########################################################################
-    # Test _add_prompt_source_args
-    ###########################################################################
-    def test_add_prompt_source_args_with_payload_and_no_session_concurrency(self):
-        """
-        Test that _add_prompt_source_args returns the correct arguments
-        when prompt_source is PAYLOAD and session_concurrency is not in stimulus
-        """
-        self._config.input.prompt_source = PromptSource.PAYLOAD
-        self._config.perf_analyzer.stimulus = {}
-
-        expected_args = ["--fixed-schedule"]
-
-        actual_args = self._default_perf_analyzer_config._add_prompt_source_args(
-            self._config
-        )
-
-        self.assertEqual(expected_args, actual_args)
-
-    def test_add_prompt_source_args_with_payload_and_session_concurrency(self):
-        """
-        Test that _add_prompt_source_args returns an empty list
-        when prompt_source is PAYLOAD and session_concurrency is in stimulus
-        """
-        self._config.input.prompt_source = PromptSource.PAYLOAD
-        self._config.perf_analyzer.stimulus = {"session_concurrency": 3}
-
-        expected_args = []
-
-        actual_args = self._default_perf_analyzer_config._add_prompt_source_args(
-            self._config
-        )
-
-        self.assertEqual(expected_args, actual_args)
-
-    def test_add_prompt_source_args_with_non_payload(self):
-        """
-        Test that _add_prompt_source_args returns an empty list
-        when prompt_source is not PAYLOAD
-        """
-        self._config.input.prompt_source = PromptSource.FILE
-
-        expected_args = []
-
-        actual_args = self._default_perf_analyzer_config._add_prompt_source_args(
             self._config
         )
 

@@ -45,6 +45,7 @@ class ConfigPerfAnalyzer(BaseConfig):
                 "request_rate",
                 "session_concurrency",
                 "session_request_rate",
+                "fixed_schedule",
             ],
             verbose_template_comment="The type and value of stimulus to benchmark",
         )
@@ -71,7 +72,7 @@ class ConfigPerfAnalyzer(BaseConfig):
             elif key == "verbose":
                 self.verbose = value
             elif key == "stimulus":
-                self.stimulus = value
+                self._parse_stimulus(value)
             elif key == "stability_percentage":
                 self.stability_percentage = value
             elif key == "measurement_interval":
@@ -84,6 +85,14 @@ class ConfigPerfAnalyzer(BaseConfig):
                 raise ValueError(
                     f"User Config: {key} is not a valid perf_analyzer parameter"
                 )
+
+    def _parse_stimulus(self, stimulus: Any) -> None:
+        if type(stimulus) is str:
+            self.stimulus = {stimulus: None}
+        elif type(stimulus) is dict:
+            self.stimulus = stimulus
+        else:
+            raise ValueError("User Config: stimulus must be a string or dict")
 
     def infer_settings(self) -> None:
         self.measurement._infer_measurement_num_based_on_mode()

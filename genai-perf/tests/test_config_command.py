@@ -244,6 +244,26 @@ class TestConfigCommand(unittest.TestCase):
         self.assertEqual(config.perf_analyzer.measurement.num, 100)
         self.assertEqual(config.perf_analyzer.warmup_request_count, 200)
 
+    def test_perf_analyzer_config_fixed_schedule(self):
+        """
+        Test that the perf analyzer configuration is parsed correctly with fixed
+        schedule
+        """
+        # yapf: disable
+        yaml_str = ("""
+            model_name: gpt2
+
+            perf_analyzer:
+                stimulus:
+                    fixed_schedule
+            """)
+        # yapf: enable
+
+        user_config = yaml.safe_load(yaml_str)
+        config = ConfigCommand(user_config)
+
+        self.assertEqual(config.perf_analyzer.stimulus, {"fixed_schedule": None})
+
     def test_session_turn_delay_ratio(self):
         """
         Test that the session turn delay ratio is parsed correctly

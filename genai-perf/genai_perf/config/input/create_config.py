@@ -361,12 +361,16 @@ class CreateConfig:
         return config
 
     @staticmethod
-    def _convert_args_to_stimulus(args: argparse.Namespace) -> Optional[Dict[str, int]]:
+    def _convert_args_to_stimulus(
+        args: argparse.Namespace,
+    ) -> Optional[Dict[str, int | None]]:
         if args.session_concurrency:
             return {"session_concurrency": args.session_concurrency}
         elif args.concurrency:
             return {"concurrency": args.concurrency}
         elif args.request_rate:
             return {"request_rate": args.request_rate}
+        elif args.fixed_schedule:
+            return {"fixed_schedule": None}
         else:
             return None
