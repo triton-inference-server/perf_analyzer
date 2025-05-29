@@ -1,4 +1,4 @@
-# Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,51 +24,4 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "perf-analyzer"
-dynamic = ["version"]
-description = "Triton Performance Analyzer"
-readme = "README.md"
-
-[tool.setuptools.dynamic]
-version = {attr = "perf_analyzer.__version__"}
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-"perf_analyzer" = ["bin/perf_analyzer"]
-
-[project.scripts]
-perf_analyzer = "perf_analyzer.cli:main"
-
-[tool.codespell]
-# note: pre-commit passes explicit lists of files here, which this skip file list doesn't override -
-# this is only to allow you to run codespell interactively
-# this also overrides the grpc_generated folder, since it is generated
-skip = "./.git,./.github"
-# ignore short words, and typename parameters like OffsetT
-ignore-regex = "\\b(.{1,4}|[A-Z]\\w*T)\\b"
-# ignore allowed words
-# ignoring atleast to avoid testing::AtLeast from getting flagged
-ignore-words-list = "atleast"
-# use the 'clear' dictionary for unambiguous spelling mistakes
-builtin = "clear"
-# disable warnings about binary files and wrong encoding
-quiet-level = 3
-
-[tool.isort]
-profile = "black"
-use_parentheses = true
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-ensure_newline_before_comments = true
-line_length = 88
-balanced_wrapping = true
-indent = "    "
-skip = ["build"]
+__version__ = "2.58.0dev"
