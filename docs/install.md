@@ -53,7 +53,7 @@ perf_analyzer -m <model>
 ## pip
 
 ```bash
-pip install tritonclient
+pip install perf-analyzer
 
 perf_analyzer -m <model>
 ```
