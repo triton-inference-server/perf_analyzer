@@ -6,3 +6,8 @@ artifacts/
 
 # Avoid squashing local people's file for now
 /.vscode
+
+# Python setuptools artifacts
+*.egg-info/
+dist/
+bin/
