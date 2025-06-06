@@ -418,6 +418,7 @@ class TestConfigCommand(unittest.TestCase):
                 checkpoint_directory: "test_checkpoint_directory"
                 profile_export_file: "test_profile_export_file"
                 generate_plots: True
+                enable_checkpointing: True
             """)
         # yapf: enable
 
@@ -435,6 +436,7 @@ class TestConfigCommand(unittest.TestCase):
             Path("test_profile_export_file"),
         )
         self.assertEqual(config.output.generate_plots, True)
+        self.assertEqual(config.output.enable_checkpointing, True)
 
     ###########################################################################
     # Test Tokenizer Config

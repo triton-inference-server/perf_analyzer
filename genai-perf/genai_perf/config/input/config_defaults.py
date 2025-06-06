@@ -169,6 +169,7 @@ class OutputDefaults:
     CHECKPOINT_DIRECTORY = "./checkpoint"
     PROFILE_EXPORT_FILE = "profile_export.json"
     GENERATE_PLOTS = False
+    ENABLE_CHECKPOINTING = False
 
 
 @dataclass(frozen=True)

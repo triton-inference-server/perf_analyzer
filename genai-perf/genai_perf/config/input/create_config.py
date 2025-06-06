@@ -339,11 +339,14 @@ class CreateConfig:
     ) -> ConfigCommand:
         if args.artifact_dir:
             config.output.artifact_directory = args.artifact_dir
-        # config.output.checkpoint_directory - There is no equivalent setting in the CLI
+        if args.checkpoint_dir:
+            config.output.checkpoint_directory = args.checkpoint_dir
         if args.profile_export_file:
             config.output.profile_export_file = args.profile_export_file
         if args.generate_plots:
             config.output.generate_plots = args.generate_plots
+        if args.enable_checkpointing:
+            config.output.enable_checkpointing = args.enable_checkpointing
 
         return config
 
