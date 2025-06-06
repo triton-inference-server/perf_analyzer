@@ -47,6 +47,12 @@ class ConfigOutput(BaseConfig):
             verbose_template_comment="Enables the generation of plots",
         )
 
+        self.enable_checkpointing: Any = ConfigField(
+            default=OutputDefaults.ENABLE_CHECKPOINTING,
+            verbose_template_comment="Enables the checkpointing of the GenAI-Perf state.\
+                \nThis is useful for running GenAI-Perf in a stateful manner.",
+        )
+
     def parse(self, output: Dict[str, Any]) -> None:
         for key, value in output.items():
             if key == "artifact_directory":
@@ -57,5 +63,7 @@ class ConfigOutput(BaseConfig):
                 self.profile_export_file = Path(value)
             elif key == "generate_plots":
                 self.generate_plots = value
+            elif key == "enable_checkpointing":
+                self.enable_checkpointing = value
             else:
                 raise ValueError(f"User Config: {key} is not a valid output parameter")

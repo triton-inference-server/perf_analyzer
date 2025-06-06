@@ -26,6 +26,7 @@ from genai_perf.config.generate.objective_parameter import (
 from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameter import SearchUsage
 from genai_perf.config.input.config_command import ConfigCommand
+from genai_perf.config.run.results import Results
 from genai_perf.config.run.run_config import RunConfig
 from genai_perf.constants import DEFAULT_DCGM_METRICS_URL
 from genai_perf.exceptions import GenAIPerfException
@@ -64,8 +65,13 @@ class Subcommand:
             self._config.model_names[0] if self._config.model_names else ""
         )
         self._telemetry_data_collectors = self._create_telemetry_data_collectors()
-        self._checkpoint = Checkpoint(self._config)
-        self._results = self._checkpoint.results
+
+        if config.output.enable_checkpointing:
+            self._checkpoint: Optional[Checkpoint] = Checkpoint(self._config)
+            self._results = self._checkpoint.results
+        else:
+            self._checkpoint = None
+            self._results = Results()
 
         # Will only initialize the tokenizer if necessary (no match in checkpoint)
         # to save time
@@ -142,7 +148,9 @@ class Subcommand:
             genai_perf_config, perf_analyzer_config, objectives
         )
         self._results.add_run_config(run_config)
-        self._checkpoint.create_checkpoint_object()
+
+        if self._config.output.enable_checkpointing:
+            self._checkpoint.create_checkpoint_object()  # type: ignore
 
     def _found_config_in_checkpoint(
         self,

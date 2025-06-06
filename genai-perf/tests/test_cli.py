@@ -99,6 +99,11 @@ class TestCLIArguments:
                 {"output.artifact_directory": Path("test_artifact_dir")},
             ),
             (
+                ["--checkpoint-dir", "test_checkpoint_dir"],
+                {"checkpoint_dir": Path("test_checkpoint_dir")},
+                {"output.checkpoint_directory": Path("test_checkpoint_dir")},
+            ),
+            (
                 [
                     "--batch-size-text",
                     "5",
