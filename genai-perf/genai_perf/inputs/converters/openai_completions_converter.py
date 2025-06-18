@@ -42,12 +42,23 @@ class OpenAICompletionsConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 model_name = self._select_model_name(index)
-                prompt = row.texts
-
-                payload = {
-                    "model": model_name,
-                    "prompt": prompt,
-                }
+                
+                # Check if we have token_ids (list) or regular text (string)
+                if row.texts and isinstance(row.texts[0], list):
+                    # row.texts[0] is a list of token_ids
+                    token_ids = row.texts[0]
+                    payload = {
+                        "model": model_name,
+                        "token_ids": token_ids,
+                    }
+                else:
+                    # Fallback: treat as regular text prompt (shouldn't happen with new format)
+                    prompt = row.texts[0] if row.texts else ""
+                    payload = {
+                        "model": model_name,
+                        "prompt": prompt,
+                    }
+                
                 request_body["data"].append(self._finalize_payload(payload, row))
 
         return request_body

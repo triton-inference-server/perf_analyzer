@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.inputs.input_constants import (
@@ -129,7 +129,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             "optional_data_list": optional_data_list,
         }
 
-    def _get_prompt(self, data: Dict[str, Any]) -> str:
+    def _get_prompt(self, data: Dict[str, Any]) -> Union[str, List]:
         """
         Extracts or generates a prompt from the input data.
 
@@ -140,8 +140,8 @@ class PayloadInputRetriever(BaseFileInputRetriever):
 
         Returns
         -------
-        str
-            The extracted or generated prompt.
+        Union[str, List]
+            The extracted or generated prompt (string) or token_ids (list).
 
         Raises
         ------
@@ -158,11 +158,13 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         hash_ids = data.get("hash_ids", None)
         prompt = data.get("text")
         prompt_alt = data.get("text_input")
+        
         # Check if only one of the keys is provided
         if prompt and prompt_alt:
             raise ValueError(
                 "Each data entry must have only one of 'text_input' or 'text' key name."
             )
+        
         # If none of the keys are provided, generate a synthetic prompt
         if not prompt and not prompt_alt:
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
@@ -172,6 +174,10 @@ class PayloadInputRetriever(BaseFileInputRetriever):
                 hash_ids,
             )
         prompt = prompt if prompt else prompt_alt
+        
+        # If prompt is a list (token_ids), return as-is; otherwise convert to string
+        if isinstance(prompt, list):
+            return prompt  # Return list directly for token_ids
         return str(prompt)
 
     def _get_payload_metadata(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -217,6 +223,7 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             "output_length",
         }
         excluded_keys.update(PAYLOAD_METADATA_FIELDS)
+        
         optional_data = {k: v for k, v in data.items() if k not in excluded_keys}
         max_tokens = data.get("output_length")
         if max_tokens:

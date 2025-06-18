@@ -379,11 +379,15 @@ class LLMProfileDataParser(ProfileDataParser):
         elif self._service_kind == "triton_c_api":
             return len(req_inputs["input_ids"])  # no tokenizer required
         elif self._service_kind == "openai":
-            input_text = self._get_input_payload(req_inputs)
+            # Check if we have token_ids directly in the payload
+            payload = load_json_str(req_inputs["payload"])
+            if "token_ids" in payload:
+                return len(payload["token_ids"])
+            else:
+                input_text = self._get_input_payload(req_inputs)
+                return self._cached_encode(input_text)
         else:
             raise ValueError(f"Unknown service kind: '{self._service_kind}'.")
-
-        return self._cached_encode(input_text)
 
     @lru_cache(maxsize=DEFAULT_LRU_CACHE_SIZE)
     def _cached_encode(self, text: str) -> int:
@@ -392,6 +396,11 @@ class LLMProfileDataParser(ProfileDataParser):
     def _get_input_payload(self, req_inputs: dict) -> str:
         """Deserialize the request input payload."""
         payload = load_json_str(req_inputs["payload"])
+        
+        # Handle token_ids case - return empty string since we handle count directly
+        if "token_ids" in payload:
+            return ""
+            
         if self._response_format == ResponseFormat.TRITON_GENERATE:
             return " ".join(payload["text_input"])
         elif self._response_format == ResponseFormat.HUGGINGFACE_GENERATE:

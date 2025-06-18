@@ -167,7 +167,10 @@ class FileInputRetriever(BaseFileInputRetriever):
                         )
                         prompt = f"{prefix_prompt} {prompt}"
                     if prompt is not None:
-                        prompts.append(prompt.strip())
+                        if isinstance(prompt, list):
+                            prompts.append(prompt)  # Keep lists as-is (token_ids)
+                        else:
+                            prompts.append(prompt.strip())  # Strip strings as before
 
                     image = data.get("image")
                     if image is not None:
