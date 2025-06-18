@@ -42,11 +42,11 @@ class OpenAICompletionsConverter(BaseConverter):
         for file_data in generic_dataset.files_data.values():
             for index, row in enumerate(file_data.rows):
                 model_name = self._select_model_name(index)
-                prompt = row.texts
+                token_ids = row.texts[0] if row.texts else []
 
                 payload = {
                     "model": model_name,
-                    "prompt": prompt,
+                    "token_ids": token_ids,
                 }
                 request_body["data"].append(self._finalize_payload(payload, row))
 
