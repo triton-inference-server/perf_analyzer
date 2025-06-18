@@ -158,11 +158,18 @@ class PayloadInputRetriever(BaseFileInputRetriever):
         hash_ids = data.get("hash_ids", None)
         prompt = data.get("text")
         prompt_alt = data.get("text_input")
+        token_ids = data.get("token_ids")
+        
         # Check if only one of the keys is provided
         if prompt and prompt_alt:
             raise ValueError(
                 "Each data entry must have only one of 'text_input' or 'text' key name."
             )
+        
+        # If token_ids is present, use it as the prompt (as a special marker)
+        if token_ids and not prompt and not prompt_alt:
+            return f"__TOKEN_IDS__{token_ids}"
+        
         # If none of the keys are provided, generate a synthetic prompt
         if not prompt and not prompt_alt:
             prompt = SyntheticPromptGenerator.create_synthetic_prompt(
@@ -217,6 +224,12 @@ class PayloadInputRetriever(BaseFileInputRetriever):
             "output_length",
         }
         excluded_keys.update(PAYLOAD_METADATA_FIELDS)
+        
+        # If token_ids is present and no text/text_input, exclude token_ids from optional_data
+        # since it's being used as the prompt
+        if data.get("token_ids") and not data.get("text") and not data.get("text_input"):
+            excluded_keys.add("token_ids")
+        
         optional_data = {k: v for k, v in data.items() if k not in excluded_keys}
         max_tokens = data.get("output_length")
         if max_tokens:
