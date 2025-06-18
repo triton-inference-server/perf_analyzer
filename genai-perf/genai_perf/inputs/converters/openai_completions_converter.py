@@ -43,23 +43,20 @@ class OpenAICompletionsConverter(BaseConverter):
             for index, row in enumerate(file_data.rows):
                 model_name = self._select_model_name(index)
                 
-                # Check if we have token_ids from PayloadInputRetriever
-                if row.texts and row.texts[0].startswith("__TOKEN_IDS__"):
-                    # Extract token_ids from the special marker
-                    token_ids_str = row.texts[0][len("__TOKEN_IDS__"):]
-                    import ast
-                    token_ids = ast.literal_eval(token_ids_str)
-                    
+                # Check if we have token_ids (list) or regular text (string)
+                if row.texts and isinstance(row.texts[0], list):
+                    # row.texts[0] is a list of token_ids
+                    token_ids = row.texts[0]
                     payload = {
                         "model": model_name,
                         "token_ids": token_ids,
                     }
                 else:
-                    # Original behavior - use texts as prompt
-                    token_ids = row.texts[0] if row.texts else []
+                    # Fallback: treat as regular text prompt (shouldn't happen with new format)
+                    prompt = row.texts[0] if row.texts else ""
                     payload = {
                         "model": model_name,
-                        "token_ids": token_ids,
+                        "prompt": prompt,
                     }
                 
                 request_body["data"].append(self._finalize_payload(payload, row))
