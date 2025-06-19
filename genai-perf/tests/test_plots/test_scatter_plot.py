@@ -1,47 +1,66 @@
+from unittest.mock import patch
+
 import pytest
+
+from genai_perf.plots.exceptions import EmptyDataError
+from genai_perf.plots.plot_config import ProfileRunData
 from genai_perf.plots.scatter_plot import ScatterPlot
-from genai_perf.plots.plot_config import PlotConfig
 
 
-class TestScatterPlot:
-    @pytest.fixture
-    def scatter_plot_data(self):
-        return {
-            "x": [1, 2, 3, 4, 5],
-            "y": [10, 20, 30, 40, 50],
-            "sizes": [100, 200, 300, 400, 500],
-            "colors": ["red", "blue", "green", "yellow", "purple"],
-        }
+@pytest.fixture
+def profile_run_data_list():
+    return [
+        ProfileRunData(name="run1", x_metric=[1, 2, 3], y_metric=[4, 5, 6]),
+        ProfileRunData(name="run2", x_metric=[1, 2, 3], y_metric=[7, 8, 9]),
+    ]
 
-    @pytest.fixture
-    def scatter_plot_config(self):
-        return PlotConfig(
-            title="Scatter Plot Test",
-            x_label="X Axis",
-            y_label="Y Axis",
-            show_grid=True,
-            show_legend=True,
+
+def test_scatter_plot_init(profile_run_data_list):
+    plot = ScatterPlot(profile_run_data_list)
+    assert plot._profile_data == profile_run_data_list
+
+
+@patch("genai_perf.plots.base_plot.BasePlot._generate_parquet")
+@patch("genai_perf.plots.base_plot.BasePlot._generate_graph_file")
+def test_scatter_plot_create_plot(
+    mock_gen_graph, mock_gen_parquet, profile_run_data_list, tmp_path
+):
+    plot = ScatterPlot(profile_run_data_list)
+    plot.create_plot(
+        graph_title="Test Title",
+        x_label="X",
+        y_label="Y",
+        width=800,
+        height=600,
+        filename_root="testfile",
+        output_dir=tmp_path,
+    )
+    assert mock_gen_parquet.called
+    assert mock_gen_graph.call_count == 2
+    html_call = [c for c in mock_gen_graph.call_args_list if c[0][2].endswith(".html")]
+    jpeg_call = [c for c in mock_gen_graph.call_args_list if c[0][2].endswith(".jpeg")]
+    assert html_call and jpeg_call
+
+
+def test_scatter_plot_create_dataframe(profile_run_data_list):
+    plot = ScatterPlot(profile_run_data_list)
+    df = plot._create_dataframe("X", "Y")
+    assert list(df.columns) == ["X", "Y", "Run Name"]
+    assert len(df) == 2
+    assert df["Run Name"].tolist() == ["run1", "run2"]
+    assert df["Y"].tolist() == [[4, 5, 6], [7, 8, 9]]
+
+
+def test_scatter_plot_create_plot_empty_data(tmp_path):
+    with pytest.raises(EmptyDataError) as exc:
+        plot = ScatterPlot([])
+        plot.create_plot(
+            graph_title="Empty",
+            x_label="X",
+            y_label="Y",
+            width=700,
+            height=450,
+            filename_root="emptyfile",
+            output_dir=tmp_path,
         )
-
-    def test_scatter_plot_creation(self, scatter_plot_data, scatter_plot_config):
-        plot = ScatterPlot(scatter_plot_data, scatter_plot_config)
-        assert plot.data == scatter_plot_data
-        assert plot.config == scatter_plot_config
-
-    def test_scatter_plot_minimal_data(self):
-        data = {"x": [1, 2, 3], "y": [1, 2, 3]}
-        plot = ScatterPlot(data, PlotConfig())
-        assert plot.data == data
-
-    def test_scatter_plot_data_validation(self):
-        with pytest.raises(ValueError):
-            ScatterPlot({"x": [1, 2, 3]})  # Missing y data
-
-    def test_scatter_plot_optional_data_validation(self):
-        data = {
-            "x": [1, 2, 3],
-            "y": [1, 2, 3],
-            "sizes": [100, 200],  # Mismatched length
-        }
-        with pytest.raises(ValueError):
-            ScatterPlot(data)
+    assert "Data is empty" in str(exc.value)

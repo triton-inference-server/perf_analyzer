@@ -1,65 +1,56 @@
+from pathlib import Path
+
 import pytest
+
+from genai_perf.plots.plot_config import PlotConfig, PlotType, ProfileRunData
 from genai_perf.plots.plot_manager import PlotManager
-from genai_perf.plots.box_plot import BoxPlot
-from genai_perf.plots.scatter_plot import ScatterPlot
-from genai_perf.plots.plot_config import PlotConfig, PlotType
 
 
 class TestPlotManager:
     @pytest.fixture
-    def plot_config(self, tmp_path):
+    def box_plot_config(self, tmp_path: Path):
+        output_path = tmp_path / "output"
+        output_path.mkdir(parents=True, exist_ok=True)
         return PlotConfig(
-            title="Test Plot",
-            data=[{"x": [1, 2, 3], "y": [1, 2, 3]}],
+            title="Test Box Plot",
+            data=[ProfileRunData(name="test", x_metric=[1, 2, 3], y_metric=[1, 2, 3])],
             x_label="X Axis",
             y_label="Y Axis",
             height=1000,
             width=1000,
-            output=tmp_path / "output",
+            output=output_path,
             type=PlotType.BOX,
         )
 
     @pytest.fixture
-    def plot_manager(self, plot_config):
-        return PlotManager(plot_config)
+    def scatter_plot_config(self, tmp_path: Path):
+        output_path = tmp_path / "output"
+        output_path.mkdir(parents=True, exist_ok=True)
+        return PlotConfig(
+            title="Test Scatter Plot",
+            data=[ProfileRunData(name="test", x_metric=[1, 2, 3], y_metric=[1, 2, 3])],
+            x_label="X Axis",
+            y_label="Y Axis",
+            height=1000,
+            width=1000,
+            output=output_path,
+            type=PlotType.SCATTER,
+        )
 
     @pytest.fixture
-    def sample_plots(self, plot_config):
-        return {
-            "box": BoxPlot(
-                {"data": [[1, 2, 3], [4, 5, 6]], "labels": ["A", "B"]}, plot_config
-            ),
-            "scatter": ScatterPlot({"x": [1, 2, 3], "y": [1, 2, 3]}, plot_config),
-        }
+    def plot_manager(
+        self, box_plot_config: PlotConfig, scatter_plot_config: PlotConfig
+    ):
+        return PlotManager([box_plot_config, scatter_plot_config])
 
-    def test_plot_manager_initialization(self, plot_manager):
-        assert plot_manager.plots == {}
-
-    def test_add_plot(self, plot_manager, sample_plots):
-        for name, plot in sample_plots.items():
-            plot_manager.add_plot(name, plot)
-        assert len(plot_manager.plots) == len(sample_plots)
-
-    def test_get_plot(self, plot_manager, sample_plots):
-        plot_manager.add_plot("test", sample_plots["box"])
-        assert plot_manager.get_plot("test") == sample_plots["box"]
-
-    def test_get_nonexistent_plot(self, plot_manager):
-        with pytest.raises(KeyError):
-            plot_manager.get_plot("nonexistent")
-
-    def test_remove_plot(self, plot_manager, sample_plots):
-        plot_manager.add_plot("test", sample_plots["box"])
-        plot_manager.remove_plot("test")
-        assert "test" not in plot_manager.plots
-
-    def test_clear_plots(self, plot_manager, sample_plots):
-        for name, plot in sample_plots.items():
-            plot_manager.add_plot(name, plot)
-        plot_manager.clear_plots()
-        assert len(plot_manager.plots) == 0
-
-    def test_plot_names(self, plot_manager, sample_plots):
-        for name, plot in sample_plots.items():
-            plot_manager.add_plot(name, plot)
-        assert set(plot_manager.plot_names()) == set(sample_plots.keys())
+    def test_plot_manager_generated_plots_are_all_present(
+        self,
+        box_plot_config: PlotConfig,
+        scatter_plot_config: PlotConfig,
+        plot_manager: PlotManager,
+    ):
+        plot_manager.generate_plots()
+        assert Path(box_plot_config.output / "test_box_plot.html").exists()
+        assert Path(box_plot_config.output / "test_box_plot.jpeg").exists()
+        assert Path(scatter_plot_config.output / "test_scatter_plot.html").exists()
+        assert Path(scatter_plot_config.output / "test_scatter_plot.jpeg").exists()

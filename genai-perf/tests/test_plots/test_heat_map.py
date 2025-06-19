@@ -1,55 +1,68 @@
+from unittest.mock import patch
+
 import pytest
-import numpy as np
+
+from genai_perf.plots.exceptions import EmptyDataError
 from genai_perf.plots.heat_map import HeatMap
-from genai_perf.plots.plot_config import PlotConfig
+from genai_perf.plots.plot_config import ProfileRunData
 
 
-class TestHeatMap:
-    @pytest.fixture
-    def heat_map_data(self):
-        return {
-            "data": np.random.rand(5, 5),
-            "x_labels": ["A", "B", "C", "D", "E"],
-            "y_labels": ["1", "2", "3", "4", "5"],
-        }
+@pytest.fixture
+def profile_run_data_list():
+    return [
+        ProfileRunData(name="run1", x_metric=[1, 2, 3], y_metric=[4, 5, 6]),
+        ProfileRunData(name="run2", x_metric=[1, 2, 3], y_metric=[7, 8, 9]),
+    ]
 
-    @pytest.fixture
-    def heat_map_config(self):
-        return PlotConfig(
-            title="Heat Map Test",
-            x_label="X Axis",
-            y_label="Y Axis",
-            show_grid=True,
-            color_map="viridis",
+
+def test_heat_map_init(profile_run_data_list):
+    plot = HeatMap(profile_run_data_list)
+    assert plot._profile_data == profile_run_data_list
+
+
+@patch("genai_perf.plots.base_plot.BasePlot._generate_parquet")
+@patch("genai_perf.plots.base_plot.BasePlot._generate_graph_file")
+def test_heat_map_create_plot(
+    mock_gen_graph, mock_gen_parquet, profile_run_data_list, tmp_path
+):
+    plot = HeatMap(profile_run_data_list)
+    plot.create_plot(
+        graph_title="Test Title",
+        x_label="X",
+        y_label="Y",
+        width=800,
+        height=600,
+        filename_root="testfile",
+        output_dir=tmp_path,
+    )
+    assert mock_gen_parquet.called
+    assert mock_gen_graph.call_count == 2
+    html_call = [c for c in mock_gen_graph.call_args_list if c[0][2].endswith(".html")]
+    jpeg_call = [c for c in mock_gen_graph.call_args_list if c[0][2].endswith(".jpeg")]
+    assert html_call and jpeg_call
+
+
+def test_heat_map_create_dataframe(profile_run_data_list):
+    plot = HeatMap(profile_run_data_list)
+    df = plot._create_dataframe("X", "Y")
+    assert list(df.columns) == ["X", "Y", "Run Name"]
+    assert len(df) == 2
+    assert df["Run Name"].tolist() == ["run1", "run2"]
+    assert df["Y"].tolist() == [[4, 5, 6], [7, 8, 9]]
+
+
+@patch("genai_perf.plots.base_plot.BasePlot._generate_parquet")
+@patch("genai_perf.plots.base_plot.BasePlot._generate_graph_file")
+def test_heat_map_create_plot_empty_data(mock_gen_graph, mock_gen_parquet, tmp_path):
+    with pytest.raises(EmptyDataError) as exc:
+        plot = HeatMap([])
+        plot.create_plot(
+            graph_title="Empty",
+            x_label="X",
+            y_label="Y",
+            width=700,
+            height=450,
+            filename_root="emptyfile",
+            output_dir=tmp_path,
         )
-
-    def test_heat_map_creation(self, heat_map_data, heat_map_config):
-        plot = HeatMap(heat_map_data, heat_map_config)
-        assert plot.data == heat_map_data
-        assert plot.config == heat_map_config
-
-    def test_heat_map_data_validation(self):
-        with pytest.raises(ValueError):
-            HeatMap({"data": np.array([])})
-
-    def test_heat_map_labels_mismatch(self):
-        with pytest.raises(ValueError):
-            HeatMap(
-                {
-                    "data": np.random.rand(3, 3),
-                    "x_labels": ["A", "B"],  # Missing label
-                    "y_labels": ["1", "2", "3"],
-                }
-            )
-
-    def test_heat_map_invalid_color_map(self):
-        with pytest.raises(ValueError):
-            config = PlotConfig(color_map="invalid_map")
-            HeatMap(
-                {
-                    "data": np.random.rand(3, 3),
-                    "x_labels": ["A", "B", "C"],
-                    "y_labels": ["1", "2", "3"],
-                },
-                config,
-            )
+    assert "Data is empty" in str(exc.value)

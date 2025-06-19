@@ -30,6 +30,7 @@ from typing import List
 
 import pandas as pd
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.plots.exceptions import EmptyDataError
 from genai_perf.plots.plot_config import ProfileRunData
 from plotly.graph_objects import Figure
 
@@ -40,6 +41,8 @@ class BasePlot:
     """
 
     def __init__(self, data: List[ProfileRunData]) -> None:
+        if not data:
+            raise EmptyDataError("Data is empty")
         self._profile_data = data
 
     def create_plot(

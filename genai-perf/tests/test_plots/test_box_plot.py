@@ -1,44 +1,69 @@
+from unittest.mock import patch
+
 import pytest
+
 from genai_perf.plots.box_plot import BoxPlot
-from genai_perf.plots.plot_config import PlotConfig
+from genai_perf.plots.exceptions import EmptyDataError
+from genai_perf.plots.plot_config import ProfileRunData
 
 
-class TestBoxPlot:
-    @pytest.fixture
-    def box_plot_data(self):
-        return {
-            "data": [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6], [3, 4, 5, 6, 7]],
-            "labels": ["Group A", "Group B", "Group C"],
-        }
+@pytest.fixture
+def profile_run_data_list():
+    return [
+        ProfileRunData(name="run1", x_metric=[1, 2, 3], y_metric=[4, 5, 6]),
+        ProfileRunData(name="run2", x_metric=[1, 2, 3], y_metric=[7, 8, 9]),
+    ]
 
-    @pytest.fixture
-    def box_plot_config(self):
-        return PlotConfig(
-            title="Box Plot Test",
-            x_label="Groups",
-            y_label="Values",
-            show_grid=True,
-            show_outliers=True,
+
+def test_box_plot_init(profile_run_data_list):
+    plot = BoxPlot(profile_run_data_list)
+    assert plot._profile_data == profile_run_data_list
+
+
+@patch("genai_perf.plots.base_plot.BasePlot._generate_parquet")
+@patch("genai_perf.plots.base_plot.BasePlot._generate_graph_file")
+def test_box_plot_create_plot(
+    mock_gen_graph, mock_gen_parquet, profile_run_data_list, tmp_path
+):
+    plot = BoxPlot(profile_run_data_list)
+    plot.create_plot(
+        graph_title="Test Title",
+        x_label="X",
+        y_label="Y",
+        width=800,
+        height=600,
+        filename_root="testfile",
+        output_dir=tmp_path,
+    )
+    # Should call parquet and graph file generation twice (html, jpeg)
+    assert mock_gen_parquet.called
+    assert mock_gen_graph.call_count == 2
+    html_call = [c for c in mock_gen_graph.call_args_list if c[0][2].endswith(".html")]
+    jpeg_call = [c for c in mock_gen_graph.call_args_list if c[0][2].endswith(".jpeg")]
+    assert html_call and jpeg_call
+
+
+def test_box_plot_create_dataframe(profile_run_data_list):
+    plot = BoxPlot(profile_run_data_list)
+    df = plot._create_dataframe("X", "Y")
+    assert list(df.columns) == ["X", "Y", "Run Name"]
+    assert len(df) == 2
+    assert df["Run Name"].tolist() == ["run1", "run2"]
+    assert df["Y"].tolist() == [[4, 5, 6], [7, 8, 9]]
+
+
+@patch("genai_perf.plots.base_plot.BasePlot._generate_parquet")
+@patch("genai_perf.plots.base_plot.BasePlot._generate_graph_file")
+def test_box_plot_create_plot_empty_data(mock_gen_graph, mock_gen_parquet, tmp_path):
+    with pytest.raises(EmptyDataError) as exc:
+        plot = BoxPlot([])
+        plot.create_plot(
+            graph_title="Empty",
+            x_label="X",
+            y_label="Y",
+            width=700,
+            height=450,
+            filename_root="emptyfile",
+            output_dir=tmp_path,
         )
-
-    def test_box_plot_creation(self, box_plot_data, box_plot_config):
-        plot = BoxPlot(box_plot_data, box_plot_config)
-        assert plot.data == box_plot_data
-        assert plot.config == box_plot_config
-
-    def test_box_plot_data_validation(self):
-        with pytest.raises(ValueError):
-            BoxPlot({"data": [], "labels": []})
-
-    def test_box_plot_labels_mismatch(self):
-        with pytest.raises(ValueError):
-            BoxPlot(
-                {
-                    "data": [[1, 2, 3], [4, 5, 6]],
-                    "labels": ["Group A"],  # Missing label
-                }
-            )
-
-    def test_box_plot_empty_data_groups(self):
-        with pytest.raises(ValueError):
-            BoxPlot({"data": [[], [1, 2, 3]], "labels": ["Group A", "Group B"]})
+    assert "Data is empty" in str(exc.value)
