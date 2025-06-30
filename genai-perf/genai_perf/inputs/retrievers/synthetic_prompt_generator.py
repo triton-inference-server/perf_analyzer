@@ -192,9 +192,9 @@ class SyntheticPromptGenerator:
                 # and insert the bos token at the beginning. Length is maintained and
                 # the prompt generates the expected number of tokens.
                 prompt_tokens = cls._generate_prompt_tokens(size_to_use)
-                if tokenizer.bos_token_id is not None:
+                if tokenizer.bos_token_id() is not None:
                     prompt_tokens.pop(0)
-                    prompt_tokens.insert(0, tokenizer.bos_token_id)
+                    prompt_tokens.insert(0, tokenizer.bos_token_id())
                 cls._cache[hash_index] = prompt_tokens
             final_prompt.extend(cls._cache[hash_index])
         prompt = tokenizer.decode(final_prompt, skip_special_tokens=False)
