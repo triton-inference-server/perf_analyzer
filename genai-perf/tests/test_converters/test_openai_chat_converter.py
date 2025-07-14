@@ -349,9 +349,9 @@ class TestOpenAIChatCompletionsConverter:
     @pytest.mark.parametrize(
         "batch_size_image",
         [
+            0,  # no images
             1,
-            2,
-            3,
+            123,
         ],
     )
     def test_convert_multi_modal_with_batched_image(self, batch_size_image):
