@@ -346,6 +346,58 @@ class TestOpenAIChatCompletionsConverter:
 
         assert result == expected_result
 
+    @pytest.mark.parametrize(
+        "batch_size_image",
+        [
+            1,
+            2,
+            3,
+        ],
+    )
+    def test_convert_multi_modal_with_batched_image(self, batch_size_image):
+        """
+        Test multi-modal format of OpenAI Chat API with batched image input payloads
+        """
+        rows = [
+            {
+                "text": "hello world",
+                "image": [f"test_image_{i}" for i in range(batch_size_image)],
+            },
+        ]
+        generic_dataset = self.create_generic_dataset(rows)
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.OPENAI_MULTIMODAL
+        config.endpoint.streaming = True
+        config.input.image.batch_size = batch_size_image
+
+        chat_converter = OpenAIChatCompletionsConverter(config)
+        payload = chat_converter.convert(generic_dataset)
+
+        expected_image_contents = [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"test_image_{i}",
+                },
+            }
+            for i in range(batch_size_image)
+        ]
+
+        assert payload["data"][0]["payload"][0]["messages"] == [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "hello world",
+                    },
+                    *expected_image_contents,
+                ],
+            }
+        ]
+
     def test_convert_with_payload_parameters(self):
         optional_data = {"session_id": "abcd"}
         generic_dataset = self.create_generic_dataset(
