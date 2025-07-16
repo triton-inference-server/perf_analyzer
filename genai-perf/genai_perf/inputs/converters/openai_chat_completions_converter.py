@@ -44,10 +44,6 @@ class OpenAIChatCompletionsConverter(BaseConverter):
                 raise GenAIPerfException(
                     f"The --batch-size-text flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
                 )
-            if self.config.input.image.batch_size != InputDefaults.BATCH_SIZE:
-                raise GenAIPerfException(
-                    f"The --batch-size-image flag is not supported for {self.config.endpoint.output_format.to_lowercase()}."
-                )
 
     def convert(
         self,
