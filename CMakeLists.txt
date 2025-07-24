@@ -61,6 +61,7 @@ set(TRITON_REPO_ORGANIZATION "https://github.com/triton-inference-server" CACHE 
 set(TRITON_COMMON_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/common repo")
 set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
 set(TRITON_CLIENT_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/core repo")
+set(TRITON_THIRD_PARTY_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/third_party repo")
 
 #
 # Install locations
@@ -99,6 +100,7 @@ ExternalProject_Add(
       -DTRITON_COMMON_REPO_TAG:STRING=${TRITON_COMMON_REPO_TAG}
       -DTRITON_ENABLE_CC_HTTP:BOOL=${TRITON_ENABLE_CC_HTTP}
       -DTRITON_ENABLE_CC_GRPC:BOOL=${TRITON_ENABLE_CC_GRPC}
+      -DTRITON_THIRD_PARTY_REPO_TAG:STRING=${TRITON_THIRD_PARTY_REPO_TAG}
       -DTRITON_ENABLE_PYTHON_HTTP:BOOL=OFF
       -DTRITON_ENABLE_PYTHON_HTTP:BOOL=OFF
       -DTRITON_ENABLE_GPU:BOOL=${TRITON_ENABLE_GPU}
