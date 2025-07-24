@@ -90,9 +90,12 @@ class Profile(Subcommand):
 
     def create_plots(self) -> None:
         # TMA-1911: support plots CLI option
-        plot_dir = self._config.output.artifact_directory / "plots"
+        # Create the same config objects as in profile() to get consistent paths
+        objectives = self._create_objectives_based_on_stimulus()
+        perf_analyzer_config = self._create_perf_analyzer_config(objectives)
+        plot_dir = perf_analyzer_config.get_artifact_directory() / "plots"
         PlotConfigParser.create_init_yaml_config(
-            filenames=[self._config.output.profile_export_file],  # single run
+            filenames=[perf_analyzer_config.get_profile_export_file()],
             output_dir=plot_dir,
         )
         config_parser = PlotConfigParser(plot_dir / "config.yaml")
