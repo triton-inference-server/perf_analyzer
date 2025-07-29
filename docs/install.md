@@ -64,20 +64,26 @@ errors showing which ones are missing. You will need to manually install them.
 ## Build from Source
 
 ```bash
-docker run --rm --gpus=all -it --net=host ubuntu:24.04
+docker run --rm --gpus all -it --network host ubuntu:24.04
 
 # inside container, install build/runtime dependencies
-apt update && DEBIAN_FRONTEND=noninteractive apt install -y cmake g++ git libssl-dev nvidia-cuda-toolkit python3 rapidjson-dev zlib1g-dev
+apt update && apt install -y curl
 
-git clone --depth=1 https://github.com/triton-inference-server/perf_analyzer.git
+curl -LsSf https://apt.kitware.com/kitware-archive.sh | sh
+
+CMAKE_VERSION_FULL=$(apt-cache madison cmake | awk '/3.31.8/ {print $3; exit}')
+
+apt update && DEBIAN_FRONTEND=noninteractive apt install -y cmake=${CMAKE_VERSION_FULL} cmake-data=${CMAKE_VERSION_FULL} g++ git libssl-dev nvidia-cuda-toolkit python3 rapidjson-dev zlib1g-dev
+
+git clone --depth 1 https://github.com/triton-inference-server/perf_analyzer.git
 
 mkdir perf_analyzer/build
 
 cmake -B perf_analyzer/build -S perf_analyzer
 
-cmake --build perf_analyzer/build -- -j8
+cmake --build perf_analyzer/build --parallel 8
 
-export PATH=$(pwd)/perf_analyzer/build/perf_analyzer/src/perf-analyzer-build:$PATH
+export PATH=$(pwd)/perf_analyzer/build/perf_analyzer/src/perf-analyzer-build${PATH:+:${PATH}}
 
 perf_analyzer -m <model>
 ```
