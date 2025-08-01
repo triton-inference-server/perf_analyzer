@@ -485,7 +485,7 @@ class LLMProfileDataParser(ProfileDataParser):
         extract_method = extraction_methods.get(
             self._response_format, self._throw_unknown_response_format_error
         )
-        return extract_method(response)
+        return extract_method(response) or ""  # prevent null output
 
     def _get_response_output_tokens(self, output_texts: List[str]) -> List[List[int]]:
         """Return a list of response output tokens."""
