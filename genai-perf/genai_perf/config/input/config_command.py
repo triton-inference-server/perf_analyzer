@@ -74,6 +74,11 @@ class ConfigCommand(BaseConfig):
             add_to_template=False,
         )
 
+        self.template_header: Any = ConfigField(
+            default=TopLevelDefaults.TEMPLATE_HEADER,
+            add_to_template=False,
+        )
+
         self.analyze = ConfigAnalyze()
         self.endpoint = ConfigEndPoint()
         self.perf_analyzer = ConfigPerfAnalyzer()
@@ -292,4 +297,4 @@ class ConfigCommand(BaseConfig):
     # Template Creation Methods
     ###########################################################################
     def make_template(self) -> str:
-        return self.create_template(header="", level=0, verbose=self.verbose)
+        return self.create_template(header=self.template_header, level=0, verbose=self.verbose)
