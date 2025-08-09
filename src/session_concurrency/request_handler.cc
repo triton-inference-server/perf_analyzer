@@ -44,6 +44,7 @@
 #include "../client_backend/client_backend.h"
 #include "../model_parser.h"
 #include "../request_record.h"
+#include "../rapidjson_utils.h"
 #include "payload_dataset_manager.h"
 #include "payload_json_utils.h"
 #include "response_json_utils.h"
@@ -197,16 +198,51 @@ RequestHandler::PrepareCallback(
     const auto& response_document{
         ResponseJsonUtils::GetResponseDocument(response_buffer)};
 
-    const auto& response_message{
-        ResponseJsonUtils::GetMessage(response_document)};
+    bool is_stream{false};
+    auto error = infer_result->IsStreamResponse(&is_stream);
+    if (!error.IsOk()) {
+      // Forcibly set false to `is_stream` because
+      // this `infer_result` object is a subclass which
+      // does not implement `IsStreamResponse()`.
+      is_stream = false;
+    }
+    bool is_final{false};
+    error = infer_result->IsFinalResponse(&is_final);
+    if (!error.IsOk()) {
+      // Forcibly set false to `is_final`.
+      is_final = false;
+    }
 
-    rapidjson::Value response_message_copy{};
-    response_message_copy.CopyFrom(
-        response_message, chat_history.GetAllocator());
+    if (!response_document.IsNull()) {
+      // `response_document` should not be null
+      // when the response text is empty ("").
+      // Null can happen only when response is `data: [DONE]`.
 
-    chat_history.PushBack(response_message_copy, chat_history.GetAllocator());
+      if (is_stream && is_final) {
+        // Unexpected response.
+        throw std::runtime_error(
+          "In the case of streaming and the last chunk, response object must be null:\n\n" +
+          RapidJsonUtils::Serialize(response_document) + "\n\n\n"
+        );
+      }
 
-    response_promise->set_value();
+      rapidjson::Value response_message_copy{};
+      if (is_stream) {
+        response_message_copy.CopyFrom(
+            ResponseJsonUtils::GetDelta(response_document),
+            chat_history.GetAllocator());
+      } else {
+        response_message_copy.CopyFrom(
+            ResponseJsonUtils::GetMessage(response_document),
+            chat_history.GetAllocator());
+      }
+
+      chat_history.PushBack(response_message_copy, chat_history.GetAllocator());
+    }
+
+    if (is_final) {
+      response_promise->set_value();
+    }
   };
 }
 

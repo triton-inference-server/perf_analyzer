@@ -46,7 +46,18 @@ ResponseJsonUtils::GetResponseDocument(
   const std::string response_buffer_str(
       response_buffer.begin(), response_buffer.end());
 
-  response_document.Parse(response_buffer_str.c_str(), response_buffer.size());
+  if (response_buffer_str.find("data: [DONE]") != std::string::npos) {
+    // This response is the last message indicating
+    // the termination of the streaming response.
+    return response_document;
+  }
+
+  size_t substr_index = 0;
+  if (response_buffer_str.starts_with("data: ")) {
+    substr_index = 6;
+  }
+  const auto response_substr = response_buffer_str.substr(substr_index);
+  response_document.Parse(response_substr.c_str(), response_substr.size());
 
   if (response_document.HasParseError()) {
     throw std::runtime_error(
@@ -62,17 +73,7 @@ ResponseJsonUtils::GetResponseDocument(
 const rapidjson::Value&
 ResponseJsonUtils::GetMessage(const rapidjson::Document& response_document)
 {
-  if (!response_document.IsObject() ||
-      !response_document.HasMember("choices") ||
-      !response_document["choices"].IsArray() ||
-      response_document["choices"].Empty()) {
-    throw std::runtime_error(
-        "Response body must be an object and have a 'choices' field that is "
-        "an array with at least one element. Response body:\n\n" +
-        RapidJsonUtils::Serialize(response_document) + "\n\n\n");
-  }
-
-  const auto& response_first_choice{response_document["choices"][0]};
+  const auto& response_first_choice = GetChoices(response_document);
 
   if (!response_first_choice.IsObject() ||
       !response_first_choice.HasMember("message") ||
@@ -84,6 +85,42 @@ ResponseJsonUtils::GetMessage(const rapidjson::Document& response_document)
   }
 
   return response_first_choice["message"];
+}
+
+const rapidjson::Value&
+ResponseJsonUtils::GetDelta(const rapidjson::Document& response_document)
+{
+  const auto& response_first_choice = GetChoices(response_document);
+
+  if (!response_first_choice.IsObject() ||
+      !response_first_choice.HasMember("delta") ||
+      !response_first_choice["delta"].IsObject()) {
+    throw std::runtime_error(
+        "In streaming mode, response body 'choices' field's first element "
+        "must be an object and have a 'delta' field that is an object. "
+        "Response body:\n\n" +
+        RapidJsonUtils::Serialize(response_document) + "\n\n\n");
+  }
+
+  return response_first_choice["delta"];
+}
+
+const rapidjson::Value&
+ResponseJsonUtils::GetChoices(
+    const rapidjson::Document& response_document,
+    const int choices_index)
+{
+  if (!response_document.IsObject() ||
+      !response_document.HasMember("choices") ||
+      !response_document["choices"].IsArray() ||
+      response_document["choices"].Empty()) {
+    throw std::runtime_error(
+        "Response body must be an object and have a 'choices' field that is "
+        "an array with at least one element. Response body:\n\n" +
+        RapidJsonUtils::Serialize(response_document) + "\n\n\n");
+  }
+
+  return response_document["choices"][choices_index];
 }
 
 }  // namespace triton::perfanalyzer
