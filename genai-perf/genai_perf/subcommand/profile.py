@@ -58,44 +58,41 @@ class Profile(Subcommand):
 
     def __init__(self, config: ConfigCommand, extra_args: Optional[List[str]]) -> None:
         super().__init__(config, extra_args)
+        self._objectives = self._create_objectives_based_on_stimulus()
+        self._genai_perf_config = self._create_genai_perf_config(self._objectives)
+        self._perf_analyzer_config = self._create_perf_analyzer_config(self._objectives)
 
     def profile(self) -> None:
         """
         Profiles the model based on the user's stimulus
         """
-        objectives = self._create_objectives_based_on_stimulus()
-        genai_perf_config = self._create_genai_perf_config(objectives)
-        perf_analyzer_config = self._create_perf_analyzer_config(objectives)
 
-        if self._is_config_present_in_results(genai_perf_config, perf_analyzer_config):
+        if self._is_config_present_in_results(self._genai_perf_config, self._perf_analyzer_config):
             self._found_config_in_checkpoint(
-                genai_perf_config, perf_analyzer_config, objectives
+                self._genai_perf_config, self._perf_analyzer_config, self._objectives
             )
         else:
             # Pre-amble
             self._create_tokenizer()
-            self._create_artifact_directory(perf_analyzer_config)
-            self._create_plot_directory(perf_analyzer_config)
-            self._generate_inputs(perf_analyzer_config)
+            self._create_artifact_directory(self._perf_analyzer_config)
+            self._create_plot_directory(self._perf_analyzer_config)
+            self._generate_inputs(self._perf_analyzer_config)
 
             # Profile using Perf Analyzer
-            self._run_perf_analyzer(perf_analyzer_config)
+            self._run_perf_analyzer(self._perf_analyzer_config)
 
             # Post-amble
-            self._set_data_parser(perf_analyzer_config)
+            self._set_data_parser(self._perf_analyzer_config)
             self._add_results_to_checkpoint(
-                genai_perf_config, perf_analyzer_config, objectives
+                self._genai_perf_config, self._perf_analyzer_config, self._objectives
             )
-            self._add_output_to_artifact_directory(perf_analyzer_config, objectives)
+            self._add_output_to_artifact_directory(self._perf_analyzer_config, self._objectives)
 
     def create_plots(self) -> None:
         # TMA-1911: support plots CLI option
-        # Create the same config objects as in profile() to get consistent paths
-        objectives = self._create_objectives_based_on_stimulus()
-        perf_analyzer_config = self._create_perf_analyzer_config(objectives)
-        plot_dir = perf_analyzer_config.get_artifact_directory() / "plots"
+        plot_dir = self._perf_analyzer_config.get_artifact_directory() / "plots"
         PlotConfigParser.create_init_yaml_config(
-            filenames=[perf_analyzer_config.get_profile_export_file()],
+            filenames=[self._perf_analyzer_config.get_profile_export_file()],  # single run
             output_dir=plot_dir,
         )
         config_parser = PlotConfigParser(plot_dir / "config.yaml")
