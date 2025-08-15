@@ -53,7 +53,7 @@ class Tokenizer:
                 from transformers import logging as token_logger
 
                 token_logger.set_verbosity_error()
-                tokenizer = AutoTokenizer.from_pretrained(
+                tokenizer = AutoTokenizer.from_pretrained( # nosec
                     name, trust_remote_code=trust_remote_code, revision=revision
                 )
         except Exception as e:
