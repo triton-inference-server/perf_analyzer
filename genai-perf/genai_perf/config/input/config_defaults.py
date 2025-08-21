@@ -45,6 +45,7 @@ class TopLevelDefaults:
     SUBCOMMAND = Subcommand.CONFIG
     VERBOSE = False
     TEMPLATE_FILENAME = "genai_perf_config.yaml"
+    TEMPLATE_HEADER = "config_template"
 
 
 @dataclass(frozen=True)
