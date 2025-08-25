@@ -486,6 +486,7 @@ class PerfAnalyzerConfig:
             "concurrency": "--concurrency-range",
             "request_rate": "--request-rate-range",
             "session_concurrency": "--session-concurrency",
+            "fixed_schedule": "--fixed-schedule",
         }
 
         try:
