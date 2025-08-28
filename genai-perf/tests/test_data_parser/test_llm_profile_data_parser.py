@@ -34,6 +34,7 @@ from genai_perf.exceptions import GenAIPerfException
 from genai_perf.metrics import LLMMetrics
 from genai_perf.metrics.statistics import Statistics
 from genai_perf.profile_data_parser import LLMProfileDataParser
+from genai_perf.profile_data_parser.parser_result import ParserResult
 from genai_perf.profile_data_parser.profile_data_parser import ResponseFormat
 from genai_perf.tokenizer import get_tokenizer
 from tests.test_utils import check_statistics, ns_to_sec
@@ -1018,8 +1019,11 @@ class TestLLMProfileDataParser:
                 tokenizer=tokenizer,
             )
 
+        parser_result = ParserResult()
         res_timestamps = [i for i in range(len(res_outputs))]
-        pd._preprocess_response(res_timestamps, res_outputs)
+        pd._preprocess_response(res_timestamps, res_outputs, parser_result)
+
+        assert parser_result.failed == 0
         assert res_outputs[0]["response"] == expected_response
 
     @pytest.mark.parametrize(
@@ -1112,8 +1116,10 @@ class TestLLMProfileDataParser:
                 tokenizer=tokenizer,
             )
 
+        parser_result = ParserResult()
         res_timestamps = [i for i in range(len(res_outputs))]
-        pd._preprocess_response(res_timestamps, res_outputs)
+        pd._preprocess_response(res_timestamps, res_outputs, parser_result)
+        assert parser_result.failed == 0
 
         assert len(res_outputs) == len(expected_responses)
         for out, expected_response in zip(res_outputs, expected_responses):
@@ -1164,7 +1170,9 @@ class TestLLMProfileDataParser:
             tokenizer=tokenizer,
         )
 
-        pd._preprocess_response(res_timestamps, res_outputs)
+        parser_result = ParserResult()
+        pd._preprocess_response(res_timestamps, res_outputs, parser_result)
+        assert parser_result.failed == 0
 
         assert len(res_outputs) == 2 and len(res_timestamps) == 2
         assert res_outputs[0]["response"] == expected_responses[0]
@@ -1208,12 +1216,11 @@ class TestLLMProfileDataParser:
             tokenizer=tokenizer,
         )
 
-        with pytest.raises(GenAIPerfException) as excinfo:
-            res_timestamps = [i for i in range(len(res_outputs))]
-            pd._preprocess_response(res_timestamps, res_outputs)
+        parser_result = ParserResult()
+        res_timestamps = [i for i in range(len(res_outputs))]
+        pd._preprocess_response(res_timestamps, res_outputs, parser_result)
 
-        expected_error_msg = "Detected an error event in the SSE response: event: error: some error occurred."
-        assert str(excinfo.value) == expected_error_msg
+        assert parser_result.failed == 1
 
     @patch(
         "genai_perf.profile_data_parser.profile_data_parser.load_json",
@@ -1239,7 +1246,10 @@ class TestLLMProfileDataParser:
             tokenizer=tokenizer,
         )
 
-        pd._preprocess_response(res_timestamps, res_outputs)
+        parser_result = ParserResult()
+        pd._preprocess_response(res_timestamps, res_outputs, parser_result)
+
+        assert parser_result.failed == 0
         assert res_outputs[0]["response"] == expected_response
 
     ###############################

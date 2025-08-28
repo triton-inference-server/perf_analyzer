@@ -36,6 +36,7 @@ from genai_perf.constants import DEFAULT_LRU_CACHE_SIZE, EMPTY_RESPONSE_TOKEN
 from genai_perf.exceptions import GenAIPerfException
 from genai_perf.logging import logging
 from genai_perf.metrics import LLMMetrics, Statistics
+from genai_perf.profile_data_parser.parser_result import ParserResult
 from genai_perf.profile_data_parser.profile_data_parser import (
     ProfileDataParser,
     ResponseFormat,
@@ -110,6 +111,7 @@ class LLMProfileDataParser(ProfileDataParser):
 
     def _parse_requests(self, requests: dict) -> LLMMetrics:
         """Parse each requests in profile export data to extract key metrics."""
+        parser_result = ParserResult()
         min_req_timestamp, max_res_timestamp = float("inf"), 0
         request_latencies: List[int] = []
         time_to_first_tokens: List[int] = []
@@ -134,7 +136,8 @@ class LLMProfileDataParser(ProfileDataParser):
             res_timestamps = request["response_timestamps"]
             res_outputs = request["response_outputs"]
 
-            self._preprocess_response(res_timestamps, res_outputs)
+            self._preprocess_response(res_timestamps, res_outputs, parser_result)
+            parser_result.success += len(res_outputs)
 
             # Skip requests with empty response. This happens sometimes when the
             # model returns a single response with empty string.
@@ -253,6 +256,9 @@ class LLMProfileDataParser(ProfileDataParser):
             goodput_val = self._calculate_goodput(benchmark_duration, llm_metrics)
             llm_metrics.request_goodputs = goodput_val
 
+        # Report parsing results
+        logger.info(parser_result.get_summary())
+
         return llm_metrics
 
     def _calculate_throughput_metrics(
@@ -287,7 +293,10 @@ class LLMProfileDataParser(ProfileDataParser):
         return zip(iterable, iterable[1:])
 
     def _preprocess_response(
-        self, res_timestamps: List[int], res_outputs: List[Dict[str, str]]
+        self,
+        res_timestamps: List[int],
+        res_outputs: List[Dict[str, str]],
+        parser_result: ParserResult,
     ) -> None:
         """Helper function to preprocess responses of a request."""
         if (
@@ -330,37 +339,54 @@ class LLMProfileDataParser(ProfileDataParser):
                 # Check if any error event occurred.
                 for r in responses:
                     if sse_error_occurred(r):
-                        raise GenAIPerfException(
+                        logger.error(
                             f"Detected an error event in the SSE response: {r}"
                         )
+                        res_outputs[i]["response"] = ""
+                        parser_result.failed += 1
 
-                if len(responses) > 1:
-                    data = load_json_str(remove_sse_prefix(responses[0]))
-                    if self._response_format == ResponseFormat.TRITON_GENERATE:
-                        merged_text = "".join(
-                            [self._extract_generate_text_output(r) for r in responses]
-                        )
-                        data["text_output"] = merged_text
-                    elif self._response_format == ResponseFormat.HUGGINGFACE_GENERATE:
-                        merged_text = "".join(
-                            [
-                                self._extract_huggingface_generate_text_output(r)
-                                for r in responses
-                            ]
-                        )
-                        if isinstance(data, list) and len(data) > 0:
-                            data[0]["generated_text"] = merged_text  # type: ignore
-                    else:
-                        merged_text = "".join(
-                            [self._extract_text_output(r) for r in responses]
-                        )
-                        if self._response_format == ResponseFormat.OPENAI_COMPLETIONS:
-                            data["choices"][0]["text"] = merged_text
+                try:
+                    if len(responses) > 1:
+                        data = load_json_str(remove_sse_prefix(responses[0]))
+                        if self._response_format == ResponseFormat.TRITON_GENERATE:
+                            merged_text = "".join(
+                                [
+                                    self._extract_generate_text_output(r)
+                                    for r in responses
+                                ]
+                            )
+                            data["text_output"] = merged_text
+                        elif (
+                            self._response_format == ResponseFormat.HUGGINGFACE_GENERATE
+                        ):
+                            merged_text = "".join(
+                                [
+                                    self._extract_huggingface_generate_text_output(r)
+                                    for r in responses
+                                ]
+                            )
+                            if isinstance(data, list) and len(data) > 0:
+                                data[0]["generated_text"] = merged_text  # type: ignore
                         else:
-                            data["choices"][0]["delta"]["content"] = merged_text
-                    res_outputs[i] = {"response": orjson.dumps(data).decode("utf-8")}
-                elif self._is_empty_response(responses[0]):
+                            merged_text = "".join(
+                                [self._extract_text_output(r) for r in responses]
+                            )
+                            if (
+                                self._response_format
+                                == ResponseFormat.OPENAI_COMPLETIONS
+                            ):
+                                data["choices"][0]["text"] = merged_text
+                            else:
+                                data["choices"][0]["delta"]["content"] = merged_text
+                        res_outputs[i] = {
+                            "response": orjson.dumps(data).decode("utf-8")
+                        }
+                    elif self._is_empty_response(responses[0]):
+                        res_outputs[i]["response"] = ""
+                except Exception as e:
+                    logger.debug(f"Error parsing a response: {str(e)}")
                     res_outputs[i]["response"] = ""
+                    parser_result.failed += 1
 
             # Remove responses without any content
             indices_to_remove = []

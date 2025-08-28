@@ -50,7 +50,7 @@ class MockRichHandler(RichHandler):
         print(message)
 
 
-def init_logging(log_level: Optional[str] = None) -> None:
+def init_logging(log_level: Optional[str] = "INFO") -> None:
     """Initialize logging configuration for the genai_perf package.
 
     Args:
@@ -84,7 +84,7 @@ def init_logging(log_level: Optional[str] = None) -> None:
         "loggers": {
             "": {  # root logger
                 "handlers": ["console"],
-                "level": "WARNING",
+                "level": log_level,
                 "propagate": False,
             },
             "__main__": {  # if __name__ == '__main__'
