@@ -39,6 +39,13 @@ class ResponseJsonUtils {
 
   static const rapidjson::Value& GetMessage(
       const rapidjson::Document& response_document);
+  static const rapidjson::Value& GetDelta(
+      const rapidjson::Document& response_document);
+
+private:
+  static const rapidjson::Value& GetChoices(
+    const rapidjson::Document& response_document,
+    const int choices_index=0);
 };
 
 }  // namespace triton::perfanalyzer
