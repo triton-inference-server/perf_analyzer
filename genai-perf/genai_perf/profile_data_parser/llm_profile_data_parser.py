@@ -384,7 +384,7 @@ class LLMProfileDataParser(ProfileDataParser):
                     elif self._is_empty_response(responses[0]):
                         res_outputs[i]["response"] = ""
                 except Exception as e:
-                    logger.debug(f"Error parsing a response: {str(e)}")
+                    logger.error(f"Error parsing a response: {e}")
                     res_outputs[i]["response"] = ""
                     parser_result.failed += 1
 
