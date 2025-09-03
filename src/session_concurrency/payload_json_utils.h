@@ -50,6 +50,10 @@ class PayloadJsonUtils {
   static void ValidatePayloadMessages(
       const rapidjson::Document& payload_document);
 
+  static void UpdateContent(
+    rapidjson::Value& item,
+    std::string& buffer,
+    rapidjson::Document::AllocatorType& allocator);
   static void SetPayloadToChatHistory(
       rapidjson::Document& payload_document,
       const rapidjson::Document& chat_history);

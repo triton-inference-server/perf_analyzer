@@ -34,6 +34,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "../rapidjson_utils.h"
 
@@ -96,13 +97,72 @@ PayloadJsonUtils::ValidatePayloadMessages(
 }
 
 void
+PayloadJsonUtils::UpdateContent(
+    rapidjson::Value& item,
+    std::string& buffer,
+    rapidjson::Document::AllocatorType& allocator)
+{
+  std::string c = std::string(item["content"].GetString()) + buffer;
+  item["content"].SetString(c.c_str(), c.size(), allocator);
+}
+
+void
 PayloadJsonUtils::SetPayloadToChatHistory(
     rapidjson::Document& payload_document,
     const rapidjson::Document& chat_history)
 {
   auto& payload_messages{GetPayloadMessages(payload_document)};
 
-  payload_messages.CopyFrom(chat_history, payload_document.GetAllocator());
+  // Merge chunked responses in streaming mode.
+  rapidjson::Document merged_history{};
+  merged_history.Parse("[]");
+  auto& allocator = merged_history.GetAllocator();
+  std::vector<rapidjson::Value> values{};
+  std::string content_buffer{};
+  for (auto& h : chat_history.GetArray()) {
+    // This merge sequence assumes that:
+    // 1. the order of arrivals is preserved in chat_history,
+    // 2. for request payload and non-streaming response,
+    //    each entry in chat_history includes the entire text which is not chunked,
+    // 3. for streaming response, each chunk has "role" field,
+    //    but the value of chunks execpt for the first one is null,
+    // 4. each chunk doesn't have inconsistent value,
+    //    that is, "role" and/or "function_call" field don't have
+    //    different values for one sequence.
+    //    (e.g., the situation, chunks[0]["role"]: "assistant" and chunks[1]["role"]: "user", never happens)
+    auto& role{h["role"]};
+
+    if (role.IsNull()) {
+      // Intermediate streaming chunks corresponding to one request.
+      content_buffer.append(h["content"].GetString());
+    } else {
+      std::string role_str{role.GetString()};
+
+      if (!content_buffer.empty()) {
+        auto& new_item = values.back();
+        UpdateContent(new_item, content_buffer, allocator);
+        content_buffer.clear();
+      }
+
+      // First streaming chunk or Request payload.
+      auto& new_item = values.emplace_back();
+      new_item.CopyFrom(h, allocator);
+    }
+  }
+
+  // Store the final entry if it exists.
+  if (!content_buffer.empty()) {
+    auto& new_item = values.back();
+    UpdateContent(new_item, content_buffer, allocator);
+    content_buffer.clear();
+  }
+
+  // Convert multiple Value objects into one Value instance.
+  for (auto& v : values) {
+    merged_history.PushBack(v, allocator);
+  }
+
+  payload_messages.CopyFrom(merged_history, payload_document.GetAllocator());
 }
 
 std::string
