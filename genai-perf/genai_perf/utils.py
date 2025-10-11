@@ -153,3 +153,12 @@ def split_and_strip_whitespace(input_string: str) -> List[str]:
     Split a string by comma and strip whitespace from each item
     """
     return [item.strip() for item in input_string.split(",")]
+
+def supports_kwarg(obj, method_name, kwarg):
+    """ Check if the given object has a method with the specified name
+    that accepts a keyword argument with the specified name."""
+    method = getattr(obj, method_name, None)
+    if not method:
+        return False
+    import inspect
+    return kwarg in inspect.signature(method).parameters
