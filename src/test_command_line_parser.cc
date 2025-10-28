@@ -74,6 +74,7 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
   for (size_t i = 0; i < act->user_data.size(); i++) {
     CHECK_STRING(act->user_data[i], exp->user_data[i]);
   }
+
   CHECK(act->input_shapes.size() == exp->input_shapes.size());
   for (auto act_shape : act->input_shapes) {
     auto exp_shape = exp->input_shapes.find(act_shape.first);
@@ -85,6 +86,35 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
       CHECK_MESSAGE(
           act_shape.second[i] == exp_shape->second[i],
           "Unexpected shape value for: ", act_shape.first, "[", i, "]");
+    }
+  }
+
+  SUBCASE("Option : --ssl-grpc-target-name-override")
+  {
+    SUBCASE("set to my.host.name")
+    {
+      int argc = 5;
+      char* argv[argc] = {app_name, "-m", model_name,
+                          "--ssl-grpc-target-name-override", "my.host.name"};
+
+      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
+      CHECK(!parser.UsageCalled());
+
+      exp->ssl_options.ssl_grpc_target_name_override = "my.host.name";
+    }
+
+    SUBCASE("missing value")
+    {
+      int argc = 4;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--ssl-grpc-target-name-override"};
+
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--ssl-grpc-target-name-override'",
+          PerfAnalyzerException);
+
+      check_params = false;
     }
   }
   CHECK(act->measurement_window_ms == exp->measurement_window_ms);
@@ -156,6 +186,9 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
   CHECK(
       act->ssl_options.ssl_https_verify_peer ==
       exp->ssl_options.ssl_https_verify_peer);
+  CHECK_STRING(
+      act->ssl_options.ssl_grpc_target_name_override,
+      exp->ssl_options.ssl_grpc_target_name_override);
   CHECK(act->verbose_csv == exp->verbose_csv);
   CHECK(act->enable_mpi == exp->enable_mpi);
   CHECK(act->trace_options.size() == exp->trace_options.size());
@@ -307,6 +340,9 @@ TEST_CASE("Testing PerfAnalyzerParameters")
       "ssl_grpc_root_certifications_file",
       params->ssl_options.ssl_grpc_root_certifications_file, "");
   CHECK(params->ssl_options.ssl_grpc_use_ssl == false);
+  CHECK_STRING(
+      "ssl_grpc_target_name_override",
+      params->ssl_options.ssl_grpc_target_name_override, "");
   CHECK_STRING(
       "ssl_https_ca_certificates_file",
       params->ssl_options.ssl_https_ca_certificates_file, "");
@@ -622,6 +658,12 @@ TEST_CASE("Testing Command Line Parser")
 
       exp->max_threads = 1;
       exp->max_threads_specified = true;
+
+      REQUIRE(act->user_data.size() == exp->user_data.size());
+      for (size_t i = 0; i < act->user_data.size(); i++) {
+        CHECK_STRING(act->user_data[i], exp->user_data[i]);
+      }
+      CHECK(act->input_shapes.size() == exp->input_shapes.size());
     }
 
     SUBCASE("set to max")
@@ -651,7 +693,7 @@ TEST_CASE("Testing Command Line Parser")
 
     SUBCASE("bad value")
     {
-      int argc = 4;
+      int argc = 5;
       char* argv[argc] = {app_name, "-m", model_name, "--max-threads", "bad"};
 
       CHECK_THROWS_WITH_AS(
@@ -1977,6 +2019,35 @@ TEST_CASE("Testing Command Line Parser")
           act = parser.Parse(argc, argv),
           "Received gRPC method name 'hello.world.ServiceName.MethodName' that "
           "does not match the format: <package>.<service>/<method>.",
+          PerfAnalyzerException);
+
+      check_params = false;
+    }
+  }
+
+  SUBCASE("Option : --ssl-grpc-target-name-override")
+  {
+    SUBCASE("set to my.host.name")
+    {
+      int argc = 5;
+      char* argv[argc] = {app_name, "-m", model_name,
+                          "--ssl-grpc-target-name-override", "my.host.name"};
+
+      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
+      CHECK(!parser.UsageCalled());
+
+      exp->ssl_options.ssl_grpc_target_name_override = "my.host.name";
+    }
+
+    SUBCASE("missing value")
+    {
+      int argc = 4;
+      char* argv[argc] = {
+          app_name, "-m", model_name, "--ssl-grpc-target-name-override"};
+
+      CHECK_THROWS_WITH_AS(
+          act = parser.Parse(argc, argv),
+          "Error: Missing value for option '--ssl-grpc-target-name-override'",
           PerfAnalyzerException);
 
       check_params = false;
