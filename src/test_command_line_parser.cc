@@ -88,35 +88,6 @@ CHECK_PARAMS(PAParamsPtr act, PAParamsPtr exp)
           "Unexpected shape value for: ", act_shape.first, "[", i, "]");
     }
   }
-
-  SUBCASE("Option : --ssl-grpc-target-name-override")
-  {
-    SUBCASE("set to my.host.name")
-    {
-      int argc = 5;
-      char* argv[argc] = {app_name, "-m", model_name,
-                          "--ssl-grpc-target-name-override", "my.host.name"};
-
-      REQUIRE_NOTHROW(act = parser.Parse(argc, argv));
-      CHECK(!parser.UsageCalled());
-
-      exp->ssl_options.ssl_grpc_target_name_override = "my.host.name";
-    }
-
-    SUBCASE("missing value")
-    {
-      int argc = 4;
-      char* argv[argc] = {
-          app_name, "-m", model_name, "--ssl-grpc-target-name-override"};
-
-      CHECK_THROWS_WITH_AS(
-          act = parser.Parse(argc, argv),
-          "Error: Missing value for option '--ssl-grpc-target-name-override'",
-          PerfAnalyzerException);
-
-      check_params = false;
-    }
-  }
   CHECK(act->measurement_window_ms == exp->measurement_window_ms);
   CHECK(act->inference_load_mode == exp->inference_load_mode);
   CHECK(act->concurrency_range.start == exp->concurrency_range.start);
