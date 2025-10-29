@@ -45,6 +45,7 @@ class TestTritonClientBackend : public TritonClientBackend {
     TritonClientBackend::ParseAndStoreMetric<T>(
         metrics_endpoint_text, metric_id, metric_per_gpu);
   }
+};
 
 TEST_CASE("TritonClientBackend::Create with GRPC and SSL target name override")
 {
@@ -88,7 +89,6 @@ TEST_CASE("TritonClientBackend::Create with GRPC and SSL target name override")
     CHECK(backend != nullptr);
   }
 }
-};
 
 TEST_CASE("testing the ParseAndStoreMetric function")
 {
