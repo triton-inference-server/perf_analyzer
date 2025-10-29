@@ -53,6 +53,7 @@ struct SslOptions {
   // This parameter can be empty if the client does not have a
   // certificate chain.
   std::string certificate_chain;
+  std::string target_name_override;
 };
 
 class InferResult;
