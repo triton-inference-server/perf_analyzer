@@ -28,18 +28,21 @@
 #include <rapidjson/document.h>
 
 #include <string>
+#include <vector>
 
 namespace triton::perfanalyzer {
 
 class PayloadJsonUtils {
  public:
   static void UpdateHistoryAndAddToPayload(
-      std::string& payload, rapidjson::Document& chat_history);
+      std::string& payload, rapidjson::Document& chat_history,
+      std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges);
 
  private:
   static void AddPayloadToChatHistory(
       const rapidjson::Document& payload_document,
-      rapidjson::Document& chat_history);
+      rapidjson::Document& chat_history,
+        std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges);
 
   static const rapidjson::Value& GetPayloadMessages(
       const rapidjson::Document& payload_document);
@@ -56,7 +59,8 @@ class PayloadJsonUtils {
     rapidjson::Document::AllocatorType& allocator);
   static void SetPayloadToChatHistory(
       rapidjson::Document& payload_document,
-      const rapidjson::Document& chat_history);
+      const rapidjson::Document& chat_history,
+      std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges);
 
   static std::string GetSerializedPayload(
       const rapidjson::Document& payload_document);

@@ -35,6 +35,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "../client_backend/client_backend.h"
 #include "../model_parser.h"
@@ -52,6 +53,7 @@ class RequestHandler {
 
   void SendRequestAndWaitForResponse(
       size_t dataset_index, rapidjson::Document& chat_history,
+      std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges,
       RequestRecord& request_record);
 
  private:
@@ -74,7 +76,10 @@ class RequestHandler {
   void SendRequest(
       const std::string& payload,
       std::shared_ptr<std::promise<void>>&& response_promise,
-      rapidjson::Document& chat_history, RequestRecord& request_record);
+      rapidjson::Document& chat_history,
+      std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges,
+      size_t last_index_chunk_ranges,
+      RequestRecord& request_record);
 
   const std::vector<const cb::InferRequestedOutput*> PrepareRequestedOutputs()
       const;
@@ -82,7 +87,9 @@ class RequestHandler {
   const std::function<void(cb::InferResult*)> PrepareCallback(
       std::shared_ptr<std::promise<void>>&& response_promise,
       const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
-      RequestRecord& request_record, rapidjson::Document& chat_history) const;
+      RequestRecord& request_record, rapidjson::Document& chat_history,
+      std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges,
+      size_t last_index_chunk_ranges) const;
 
   void RecordResponse(
       cb::InferResult* infer_result,

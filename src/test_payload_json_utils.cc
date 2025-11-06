@@ -29,6 +29,8 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
+#include <utility>
 
 #include "doctest.h"
 #include "session_concurrency/payload_json_utils.h"
@@ -59,9 +61,11 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload")
         ]
         )"};
     rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
     chat_history.Parse(chat_history_raw.c_str());
+    one_session_chunk_ranges.emplace_back(0, 1);
 
-    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history);
+    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges);
 
     rapidjson::Document payload_document{};
     payload_document.Parse(payload.c_str());
@@ -107,9 +111,10 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload")
   {
     std::string payload{""};
     rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
 
     CHECK_THROWS_WITH_AS(
-        PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history),
+        PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges),
         "RapidJSON parse error 1. Review JSON for formatting errors:\n\n\n\n\n",
         std::runtime_error);
   }
@@ -122,9 +127,10 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload")
         }
         )"};
     rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
 
     CHECK_THROWS_WITH_AS(
-        PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history),
+        PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges),
         "Request body must be an object and it must have a 'messages' field "
         "that is an array. Request body:\n\n{\"messages\":false}\n\n\n",
         std::runtime_error);
@@ -175,10 +181,13 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload for multi-turn session
         ]
         )"};
     rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
     rapidjson::ParseResult parse_ok = chat_history.Parse(chat_history_raw.c_str());
     CHECK(parse_ok);
+    one_session_chunk_ranges.emplace_back(0, 1);
+    one_session_chunk_ranges.emplace_back(1, 5);
 
-    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history);
+    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges);
 
     rapidjson::Document payload_document{};
     parse_ok = payload_document.Parse(payload.c_str());
@@ -248,6 +257,346 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload for multi-turn session
     CHECK(chat_history == expected_chat_history);
   }
 
+  SUBCASE("valid payload and chat history with chunked responsens for reasoning model on vllm")
+  {
+    std::string payload{R"(
+        {
+          "messages": [
+            {
+              "role": "my_role_1",
+              "content": "my_content_3"
+            }
+          ]
+        }
+        )"};
+
+    const std::string chat_history_raw{R"(
+        [
+          {
+            "role": "my_role_1",
+            "content": "my_content_1"
+          },
+          {
+            "role": "my_role_2",
+            "content": "",
+            "function_call": null
+          },
+          {
+            "reasoning_content": ":my_content_2-1:",
+            "function_call": null
+          },
+          {
+            "reasoning_content": ":my_content_2-2:",
+            "function_call": null
+          },
+          {
+            "reasoning_content": ":my_content_2-3:",
+            "function_call": null
+          }
+        ]
+        )"};
+    rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
+    rapidjson::ParseResult parse_ok = chat_history.Parse(chat_history_raw.c_str());
+    CHECK(parse_ok);
+    one_session_chunk_ranges.emplace_back(0, 1);
+    one_session_chunk_ranges.emplace_back(1, 5);
+
+    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges);
+
+    rapidjson::Document payload_document{};
+    parse_ok = payload_document.Parse(payload.c_str());
+    CHECK(parse_ok);
+
+    const std::string expected_payload{R"(
+        {
+          "messages": [
+            {
+              "role": "my_role_1",
+              "content": "my_content_1"
+            },
+            {
+              "role": "my_role_2",
+              "content": ":my_content_2-1::my_content_2-2::my_content_2-3:",
+              "function_call": null
+            },
+            {
+              "role": "my_role_1",
+              "content": "my_content_3"
+            }
+          ]
+        }
+        )"};
+    rapidjson::Document expected_payload_document{};
+    parse_ok = expected_payload_document.Parse(expected_payload.c_str());
+    CHECK(parse_ok);
+
+    CHECK(payload_document == expected_payload_document);
+
+    const std::string expected_chat_history_raw{R"(
+        [
+          {
+            "role": "my_role_1",
+            "content": "my_content_1"
+          },
+          {
+            "role": "my_role_2",
+            "content": "",
+            "function_call": null
+          },
+          {
+            "reasoning_content": ":my_content_2-1:",
+            "function_call": null
+          },
+          {
+            "reasoning_content": ":my_content_2-2:",
+            "function_call": null
+          },
+          {
+            "reasoning_content": ":my_content_2-3:",
+            "function_call": null
+          },
+          {
+            "role": "my_role_1",
+            "content": "my_content_3"
+          }
+        ]
+        )"};
+    rapidjson::Document expected_chat_history{};
+    parse_ok = expected_chat_history.Parse(expected_chat_history_raw.c_str());
+    CHECK(parse_ok);
+
+    CHECK(chat_history == expected_chat_history);
+  }
+
+  SUBCASE("valid payload and chat history with chunked responsens for trtllm-serve")
+  {
+    std::string payload{R"(
+        {
+          "messages": [
+            {
+              "role": "my_role_1",
+              "content": "my_content_3"
+            }
+          ]
+        }
+        )"};
+
+    const std::string chat_history_raw{R"(
+        [
+          {
+            "role": "my_role_1",
+            "content": "my_content_1"
+          },
+          {
+            "role": "my_role_2",
+            "function_call": null
+          },
+          {
+            "content": ":my_content_2-1:",
+            "function_call": null
+          },
+          {
+            "content": ":my_content_2-2:",
+            "function_call": null
+          },
+          {
+            "content": ":my_content_2-3:",
+            "function_call": null
+          }
+        ]
+        )"};
+    rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
+    rapidjson::ParseResult parse_ok = chat_history.Parse(chat_history_raw.c_str());
+    CHECK(parse_ok);
+    one_session_chunk_ranges.emplace_back(0, 1);
+    one_session_chunk_ranges.emplace_back(1, 5);
+
+    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges);
+
+    rapidjson::Document payload_document{};
+    parse_ok = payload_document.Parse(payload.c_str());
+    CHECK(parse_ok);
+
+    const std::string expected_payload{R"(
+        {
+          "messages": [
+            {
+              "role": "my_role_1",
+              "content": "my_content_1"
+            },
+            {
+              "role": "my_role_2",
+              "content": ":my_content_2-1::my_content_2-2::my_content_2-3:",
+              "function_call": null
+            },
+            {
+              "role": "my_role_1",
+              "content": "my_content_3"
+            }
+          ]
+        }
+        )"};
+    rapidjson::Document expected_payload_document{};
+    parse_ok = expected_payload_document.Parse(expected_payload.c_str());
+    CHECK(parse_ok);
+
+    CHECK(payload_document == expected_payload_document);
+
+    const std::string expected_chat_history_raw{R"(
+        [
+          {
+            "role": "my_role_1",
+            "content": "my_content_1"
+          },
+          {
+            "role": "my_role_2",
+            "function_call": null
+          },
+          {
+            "content": ":my_content_2-1:",
+            "function_call": null
+          },
+          {
+            "content": ":my_content_2-2:",
+            "function_call": null
+          },
+          {
+            "content": ":my_content_2-3:",
+            "function_call": null
+          },
+          {
+            "role": "my_role_1",
+            "content": "my_content_3"
+          }
+        ]
+        )"};
+    rapidjson::Document expected_chat_history{};
+    parse_ok = expected_chat_history.Parse(expected_chat_history_raw.c_str());
+    CHECK(parse_ok);
+
+    CHECK(chat_history == expected_chat_history);
+  }
+
+  SUBCASE("valid payload and chat history with chunked responsens for previous Dynamo")
+  {
+    std::string payload{R"(
+        {
+          "messages": [
+            {
+              "role": "my_role_1",
+              "content": "my_content_3"
+            }
+          ]
+        }
+        )"};
+
+    const std::string chat_history_raw{R"(
+        [
+          {
+            "role": "my_role_1",
+            "content": "my_content_1"
+          },
+          {
+            "role": "my_role_2",
+            "content": "my_content_2-1",
+            "function_call": null
+          },
+          {
+            "role": "my_role_2",
+            "content": ":my_content_2-1:",
+            "function_call": null
+          },
+          {
+            "role": "my_role_2",
+            "content": ":my_content_2-2:",
+            "function_call": null
+          },
+          {
+            "role": "my_role_2",
+            "content": null,
+            "function_call": null
+          }
+        ]
+        )"};
+    rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
+    rapidjson::ParseResult parse_ok = chat_history.Parse(chat_history_raw.c_str());
+    CHECK(parse_ok);
+    one_session_chunk_ranges.emplace_back(0, 1);
+    one_session_chunk_ranges.emplace_back(1, 5);
+
+    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges);
+
+    rapidjson::Document payload_document{};
+    parse_ok = payload_document.Parse(payload.c_str());
+    CHECK(parse_ok);
+
+    const std::string expected_payload{R"(
+        {
+          "messages": [
+            {
+              "role": "my_role_1",
+              "content": "my_content_1"
+            },
+            {
+              "role": "my_role_2",
+              "content": "my_content_2-1:my_content_2-1::my_content_2-2:",
+              "function_call": null
+            },
+            {
+              "role": "my_role_1",
+              "content": "my_content_3"
+            }
+          ]
+        }
+        )"};
+    rapidjson::Document expected_payload_document{};
+    parse_ok = expected_payload_document.Parse(expected_payload.c_str());
+    CHECK(parse_ok);
+
+    CHECK(payload_document == expected_payload_document);
+
+    const std::string expected_chat_history_raw{R"(
+        [
+          {
+            "role": "my_role_1",
+            "content": "my_content_1"
+          },
+          {
+            "role": "my_role_2",
+            "content": "my_content_2-1",
+            "function_call": null
+          },
+          {
+            "role": "my_role_2",
+            "content": ":my_content_2-1:",
+            "function_call": null
+          },
+          {
+            "role": "my_role_2",
+            "content": ":my_content_2-2:",
+            "function_call": null
+          },
+          {
+            "role": "my_role_2",
+            "content": null,
+            "function_call": null
+          },
+          {
+            "role": "my_role_1",
+            "content": "my_content_3"
+          }
+        ]
+        )"};
+    rapidjson::Document expected_chat_history{};
+    parse_ok = expected_chat_history.Parse(expected_chat_history_raw.c_str());
+    CHECK(parse_ok);
+
+    CHECK(chat_history == expected_chat_history);
+  }
+
   SUBCASE("valid payload but unexpected chat history with chunked responsens - split into two parts")
   {
     std::string payload{R"(
@@ -290,10 +639,14 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload for multi-turn session
         ]
         )"};
     rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
     rapidjson::ParseResult parse_ok = chat_history.Parse(chat_history_raw.c_str());
     CHECK(parse_ok);
+    one_session_chunk_ranges.emplace_back(0, 1);
+    one_session_chunk_ranges.emplace_back(1, 3);
+    one_session_chunk_ranges.emplace_back(3, 5);
 
-    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history);
+    PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges);
 
     rapidjson::Document payload_document{};
     parse_ok = payload_document.Parse(payload.c_str());
@@ -366,6 +719,61 @@ TEST_CASE("PayloadJsonUtils::UpdateHistoryAndAddToPayload for multi-turn session
     CHECK(parse_ok);
 
     CHECK(chat_history == expected_chat_history);
+  }
+
+  SUBCASE("valid payload but invalid contents field in chunks")
+  {
+    std::string payload{R"(
+        {
+          "messages": [
+            {
+              "role": "my_role_1",
+              "content": "my_content_3"
+            }
+          ]
+        }
+        )"};
+
+    const std::string chat_history_raw{R"(
+        [
+          {
+            "role": "my_role_1",
+            "content": "my_content_1"
+          },
+          {
+            "role": "my_role_2",
+            "content": "my_content_2-1",
+            "function_call": null
+          },
+          {
+            "role": null,
+            "function_call": null
+          },
+          {
+            "role": null,
+            "content": ":my_content_2-2:",
+            "function_call": null
+          },
+          {
+            "role": null,
+            "content": ":my_content_2-3:",
+            "function_call": null
+          }
+        ]
+        )"};
+    rapidjson::Document chat_history{};
+    std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
+    rapidjson::ParseResult parse_ok = chat_history.Parse(chat_history_raw.c_str());
+    CHECK(parse_ok);
+    one_session_chunk_ranges.emplace_back(0, 1);
+    one_session_chunk_ranges.emplace_back(1, 5);
+
+    CHECK_THROWS_WITH_AS(
+        PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges),
+        "Request payload or response chunks must have at least one content or reasoning_content: "
+        "history_index = 2, chunk_range_index = 1"
+        "\n\n\n",
+        std::runtime_error);
   }
 }
 
