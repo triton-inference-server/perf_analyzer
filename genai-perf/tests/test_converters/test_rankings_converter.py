@@ -239,6 +239,52 @@ class TestRankingsConverter:
 
         assert result == expected_result
 
+    def test_convert_cohere(self):
+        generic_dataset = self.create_generic_dataset(
+            queries_data=[["query 1"], ["query 2"]],
+            passages_data=[["passage 1", "passage 2"], ["passage 3", "passage 4"]],
+        )
+
+        extra_inputs = {
+            "rankings": "cohere",
+            "additional_key": "additional_value",
+        }
+
+        config = ConfigCommand({"model_name": "test_model"})
+        config.endpoint.model_selection_strategy = ModelSelectionStrategy.ROUND_ROBIN
+        config.endpoint.output_format = OutputFormat.RANKINGS
+        config.input.extra = extra_inputs
+
+        rankings_converter = RankingsConverter(config)
+        result = rankings_converter.convert(generic_dataset)
+
+        expected_result = {
+            "data": [
+                {
+                    "payload": [
+                        {
+                            "query": "query 1",
+                            "documents": ["passage 1", "passage 2"],
+                            "model": "test_model",
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
+                {
+                    "payload": [
+                        {
+                            "query": "query 2",
+                            "documents": ["passage 3", "passage 4"],
+                            "model": "test_model",
+                            "additional_key": "additional_value",
+                        }
+                    ]
+                },
+            ]
+        }
+
+        assert result == expected_result
+
     @pytest.mark.parametrize(
         "queries_data, passages_data, expected_error",
         [
