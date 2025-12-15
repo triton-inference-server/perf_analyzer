@@ -28,6 +28,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 # GenAI-Perf
 
+⚠️ **GenAI-Perf is being phased out.** We are no longer actively developing new features for GenAI-Perf. For new performance benchmarking needs, please use [AIPerf](https://github.com/ai-dynamo/aiperf) instead.
+
 GenAI-Perf is a command line tool for measuring the throughput and latency of
 generative AI models as served through an inference server.
 For large language models (LLMs), GenAI-Perf provides metrics such as
@@ -63,11 +65,6 @@ or
 Customizable frontends provide more customizability,
 while customizable payloads allow you to specify
 specific payload schemas using a Jinja2 template.
-
-> [!Note]
-> GenAI-Perf is currently in early release and under rapid development. While we
-> will try to remain consistent, command line options and functionality are
-> subject to change as the tool matures.
 
 </br>
 
