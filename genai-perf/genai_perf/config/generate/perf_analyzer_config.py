@@ -108,6 +108,9 @@ class PerfAnalyzerConfig:
         config: ConfigCommand,
         model_objective_parameters: Optional[ModelObjectiveParameters],
     ) -> Path:
+        if config.output.get_field("artifact_directory").is_set_by_user:
+            return config.output.artifact_directory
+
         artifact_name = [self._get_artifact_model_name(config)]
         artifact_name += self._get_artifact_service_kind(config)
 

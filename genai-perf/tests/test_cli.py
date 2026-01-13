@@ -588,6 +588,17 @@ class TestCLIArguments:
 
         assert perf_analyzer_config.get_artifact_directory() == Path(expected_path)
 
+    def test_custom_artifact_dir_used_as_output(self, monkeypatch):
+        combined_args = self.base_args + ["--artifact-dir", "custom_artifacts"]
+        monkeypatch.setattr("sys.argv", combined_args)
+        args, _ = parser.parse_args()
+        config = ConfigCommand({"model_name": args.model})
+        config = CreateConfig._add_cli_options_to_config(config, args)
+        config.infer_and_check_options()
+        perf_analyzer_config = PerfAnalyzerConfig(config)
+
+        assert perf_analyzer_config.get_artifact_directory() == Path("custom_artifacts")
+
     @pytest.mark.parametrize(
         "arg, expected_path, expected_output",
         [
