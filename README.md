@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -31,6 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Triton Performance Analyzer is CLI tool which can help you optimize the
 inference performance of models running on Triton Inference Server by measuring
 changes in performance as you experiment with different optimization strategies.
+
+> ⚠️ **Warning:** genai-perf is being deprecated. Please migrate to [AIPerf](https://github.com/ai-dynamo/aiperf) for continued support and enhanced features.
 
 <br>
 
