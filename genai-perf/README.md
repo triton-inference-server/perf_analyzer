@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2024-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -400,7 +400,7 @@ Here is an example file:
 ### How to generate a payload file
 
 #### 1. Synthetic data from sampling
-[Nvidia Dynamo](https://github.com/ai-dynamo/dynamo) provides [a script](https://github.com/ai-dynamo/dynamo/blob/main/docs/guides/planner_benchmark/sin_synth.py) (with [README](https://github.com/ai-dynamo/dynamo/blob/main/docs/guides/planner_benchmark/benchmark_planner.md)) to generate synthetic moon_cake style payload:
+[Nvidia Dynamo](https://github.com/ai-dynamo/dynamo) provides [a script](https://github.com/ai-dynamo/dynamo/blob/main/benchmarks/sin_load_generator/sin_synth.py) (with [README](https://github.com/ai-dynamo/dynamo/blob/main/benchmarks/sin_load_generator/README.md)) to generate synthetic moon_cake style payload:
 ```bash
 python sin_synth.py \
     --time-duration 600 \

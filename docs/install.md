@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2023-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -96,9 +96,6 @@ perf_analyzer -m <model>
   `-D TRITON_ENABLE_PERF_ANALYZER_C_API=ON` to the first `cmake` command.
 - To enable [TorchServe backend](benchmarking.md#benchmarking-torchserve), add
   `-D TRITON_ENABLE_PERF_ANALYZER_TS=ON` to the first `cmake` command.
-- To enable
-  [Tensorflow Serving backend](benchmarking.md#benchmarking-tensorflow-serving),
-  add `-D TRITON_ENABLE_PERF_ANALYZER_TFS=ON` to the first `cmake` command.
 - To disable
   [CUDA shared memory support](input_data.md#shared-memory) and the dependency
   on CUDA toolkit libraries, add

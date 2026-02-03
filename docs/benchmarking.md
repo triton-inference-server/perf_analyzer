@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2023-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
@@ -231,7 +231,7 @@ you copy the `perf_analyzer` binary to the Inference Server container.
 Use the [`--help`](cli.md#--help) option to see a complete list of supported
 command line arguments. By default, Perf Analyzer expects the Triton instance to
 already be running. You can configure C API mode using the
-[`--service-kind`](cli.md#--service-kindtritontriton_c_apitfservingtorchserve)
+[`--service-kind`](cli.md#--service-kindtritontriton_c_apitfservingtorchservedynamic_grpc)
 option. In addition, you will need to point Perf Analyzer to the Triton server
 library path using the
 [`--triton-server-directory`](cli.md#--triton-server-directorypath) option and
@@ -274,10 +274,7 @@ Concurrency: 1, throughput: 19.6095 infer/sec, latency 50951 usec
 
 There are a few functionalities that are missing from C API mode. They are:
 
-1. Async mode ([`--async`](cli.md#--async))
-2. For additional known non-working cases, please refer to
-   [qa/L0_perf_analyzer_capi/test.sh](https://github.com/triton-inference-server/server/blob/main/qa/L0_perf_analyzer_capi/test.sh#L239-L277)
-
+- Async mode ([`--async`](cli.md#--async))
 
 # Benchmarking gRPC service via Dynamic gRPC
 
@@ -423,84 +420,11 @@ perf_analyzer --service-kind=dynamic_grpc -u=localhost:8001 --input-data=inputs.
 # Concurrency: 1, throughput: 407.866 infer/sec, latency 2417 usec
 ```
 
-
-# Benchmarking TensorFlow Serving
-
-Perf Analyzer can also be used to benchmark models deployed on
-[TensorFlow Serving](https://github.com/tensorflow/serving) using the
-[`--service-kind=tfserving`](cli.md#--service-kindtritontriton_c_apitfservingtorchserve)
-option. Only gRPC protocol is supported.
-
-The following invocation demonstrates how to configure Perf Analyzer to issue
-requests to a running instance of `tensorflow_model_server`:
-
-```
-$ perf_analyzer -m resnet50 --service-kind tfserving -i grpc -b 1 -p 5000 -u localhost:8500
-*** Measurement Settings ***
-  Batch size: 1
-  Using "time_windows" mode for stabilization
-  Measurement window: 5000 msec
-  Using synchronous calls for inference
-  Stabilizing using average latency
-Request concurrency: 1
-  Client:
-    Request count: 829
-    Throughput: 165.8 infer/sec
-    Avg latency: 6032 usec (standard deviation 569 usec)
-    p50 latency: 5863 usec
-    p90 latency: 6655 usec
-    p95 latency: 6974 usec
-    p99 latency: 8093 usec
-    Avg gRPC time: 5984 usec ((un)marshal request/response 257 usec + response wait 5727 usec)
-Inferences/Second vs. Client Average Batch Latency
-Concurrency: 1, throughput: 165.8 infer/sec, latency 6032 usec
-```
-
-You might have to specify a different url ([`-u`](cli.md#-u-url)) to access
-wherever the server is running. The report of Perf Analyzer will only include
-statistics measured at the client-side.
-
-**NOTE:** The support is still in **beta**. Perf Analyzer does not guarantee
-optimal tuning for TensorFlow Serving. However, a single benchmarking tool that
-can be used to stress the inference servers in an identical manner is important
-for performance analysis.
-
-The following points are important for interpreting the results:
-
-1. `Concurrent Request Execution`:
-   TensorFlow Serving (TFS), as of version 2.8.0, by default creates threads for
-   each request that individually submits requests to TensorFlow Session. There
-   is a resource limit on the number of concurrent threads serving requests.
-   When benchmarking at a higher request concurrency, you can see higher
-   throughput because of this. Unlike TFS, by default Triton is configured with
-   only a single
-   [instance count](https://github.com/triton-inference-server/server/blob/main/docs/user_guide/model_configuration.md#instance-groups).
-   Hence, at a higher request concurrency, most of the requests are blocked on
-   the instance availability. To configure Triton to behave like TFS, set the
-   instance count to a reasonably high value and then set
-   [MAX_SESSION_SHARE_COUNT](https://github.com/triton-inference-server/tensorflow_backend#parameters)
-   parameter in the model `config.pbtxt` to the same value. For some context,
-   the TFS sets its thread constraint to four times the num of schedulable CPUs.
-2. `Different library versions`:
-   The version of TensorFlow might differ between Triton and TensorFlow Serving
-   being benchmarked. Even the versions of CUDA libraries might differ between
-   the two solutions. The performance of models can be susceptible to the
-   versions of these libraries. For a single request concurrency, if the
-   `compute_infer` time reported by Perf Analyzer when benchmarking Triton is as
-   large as the latency reported by Perf Analyzer when benchmarking TFS, then
-   the performance difference is likely because of the difference in the
-   software stack and outside the scope of Triton.
-3. `CPU Optimization`:
-   TFS has separate builds for CPU and GPU targets. They have target-specific
-   optimization. Unlike TFS, Triton has a single build which is optimized for
-   execution on GPUs. When collecting performance on CPU models on Triton, try
-   running Triton with the environment variable `TF_ENABLE_ONEDNN_OPTS=1`.
-
 # Benchmarking TorchServe
 
 Perf Analyzer can also be used to benchmark
 [TorchServe](https://github.com/pytorch/serve) using the
-[`--service-kind=torchserve`](cli.md#--service-kindtritontriton_c_apitfservingtorchserve)
+[`--service-kind=torchserve`](cli.md#--service-kindtritontriton_c_apitfservingtorchservedynamic_grpc)
 option. Only HTTP protocol is supported. It also requires input to be provided
 via JSON file.
 
