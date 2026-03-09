@@ -1,4 +1,4 @@
-// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -1261,8 +1261,9 @@ InferenceProfiler::Measure(PerfStatus& perf_status, MeasureConfig config)
   std::vector<RequestRecord> current_request_records;
   RETURN_IF_ERROR(manager_->SwapRequestRecords(current_request_records));
   all_request_records_.insert(
-      all_request_records_.end(), current_request_records.begin(),
-      current_request_records.end());
+      all_request_records_.end(),
+      std::make_move_iterator(current_request_records.begin()),
+      std::make_move_iterator(current_request_records.end()));
 
   RETURN_IF_ERROR(Summarize(
       start_status, end_status, start_stat, end_stat, perf_status,
@@ -1373,18 +1374,18 @@ InferenceProfiler::ValidLatencyMeasurement(
     }
   }
 
-  std::for_each(
-      erase_indices.begin(), erase_indices.end(),
-      [this, &valid_requests](size_t i) {
-        valid_requests.push_back(std::move(this->all_request_records_[i]));
-      });
-
-  // Iterate through erase indices backwards so that erases from
-  // `all_request_records_` happen from the back to the front to avoid using
-  // wrong indices after subsequent erases
-  std::for_each(erase_indices.rbegin(), erase_indices.rend(), [this](size_t i) {
-    this->all_request_records_.erase(this->all_request_records_.begin() + i);
-  });
+  std::unordered_set<size_t> erase_set(
+      erase_indices.begin(), erase_indices.end());
+  for (size_t i = 0; i < all_request_records_.size(); i++) {
+    if (erase_set.count(i)) {
+      valid_requests.push_back(std::move(all_request_records_[i]));
+    }
+  }
+  auto new_end = std::remove_if(
+      all_request_records_.begin(), all_request_records_.end(),
+      [](const RequestRecord& r) { return r.response_timestamps_.empty(); });
+  all_request_records_.erase(new_end, all_request_records_.end());
+  std::cout << "got here" << std::endl;
 
   // Always sort measured latencies as percentile will be reported as default
   std::sort(valid_latencies->begin(), valid_latencies->end());
