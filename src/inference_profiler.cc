@@ -1376,16 +1376,18 @@ InferenceProfiler::ValidLatencyMeasurement(
 
   std::unordered_set<size_t> erase_set(
       erase_indices.begin(), erase_indices.end());
+  size_t write = 0;
   for (size_t i = 0; i < all_request_records_.size(); i++) {
     if (erase_set.count(i)) {
       valid_requests.push_back(std::move(all_request_records_[i]));
+    } else {
+      if (write != i) {
+        all_request_records_[write] = std::move(all_request_records_[i]);
+      }
+      write++;
     }
   }
-  auto new_end = std::remove_if(
-      all_request_records_.begin(), all_request_records_.end(),
-      [](const RequestRecord& r) { return r.response_timestamps_.empty(); });
-  all_request_records_.erase(new_end, all_request_records_.end());
-  std::cout << "got here" << std::endl;
+  all_request_records_.resize(write);
 
   // Always sort measured latencies as percentile will be reported as default
   std::sort(valid_latencies->begin(), valid_latencies->end());
