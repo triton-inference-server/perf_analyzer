@@ -1,5 +1,5 @@
 <!--
-# Copyright 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2023-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -29,8 +29,8 @@
 # Report a Security Vulnerability
 
 To report a potential security vulnerability in any NVIDIA product, please use either:
-* This web form: [Security Vulnerability Submission Form](https://www.nvidia.com/object/submit-security-vulnerability.html), or
-* Send email to: [NVIDIA PSIRT](mailto:psirt@nvidia.com)
+* [Security Vulnerability Submission Form](https://www.nvidia.com/object/submit-security-vulnerability.html), or
+* Send email to psirt@nvidia.com
 
 **OEM Partners should contact their NVIDIA Customer Program Manager**
 
