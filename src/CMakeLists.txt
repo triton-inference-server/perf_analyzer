@@ -28,6 +28,16 @@ cmake_minimum_required (VERSION 3.31.8)
 
 project(perf-analyzer LANGUAGES C CXX)
 
+# Compile every target at the same standard the third-party stack was
+# built with. The abseil install pins its options (e.g. C++20
+# std-ordering types) to the standard used at build time, so targets
+# that fall back to the compiler default standard fail to compile
+# against its headers.
+if(TRITON_MIN_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD ${TRITON_MIN_CXX_STANDARD})
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+endif()
+
 #
 # Perf Analyzer Options
 #
