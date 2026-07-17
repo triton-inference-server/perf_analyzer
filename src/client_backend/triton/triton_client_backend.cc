@@ -1,4 +1,4 @@
-// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -190,7 +190,7 @@ TritonClientBackend::ModelMetadata(
     std::string metadata;
     ::google::protobuf::util::JsonPrintOptions options;
     options.preserve_proto_field_names = true;
-    options.always_print_primitive_fields = true;
+    options.always_print_fields_with_no_presence = true;
     ::google::protobuf::util::MessageToJsonString(
         model_metadata_proto, &metadata, options);
 
@@ -218,7 +218,7 @@ TritonClientBackend::ModelConfig(
     std::string config;
     ::google::protobuf::util::JsonPrintOptions options;
     options.preserve_proto_field_names = true;
-    options.always_print_primitive_fields = true;
+    options.always_print_fields_with_no_presence = true;
     ::google::protobuf::util::MessageToJsonString(
         model_config_proto, &config, options);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, NVIDIA CORPORATION. All rights reserved.
+// Copyright (c) 2020-2026, NVIDIA CORPORATION. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -67,7 +67,7 @@ TFServeClientBackend::ModelMetadata(
   std::string metadata;
   ::google::protobuf::util::JsonPrintOptions options;
   options.preserve_proto_field_names = true;
-  options.always_print_primitive_fields = true;
+  options.always_print_fields_with_no_presence = true;
   ::google::protobuf::util::MessageToJsonString(
       metadata_proto, &metadata, options);
 
