@@ -1,4 +1,4 @@
-# Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -53,8 +53,12 @@ set(TRITON_CORE_REPO_TAG "main" CACHE STRING "Tag for triton-inference-server/co
 # Install locations
 set(TRITON_THIRD_PARTY_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/third-party-install" CACHE STRING "Location of third-party build")
 
-# Add third party installation to the search path
-set(CMAKE_PREFIX_PATH ${TRITON_THIRD_PARTY_INSTALL_PREFIX} ${CMAKE_PREFIX_PATH})
+# Add third party installation to the search path. The protobuf install
+# tree is listed as its own prefix so that the utf8_range package config
+# it nests (required by protobuf-config since protobuf v33) is found.
+set(CMAKE_PREFIX_PATH
+    ${TRITON_THIRD_PARTY_INSTALL_PREFIX}
+    "${TRITON_THIRD_PARTY_INSTALL_PREFIX}/protobuf" ${CMAKE_PREFIX_PATH})
 
 # Triton CC Client Libraries
 find_library(TRITON_HTTP_STATIC_LIB
