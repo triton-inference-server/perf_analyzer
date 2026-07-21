@@ -91,6 +91,6 @@ repos:
     additional_dependencies: [tokenize-rt==3.2.0, types-requests]
 
 - repo: https://github.com/triton-inference-server/.github
-  rev: v1.4.0
+  rev: v1.4.1
   hooks:
   - id: add-license
