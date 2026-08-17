@@ -71,6 +71,13 @@ class RankingsConverter(BaseConverter):
             if self._is_rankings_tei():
                 passages = passage_entry.texts
                 payload = {"query": query, "texts": passages}
+            elif self._is_rankings_cohere():
+                documents = passage_entry.texts
+                payload = {
+                    "query": query,
+                    "documents": documents,
+                    "model": model_name,
+                }
             else:
                 passages = [{"text": p} for p in passage_entry.texts if p is not None]
                 payload = {
@@ -92,8 +99,17 @@ class RankingsConverter(BaseConverter):
             return True
         return False
 
+    def _is_rankings_cohere(self) -> bool:
+        """
+        Check if user specified that they are using the Cohere API
+        for ranking models
+        """
+        if self.config.input.extra and self.config.input.extra.get("rankings") == "cohere":
+            return True
+        return False
+
     def _add_request_params(self, payload: Dict, optional_data: Dict[Any, Any]) -> None:
         if self.config.input.extra:
             for key, value in self.config.input.extra.items():
-                if not (key == "rankings" and value == "tei"):
+                if not (key == "rankings" and value in ["tei", "cohere"]):
                     payload[key] = value
