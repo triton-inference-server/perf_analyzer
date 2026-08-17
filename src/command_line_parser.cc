@@ -170,6 +170,7 @@ CLParser::Usage(const std::string& msg)
   std::cerr << "\t--ssl-grpc-root-certifications-file <path>" << std::endl;
   std::cerr << "\t--ssl-grpc-private-key-file <path>" << std::endl;
   std::cerr << "\t--ssl-grpc-certificate-chain-file <path>" << std::endl;
+  std::cerr << "\t--ssl-grpc-target-name-override <string>" << std::endl;
   std::cerr << "\t--ssl-https-verify-peer <number>" << std::endl;
   std::cerr << "\t--ssl-https-verify-host <number>" << std::endl;
   std::cerr << "\t--ssl-https-ca-certificates-file <path>" << std::endl;
@@ -670,6 +671,14 @@ CLParser::Usage(const std::string& msg)
                    "PEM encoding of the client's certificate chain.",
                    38)
             << std::endl;
+  std::cerr << std::setw(38) << std::left
+            << " --ssl-grpc-target-name-override: "
+            << FormatMessage(
+                   "Override the target name used for TLS hostname verification "
+                   "on the gRPC channel. Useful when connecting to an IP with "
+                   "a certificate issued for a hostname.",
+                   38)
+            << std::endl;
   std::cerr << std::setw(38) << std::left << " --ssl-https-verify-peer: "
             << FormatMessage(
                    "Number (0|1) to verify the "
@@ -925,6 +934,8 @@ CLParser::ParseCommandLine(int argc, char** argv)
        long_option_idx_base + 40},
       {"ssl-https-private-key-type", required_argument, 0,
        long_option_idx_base + 41},
+      {"ssl-grpc-target-name-override", required_argument, 0,
+       long_option_idx_base + 67},
       {"verbose-csv", no_argument, 0, long_option_idx_base + 42},
       {"enable-mpi", no_argument, 0, long_option_idx_base + 43},
       {"trace-level", required_argument, 0, long_option_idx_base + 44},
@@ -1418,6 +1429,10 @@ CLParser::ParseCommandLine(int argc, char** argv)
                 "Failed to parse --ssl-grpc-certificate-chain-file. The value "
                 "must be a valid file path.");
           }
+          break;
+        }
+        case long_option_idx_base + 67: {
+          params_->ssl_options.ssl_grpc_target_name_override = optarg;
           break;
         }
         case long_option_idx_base + 35: {
