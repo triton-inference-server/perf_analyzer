@@ -74,6 +74,11 @@ class ConfigCommand(BaseConfig):
             add_to_template=False,
         )
 
+        self.template_header: Any = ConfigField(
+            default=TopLevelDefaults.TEMPLATE_HEADER,
+            add_to_template=False,
+        )
+
         self.analyze = ConfigAnalyze()
         self.endpoint = ConfigEndPoint()
         self.perf_analyzer = ConfigPerfAnalyzer()
@@ -105,7 +110,13 @@ class ConfigCommand(BaseConfig):
         skip_inferencing_and_checking: bool = False,
     ) -> None:
         if user_config:
-            for key, value in user_config.items():
+            # Empty header name checks
+            if user_config.get("model_name") is not None:
+                config_items = user_config.items()
+            else:
+                config_items = user_config[list(user_config.keys())[0]].items()
+
+            for key, value in config_items:
                 if key == "model_name" or key == "model_names":
                     self._parse_model_names(value)
                 elif key == "analyze":
@@ -292,4 +303,4 @@ class ConfigCommand(BaseConfig):
     # Template Creation Methods
     ###########################################################################
     def make_template(self) -> str:
-        return self.create_template(header="", level=0, verbose=self.verbose)
+        return self.create_template(header=self.template_header, level=0, verbose=self.verbose)
