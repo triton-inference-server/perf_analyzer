@@ -89,12 +89,13 @@ class OpenAIChatCompletionsConverter(BaseConverter):
     def _add_multi_modal_content(self, entry: DataRow) -> List[Dict[Any, Any]]:
         content: List[Dict[Any, Any]] = []
         for text in entry.texts:
-            content.append(
-                {
-                    "type": "text",
-                    "text": text,
-                }
-            )
+            if len(text) > 0:
+                content.append(
+                    {
+                        "type": "text",
+                        "text": text,
+                    }
+                )
         for image in entry.images:
             content.append(
                 {
