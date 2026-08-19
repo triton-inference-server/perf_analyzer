@@ -550,9 +550,15 @@ class LLMProfileDataParser(ProfileDataParser):
             # https://platform.openai.com/docs/api-reference/completions
             return completions.get("text", "")
         elif obj_type == "chat.completion":  # non-streaming
-            return completions["message"].get("content", "")
+            if completions["message"].get("reasoning_content", None) is not None: # vLLM model enable reasoning parser
+                return completions["message"].get("reasoning_content", "")
+            else:
+                return completions["message"].get("content", "")
         elif obj_type == "chat.completion.chunk":  # streaming
-            return completions["delta"].get("content", "")
+            if completions["delta"].get("reasoning_content", None) is not None: # vLLM model enable reasoning parser
+                return completions["delta"].get("reasoning_content", "")
+            else:
+                return completions["delta"].get("content", "")
         else:
             raise ValueError(f"Unknown OpenAI response object type '{obj_type}'.")
 
