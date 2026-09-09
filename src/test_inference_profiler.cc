@@ -34,7 +34,7 @@ namespace triton { namespace perfanalyzer {
 
 class TestInferenceProfiler : public InferenceProfiler {
  public:
-  static void ValidLatencyMeasurement(
+  static size_t ValidLatencyMeasurement(
       const std::pair<uint64_t, uint64_t>& valid_range,
       size_t& valid_sequence_count, size_t& delayed_request_count,
       std::vector<uint64_t>* latencies, size_t& response_count,
@@ -46,6 +46,7 @@ class TestInferenceProfiler : public InferenceProfiler {
     inference_profiler.ValidLatencyMeasurement(
         valid_range, valid_sequence_count, delayed_request_count, latencies,
         response_count, valid_requests);
+    return inference_profiler.all_request_records_.size();
   }
 
   static std::tuple<uint64_t, uint64_t> GetMeanAndStdDev(
@@ -219,9 +220,10 @@ TEST_CASE("testing the ValidLatencyMeasurement function")
           time_point(ns(21)), std::vector<time_point>{time_point(ns(27))}, {},
           {}, 0, false, 0, false)};
 
-  TestInferenceProfiler::ValidLatencyMeasurement(
-      window, valid_sequence_count, delayed_request_count, &latencies,
-      response_count, valid_requests, all_request_records);
+  const size_t remaining_request_count{
+      TestInferenceProfiler::ValidLatencyMeasurement(
+          window, valid_sequence_count, delayed_request_count, &latencies,
+          response_count, valid_requests, all_request_records)};
 
   const auto& convert_request_record_to_latency{[](RequestRecord t) {
     return CHRONO_TO_NANOS(t.response_timestamps_.back()) -
@@ -238,6 +240,7 @@ TEST_CASE("testing the ValidLatencyMeasurement function")
   CHECK(
       latencies[2] ==
       convert_request_record_to_latency(all_request_records[3]));
+  CHECK(remaining_request_count == 2);
 }
 
 TEST_CASE("test_check_window_for_stability")

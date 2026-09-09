@@ -55,6 +55,7 @@ class NaggyMockInferContext : public InferContext {
   std::shared_ptr<ThreadStat>& thread_stat_{InferContext::thread_stat_};
   std::reference_wrapper<const bool>& execute_{InferContext::execute_};
   bool& using_json_data_{InferContext::using_json_data_};
+  bool& capture_profile_data_{InferContext::capture_profile_data_};
   bool& async_{InferContext::async_};
   bool& streaming_{InferContext::streaming_};
   InferData& infer_data_{InferContext::infer_data_};

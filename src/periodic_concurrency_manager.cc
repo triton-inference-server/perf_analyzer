@@ -45,9 +45,9 @@ PeriodicConcurrencyManager::MakeWorker(
   auto worker = std::make_shared<PeriodicConcurrencyWorker>(
       id, thread_stat, thread_config, parser_, data_loader_, factory_,
       on_sequence_model_, async_, max_concurrency_, using_json_data_,
-      streaming_, batch_size_, wake_signal_, wake_mutex_, active_threads_,
-      execute_, infer_data_manager_, sequence_manager_, request_period_,
-      period_completed_callback_, request_completed_callback_);
+      streaming_, capture_profile_data_, batch_size_, wake_signal_, wake_mutex_,
+      active_threads_, execute_, infer_data_manager_, sequence_manager_,
+      request_period_, period_completed_callback_, request_completed_callback_);
   return worker;
 };
 
@@ -111,10 +111,14 @@ std::vector<RequestRecord>
 PeriodicConcurrencyManager::GetRequestRecords()
 {
   std::vector<RequestRecord> request_records{};
-  for (const auto& thread_stat : threads_stat_) {
+  for (auto& thread_stat : threads_stat_) {
+    request_records.reserve(
+        request_records.size() + thread_stat->request_records_.size());
     request_records.insert(
-        request_records.end(), thread_stat->request_records_.cbegin(),
-        thread_stat->request_records_.cend());
+        request_records.end(),
+        std::make_move_iterator(thread_stat->request_records_.begin()),
+        std::make_move_iterator(thread_stat->request_records_.end()));
+    thread_stat->request_records_.clear();
   }
   return request_records;
 }

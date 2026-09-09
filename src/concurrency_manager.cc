@@ -207,8 +207,8 @@ ConcurrencyManager::MakeWorker(
   return std::make_shared<ConcurrencyWorker>(
       id, thread_stat, thread_config, parser_, data_loader_, factory_,
       on_sequence_model_, async_, max_concurrency_, using_json_data_,
-      streaming_, batch_size_, wake_signal_, wake_mutex_, active_threads_,
-      execute_, infer_data_manager_, sequence_manager_);
+      streaming_, capture_profile_data_, batch_size_, wake_signal_, wake_mutex_,
+      active_threads_, execute_, infer_data_manager_, sequence_manager_);
 }
 
 }}  // namespace triton::perfanalyzer

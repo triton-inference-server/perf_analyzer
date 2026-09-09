@@ -58,16 +58,16 @@ class ConcurrencyWorker : public LoadWorker {
       const std::shared_ptr<cb::ClientBackendFactory> factory,
       const bool on_sequence_model, const bool async,
       const size_t max_concurrency, const bool using_json_data,
-      const bool streaming, const int32_t batch_size,
-      std::condition_variable& wake_signal, std::mutex& wake_mutex,
-      size_t& active_threads, bool& execute,
+      const bool streaming, const bool capture_profile_data,
+      const int32_t batch_size, std::condition_variable& wake_signal,
+      std::mutex& wake_mutex, size_t& active_threads, bool& execute,
       const std::shared_ptr<IInferDataManager>& infer_data_manager,
       std::shared_ptr<SequenceManager> sequence_manager)
       : LoadWorker(
             id, thread_stat, thread_config, parser, data_loader, factory,
             on_sequence_model, async, streaming, batch_size, using_json_data,
-            wake_signal, wake_mutex, execute, infer_data_manager,
-            sequence_manager),
+            capture_profile_data, wake_signal, wake_mutex, execute,
+            infer_data_manager, sequence_manager),
         max_concurrency_(max_concurrency), active_threads_(active_threads)
   {
   }

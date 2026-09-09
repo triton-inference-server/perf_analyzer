@@ -36,10 +36,9 @@ namespace triton { namespace perfanalyzer {
 /// A record containing the data of a single request input or response output
 struct RecordData {
   RecordData(std::vector<uint8_t>&& buf, std::string data_type)
+      : data_(std::move(buf)), size_(data_.size()),
+        data_type_(std::move(data_type))
   {
-    data_ = std::move(buf);
-    size_ = buf.size() * sizeof(uint8_t);
-    data_type_ = data_type;
   }
 
   // Define equality comparison operator so it can be inserted into maps
@@ -71,8 +70,10 @@ struct RequestRecord {
       std::vector<ResponseOutput> response_outputs = {},
       bool sequence_end = true, bool delayed = false, uint64_t sequence_id = 0,
       bool has_null_last_response = false)
-      : start_time_(start_time), response_timestamps_(response_timestamps),
-        request_inputs_(request_inputs), response_outputs_(response_outputs),
+      : start_time_(start_time),
+        response_timestamps_(std::move(response_timestamps)),
+        request_inputs_(std::move(request_inputs)),
+        response_outputs_(std::move(response_outputs)),
         sequence_end_(sequence_end), delayed_(delayed),
         sequence_id_(sequence_id),
         has_null_last_response_(has_null_last_response)

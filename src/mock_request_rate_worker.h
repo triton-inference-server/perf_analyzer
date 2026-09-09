@@ -41,17 +41,17 @@ class NaggyMockRequestRateWorker : public RequestRateWorker {
       const std::shared_ptr<cb::ClientBackendFactory> factory,
       const bool on_sequence_model, const bool async, const size_t max_threads,
       const bool using_json_data, const bool streaming,
-      const int32_t batch_size, std::condition_variable& wake_signal,
-      std::mutex& wake_mutex, bool& execute,
-      std::chrono::steady_clock::time_point& start_time,
+      const bool capture_profile_data, const int32_t batch_size,
+      std::condition_variable& wake_signal, std::mutex& wake_mutex,
+      bool& execute, std::chrono::steady_clock::time_point& start_time,
       const bool serial_sequences,
       const std::shared_ptr<IInferDataManager>& infer_data_manager,
       std::shared_ptr<SequenceManager> sequence_manager, size_t dataset_offset)
       : RequestRateWorker(
             id, thread_stat, thread_config, parser, data_loader, factory,
             on_sequence_model, async, max_threads, using_json_data, streaming,
-            batch_size, wake_signal, wake_mutex, execute, start_time,
-            serial_sequences, infer_data_manager, sequence_manager,
+            capture_profile_data, batch_size, wake_signal, wake_mutex, execute,
+            start_time, serial_sequences, infer_data_manager, sequence_manager,
             dataset_offset)
   {
     ON_CALL(*this, Infer()).WillByDefault([this]() -> void {

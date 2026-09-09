@@ -53,8 +53,8 @@ class InferContext {
   InferContext(
       const size_t thread_id, const uint32_t id, const bool async,
       const bool streaming, const bool on_sequence_model,
-      const bool using_json_data, const int32_t batch_size,
-      std::shared_ptr<ThreadStat> thread_stat,
+      const bool using_json_data, const bool capture_profile_data,
+      const int32_t batch_size, std::shared_ptr<ThreadStat> thread_stat,
       std::shared_ptr<DataLoader> data_loader,
       std::shared_ptr<ModelParser> parser,
       std::shared_ptr<cb::ClientBackendFactory> factory, const bool& execute,
@@ -62,7 +62,8 @@ class InferContext {
       std::shared_ptr<SequenceManager> sequence_manager)
       : thread_id_(thread_id), id_(id), async_(async), streaming_(streaming),
         on_sequence_model_(on_sequence_model),
-        using_json_data_(using_json_data), batch_size_(batch_size),
+        using_json_data_(using_json_data),
+        capture_profile_data_(capture_profile_data), batch_size_(batch_size),
         thread_stat_(thread_stat), data_loader_(data_loader), parser_(parser),
         factory_(factory), data_step_id_(thread_id), execute_(execute),
         infer_data_manager_(infer_data_manager),
@@ -144,6 +145,7 @@ class InferContext {
   bool streaming_{false};
   const bool on_sequence_model_{false};
   bool using_json_data_{false};
+  bool capture_profile_data_{false};
   const int32_t batch_size_{0};
 
   std::shared_ptr<ThreadStat> thread_stat_;
@@ -165,10 +167,9 @@ class InferContext {
   std::function<void(uint32_t)> async_callback_finalize_func_ = nullptr;
 
  private:
-  const RequestRecord::RequestInput GetInputs();
+  RequestRecord::RequestInput GetInputs();
 
-  const RequestRecord::ResponseOutput GetOutputs(
-      const cb::InferResult& infer_result);
+  RequestRecord::ResponseOutput GetOutputs(const cb::InferResult& infer_result);
 
   const uint32_t id_{0};
   const size_t thread_id_{0};

@@ -119,8 +119,10 @@ InferContext::SendRequest(
 
   thread_stat_->num_sent_requests_++;
 
-  // Parse the request inputs to save in the profile export file
-  RequestRecord::RequestInput request_inputs{GetInputs()};
+  std::vector<RequestRecord::RequestInput> request_inputs;
+  if (capture_profile_data_) {
+    request_inputs.emplace_back(GetInputs());
+  }
 
   if (async_) {
     uint64_t unique_request_id{(thread_id_ << 48) | ((request_id << 16) >> 16)};
@@ -130,7 +132,7 @@ InferContext::SendRequest(
       auto it = async_req_map_
                     .emplace(infer_data_.options_->request_id_, RequestRecord())
                     .first;
-      it->second.request_inputs_ = {request_inputs};
+      it->second.request_inputs_ = std::move(request_inputs);
       it->second.start_time_ = std::chrono::system_clock::now();
       it->second.sequence_end_ = infer_data_.options_->sequence_end_;
       it->second.delayed_ = delayed;
@@ -160,11 +162,13 @@ InferContext::SendRequest(
     thread_stat_->idle_timer.Stop();
     std::vector<std::chrono::time_point<std::chrono::system_clock>>
         response_timestamps{std::chrono::system_clock::now()};
-    RequestRecord::ResponseOutput response_outputs{};
+    std::vector<RequestRecord::ResponseOutput> response_outputs;
 
     if (results != nullptr) {
       if (thread_stat_->status_.IsOk()) {
-        response_outputs = GetOutputs(*results);
+        if (capture_profile_data_) {
+          response_outputs.emplace_back(GetOutputs(*results));
+        }
         thread_stat_->status_ = ValidateOutputs(results);
       }
       delete results;
@@ -176,10 +180,10 @@ InferContext::SendRequest(
       // Add the request record to thread request records vector with proper
       // locking
       std::lock_guard<std::mutex> lock(thread_stat_->mu_);
-      thread_stat_->request_records_.emplace_back(RequestRecord(
-          start_time_sync, std::move(response_timestamps), {request_inputs},
-          {response_outputs}, infer_data_.options_->sequence_end_, delayed,
-          sequence_id, false));
+      thread_stat_->request_records_.emplace_back(
+          start_time_sync, std::move(response_timestamps),
+          std::move(request_inputs), std::move(response_outputs),
+          infer_data_.options_->sequence_end_, delayed, sequence_id, false);
       thread_stat_->status_ =
           infer_backend_->ClientInferStat(&(thread_stat_->contexts_stat_[id_]));
       if (!thread_stat_->status_.IsOk()) {
@@ -189,7 +193,7 @@ InferContext::SendRequest(
   }
 }
 
-const RequestRecord::RequestInput
+RequestRecord::RequestInput
 InferContext::GetInputs()
 {
   RequestRecord::RequestInput input{};
@@ -214,7 +218,7 @@ InferContext::GetInputs()
   return input;
 }
 
-const RequestRecord::ResponseOutput
+RequestRecord::ResponseOutput
 InferContext::GetOutputs(const cb::InferResult& infer_result)
 {
   RequestRecord::ResponseOutput output{};
@@ -318,7 +322,9 @@ InferContext::AsyncCallbackFuncImpl(cb::InferResult* result)
         }
         it->second.response_timestamps_.push_back(
             std::chrono::system_clock::now());
-        it->second.response_outputs_.push_back(GetOutputs(*result));
+        if (capture_profile_data_) {
+          it->second.response_outputs_.emplace_back(GetOutputs(*result));
+        }
         num_responses_++;
         if (is_null_response == true) {
           it->second.has_null_last_response_ = true;
@@ -330,11 +336,7 @@ InferContext::AsyncCallbackFuncImpl(cb::InferResult* result)
         }
         if (is_final_response) {
           has_received_final_response_ = is_final_response;
-          thread_stat_->request_records_.emplace_back(
-              it->second.start_time_, it->second.response_timestamps_,
-              it->second.request_inputs_, it->second.response_outputs_,
-              it->second.sequence_end_, it->second.delayed_,
-              it->second.sequence_id_, it->second.has_null_last_response_);
+          thread_stat_->request_records_.emplace_back(std::move(it->second));
           infer_backend_->ClientInferStat(&(thread_stat_->contexts_stat_[id_]));
           thread_stat_->cb_status_ = ValidateOutputs(result);
           async_req_map_.erase(request_id);

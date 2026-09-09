@@ -107,6 +107,14 @@ class LoadManager {
   /// Count the number of requests collected until now.
   uint64_t CountCollectedRequests();
 
+  /// Controls whether request and response tensor data is captured for the
+  /// profile export. Timing metadata is always collected.
+  /// \param capture_profile_data Whether tensor payloads should be captured.
+  void SetCaptureProfileData(bool capture_profile_data)
+  {
+    capture_profile_data_ = capture_profile_data;
+  }
+
  protected:
   LoadManager(
       const bool async, const bool streaming, const int32_t batch_size,
@@ -148,6 +156,7 @@ class LoadManager {
   std::shared_ptr<cb::ClientBackendFactory> factory_;
 
   bool using_json_data_;
+  bool capture_profile_data_{false};
 
   std::shared_ptr<DataLoader> data_loader_;
   std::shared_ptr<IInferDataManager> infer_data_manager_;

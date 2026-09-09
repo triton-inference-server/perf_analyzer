@@ -175,14 +175,17 @@ SessionConcurrencyManager::GetAndWaitForDelay(
 }
 
 std::vector<RequestRecord>
-SessionConcurrencyManager::GetRequestRecords() const
+SessionConcurrencyManager::GetRequestRecords()
 {
   std::vector<RequestRecord> request_records{};
-  for (const auto& one_thread_request_records : all_threads_request_records_) {
+  for (auto& one_thread_request_records : all_threads_request_records_) {
+    request_records.reserve(
+        request_records.size() + one_thread_request_records.size());
     request_records.insert(
         request_records.end(),
         std::make_move_iterator(one_thread_request_records.begin()),
         std::make_move_iterator(one_thread_request_records.end()));
+    one_thread_request_records.clear();
   }
   return request_records;
 }

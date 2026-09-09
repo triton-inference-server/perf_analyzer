@@ -518,6 +518,7 @@ InferenceProfiler::InferenceProfiler(
       collector_(collector),
       should_collect_profile_data_(should_collect_profile_data)
 {
+  manager_->SetCaptureProfileData(should_collect_profile_data_);
   load_parameters_.stability_threshold = stability_threshold;
   load_parameters_.stability_window = 3;
   if (profile_backend_->Kind() == cb::BackendKind::TRITON ||
@@ -1335,12 +1336,16 @@ InferenceProfiler::ValidLatencyMeasurement(
 {
   valid_latencies->clear();
   valid_sequence_count = 0;
+  delayed_request_count = 0;
   response_count = 0;
-  std::vector<size_t> erase_indices{};
-  for (size_t i = 0; i < all_request_records_.size(); i++) {
-    const auto& request_record = all_request_records_[i];
+  size_t write_index = 0;
+  for (size_t read_index = 0; read_index < all_request_records_.size();
+       read_index++) {
+    auto& request_record = all_request_records_[read_index];
     uint64_t request_start_ns = CHRONO_TO_NANOS(request_record.start_time_);
-    uint64_t request_end_ns;
+    uint64_t request_end_ns{0};
+    bool discard_request{false};
+    bool valid_request{false};
 
     if (request_record.has_null_last_response_ == false) {
       request_end_ns =
@@ -1350,44 +1355,40 @@ InferenceProfiler::ValidLatencyMeasurement(
       request_end_ns = CHRONO_TO_NANOS(
           request_record.response_timestamps_[last_response_idx]);
     } else {
-      erase_indices.push_back(i);
-      continue;
+      discard_request = true;
     }
 
-    if (request_start_ns <= request_end_ns) {
-      // Only counting requests that end within the time interval
-      if ((request_end_ns >= valid_range.first) &&
-          (request_end_ns <= valid_range.second)) {
-        valid_latencies->push_back(request_end_ns - request_start_ns);
-        response_count += request_record.response_timestamps_.size();
-        if (request_record.has_null_last_response_) {
-          response_count--;
-        }
-        erase_indices.push_back(i);
-        if (request_record.sequence_end_) {
-          valid_sequence_count++;
-        }
-        if (request_record.delayed_) {
-          delayed_request_count++;
-        }
+    if (!discard_request) {
+      if ((request_start_ns > request_end_ns) ||
+          (request_end_ns < valid_range.first)) {
+        // Malformed and expired records can never belong to a future window.
+        discard_request = true;
+      } else if (request_end_ns <= valid_range.second) {
+        valid_request = true;
       }
     }
-  }
 
-  std::unordered_set<size_t> erase_set(
-      erase_indices.begin(), erase_indices.end());
-  size_t write = 0;
-  for (size_t i = 0; i < all_request_records_.size(); i++) {
-    if (erase_set.count(i)) {
-      valid_requests.push_back(std::move(all_request_records_[i]));
-    } else {
-      if (write != i) {
-        all_request_records_[write] = std::move(all_request_records_[i]);
+    if (valid_request) {
+      valid_latencies->push_back(request_end_ns - request_start_ns);
+      response_count += request_record.response_timestamps_.size();
+      if (request_record.has_null_last_response_) {
+        response_count--;
       }
-      write++;
+      if (request_record.sequence_end_) {
+        valid_sequence_count++;
+      }
+      if (request_record.delayed_) {
+        delayed_request_count++;
+      }
+      valid_requests.emplace_back(std::move(request_record));
+    } else if (!discard_request) {
+      if (write_index != read_index) {
+        all_request_records_[write_index] = std::move(request_record);
+      }
+      write_index++;
     }
   }
-  all_request_records_.resize(write);
+  all_request_records_.resize(write_index);
 
   // Always sort measured latencies as percentile will be reported as default
   std::sort(valid_latencies->begin(), valid_latencies->end());
@@ -1400,7 +1401,7 @@ InferenceProfiler::ClampWindow(std::vector<RequestRecord>& requests)
       std::chrono::time_point<std::chrono::system_clock>::max();
   auto latest_end = std::chrono::time_point<std::chrono::system_clock>::min();
 
-  for (auto x : requests) {
+  for (const auto& x : requests) {
     earliest_start = std::min(earliest_start, x.start_time_);
     latest_end = std::max(latest_end, x.response_timestamps_.back());
   }

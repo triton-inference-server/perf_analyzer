@@ -71,7 +71,7 @@ class SessionConcurrencyManager : public LoadManager {
 
   void GetAndWaitForDelay(size_t dataset_index) const;
 
-  std::vector<RequestRecord> GetRequestRecords() const;
+  std::vector<RequestRecord> GetRequestRecords();
 
   const size_t session_concurrency_{};
   std::atomic<size_t> next_session_index_{};

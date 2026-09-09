@@ -205,6 +205,35 @@ class TestLoadManager : public TestLoadManagerBase, public LoadManager {
       CHECK(source_request_records[2] == request_record3);
       CHECK(ret.IsOk() == true);
     }
+    SUBCASE("Payload ownership is transferred without copying")
+    {
+      constexpr size_t payload_size{1024 * 1024};
+      std::vector<uint8_t> payload(payload_size, 42);
+      RequestRecord::RequestInput input;
+      input.emplace("INPUT0", RecordData(std::move(payload), "UINT8"));
+      std::vector<RequestRecord::RequestInput> inputs;
+      inputs.emplace_back(std::move(input));
+
+      auto stat = std::make_shared<ThreadStat>();
+      stat->request_records_.emplace_back(
+          time_point(ns(1)), std::vector<time_point>{time_point(ns(2))},
+          std::move(inputs));
+      const auto* payload_address = stat->request_records_.front()
+                                        .request_inputs_.front()
+                                        .at("INPUT0")
+                                        .data_.data();
+      threads_stat_.push_back(stat);
+
+      auto ret = SwapRequestRecords(source_request_records);
+
+      REQUIRE(ret.IsOk());
+      REQUIRE(source_request_records.size() == 1);
+      CHECK(stat->request_records_.empty());
+      const auto& captured_payload =
+          source_request_records.front().request_inputs_.front().at("INPUT0");
+      CHECK(captured_payload.data_.data() == payload_address);
+      CHECK(captured_payload.size_ == payload_size);
+    }
   }
 
   /// Test the public function GetAccumulatedClientStat

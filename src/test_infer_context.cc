@@ -35,6 +35,191 @@
 
 namespace triton { namespace perfanalyzer {
 
+namespace {
+
+struct RawDataCallCounts {
+  size_t input{0};
+  size_t output{0};
+};
+
+class TestInferInput : public cb::InferInput {
+ public:
+  TestInferInput(
+      std::shared_ptr<RawDataCallCounts> call_counts, std::vector<uint8_t> data)
+      : InferInput(cb::BackendKind::TRITON, "INPUT0", "UINT8"),
+        call_counts_(std::move(call_counts)), data_(std::move(data))
+  {
+  }
+
+  const std::vector<int64_t>& Shape() const override { return shape_; }
+
+  cb::Error RawData(const uint8_t** buf, size_t* byte_size) override
+  {
+    call_counts_->input++;
+    *buf = data_.data();
+    *byte_size = data_.size();
+    return cb::Error::Success;
+  }
+
+ private:
+  std::shared_ptr<RawDataCallCounts> call_counts_;
+  std::vector<uint8_t> data_;
+  const std::vector<int64_t> shape_{4};
+};
+
+class TestInferRequestedOutput : public cb::InferRequestedOutput {
+ public:
+  TestInferRequestedOutput()
+      : InferRequestedOutput(cb::BackendKind::TRITON, "OUTPUT0", "UINT8")
+  {
+  }
+};
+
+class TestInferResult : public cb::InferResult {
+ public:
+  TestInferResult(
+      std::string request_id, std::shared_ptr<RawDataCallCounts> call_counts,
+      std::vector<uint8_t> data)
+      : request_id_(std::move(request_id)),
+        call_counts_(std::move(call_counts)), data_(std::move(data))
+  {
+  }
+
+  cb::Error Id(std::string* id) const override
+  {
+    *id = request_id_;
+    return cb::Error::Success;
+  }
+
+  cb::Error RequestStatus() const override { return cb::Error::Success; }
+
+  cb::Error RawData(
+      const std::string&, std::vector<uint8_t>& buf) const override
+  {
+    call_counts_->output++;
+    buf = data_;
+    return cb::Error::Success;
+  }
+
+  cb::Error IsFinalResponse(bool* is_final_response) const override
+  {
+    *is_final_response = true;
+    return cb::Error::Success;
+  }
+
+  cb::Error IsNullResponse(bool* is_null_response) const override
+  {
+    *is_null_response = false;
+    return cb::Error::Success;
+  }
+
+ private:
+  std::string request_id_;
+  std::shared_ptr<RawDataCallCounts> call_counts_;
+  std::vector<uint8_t> data_;
+};
+
+class TestClientBackend : public cb::ClientBackend {
+ public:
+  TestClientBackend(
+      std::shared_ptr<RawDataCallCounts> call_counts,
+      std::vector<uint8_t> output_data)
+      : ClientBackend(cb::BackendKind::TRITON),
+        call_counts_(std::move(call_counts)),
+        output_data_(std::move(output_data))
+  {
+  }
+
+  cb::Error Infer(
+      cb::InferResult** result, const cb::InferOptions& options,
+      const std::vector<cb::InferInput*>&,
+      const std::vector<const cb::InferRequestedOutput*>&) override
+  {
+    *result =
+        new TestInferResult(options.request_id_, call_counts_, output_data_);
+    return cb::Error::Success;
+  }
+
+  cb::Error AsyncInfer(
+      cb::OnCompleteFn callback, const cb::InferOptions& options,
+      const std::vector<cb::InferInput*>&,
+      const std::vector<const cb::InferRequestedOutput*>&) override
+  {
+    callback_ = std::move(callback);
+    request_id_ = options.request_id_;
+    return cb::Error::Success;
+  }
+
+  cb::Error ClientInferStat(cb::InferStat*) override
+  {
+    return cb::Error::Success;
+  }
+
+  void CompleteAsyncRequest()
+  {
+    callback_(new TestInferResult(request_id_, call_counts_, output_data_));
+  }
+
+ private:
+  std::shared_ptr<RawDataCallCounts> call_counts_;
+  std::vector<uint8_t> output_data_;
+  cb::OnCompleteFn callback_;
+  std::string request_id_;
+};
+
+void
+TestProfilePayloadCapture(bool async, bool capture_profile_data)
+{
+  MockInferContext infer_context{};
+  infer_context.thread_stat_ = std::make_shared<ThreadStat>();
+  infer_context.thread_stat_->contexts_stat_.emplace_back();
+  infer_context.async_ = async;
+  infer_context.streaming_ = false;
+  infer_context.capture_profile_data_ = capture_profile_data;
+  infer_context.infer_data_.options_ =
+      std::make_unique<cb::InferOptions>("model");
+
+  auto call_counts = std::make_shared<RawDataCallCounts>();
+  const std::vector<uint8_t> input_data{1, 2, 3, 4};
+  const std::vector<uint8_t> output_data{5, 6, 7, 8};
+  auto* input = new TestInferInput(call_counts, input_data);
+  infer_context.infer_data_.inputs_.push_back(input);
+  infer_context.infer_data_.valid_inputs_.push_back(input);
+  infer_context.infer_data_.outputs_.push_back(new TestInferRequestedOutput());
+
+  auto backend = std::make_unique<TestClientBackend>(call_counts, output_data);
+  auto* backend_ptr = backend.get();
+  infer_context.infer_backend_ = std::move(backend);
+
+  infer_context.SendRequest(1, false, 0);
+  if (async) {
+    backend_ptr->CompleteAsyncRequest();
+  }
+
+  REQUIRE(infer_context.thread_stat_->request_records_.size() == 1);
+  const auto& record = infer_context.thread_stat_->request_records_.front();
+  if (capture_profile_data) {
+    CHECK(call_counts->input == 1);
+    CHECK(call_counts->output == 1);
+    REQUIRE(record.request_inputs_.size() == 1);
+    REQUIRE(record.response_outputs_.size() == 1);
+    const auto& captured_input = record.request_inputs_.front().at("INPUT0");
+    const auto& captured_output =
+        record.response_outputs_.front().at("OUTPUT0");
+    CHECK(captured_input.data_ == input_data);
+    CHECK(captured_input.size_ == input_data.size());
+    CHECK(captured_output.data_ == output_data);
+    CHECK(captured_output.size_ == output_data.size());
+  } else {
+    CHECK(call_counts->input == 0);
+    CHECK(call_counts->output == 0);
+    CHECK(record.request_inputs_.empty());
+    CHECK(record.response_outputs_.empty());
+  }
+}
+
+}  // namespace
+
 /// Tests the round robin ordering of json input data
 ///
 TEST_CASE("update_seq_json_data: testing the UpdateSeqJsonData function")
@@ -172,6 +357,26 @@ TEST_CASE("send_request: testing the SendRequest function")
     CHECK(
         mock_infer_context.thread_stat_->request_records_[0].sequence_id_ ==
         sequence_id);
+  }
+}
+
+TEST_CASE("send_request: profile payload capture is opt-in")
+{
+  SUBCASE("synchronous request without profile export")
+  {
+    TestProfilePayloadCapture(false, false);
+  }
+  SUBCASE("synchronous request with profile export")
+  {
+    TestProfilePayloadCapture(false, true);
+  }
+  SUBCASE("asynchronous request without profile export")
+  {
+    TestProfilePayloadCapture(true, false);
+  }
+  SUBCASE("asynchronous request with profile export")
+  {
+    TestProfilePayloadCapture(true, true);
   }
 }
 

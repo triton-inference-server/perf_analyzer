@@ -41,8 +41,9 @@ PeriodicConcurrencyWorker::CreateInferContext()
 {
   std::shared_ptr infer_context{std::make_shared<InferContext>(
       id_, ctxs_.size(), async_, streaming_, on_sequence_model_,
-      using_json_data_, batch_size_, thread_stat_, data_loader_, parser_,
-      factory_, execute_, infer_data_manager_, sequence_manager_)};
+      using_json_data_, capture_profile_data_, batch_size_, thread_stat_,
+      data_loader_, parser_, factory_, execute_, infer_data_manager_,
+      sequence_manager_)};
   infer_context->RegisterWorkerCallback(worker_callback_);
   return infer_context;
 }

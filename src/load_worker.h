@@ -52,15 +52,16 @@ class LoadWorker : public IWorker {
       const std::shared_ptr<cb::ClientBackendFactory> factory,
       const bool on_sequence_model, const bool async, const bool streaming,
       const int32_t batch_size, const bool using_json_data,
-      std::condition_variable& wake_signal, std::mutex& wake_mutex,
-      bool& execute,
+      const bool capture_profile_data, std::condition_variable& wake_signal,
+      std::mutex& wake_mutex, bool& execute,
       const std::shared_ptr<IInferDataManager>& infer_data_manager,
       std::shared_ptr<SequenceManager> sequence_manager)
       : id_(id), thread_stat_(thread_stat), thread_config_(thread_config),
         parser_(parser), data_loader_(data_loader), factory_(factory),
         on_sequence_model_(on_sequence_model), async_(async),
         streaming_(streaming), batch_size_(batch_size),
-        using_json_data_(using_json_data), wake_signal_(wake_signal),
+        using_json_data_(using_json_data),
+        capture_profile_data_(capture_profile_data), wake_signal_(wake_signal),
         wake_mutex_(wake_mutex), execute_(execute),
         infer_data_manager_(infer_data_manager),
         sequence_manager_(sequence_manager)
@@ -92,8 +93,9 @@ class LoadWorker : public IWorker {
   {
     return std::make_shared<InferContext>(
         id_, ctxs_.size(), async_, streaming_, on_sequence_model_,
-        using_json_data_, batch_size_, thread_stat_, data_loader_, parser_,
-        factory_, execute_, infer_data_manager_, sequence_manager_);
+        using_json_data_, capture_profile_data_, batch_size_, thread_stat_,
+        data_loader_, parser_, factory_, execute_, infer_data_manager_,
+        sequence_manager_);
   }
 
   // Create an inference context and add it to ctxs_
@@ -152,6 +154,7 @@ class LoadWorker : public IWorker {
   const bool streaming_;
   const int32_t batch_size_;
   const bool using_json_data_;
+  const bool capture_profile_data_;
 
   std::shared_ptr<SequenceManager> sequence_manager_{nullptr};
 };

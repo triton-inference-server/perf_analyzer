@@ -75,14 +75,15 @@ class TestRequestRateManager : public TestLoadManagerBase,
     auto worker = std::make_shared<MockRequestRateWorker>(
         id, thread_stat, thread_config, parser_, data_loader_, factory_,
         on_sequence_model_, async_, max_threads_, using_json_data_, streaming_,
-        batch_size_, wake_signal_, wake_mutex_, execute_, start_time_,
-        serial_sequences_, infer_data_manager_, sequence_manager_,
+        capture_profile_data_, batch_size_, wake_signal_, wake_mutex_, execute_,
+        start_time_, serial_sequences_, infer_data_manager_, sequence_manager_,
         dataset_offset);
 
     if (use_mock_infer_) {
       EXPECT_CALL(*worker, Infer())
-          .WillRepeatedly(testing::Invoke(
-              worker.get(), &MockRequestRateWorker::EmptyInfer));
+          .WillRepeatedly(
+              testing::Invoke(
+                  worker.get(), &MockRequestRateWorker::EmptyInfer));
     }
     return worker;
   }

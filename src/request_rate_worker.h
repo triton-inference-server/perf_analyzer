@@ -61,17 +61,17 @@ class RequestRateWorker : public LoadWorker, public IScheduler {
       const std::shared_ptr<cb::ClientBackendFactory> factory,
       const bool on_sequence_model, const bool async, const size_t num_threads,
       const bool using_json_data, const bool streaming,
-      const int32_t batch_size, std::condition_variable& wake_signal,
-      std::mutex& wake_mutex, bool& execute,
-      std::chrono::steady_clock::time_point& start_time,
+      const bool capture_profile_data, const int32_t batch_size,
+      std::condition_variable& wake_signal, std::mutex& wake_mutex,
+      bool& execute, std::chrono::steady_clock::time_point& start_time,
       const bool serial_sequences,
       const std::shared_ptr<IInferDataManager>& infer_data_manager,
       std::shared_ptr<SequenceManager> sequence_manager, size_t dataset_offset)
       : LoadWorker(
             id, thread_stat, thread_config, parser, data_loader, factory,
             on_sequence_model, async, streaming, batch_size, using_json_data,
-            wake_signal, wake_mutex, execute, infer_data_manager,
-            sequence_manager),
+            capture_profile_data, wake_signal, wake_mutex, execute,
+            infer_data_manager, sequence_manager),
         num_threads_(num_threads), start_time_(start_time),
         serial_sequences_(serial_sequences), dataset_offset_(dataset_offset)
   {
@@ -109,9 +109,10 @@ class RequestRateWorker : public LoadWorker, public IScheduler {
 
   void CreateContextFinalize(std::shared_ptr<InferContext> ctx) override
   {
-    ctx->RegisterAsyncCallbackFinalize(std::bind(
-        &RequestRateWorker::AsyncCallbackFinalize, this,
-        std::placeholders::_1));
+    ctx->RegisterAsyncCallbackFinalize(
+        std::bind(
+            &RequestRateWorker::AsyncCallbackFinalize, this,
+            std::placeholders::_1));
 
     ctx->SetNumActiveThreads(num_threads_);
 
