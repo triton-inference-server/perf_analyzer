@@ -27,6 +27,7 @@
 #include "load_manager.h"
 
 #include <algorithm>
+#include <iterator>
 
 #include "client_backend/client_backend.h"
 #include "infer_data_manager_factory.h"

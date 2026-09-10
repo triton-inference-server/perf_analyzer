@@ -26,6 +26,8 @@
 
 #include "periodic_concurrency_manager.h"
 
+#include <iterator>
+
 namespace triton { namespace perfanalyzer {
 
 std::vector<RequestRecord>

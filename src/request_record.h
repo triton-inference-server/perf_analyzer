@@ -27,8 +27,11 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cstring>
+#include <string>
 #include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace triton { namespace perfanalyzer {
