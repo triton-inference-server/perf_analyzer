@@ -25,23 +25,30 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
 
 [project]
 name = "perf-analyzer"
 dynamic = ["version"]
 description = "Triton Performance Analyzer"
 readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+# Also pins the wheel to a py3 tag: without it hatchling emits
+# py2.py3-none-any, wrongly advertising Python 2 support.
+requires-python = ">=3.10"
 
-[tool.setuptools.dynamic]
-version = {attr = "perf_analyzer.__version__"}
+[tool.hatch.version]
+path = "src/perf_analyzer/__init__.py"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-"perf_analyzer" = ["bin/perf_analyzer"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/perf_analyzer"]
+# bin/perf_analyzer is produced by the CMake build and matched by the
+# "bin/" rule in .gitignore. Hatchling's file selection is VCS-ignore
+# aware, so without listing it as an artifact the compiled binary would
+# be silently dropped from the wheel. See TRI-1775.
+artifacts = ["src/perf_analyzer/bin/perf_analyzer"]
 
 [project.scripts]
 perf_analyzer = "perf_analyzer.cli:main"
