@@ -28,7 +28,8 @@
 name = "genai-perf"
 readme = "README.md"
 description = "GenAI Perf Analyzer CLI - CLI tool to simplify profiling LLMs and Generative AI models with Perf Analyzer"
-license = {text = "BSD"}
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -78,7 +79,7 @@ genai-perf = "genai_perf.main:main"
 
 # Build
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
