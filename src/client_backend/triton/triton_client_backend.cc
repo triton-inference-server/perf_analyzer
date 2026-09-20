@@ -27,6 +27,7 @@
 #include "triton_client_backend.h"
 
 #include <curl/curl.h>
+#include <grpc++/grpc++.h>
 
 #include <regex>
 #include <stdexcept>
@@ -124,9 +125,17 @@ TritonClientBackend::Create(
         ParseGrpcSslOptions(ssl_options);
     bool use_ssl = grpc_ssl_options_pair.first;
     triton::client::SslOptions grpc_ssl_options = grpc_ssl_options_pair.second;
+
+    grpc::ChannelArguments channel_args;
+    channel_args.SetMaxSendMessageSize(tc::MAX_GRPC_MESSAGE_SIZE);
+    channel_args.SetMaxReceiveMessageSize(tc::MAX_GRPC_MESSAGE_SIZE);
+    if (!ssl_options.ssl_grpc_target_name_override.empty()) {
+      channel_args.SetSslTargetNameOverride(
+          ssl_options.ssl_grpc_target_name_override);
+    }
     RETURN_IF_TRITON_ERROR(tc::InferenceServerGrpcClient::Create(
-        &(triton_client_backend->client_.grpc_client_), url, verbose, use_ssl,
-        grpc_ssl_options));
+        &(triton_client_backend->client_.grpc_client_), url, channel_args,
+        verbose, use_ssl, grpc_ssl_options, true /*use_cached_channel*/));
     if (!trace_options.empty()) {
       inference::TraceSettingResponse response;
       RETURN_IF_TRITON_ERROR(
