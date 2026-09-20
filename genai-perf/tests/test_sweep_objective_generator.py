@@ -15,9 +15,12 @@
 import json
 import logging
 import unittest
+from functools import partial
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from math import log2
 from pathlib import Path
-from typing import Any
+from threading import Thread
+from typing import Any, Iterator
 from unittest.mock import patch
 
 import pytest
@@ -28,16 +31,30 @@ from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
 from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
 from genai_perf.subcommand.analyze import Analyze
-from genai_perf.telemetry_data.dcgm_telemetry_data_collector import (
-    DCGMTelemetryDataCollector,
-)
 
 
-@pytest.mark.parametrize("model_names", [["model-a"], ["model-a", "model-b"]])
+@pytest.fixture
+def metrics_url(tmp_path: Path) -> Iterator[str]:
+    (tmp_path / "metrics").write_text("", encoding="utf-8")
+    with HTTPServer(
+        server_address=("127.0.0.1", 0),
+        RequestHandlerClass=partial(SimpleHTTPRequestHandler, directory=str(tmp_path)),
+    ) as server:
+        thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+        thread.start()
+        try:
+            yield f"http://127.0.0.1:{server.server_port}/metrics"
+        finally:
+            server.shutdown()
+            thread.join()
+
+
+@pytest.mark.parametrize("model_names", [["mistral:7b"], ["mistral:7b", "llama2:7b"]])
 @pytest.mark.parametrize("log_level", [logging.INFO, logging.DEBUG])
 def test_analyze_sweeps_model_selection(
     model_names: list[str],
     log_level: int,
+    metrics_url: str,
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
@@ -47,7 +64,7 @@ def test_analyze_sweeps_model_selection(
         user_config={
             "model_names": model_names,
             "analyze": {"concurrency": {"start": 1, "stop": 2}},
-            "endpoint": {"type": "chat"},
+            "endpoint": {"type": "chat", "server_metrics_urls": [metrics_url]},
             "input": {"file": str(prompts), "num_dataset_entries": 2},
             "output": {
                 "artifact_directory": str(tmp_path),
@@ -55,16 +72,10 @@ def test_analyze_sweeps_model_selection(
             },
         }
     )
-    with (
-        patch.object(
-            target=DCGMTelemetryDataCollector,
-            attribute="is_url_reachable",
-            return_value=False,
-        ),
-        caplog.at_level(
-            level=log_level,
-            logger="genai_perf.config.generate.sweep_objective_generator",
-        ),
+    print(f"\nmodels={model_names} log_level={logging.getLevelName(log_level)}")
+    with caplog.at_level(
+        level=log_level,
+        logger="genai_perf.config.generate.sweep_objective_generator",
     ):
         analyze: Analyze = Analyze(config=config, extra_args=None)
         concurrencies: list[int] = []
@@ -74,13 +85,18 @@ def test_analyze_sweeps_model_selection(
             )
             analyze._create_artifact_directory(perf_config)
             analyze._generate_inputs(perf_analyzer_config=perf_config)
-            concurrencies.append(perf_config.get_inference_value())
+            concurrency: int = perf_config.get_inference_value()
+            concurrencies.append(concurrency)
             payloads: dict[str, Any] = json.loads(
                 (
                     perf_config.get_artifact_directory() / DEFAULT_INPUT_DATA_JSON
                 ).read_text(encoding="utf-8")
             )
-            assert [row["payload"][0]["model"] for row in payloads["data"]] == [
+            request_models: list[str] = [
+                row["payload"][0]["model"] for row in payloads["data"]
+            ]
+            print(f"concurrency={concurrency} request_models={request_models}")
+            assert request_models == [
                 model_names[index % len(model_names)] for index in range(2)
             ]
         assert concurrencies == [1, 2]
