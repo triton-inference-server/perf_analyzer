@@ -30,7 +30,10 @@ from pathlib import Path
 from typing import Dict
 
 from genai_perf.metrics import ImageRetrievalMetrics
-from genai_perf.profile_data_parser.profile_data_parser import ProfileDataParser
+from genai_perf.profile_data_parser.profile_data_parser import (
+    ProfileDataParser,
+    ResponseFormat,
+)
 from genai_perf.utils import load_json_str
 
 
@@ -45,6 +48,20 @@ class ImageRetrievalProfileDataParser(ProfileDataParser):
         goodput_constraints: Dict[str, float] = {},
     ) -> None:
         super().__init__(filename, goodput_constraints)
+
+    def _get_profile_metadata(self, data: dict) -> None:
+        """Use the response format selected by the image retrieval endpoint type.
+
+        Custom image retrieval endpoints do not necessarily return the
+        ``image_retrieval`` marker used by the base parser's response-format
+        heuristic. The parser class is selected from ``--endpoint-type``, so it
+        already has authoritative format information.
+        """
+        self._service_kind = data["service_kind"]
+        if self._service_kind == "openai":
+            self._response_format = ResponseFormat.IMAGE_RETRIEVAL
+        else:
+            super()._get_profile_metadata(data)
 
     def _parse_requests(self, requests: dict) -> ImageRetrievalMetrics:
         """Parse each request in profile data to extract core metrics."""
