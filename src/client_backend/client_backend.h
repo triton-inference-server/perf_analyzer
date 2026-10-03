@@ -678,6 +678,13 @@ class InferResult {
     return Error("InferResult::IsNullResponse() not implemented");
   };
 
+  /// Get stream response bool for this response.
+  /// \return Error object indicating the success or failure.
+  virtual Error IsStreamResponse(bool* is_stream_response) const
+  {
+    return Error("InferReuslt::IsStreamRsponse() not implemented");
+  };
+
   /// Returns the response timestamps of the streaming request.
   /// \return Error object indicating the success or failure.
   virtual Error ResponseTimestamps(

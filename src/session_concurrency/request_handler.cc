@@ -44,6 +44,7 @@
 #include "../client_backend/client_backend.h"
 #include "../model_parser.h"
 #include "../request_record.h"
+#include "../rapidjson_utils.h"
 #include "payload_dataset_manager.h"
 #include "payload_json_utils.h"
 #include "response_json_utils.h"
@@ -67,11 +68,12 @@ RequestHandler::RequestHandler(
 void
 RequestHandler::SendRequestAndWaitForResponse(
     size_t dataset_index, rapidjson::Document& chat_history,
+    std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges,
     RequestRecord& request_record)
 {
   auto payload{payload_dataset_manager_->GetPayload(dataset_index)};
 
-  PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history);
+  PayloadJsonUtils::UpdateHistoryAndAddToPayload(payload, chat_history, one_session_chunk_ranges);
 
   auto& request_inputs{request_record.request_inputs_.emplace_back()};
 
@@ -80,8 +82,13 @@ RequestHandler::SendRequestAndWaitForResponse(
   auto response_promise{std::make_shared<std::promise<void>>()};
   std::future<void> response_future{response_promise->get_future()};
 
+  size_t last_index_chunk_ranges = 0;
+  if (!one_session_chunk_ranges.empty()) {
+    auto& last_range = one_session_chunk_ranges.back();
+    last_index_chunk_ranges = last_range.second;
+  }
   SendRequest(
-      payload, std::move(response_promise), chat_history, request_record);
+      payload, std::move(response_promise), chat_history, one_session_chunk_ranges, last_index_chunk_ranges, request_record);
 
   WaitForResponse(std::move(response_future));
 }
@@ -136,13 +143,16 @@ void
 RequestHandler::SendRequest(
     const std::string& payload,
     std::shared_ptr<std::promise<void>>&& response_promise,
-    rapidjson::Document& chat_history, RequestRecord& request_record)
+    rapidjson::Document& chat_history,
+    std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges,
+    size_t last_index_chunk_ranges,
+    RequestRecord& request_record)
 {
   const auto requested_outputs{PrepareRequestedOutputs()};
 
   const auto callback{PrepareCallback(
       std::move(response_promise), requested_outputs, request_record,
-      chat_history)};
+      chat_history, one_session_chunk_ranges, last_index_chunk_ranges)};
 
   const cb::InferOptions options(parser_->ModelName());
 
@@ -180,10 +190,12 @@ const std::function<void(cb::InferResult*)>
 RequestHandler::PrepareCallback(
     std::shared_ptr<std::promise<void>>&& response_promise,
     const std::vector<const cb::InferRequestedOutput*>& requested_outputs,
-    RequestRecord& request_record, rapidjson::Document& chat_history) const
+    RequestRecord& request_record, rapidjson::Document& chat_history,
+    std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges,
+    size_t last_index_chunk_ranges) const
 {
   return [response_promise, requested_outputs, &request_record, &chat_history,
-          this](cb::InferResult* infer_result) mutable {
+          &one_session_chunk_ranges, last_index_chunk_ranges, this](cb::InferResult* infer_result) mutable {
     if (!infer_result) {
       throw std::runtime_error("infer_result was null");
     } else if (!infer_result->RequestStatus().IsOk()) {
@@ -197,16 +209,60 @@ RequestHandler::PrepareCallback(
     const auto& response_document{
         ResponseJsonUtils::GetResponseDocument(response_buffer)};
 
-    const auto& response_message{
-        ResponseJsonUtils::GetMessage(response_document)};
+    bool is_stream{false};
+    auto error = infer_result->IsStreamResponse(&is_stream);
+    if (!error.IsOk()) {
+      // Forcibly set false to `is_stream` because
+      // this `infer_result` object is a subclass which
+      // does not implement `IsStreamResponse()`.
+      is_stream = false;
+    }
+    bool is_final{false};
+    error = infer_result->IsFinalResponse(&is_final);
+    if (!error.IsOk()) {
+      // Forcibly set false to `is_final`.
+      is_final = false;
+    }
 
-    rapidjson::Value response_message_copy{};
-    response_message_copy.CopyFrom(
-        response_message, chat_history.GetAllocator());
+    if (!response_document.IsNull()) {
+      // `response_document` should not be null
+      // when the response text is empty ("").
+      // Null can happen only when response is `data: [DONE]`.
 
-    chat_history.PushBack(response_message_copy, chat_history.GetAllocator());
+      if (is_stream && is_final) {
+        // Unexpected response.
+        throw std::runtime_error(
+          "In the case of streaming and the last chunk, response object must be null:\n\n" +
+          RapidJsonUtils::Serialize(response_document) + "\n\n\n"
+        );
+      }
 
-    response_promise->set_value();
+      rapidjson::Value response_message_copy{};
+      if (is_stream) {
+        response_message_copy.CopyFrom(
+            ResponseJsonUtils::GetDelta(response_document),
+            chat_history.GetAllocator());
+      } else {
+        response_message_copy.CopyFrom(
+            ResponseJsonUtils::GetMessage(response_document),
+            chat_history.GetAllocator());
+      }
+
+      chat_history.PushBack(response_message_copy, chat_history.GetAllocator());
+      auto& last_range = one_session_chunk_ranges.back();
+      size_t head_idx = last_range.first;
+      size_t tail_idx = last_range.second;
+
+      if (tail_idx == last_index_chunk_ranges) {
+        one_session_chunk_ranges.emplace_back(last_index_chunk_ranges, last_index_chunk_ranges + 1);
+      } else {
+        last_range.second++;
+      }
+    }
+
+    if (is_final) {
+      response_promise->set_value();
+    }
   };
 }
 
