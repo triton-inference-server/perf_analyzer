@@ -68,6 +68,8 @@ class CreateConfig:
 
         if args.file:
             config.template_filename = args.file
+        if args.header:
+            config.template_header = args.header
 
         return config
 
