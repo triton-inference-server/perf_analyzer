@@ -45,45 +45,35 @@ See https://www.nvidia.com/en-us/security/ for past NVIDIA Security Bulletins an
 
 ## Additional Reporting Channels
 
-In addition to the channels above, you can use:
+1. **NVIDIA Vulnerability Disclosure Program** (preferred): https://www.nvidia.com/en-us/security/
+2. **GitHub Private Vulnerability Reporting (where enabled):** use the "Report a vulnerability" button on the Security tab of this repository.
 
-* The [NVIDIA Vulnerability Disclosure Program](https://www.nvidia.com/en-us/security/) (preferred).
-* GitHub Private Vulnerability Reporting, via the **Security** tab of this repository, if it is enabled.
+**Do not open a public issue or pull request to report a vulnerability.**
 
-**Do not open a public GitHub issue or pull request for a suspected security vulnerability.**
-NVIDIA PSIRT will acknowledge your report, assess it, and coordinate remediation and disclosure with you.
+## Security Architecture and Context
 
-# Security Architecture & Context
+**Project:** perf_analyzer is part of the Triton Inference Server project.
 
-Perf Analyzer is a command-line performance and load-generation tool, written primarily in C++ (`src/`) with a Python GenAI front end (`genai-perf/`). It drives inference requests against a separately deployed inference service (Triton Inference Server, an OpenAI-compatible API, TensorFlow Serving, TorchServe, or an in-process Triton C API) and reports latency and throughput. It is a client-side developer and benchmarking tool, not a network service: it opens no listening sockets and holds no user data of its own.
+**Software type:** Software component (library, backend, client or tool) used as part of a Triton Inference Server deployment.
 
-* **Software classification:** CLI application / SDK component.
-* **Primary security responsibility:** safely parse operator-supplied arguments and files, and send requests to the configured target without weakening the transport security the operator selected.
-* **Key interfaces and boundaries:**
-  * Command-line arguments (`src/command_line_parser.cc`), including endpoint URLs, TLS options, and extra HTTP headers.
-  * Input files and directories supplied with `--input-data`, parsed by `src/data_loader.cc`.
-  * Client backends under `src/client_backend/` (HTTP/gRPC Triton, OpenAI, TensorFlow Serving, TorchServe, dynamic gRPC, Triton C API).
-  * System and CUDA shared memory used for inputs and outputs (`src/infer_data_manager_shm.cc`, `src/cuda_runtime_library_manager.cc`).
-  * Output files such as the profile export (`src/profile_data_exporter.cc`).
-* **Repository Exposure Classification:** Public (the repository is publicly visible on GitHub).
-* **Service Exposure Classification:** Internal-Isolated (medium confidence). The tool is run by developers and CI against test or staging services and does not itself serve external traffic.
+**Security boundaries:** The main security boundary is between this component and the data, models and configuration it is given, and between it and the server or application that hosts it.
 
-# Threat Model
+**Repository Exposure Classification:** Public.
 
-1. **Untrusted input data files:** `--input-data` JSON and binary files are parsed in `src/data_loader.cc`. Malformed or oversized files could cause excessive memory use or crashes. JSON tensor values are not resolved as file paths; in directory mode the loader reads files named after the model's input tensors from the data directory. A `message_generator` string in the JSON is run as a command (see threat 2), so an untrusted `--input-data` file must be treated as untrusted code, not only as untrusted data.
-2. **Command execution through streamed input:** `DataLoader::ReadDataFromPipe` in `src/data_loader.cc` starts a shell process with `popen` to read streaming input data. The command string is taken directly from the `message_generator` field of the `--input-data` JSON (`DataLoader::ReadTensorData`), so loading an untrusted input-data file can execute arbitrary commands with the privileges of the Perf Analyzer user. Never use `--input-data` files from untrusted sources.
-3. **Weakened or misconfigured TLS:** HTTPS peer and host verification and gRPC SSL options are set from command-line flags (`--ssl-https-*`, `--ssl-grpc-*`). Disabling verification, or pointing at the wrong certificate files, exposes request payloads and any authorization headers passed with the tool to interception on the network path.
-4. **Sensitive headers and payloads in logs and exports:** The profile export file written by `src/profile_data_exporter.cc` records request inputs, response outputs and timestamps, but not HTTP headers. Exported files may therefore contain sensitive payload content and are written with the process's default file permissions. Verbose console output from the client libraries may also include request details such as headers, so treat console logs as sensitive.
-5. **Dynamic library loading in the Triton C API mode:** `src/client_backend/triton_c_api/shared_library.cc` loads a server library with `dlopen` from a user-supplied `--triton-server-directory`, and `src/mpi_utils.cc` and `src/cuda_runtime_library_manager.cc` load `libmpi.so` and `libcudart.so` by name. A writable or attacker-influenced library path or search path can result in loading of unintended code.
-6. **Shared memory exposure:** System and CUDA shared-memory regions and CUDA IPC handles (`src/infer_data_manager_shm.cc`) are shared with the target server. Other local processes with access to the same shared-memory namespace could read or tamper with test tensors, and leftover regions after an abnormal exit can persist.
-7. **Build and dependency supply chain:** Builds and the Python `genai-perf` package pull third-party dependencies (see `CMakeLists.txt`, `pyproject.toml`). Unpinned or unverified dependencies could introduce vulnerable or malicious code into released artifacts.
+**Service Exposure Classification:** Deployment-dependent. Exposure depends on how the software is deployed and configured by the operator.
 
-# Critical Security Assumptions
+## Threat Model
 
-* **Trusted operator and environment:** Perf Analyzer is run by a trusted user on a trusted workstation or CI host; command-line arguments, data files, and the server directory are assumed to be controlled by that user.
-* **Trusted target service:** The configured endpoint is assumed to be the intended service. The tool does not authenticate the target beyond the TLS settings the operator provides.
-* **Operator-controlled TLS:** Transport security is only as strong as the flags supplied. Perf Analyzer's defaults verify peers for HTTPS, but the operator is responsible for enabling TLS where required and not disabling verification outside test environments.
-* **Trusted input data:** Input and data-directory files are assumed to be well formed and from a trusted source; the parser is not hardened as a boundary against hostile files.
-* **Trusted local libraries:** Shared libraries loaded through `dlopen` and files read from the Triton server directory are assumed to be genuine and not writable by untrusted users.
-* **Isolated local host:** Other local users are assumed not to access the process's shared memory, temporary files, or exported profile data.
-* **Not for production traffic:** Perf Analyzer is intended for benchmarking and should not be exposed as a service or run with elevated privileges.
+1. **Untrusted input:** Requests, models, configuration or data supplied to this component may be malformed or malicious, and could cause crashes, memory errors or unintended behavior if not validated.
+2. **Supply chain:** Source and build dependencies fetched at build or install time may be compromised, outdated or unpinned.
+3. **Network exposure:** When deployed behind a network-facing server, endpoints may be reachable by untrusted clients. This component does not by itself provide authentication, authorization or encryption.
+4. **Resource exhaustion:** Oversized or numerous requests may consume memory, compute or other resources and degrade availability.
+5. **Information disclosure:** Logs, metrics and error messages may reveal sensitive data such as paths, identifiers or request content.
+
+## Critical Security Assumptions
+
+* The component is deployed in a trusted environment or behind a gateway that provides authentication, authorization, TLS and rate limiting.
+* Models, configuration and other inputs come from trusted sources.
+* Dependencies and the build environment are kept up to date and obtained from trusted sources.
+* Operators protect secrets, certificates and credentials, and restrict access to logs and metrics.
+* Host operating system, driver and hardware security are the operator's responsibility.
