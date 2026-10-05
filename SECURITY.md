@@ -26,54 +26,28 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -->
 
-# Report a Security Vulnerability
+## Security
 
-To report a potential security vulnerability in any NVIDIA product, please use either:
-* [Security Vulnerability Submission Form](https://www.nvidia.com/object/submit-security-vulnerability.html), or
-* Send email to psirt@nvidia.com
+NVIDIA is dedicated to the security and trust of our software products and services, including all source code repositories managed through our organization.
 
-**OEM Partners should contact their NVIDIA Customer Program Manager**
+If you need to report a security issue, please use the appropriate contact points outlined below. **Please do not report security vulnerabilities through GitHub/GitLab.** If a potential security issue is inadvertently reported via a public issue or pull request, NVIDIA maintainers may limit public discussion and redirect the reporter to the appropriate private disclosure channels.
 
-If reporting a potential vulnerability via email, please encrypt it using NVIDIA’s public PGP key ([see PGP Key page](https://www.nvidia.com/en-us/security/pgp-key/)) and include the following information:
-1. Product/Driver name and version/branch that contains the vulnerability
-2. Type of vulnerability (code execution, denial of service, buffer overflow, etc.)
-3. Instructions to reproduce the vulnerability
-4. Proof-of-concept or exploit code
-5. Potential impact of the vulnerability, including how an attacker could exploit the vulnerability
+## Reporting Potential Security Vulnerability in an NVIDIA Product
 
-See https://www.nvidia.com/en-us/security/ for past NVIDIA Security Bulletins and Notices.
+To report a potential security vulnerability in any NVIDIA product:
 
-## Additional Reporting Channels
+- Web: [Security Vulnerability Submission Form](https://www.nvidia.com/object/submit-security-vulnerability.html)
+- E-Mail: psirt@nvidia.com
+  - We encourage you to use the following PGP key for secure email communication: [NVIDIA public PGP Key for communication](https://www.nvidia.com/en-us/security/pgp-key)
+  - Please include the following information:
+    - Product/Driver name and version/branch that contains the vulnerability
+    - Type of vulnerability (code execution, denial of service, buffer overflow, etc.)
+    - Instructions to reproduce the vulnerability
+    - Proof-of-concept or exploit code
+    - Potential impact of the vulnerability, including how an attacker could exploit the vulnerability
 
-1. **NVIDIA Vulnerability Disclosure Program** (preferred): https://www.nvidia.com/en-us/security/
-2. **GitHub Private Vulnerability Reporting (where enabled):** use the "Report a vulnerability" button on the Security tab of this repository.
+While NVIDIA currently does not have a bug bounty program, we do offer acknowledgement when an externally reported security issue is addressed under our coordinated vulnerability disclosure policy. Please visit our [Product Security Incident Response Team (PSIRT)](https://www.nvidia.com/en-us/security/psirt-policies/) policies page for more information.
 
-**Do not open a public issue or pull request to report a vulnerability.**
+## NVIDIA Product Security
 
-## Security Architecture and Context
-
-**Project:** perf_analyzer is part of the Triton Inference Server project.
-
-**Software type:** Software component (library, backend, client or tool) used as part of a Triton Inference Server deployment.
-
-**Security boundaries:** The main security boundary is between this component and the data, models and configuration it is given, and between it and the server or application that hosts it.
-
-**Repository Exposure Classification:** Public.
-
-**Service Exposure Classification:** Deployment-dependent. Exposure depends on how the software is deployed and configured by the operator.
-
-## Threat Model
-
-1. **Untrusted input:** Requests, models, configuration or data supplied to this component may be malformed or malicious, and could cause crashes, memory errors or unintended behavior if not validated.
-2. **Supply chain:** Source and build dependencies fetched at build or install time may be compromised, outdated or unpinned.
-3. **Network exposure:** When deployed behind a network-facing server, endpoints may be reachable by untrusted clients. This component does not by itself provide authentication, authorization or encryption.
-4. **Resource exhaustion:** Oversized or numerous requests may consume memory, compute or other resources and degrade availability.
-5. **Information disclosure:** Logs, metrics and error messages may reveal sensitive data such as paths, identifiers or request content.
-
-## Critical Security Assumptions
-
-* The component is deployed in a trusted environment or behind a gateway that provides authentication, authorization, TLS and rate limiting.
-* Models, configuration and other inputs come from trusted sources.
-* Dependencies and the build environment are kept up to date and obtained from trusted sources.
-* Operators protect secrets, certificates and credentials, and restrict access to logs and metrics.
-* Host operating system, driver and hardware security are the operator's responsibility.
+For all security-related concerns, please visit NVIDIA's Product Security portal at https://www.nvidia.com/en-us/security
