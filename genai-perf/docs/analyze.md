@@ -33,6 +33,10 @@ The `analyze` subcommand is used to sweep through PA or GenAI-Perf stimulus allo
 ## Analyze CLI
 The `analyze` subcommand uses the same CLI options as `profile` with the following additional options, which are used to specify the type and ranges of the stimulus you wish to sweep:
 
+When multiple models are specified, each sweep point profiles the same mixed-model
+workload using `--model-selection-strategy`. The stimulus is swept across that
+workload, not independently for each model.
+
 #### `--sweep-type` - The type of stimulus you wish the sweep over
 The currently support stimulus values are `batch_size`, `concurrency`, `request_rate`, `input_sequence_length`, and `num_dataset_entries`
 
@@ -237,4 +241,3 @@ for run_config in results.run_configs:
   isl.append = run_config.get_model_perf_metric_value(model_name, InputSequenceLengthP99.tag)
   ttftl.append = run_config.get_model_perf_metric_value(model_name, TimeToFirstTokenP99.tag)
 ```
-
