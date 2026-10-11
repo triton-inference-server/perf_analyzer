@@ -29,7 +29,7 @@ import sys
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional, Tuple
-
+import re
 import genai_perf.logging as logging
 import genai_perf.utils as utils
 from genai_perf.config.endpoint_config import endpoint_type_map
@@ -862,7 +862,9 @@ def init_parsers():
 def get_passthrough_args_index(argv: list) -> int:
     if "--" in argv:
         passthrough_index = argv.index("--")
-        logger.info(f"Detected passthrough args: {argv[passthrough_index + 1:]}")
+        passthrough_cmd = ' '.join(argv[passthrough_index + 1:])
+        masked_cmd = re.sub(r'(-H Authorization: Bearer )\S+', r'\1********', passthrough_cmd)
+        logger.info(f"Detected passthrough args: {masked_cmd.split()}")
     else:
         passthrough_index = len(argv)
 
