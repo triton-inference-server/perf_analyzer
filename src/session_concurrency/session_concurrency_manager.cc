@@ -42,6 +42,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <utility>
 
 #include "../client_backend/client_backend.h"
 #include "../load_manager.h"
@@ -140,6 +141,19 @@ SessionConcurrencyManager::SendSequentialRequestsForOneSession(
     std::vector<RequestRecord>& request_records)
 {
   rapidjson::Document chat_history(rapidjson::kArrayType);
+  // This vector contains pairs representing head and tail index of
+  // a single payload or a group of chunks corresponding to one request payload.
+  // (exclusive at tail)
+  // Example:
+  // one_session_chunk_ranges[0] = (0, 1)
+  //   --> chat_history[0] - chat_history[0] is a single request payload
+  // one_session_chunk_ranges[1] = (1, 10)
+  //   --> chat_history[1] - chat_history[9] is a range of payload chunks for the first request
+  // one_session_chunk_ranges[2] = (10, 11)
+  //   --> chat_history[10] - chat_history[10] is a single request payload
+  // one_session_chunk_ranges[3] = (11, 18)
+  //   --> chat_history[11] - chat_history[17] is a range of payload chunks for the second request
+  std::vector<std::pair<size_t, size_t>> one_session_chunk_ranges;
 
   for (size_t i{0}; i < one_session_payloads.size(); ++i) {
     const size_t payload_dataset_index{one_session_payloads[i]};
@@ -147,7 +161,7 @@ SessionConcurrencyManager::SendSequentialRequestsForOneSession(
     auto& request_record{request_records.emplace_back()};
 
     request_handler_->SendRequestAndWaitForResponse(
-        payload_dataset_index, chat_history, request_record);
+        payload_dataset_index, chat_history, one_session_chunk_ranges, request_record);
 
     const bool is_last_request{i == one_session_payloads.size() - 1};
 
