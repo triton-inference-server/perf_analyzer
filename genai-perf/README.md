@@ -679,11 +679,11 @@ Currently only 1 (mono) and 2 (stereo) are supported.
 
 ##### `-b <int>`
 ##### `--batch-size <int>`
-##### `--batch-size-text <int>
+##### `--batch-size-text <int>`
 
 The text batch size of the requests GenAI-Perf should send.
 (default: `1`)
-##### `--batch-size-text <int>
+##### `--batch-size-text <int>`
 
 The text batch size of the requests GenAI-Perf should send.
 (default: `1`)
