@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.exceptions import GenAIPerfException
+from genai_perf.utils import supports_kwarg
 
 
 class Tokenizer:
@@ -56,6 +57,16 @@ class Tokenizer:
                 tokenizer = AutoTokenizer.from_pretrained( # nosec
                     name, trust_remote_code=trust_remote_code, revision=revision
                 )
+
+                if supports_kwarg(tokenizer, "encode", "allow_special_tokens"):
+                    # If the tokenizer encode method supports allow_special_tokens
+                    # then we override the normal 'add_special_tokens' parameter
+                    # with 'allow_special_tokens' to match the behavior of the
+                    # current tokenizer. (such as Kimi)
+                    self._call_args = {"allow_special_tokens": False}
+                    self._encode_args = {"allow_special_tokens": False}
+                    self._decode_args = {"skip_special_tokens": True}
+
         except Exception as e:
             raise GenAIPerfException(e)
         self._tokenizer = tokenizer
