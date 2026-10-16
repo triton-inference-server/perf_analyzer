@@ -68,6 +68,8 @@ class TestLoadManager : public TestLoadManagerBase, public LoadManager {
   std::vector<std::shared_ptr<ThreadStat>>& threads_stat_{
       LoadManager::threads_stat_};
 
+  using LoadManager::MakeThreadStat;
+
   /// Test the public function CheckHealth
   ///
   /// It will return a bad result if any of the thread stats
@@ -455,6 +457,30 @@ TEST_CASE(
   CHECK(tlm.threads_stat_.size() == 2);
   CHECK(tlm.threads_stat_[0]->num_sent_requests_ == 0);
   CHECK(tlm.threads_stat_[1]->num_sent_requests_ == 0);
+}
+
+TEST_CASE(
+    "load_manager: thread stats collect request payloads only when the manager "
+    "does")
+{
+  TestLoadManager tlm(PerfAnalyzerParameters{});
+
+  SUBCASE("default")
+  {
+    CHECK(tlm.MakeThreadStat()->collect_request_payloads_ == true);
+  }
+
+  SUBCASE("enabled")
+  {
+    tlm.SetCollectRequestPayloads(true);
+    CHECK(tlm.MakeThreadStat()->collect_request_payloads_ == true);
+  }
+
+  SUBCASE("disabled")
+  {
+    tlm.SetCollectRequestPayloads(false);
+    CHECK(tlm.MakeThreadStat()->collect_request_payloads_ == false);
+  }
 }
 
 }}  // namespace triton::perfanalyzer

@@ -120,7 +120,10 @@ InferContext::SendRequest(
   thread_stat_->num_sent_requests_++;
 
   // Parse the request inputs to save in the profile export file
-  RequestRecord::RequestInput request_inputs{GetInputs()};
+  RequestRecord::RequestInput request_inputs{};
+  if (thread_stat_->collect_request_payloads_) {
+    request_inputs = GetInputs();
+  }
 
   if (async_) {
     uint64_t unique_request_id{(thread_id_ << 48) | ((request_id << 16) >> 16)};
@@ -164,7 +167,9 @@ InferContext::SendRequest(
 
     if (results != nullptr) {
       if (thread_stat_->status_.IsOk()) {
-        response_outputs = GetOutputs(*results);
+        if (thread_stat_->collect_request_payloads_) {
+          response_outputs = GetOutputs(*results);
+        }
         thread_stat_->status_ = ValidateOutputs(results);
       }
       delete results;
@@ -318,7 +323,11 @@ InferContext::AsyncCallbackFuncImpl(cb::InferResult* result)
         }
         it->second.response_timestamps_.push_back(
             std::chrono::system_clock::now());
-        it->second.response_outputs_.push_back(GetOutputs(*result));
+        // Keep one entry per response, empty when payloads aren't collected
+        it->second.response_outputs_.push_back(
+            thread_stat_->collect_request_payloads_
+                ? GetOutputs(*result)
+                : RequestRecord::ResponseOutput{});
         num_responses_++;
         if (is_null_response == true) {
           it->second.has_null_last_response_ = true;

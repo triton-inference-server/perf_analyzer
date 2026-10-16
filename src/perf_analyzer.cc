@@ -296,6 +296,12 @@ PerfAnalyzer::CreateAnalyzerObjects()
         params_->session_concurrency);
   }
 
+  const bool should_collect_profile_data{!params_->profile_export_file.empty()};
+
+  // Request inputs and response outputs are only used in the profile export
+  // file, so don't keep copies of them otherwise
+  manager->SetCollectRequestPayloads(should_collect_profile_data);
+
   manager->InitManager(
       params_->string_length, params_->string_data, params_->zero_input,
       params_->user_data, params_->start_sequence_id,
@@ -319,7 +325,7 @@ PerfAnalyzer::CreateAnalyzerObjects()
           params_->measurement_request_count, params_->measurement_mode,
           params_->mpi_driver, params_->metrics_interval_ms,
           params_->should_collect_metrics, params_->overhead_pct_threshold,
-          params_->async, collector_, !params_->profile_export_file.empty()),
+          params_->async, collector_, should_collect_profile_data),
       "failed to create profiler");
 }
 

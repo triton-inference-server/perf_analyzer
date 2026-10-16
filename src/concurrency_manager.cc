@@ -142,7 +142,7 @@ ConcurrencyManager::ReconfigThreads(
   while ((concurrent_request_count > threads_.size()) &&
          (threads_.size() < max_threads_)) {
     // Launch new thread for inferencing
-    threads_stat_.emplace_back(new ThreadStat());
+    threads_stat_.emplace_back(MakeThreadStat());
     threads_config_.emplace_back(new ThreadConfig(threads_config_.size()));
 
     workers_.push_back(

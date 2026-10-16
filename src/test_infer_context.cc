@@ -175,4 +175,89 @@ TEST_CASE("send_request: testing the SendRequest function")
   }
 }
 
+TEST_CASE(
+    "send_request: request inputs and response outputs are only recorded when "
+    "collecting request payloads")
+{
+  // InferRequestedOutput's constructor is protected
+  class TestInferRequestedOutput : public cb::InferRequestedOutput {
+   public:
+    TestInferRequestedOutput(const std::string& name)
+        : cb::InferRequestedOutput(cb::BackendKind::TRITON, name, "INT32")
+    {
+    }
+  };
+
+  auto send_request{[](const bool collect_request_payloads) {
+    MockInferContext mock_infer_context{};
+    mock_infer_context.thread_stat_ = std::make_shared<ThreadStat>();
+    mock_infer_context.thread_stat_->contexts_stat_.emplace_back();
+    mock_infer_context.thread_stat_->collect_request_payloads_ =
+        collect_request_payloads;
+    mock_infer_context.async_ = true;
+    mock_infer_context.streaming_ = true;
+    mock_infer_context.infer_data_.options_ =
+        std::make_unique<cb::InferOptions>("my_model");
+    mock_infer_context.infer_data_.options_->request_id_ = "5";
+
+    // InferData owns and deletes these
+    cb::InferInput* input{new cb::MockInferInput(
+        cb::BackendKind::TRITON, "INPUT0", {1}, "INT32")};
+    mock_infer_context.infer_data_.inputs_.push_back(input);
+    mock_infer_context.infer_data_.valid_inputs_.push_back(input);
+    mock_infer_context.infer_data_.outputs_.push_back(
+        new TestInferRequestedOutput("OUTPUT0"));
+
+    std::shared_ptr<cb::MockClientStats> mock_client_stats{
+        std::make_shared<cb::MockClientStats>()};
+    mock_infer_context.infer_backend_ =
+        std::make_unique<cb::MockClientBackend>(mock_client_stats);
+
+    cb::MockInferResult* mock_infer_result{
+        new cb::MockInferResult(*mock_infer_context.infer_data_.options_)};
+    cb::OnCompleteFn& stream_callback{mock_infer_context.async_callback_func_};
+
+    EXPECT_CALL(
+        dynamic_cast<cb::MockClientBackend&>(
+            *mock_infer_context.infer_backend_),
+        AsyncStreamInfer(testing::_, testing::_, testing::_))
+        .WillOnce(
+            [&mock_infer_result, &stream_callback](
+                const cb::InferOptions& options,
+                const std::vector<cb::InferInput*>& inputs,
+                const std::vector<const cb::InferRequestedOutput*>& outputs)
+                -> cb::Error {
+              stream_callback(mock_infer_result);
+              return cb::Error::Success;
+            });
+
+    mock_infer_context.SendRequest(
+        5 /* request_id */, false /* delayed */, 0 /* sequence_id */);
+
+    REQUIRE(mock_infer_context.thread_stat_->request_records_.size() == 1);
+    return mock_infer_context.thread_stat_->request_records_[0];
+  }};
+
+  SUBCASE("collecting request payloads")
+  {
+    const RequestRecord request_record{send_request(true)};
+
+    REQUIRE(request_record.request_inputs_.size() == 1);
+    CHECK(request_record.request_inputs_[0].count("INPUT0") == 1);
+    REQUIRE(request_record.response_outputs_.size() == 1);
+    CHECK(request_record.response_outputs_[0].count("OUTPUT0") == 1);
+  }
+
+  SUBCASE("not collecting request payloads")
+  {
+    const RequestRecord request_record{send_request(false)};
+
+    REQUIRE(request_record.request_inputs_.size() == 1);
+    CHECK(request_record.request_inputs_[0].empty());
+    // Still one (empty) entry per response
+    REQUIRE(request_record.response_outputs_.size() == 1);
+    CHECK(request_record.response_outputs_[0].empty());
+  }
+}
+
 }}  // namespace triton::perfanalyzer

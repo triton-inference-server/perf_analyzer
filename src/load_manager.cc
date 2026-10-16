@@ -284,6 +284,14 @@ LoadManager::WaitForWarmupAndCleanup()
   workers_.clear();
 }
 
+std::shared_ptr<ThreadStat>
+LoadManager::MakeThreadStat() const
+{
+  auto thread_stat{std::make_shared<ThreadStat>()};
+  thread_stat->collect_request_payloads_ = collect_request_payloads_;
+  return thread_stat;
+}
+
 std::shared_ptr<SequenceManager>
 LoadManager::MakeSequenceManager(
     const uint64_t start_sequence_id, const uint64_t sequence_id_range,

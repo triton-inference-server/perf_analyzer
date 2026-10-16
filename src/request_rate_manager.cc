@@ -247,7 +247,7 @@ RequestRateManager::ConfigureThreads(
     size_t num_of_threads = DetermineNumThreads();
     while (workers_.size() < num_of_threads) {
       // Launch new thread for inferencing
-      threads_stat_.emplace_back(new ThreadStat());
+      threads_stat_.emplace_back(MakeThreadStat());
       threads_config_.emplace_back(new ThreadConfig(workers_.size()));
 
       workers_.push_back(MakeWorker(
