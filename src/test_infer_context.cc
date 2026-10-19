@@ -1,4 +1,4 @@
-// Copyright (c) 2023-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -179,6 +179,28 @@ TEST_CASE(
     "send_request: request inputs and response outputs are only recorded when "
     "collecting request payloads")
 {
+  const std::vector<uint8_t> input_data{1, 2, 3, 4};
+  const std::vector<uint8_t> output_data{5, 6, 7, 8};
+
+  // An input that holds known data
+  class TestInferInput : public cb::MockInferInput {
+   public:
+    TestInferInput(const std::vector<uint8_t>& data)
+        : cb::MockInferInput(cb::BackendKind::TRITON, "INPUT0", {1}, "INT32"),
+          data_(data)
+    {
+    }
+
+    cb::Error RawData(const uint8_t** buf, size_t* byte_size) override
+    {
+      *buf = data_.data();
+      *byte_size = data_.size();
+      return cb::Error::Success;
+    }
+
+    const std::vector<uint8_t> data_;
+  };
+
   // InferRequestedOutput's constructor is protected
   class TestInferRequestedOutput : public cb::InferRequestedOutput {
    public:
@@ -188,21 +210,62 @@ TEST_CASE(
     }
   };
 
-  auto send_request{[](const bool collect_request_payloads) {
+  // A result whose outputs hold known data
+  class TestInferResult : public cb::MockInferResult {
+   public:
+    TestInferResult(
+        const cb::InferOptions& options, const std::vector<uint8_t>& data)
+        : cb::MockInferResult(options), data_(data)
+    {
+    }
+
+    cb::Error RawData(const std::string& output_name, std::vector<uint8_t>& buf)
+        const override
+    {
+      buf = data_;
+      return cb::Error::Success;
+    }
+
+    const std::vector<uint8_t> data_;
+  };
+
+  // MockClientBackend's synchronous Infer doesn't return a result
+  class TestSyncClientBackend : public cb::NaggyMockClientBackend {
+   public:
+    TestSyncClientBackend(
+        std::shared_ptr<cb::MockClientStats> stats,
+        const std::vector<uint8_t>& output_data)
+        : cb::NaggyMockClientBackend(stats), output_data_(output_data)
+    {
+    }
+
+    cb::Error Infer(
+        cb::InferResult** result, const cb::InferOptions& options,
+        const std::vector<cb::InferInput*>& inputs,
+        const std::vector<const cb::InferRequestedOutput*>& outputs) override
+    {
+      *result = new TestInferResult(options, output_data_);
+      return cb::Error::Success;
+    }
+
+    const std::vector<uint8_t> output_data_;
+  };
+
+  auto send_request{[&input_data, &output_data](
+                        const bool async, const bool collect_request_payloads) {
     MockInferContext mock_infer_context{};
     mock_infer_context.thread_stat_ = std::make_shared<ThreadStat>();
     mock_infer_context.thread_stat_->contexts_stat_.emplace_back();
     mock_infer_context.thread_stat_->collect_request_payloads_ =
         collect_request_payloads;
-    mock_infer_context.async_ = true;
-    mock_infer_context.streaming_ = true;
+    mock_infer_context.async_ = async;
+    mock_infer_context.streaming_ = async;
     mock_infer_context.infer_data_.options_ =
         std::make_unique<cb::InferOptions>("my_model");
     mock_infer_context.infer_data_.options_->request_id_ = "5";
 
     // InferData owns and deletes these
-    cb::InferInput* input{new cb::MockInferInput(
-        cb::BackendKind::TRITON, "INPUT0", {1}, "INT32")};
+    cb::InferInput* input{new TestInferInput(input_data)};
     mock_infer_context.infer_data_.inputs_.push_back(input);
     mock_infer_context.infer_data_.valid_inputs_.push_back(input);
     mock_infer_context.infer_data_.outputs_.push_back(
@@ -210,26 +273,34 @@ TEST_CASE(
 
     std::shared_ptr<cb::MockClientStats> mock_client_stats{
         std::make_shared<cb::MockClientStats>()};
-    mock_infer_context.infer_backend_ =
-        std::make_unique<cb::MockClientBackend>(mock_client_stats);
 
-    cb::MockInferResult* mock_infer_result{
-        new cb::MockInferResult(*mock_infer_context.infer_data_.options_)};
-    cb::OnCompleteFn& stream_callback{mock_infer_context.async_callback_func_};
+    if (async) {
+      mock_infer_context.infer_backend_ =
+          std::make_unique<cb::MockClientBackend>(mock_client_stats);
 
-    EXPECT_CALL(
-        dynamic_cast<cb::MockClientBackend&>(
-            *mock_infer_context.infer_backend_),
-        AsyncStreamInfer(testing::_, testing::_, testing::_))
-        .WillOnce(
-            [&mock_infer_result, &stream_callback](
-                const cb::InferOptions& options,
-                const std::vector<cb::InferInput*>& inputs,
-                const std::vector<const cb::InferRequestedOutput*>& outputs)
-                -> cb::Error {
-              stream_callback(mock_infer_result);
-              return cb::Error::Success;
-            });
+      cb::InferResult* infer_result{new TestInferResult(
+          *mock_infer_context.infer_data_.options_, output_data)};
+      cb::OnCompleteFn& stream_callback{
+          mock_infer_context.async_callback_func_};
+
+      EXPECT_CALL(
+          dynamic_cast<cb::MockClientBackend&>(
+              *mock_infer_context.infer_backend_),
+          AsyncStreamInfer(testing::_, testing::_, testing::_))
+          .WillOnce(
+              [infer_result, &stream_callback](
+                  const cb::InferOptions& options,
+                  const std::vector<cb::InferInput*>& inputs,
+                  const std::vector<const cb::InferRequestedOutput*>& outputs)
+                  -> cb::Error {
+                stream_callback(infer_result);
+                return cb::Error::Success;
+              });
+    } else {
+      mock_infer_context.infer_backend_ =
+          std::make_unique<testing::NiceMock<TestSyncClientBackend>>(
+              mock_client_stats, output_data);
+    }
 
     mock_infer_context.SendRequest(
         5 /* request_id */, false /* delayed */, 0 /* sequence_id */);
@@ -238,25 +309,43 @@ TEST_CASE(
     return mock_infer_context.thread_stat_->request_records_[0];
   }};
 
-  SUBCASE("collecting request payloads")
-  {
-    const RequestRecord request_record{send_request(true)};
-
+  auto check_collected{[&input_data,
+                        &output_data](const RequestRecord& request_record) {
     REQUIRE(request_record.request_inputs_.size() == 1);
-    CHECK(request_record.request_inputs_[0].count("INPUT0") == 1);
+    REQUIRE(request_record.request_inputs_[0].count("INPUT0") == 1);
+    CHECK(request_record.request_inputs_[0].at("INPUT0").data_ == input_data);
     REQUIRE(request_record.response_outputs_.size() == 1);
-    CHECK(request_record.response_outputs_[0].count("OUTPUT0") == 1);
-  }
+    REQUIRE(request_record.response_outputs_[0].count("OUTPUT0") == 1);
+    CHECK(
+        request_record.response_outputs_[0].at("OUTPUT0").data_ == output_data);
+  }};
 
-  SUBCASE("not collecting request payloads")
-  {
-    const RequestRecord request_record{send_request(false)};
-
+  auto check_not_collected{[](const RequestRecord& request_record) {
     REQUIRE(request_record.request_inputs_.size() == 1);
     CHECK(request_record.request_inputs_[0].empty());
     // Still one (empty) entry per response
     REQUIRE(request_record.response_outputs_.size() == 1);
     CHECK(request_record.response_outputs_[0].empty());
+  }};
+
+  SUBCASE("synchronous, collecting request payloads")
+  {
+    check_collected(send_request(false /* async */, true /* collect */));
+  }
+
+  SUBCASE("synchronous, not collecting request payloads")
+  {
+    check_not_collected(send_request(false /* async */, false /* collect */));
+  }
+
+  SUBCASE("asynchronous, collecting request payloads")
+  {
+    check_collected(send_request(true /* async */, true /* collect */));
+  }
+
+  SUBCASE("asynchronous, not collecting request payloads")
+  {
+    check_not_collected(send_request(true /* async */, false /* collect */));
   }
 }
 
