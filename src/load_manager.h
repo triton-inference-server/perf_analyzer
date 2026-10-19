@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -72,6 +72,15 @@ class LoadManager {
       const size_t sequence_length, const bool sequence_length_specified,
       const double sequence_length_variation);
 
+  /// Set whether request records keep a copy of each request's inputs and each
+  /// response's outputs. Only the profile export file needs them. Must be
+  /// called before the load starts.
+  /// \param collect_request_payloads Whether to keep the copies.
+  void SetCollectRequestPayloads(const bool collect_request_payloads)
+  {
+    collect_request_payloads_ = collect_request_payloads;
+  }
+
   /// Check if the load manager is working as expected.
   /// \return cb::Error object indicating success or failure.
   cb::Error CheckHealth();
@@ -137,6 +146,9 @@ class LoadManager {
   /// Waits for worker threads to complete then reset data members after warmup
   virtual void WaitForWarmupAndCleanup();
 
+  /// Creates the stats object for a new worker thread.
+  std::shared_ptr<ThreadStat> MakeThreadStat() const;
+
  protected:
   bool async_;
   bool streaming_;
@@ -148,6 +160,7 @@ class LoadManager {
   std::shared_ptr<cb::ClientBackendFactory> factory_;
 
   bool using_json_data_;
+  bool collect_request_payloads_{true};
 
   std::shared_ptr<DataLoader> data_loader_;
   std::shared_ptr<IInferDataManager> infer_data_manager_;

@@ -1,4 +1,4 @@
-// Copyright 2020-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -282,6 +282,14 @@ LoadManager::WaitForWarmupAndCleanup()
   threads_config_.clear();
   threads_stat_.clear();
   workers_.clear();
+}
+
+std::shared_ptr<ThreadStat>
+LoadManager::MakeThreadStat() const
+{
+  auto thread_stat{std::make_shared<ThreadStat>()};
+  thread_stat->collect_request_payloads_ = collect_request_payloads_;
+  return thread_stat;
 }
 
 std::shared_ptr<SequenceManager>
