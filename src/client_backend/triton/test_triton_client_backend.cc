@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <memory>
 
 #include "../../doctest.h"
 #include "triton_client_backend.h"
@@ -45,6 +46,49 @@ class TestTritonClientBackend : public TritonClientBackend {
         metrics_endpoint_text, metric_id, metric_per_gpu);
   }
 };
+
+TEST_CASE("TritonClientBackend::Create with GRPC and SSL target name override")
+{
+  using triton::perfanalyzer::clientbackend::Error;
+  using triton::perfanalyzer::clientbackend::SslOptionsBase;
+  using triton::perfanalyzer::clientbackend::ClientBackend;
+  using triton::perfanalyzer::clientbackend::tritonremote::TritonClientBackend;
+
+  const std::string url{"localhost:8001"};
+  const bool verbose{false};
+  const std::string metrics_url{};
+  const auto protocol = cb::ProtocolType::GRPC;
+  const auto input_tensor_format = cb::TensorFormat::BINARY;
+  const auto output_tensor_format = cb::TensorFormat::BINARY;
+  const grpc_compression_algorithm compression = GRPC_COMPRESS_NONE;
+  std::shared_ptr<tc::Headers> headers = std::make_shared<tc::Headers>();
+  std::map<std::string, std::vector<std::string>> trace_options{};
+
+  SUBCASE("override set")
+  {
+    SslOptionsBase ssl{};
+    ssl.ssl_grpc_target_name_override = "my.host.name";
+
+    std::unique_ptr<ClientBackend> backend;
+    Error err = TritonClientBackend::Create(
+        url, protocol, ssl, trace_options, compression, headers, verbose,
+        metrics_url, input_tensor_format, output_tensor_format, &backend);
+    CHECK(err.IsOk());
+    CHECK(backend != nullptr);
+  }
+
+  SUBCASE("override empty")
+  {
+    SslOptionsBase ssl{};
+
+    std::unique_ptr<ClientBackend> backend;
+    Error err = TritonClientBackend::Create(
+        url, protocol, ssl, trace_options, compression, headers, verbose,
+        metrics_url, input_tensor_format, output_tensor_format, &backend);
+    CHECK(err.IsOk());
+    CHECK(backend != nullptr);
+  }
+}
 
 TEST_CASE("testing the ParseAndStoreMetric function")
 {

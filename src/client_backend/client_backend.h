@@ -258,6 +258,7 @@ struct SslOptionsBase {
   std::string ssl_grpc_root_certifications_file = "";
   std::string ssl_grpc_private_key_file = "";
   std::string ssl_grpc_certificate_chain_file = "";
+  std::string ssl_grpc_target_name_override = "";
   long ssl_https_verify_peer = 1L;
   long ssl_https_verify_host = 2L;
   std::string ssl_https_ca_certificates_file = "";
