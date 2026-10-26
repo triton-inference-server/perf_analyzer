@@ -34,6 +34,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "../rapidjson_utils.h"
 
@@ -41,13 +42,14 @@ namespace triton::perfanalyzer {
 
 void
 PayloadJsonUtils::UpdateHistoryAndAddToPayload(
-    std::string& payload, rapidjson::Document& chat_history)
+    std::string& payload, rapidjson::Document& chat_history,
+    std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges)
 {
   auto payload_document{GetPayloadDocument(payload)};
 
-  AddPayloadToChatHistory(payload_document, chat_history);
+  AddPayloadToChatHistory(payload_document, chat_history, one_session_chunk_ranges);
 
-  SetPayloadToChatHistory(payload_document, chat_history);
+  SetPayloadToChatHistory(payload_document, chat_history, one_session_chunk_ranges);
 
   payload = GetSerializedPayload(payload_document);
 }
@@ -55,15 +57,24 @@ PayloadJsonUtils::UpdateHistoryAndAddToPayload(
 void
 PayloadJsonUtils::AddPayloadToChatHistory(
     const rapidjson::Document& payload_document,
-    rapidjson::Document& chat_history)
+    rapidjson::Document& chat_history,
+    std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges)
 {
   const auto& payload_messages{GetPayloadMessages(payload_document)};
 
   rapidjson::Value payload_messages_copy{};
   payload_messages_copy.CopyFrom(payload_messages, chat_history.GetAllocator());
 
+  size_t last_index_chunk_ranges = 0;
+  if (!one_session_chunk_ranges.empty()) {
+    auto& last_range = one_session_chunk_ranges.back();
+    last_index_chunk_ranges = last_range.second;
+  }
+
   for (auto& payload_message : payload_messages_copy.GetArray()) {
     chat_history.PushBack(payload_message, chat_history.GetAllocator());
+    one_session_chunk_ranges.emplace_back(last_index_chunk_ranges, last_index_chunk_ranges + 1);
+    last_index_chunk_ranges++;
   }
 }
 
@@ -96,13 +107,116 @@ PayloadJsonUtils::ValidatePayloadMessages(
 }
 
 void
+PayloadJsonUtils::UpdateContent(
+    rapidjson::Value& item,
+    std::string& buffer,
+    rapidjson::Document::AllocatorType& allocator)
+{
+  // NOTE: Content key is hardcoded.
+  //       This may change depending on the target inference framework.
+  std::string c = std::string(item["content"].GetString()) + buffer;
+  item["content"].SetString(c.c_str(), c.size(), allocator);
+}
+
+void
 PayloadJsonUtils::SetPayloadToChatHistory(
     rapidjson::Document& payload_document,
-    const rapidjson::Document& chat_history)
+    const rapidjson::Document& chat_history,
+    std::vector<std::pair<size_t, size_t>>& one_session_chunk_ranges)
 {
   auto& payload_messages{GetPayloadMessages(payload_document)};
 
-  payload_messages.CopyFrom(chat_history, payload_document.GetAllocator());
+  // Merge chunked responses in streaming mode.
+  rapidjson::Document merged_history{};
+  merged_history.Parse("[]");
+  auto& allocator = merged_history.GetAllocator();
+  std::vector<rapidjson::Value> values{};
+  std::string content_buffer{};
+  std::string content_key{};
+  size_t history_index = 0;
+  size_t chunk_range_index = 0;
+  for (auto& h : chat_history.GetArray()) {
+    // This merge sequence assumes that:
+    // 1. the order of arrivals is preserved in chat_history,
+    // 2. for request payload and non-streaming response,
+    //    each entry in chat_history includes the entire text which is not chunked,
+    // 3. for streaming response, each chunk has "role" field.
+    //    note that it's depending on inference framework about
+    //    what fields and values are filled.
+    // 4. each chunk doesn't have inconsistent value,
+    //    that is, "role" and/or "function_call" field don't have
+    //    different values for one sequence.
+    //    (e.g., the situation, chunks[0]["role"]: "assistant" and chunks[1]["role"]: "user", never happens)
+    auto& chunk_range{one_session_chunk_ranges[chunk_range_index]};
+    size_t range_head_index = chunk_range.first;
+    size_t range_tail_index = chunk_range.second;  // NOTE: exclusive
+
+    bool is_first = (history_index == range_head_index);
+    bool is_last = (history_index == (range_tail_index - 1));
+
+    if (is_first) {
+      // First chunk of this range.
+      // Create new object for this range and
+      // copy entire object into new instance.
+      auto& new_item = values.emplace_back();
+      new_item.CopyFrom(h, allocator);
+      if (!new_item.HasMember("content")) {
+        // For trtllm-serve, empty string must be set as "content".
+        new_item.AddMember("content", "", allocator);
+      }
+    } else {
+      // If not first chunk, append each chunk into buffer.
+      if (h.HasMember("content") && !h["content"].IsNull()) {
+        content_key = "content";
+        content_buffer.append(h[content_key.c_str()].GetString());
+      } else if (h.HasMember("reasoning_content") && !h["reasoning_content"].IsNull()) {
+        content_key = "reasoning_content";
+        content_buffer.append(h[content_key.c_str()].GetString());
+      } else if (!is_last) {
+        // Depending on inference framework, first or last chunk doesn't have
+        // content or reasoning_content field, or these fields can be null.
+        // But, if intermediate chunks don't have these fields or null value,
+        // the situation is unexpected.
+        throw std::runtime_error(
+          "Request payload or response chunks must have at least one content or reasoning_content: history_index = "
+          + std::to_string(history_index)
+          + ", chunk_range_index = "
+          + std::to_string(chunk_range_index)
+          + "\n\n\n");
+      }
+    }
+
+    if (is_last) {
+      // Last chunk of this range
+      if (!is_first) {
+        // Apply the buffer text into the object for this range and clear buffer.
+        // Note that in the case of a single request payload, this should be skipped.
+        auto& new_item = values.back();
+        UpdateContent(new_item, content_buffer, allocator);
+      }
+
+      content_buffer.clear();
+      chunk_range_index++;
+    }
+
+    // Count up index for chat_history.
+    history_index++;
+  }
+
+  // Store the final entry if it exists.
+  if (!content_buffer.empty()) {
+    // Apply the buffer text into the object for this range and clear buffer.
+    auto& new_item = values.back();
+    UpdateContent(new_item, content_buffer, allocator);
+    content_buffer.clear();
+  }
+
+  // Convert multiple Value objects into one Value instance.
+  for (auto& v : values) {
+    merged_history.PushBack(v, allocator);
+  }
+
+  payload_messages.CopyFrom(merged_history, payload_document.GetAllocator());
 }
 
 std::string

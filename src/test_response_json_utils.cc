@@ -80,6 +80,148 @@ TEST_CASE("ResponseJsonUtils::GetResponseDocument")
         "errors:\n\n\n        {\n          \"choi\n        \n\n\n",
         std::runtime_error);
   }
+
+  SUBCASE("valid json for streaming")
+  {
+    const std::string response_chunk_body{R"(
+        {
+          "id": "session-id",
+          "choices": [
+            {
+              "delta": {
+                "content": "my_content",
+                "function_call": null,
+                "role": "my_role"
+              },
+              "logprobs": null,
+              "finish_reason": null,
+              "index": 0
+            }
+          ],
+          "created": 1754554823,
+          "model": "tensorrt_llm_bls",
+          "system_fingerprint": null,
+          "object": "chat.completion.chunk",
+          "usage": null
+        }
+        )"};
+    const std::string response = "data: " + response_chunk_body;
+    const std::vector<uint8_t> response_buffer(
+        response.begin(), response.end());
+
+    const auto& response_document{
+        ResponseJsonUtils::GetResponseDocument(response_buffer)};
+
+    rapidjson::Document expected_response_document{};
+    expected_response_document.Parse(response_chunk_body.c_str());
+
+    CHECK(response_document == expected_response_document);
+  }
+
+  SUBCASE("valid termination chunk for streaming")
+  {
+    const std::string response = "data: [DONE]";
+    const std::vector<uint8_t> response_buffer(
+        response.begin(), response.end());
+
+    const auto& response_document{
+        ResponseJsonUtils::GetResponseDocument(response_buffer)};
+
+    // Empty document is expected.
+    rapidjson::Document expected_response_document{};
+
+    CHECK(response_document == expected_response_document);
+  }
+
+  SUBCASE("invalid json for streaming")
+  {
+    const std::string response_chunk_body{R"(
+        {
+          "id": "session-id",
+          "choices": [
+            {
+              "delta": {
+                "content": "my_content",
+                "function_call": null,
+                "role": "my_r
+        )"};
+    const std::string response = "data: " + response_chunk_body;
+    const std::vector<uint8_t> response_buffer(
+        response.begin(), response.end());
+
+    CHECK_THROWS_WITH_AS(
+        ResponseJsonUtils::GetResponseDocument(response_buffer),
+        "RapidJSON parse error 10. Review JSON for formatting "
+        "errors:\n\n"
+        "data: \n"
+        "        {\n"
+        "          \"id\": \"session-id\",\n"
+        "          \"choices\": [\n"
+        "            {\n"
+        "              \"delta\": {\n"
+        "                \"content\": \"my_content\",\n"
+        "                \"function_call\": null,\n"
+        "                \"role\": \"my_r\n"
+        "        \n\n\n",
+        std::runtime_error);
+  }
+
+  SUBCASE("valid json but invalid chunk for streaming")
+  {
+    const std::string response_chunk_body{R"(
+        {
+          "id": "session-id",
+          "choices": [
+            {
+              "delta": {
+                "content": "my_content",
+                "function_call": null,
+                "role": "my_role"
+              },
+              "logprobs": null,
+              "finish_reason": null,
+              "index": 0
+            }
+          ],
+          "created": 1754554823,
+          "model": "tensorrt_llm_bls",
+          "system_fingerprint": null,
+          "object": "chat.completion.chunk",
+          "usage": null
+        }
+        )"};
+    const std::string response = "event: " + response_chunk_body;
+    const std::vector<uint8_t> response_buffer(
+        response.begin(), response.end());
+
+    CHECK_THROWS_WITH_AS(
+        ResponseJsonUtils::GetResponseDocument(response_buffer),
+        "RapidJSON parse error 3. Review JSON for formatting "
+        "errors:\n\n"
+        "event: \n"
+        "        {\n"
+        "          \"id\": \"session-id\",\n"
+        "          \"choices\": [\n"
+        "            {\n"
+        "              \"delta\": {\n"
+        "                \"content\": \"my_content\",\n"
+        "                \"function_call\": null,\n"
+        "                \"role\": \"my_role\"\n"
+        "              },\n"
+        "              \"logprobs\": null,\n"
+        "              \"finish_reason\": null,\n"
+        "              \"index\": 0\n"
+        "            }\n"
+        "          ],\n"
+        "          \"created\": 1754554823,\n"
+        "          \"model\": \"tensorrt_llm_bls\",\n"
+        "          \"system_fingerprint\": null,\n"
+        "          \"object\": \"chat.completion.chunk\",\n"
+        "          \"usage\": null\n"
+        "        }\n"
+        "        \n\n\n",
+        std::runtime_error);
+  }
 }
 
 TEST_CASE("ResponseJsonUtils::GetMessage")
@@ -164,6 +306,102 @@ TEST_CASE("ResponseJsonUtils::GetMessage")
         "Response body 'choices' field's first element must be an object and "
         "have a 'message' field that is an object. Response "
         "body:\n\n{\"choices\":[{\"message\":false}]}\n\n\n",
+        std::runtime_error);
+  }
+}
+
+TEST_CASE("ResponseJsonUtils::GetDelta")
+{
+  SUBCASE("valid delta for streaming")
+  {
+    const std::string response{R"(
+        {
+          "id": "session-id",
+          "choices": [
+            {
+              "delta": {
+                "content": "my_content",
+                "function_call": null,
+                "role": "my_role"
+              },
+              "logprobs": null,
+              "finish_reason": null,
+              "index": 0
+            }
+          ],
+          "created": 1754554823,
+          "model": "tensorrt_llm_bls",
+          "system_fingerprint": null,
+          "object": "chat.completion.chunk",
+          "usage": null
+        }
+        )"};
+
+    rapidjson::Document response_document{};
+    response_document.Parse(response.c_str());
+
+    const auto& message{ResponseJsonUtils::GetDelta(response_document)};
+
+    REQUIRE(message.IsObject());
+    REQUIRE(message.MemberCount() == 3);
+    REQUIRE(message.HasMember("role"));
+    REQUIRE(message["role"].IsString());
+
+    const auto& role_value{message["role"]};
+    const std::string role(
+        role_value.GetString(), role_value.GetStringLength());
+
+    CHECK(role == "my_role");
+
+    REQUIRE(message.HasMember("content"));
+    REQUIRE(message["content"].IsString());
+
+    const auto& content_value{message["content"]};
+    const std::string content(
+        content_value.GetString(), content_value.GetStringLength());
+
+    CHECK(content == "my_content");
+  }
+
+  SUBCASE("invalid choices")
+  {
+    const std::string response{R"(
+        {
+          "choices": []
+        }
+        )"};
+
+    rapidjson::Document response_document{};
+    response_document.Parse(response.c_str());
+
+    CHECK_THROWS_WITH_AS(
+        ResponseJsonUtils::GetDelta(response_document),
+        "Response body must be an object and have a 'choices' field that is an "
+        "array with at least one element. Response "
+        "body:\n\n{\"choices\":[]}\n\n\n",
+        std::runtime_error);
+  }
+
+  SUBCASE("invalid delta")
+  {
+    const std::string response{R"(
+        {
+          "choices": [
+            {
+              "delta": false
+            }
+          ]
+        }
+        )"};
+
+    rapidjson::Document response_document{};
+    response_document.Parse(response.c_str());
+
+    CHECK_THROWS_WITH_AS(
+        ResponseJsonUtils::GetDelta(response_document),
+        "In streaming mode, response body 'choices' field's first element must be "
+        "an object and have a 'delta' field that is an object. Response "
+        "body:\n\n{\"choices\":[{\"delta\":false}]}\n\n\n",
         std::runtime_error);
   }
 }
