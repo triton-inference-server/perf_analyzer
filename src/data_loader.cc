@@ -1,4 +1,4 @@
-// Copyright 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2020-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -758,25 +758,33 @@ DataLoader::ValidateTensor(
       model_tensor.name_ + "_" + std::to_string(stream_index) + "_" +
       std::to_string(step_index));
 
-  auto data_it = input_data_.find(key_name);
-  if (data_it == input_data_.end()) {
-    data_it = output_data_.find(key_name);
+  const std::vector<char>* data = nullptr;
+  const std::vector<int64_t>* provided_shape = nullptr;
+  auto input_data_it = input_data_.find(key_name);
+  if (input_data_it != input_data_.end()) {
+    data = &input_data_it->second;
+    auto input_shape_it = input_shapes_.find(key_name);
+    if (input_shape_it != input_shapes_.end()) {
+      provided_shape = &input_shape_it->second;
+    }
+  } else {
+    auto output_data_it = output_data_.find(key_name);
+    if (output_data_it == output_data_.end()) {
+      return cb::Error("Can't validate a nonexistent tensor");
+    }
+    data = &output_data_it->second;
+    auto output_shape_it = output_shapes_.find(key_name);
+    if (output_shape_it != output_shapes_.end()) {
+      provided_shape = &output_shape_it->second;
+    }
   }
-  if (data_it == output_data_.end()) {
-    return cb::Error("Can't validate a nonexistent tensor");
-  }
-
-  auto shape_it = input_shapes_.find(key_name);
-
-  const std::vector<char>& data = data_it->second;
-  const std::vector<int64_t>& shape = (shape_it == input_shapes_.end())
-                                          ? model_tensor.shape_
-                                          : shape_it->second;
+  const std::vector<int64_t>& shape =
+      (provided_shape == nullptr) ? model_tensor.shape_ : *provided_shape;
 
   int64_t batch1_byte = ByteSize(shape, model_tensor.datatype_);
 
   RETURN_IF_ERROR(ValidateTensorShape(shape, model_tensor));
-  RETURN_IF_ERROR(ValidateTensorDataSize(data, batch1_byte, model_tensor));
+  RETURN_IF_ERROR(ValidateTensorDataSize(*data, batch1_byte, model_tensor));
 
   return cb::Error::Success;
 }
