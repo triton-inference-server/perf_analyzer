@@ -1,4 +1,4 @@
-// Copyright 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// Copyright 2023-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -951,6 +951,42 @@ TEST_CASE(
   CHECK_EQ(shape.size(), 2);
   CHECK_EQ(shape[0], 3);
   CHECK_EQ(shape[1], 2);
+}
+
+TEST_CASE(
+    "dataloader: ParseData: Supplied output shape is valid" *
+    doctest::description(
+        "A dynamic output shape supplied in validation_data is used to "
+        "validate the output"))
+{
+  std::string json_str{R"({
+    "data": [{ "INPUT1": [1] }],
+    "validation_data": [{
+      "OUTPUT1": { "shape": [1], "content": [40] }
+    }]
+  })"};
+
+  MockDataLoader dataloader;
+  std::shared_ptr<ModelTensorMap> inputs = std::make_shared<ModelTensorMap>();
+  std::shared_ptr<ModelTensorMap> outputs = std::make_shared<ModelTensorMap>();
+
+  ModelTensor input1 = TestDataLoader::CreateTensor("INPUT1");
+  ModelTensor output1 = TestDataLoader::CreateTensor("OUTPUT1");
+  output1.shape_ = {-1};
+
+  inputs->insert(std::make_pair(input1.name_, input1));
+  outputs->insert(std::make_pair(output1.name_, output1));
+
+  cb::Error status = dataloader.ReadDataFromStr(json_str, inputs, outputs);
+  REQUIRE(status.IsOk());
+
+  TensorData data;
+  status = dataloader.GetOutputData("OUTPUT1", 0, 0, data);
+  REQUIRE(status.IsOk());
+  CHECK(data.is_valid);
+  const int32_t* output_data = reinterpret_cast<const int32_t*>(data.data_ptr);
+  CHECK_EQ(output_data[0], 40);
+  CHECK_EQ(data.batch1_size, 4);
 }
 
 
