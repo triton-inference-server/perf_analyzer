@@ -1,4 +1,4 @@
-# Copyright 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ class SweepObjectiveGenerator:
     def _create_objectives(self) -> Generator[ModelObjectiveParameters, None, None]:
         # First create the dictionary of PER MODEL parameter combinations
         model_all_search_parameter_combinations: ModelParameterCombinations = {}
-        for model_name in self._config.model_names:
+        for model_name in self._model_search_parameters:
             model_all_search_parameter_combinations[model_name] = (
                 self._create_list_of_model_search_parameter_combinations(model_name)
             )
@@ -153,7 +153,7 @@ class SweepObjectiveGenerator:
     ###########################################################################
     def _calculate_num_of_configs_in_search_space(self) -> int:
         num_of_configs_in_search_space = 1
-        for model_name in self._config.model_names:
+        for model_name in self._model_search_parameters:
             num_of_configs_in_search_space *= self._model_search_parameters[
                 model_name
             ].number_of_total_possible_configurations()
@@ -175,7 +175,7 @@ class SweepObjectiveGenerator:
         logger.info("")
 
     def _print_debug_model_search_space_info(self) -> None:
-        for model_name in self._config.model_names:
+        for model_name in self._model_search_parameters:
             logger.debug(f"Model - {model_name}:")
             for search_parameter_name in self._model_search_parameters[
                 model_name

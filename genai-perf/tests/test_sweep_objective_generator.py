@@ -1,4 +1,4 @@
-# Copyright 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright 2024-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,94 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+import logging
 import unittest
+from functools import partial
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from math import log2
+from pathlib import Path
+from threading import Thread
+from typing import Any, Iterator
 from unittest.mock import patch
 
+import pytest
+from genai_perf.config.generate.perf_analyzer_config import PerfAnalyzerConfig
 from genai_perf.config.generate.search_parameters import SearchParameters
 from genai_perf.config.generate.sweep_objective_generator import SweepObjectiveGenerator
 from genai_perf.config.input.config_command import ConfigCommand
 from genai_perf.config.input.config_defaults import AnalyzeDefaults
+from genai_perf.inputs.input_constants import DEFAULT_INPUT_DATA_JSON
+from genai_perf.subcommand.analyze import Analyze
+
+
+@pytest.fixture
+def metrics_url(tmp_path: Path) -> Iterator[str]:
+    (tmp_path / "metrics").write_text("", encoding="utf-8")
+    with HTTPServer(
+        server_address=("127.0.0.1", 0),
+        RequestHandlerClass=partial(SimpleHTTPRequestHandler, directory=str(tmp_path)),
+    ) as server:
+        thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+        thread.start()
+        try:
+            yield f"http://127.0.0.1:{server.server_port}/metrics"
+        finally:
+            server.shutdown()
+            thread.join()
+
+
+@pytest.mark.parametrize("model_names", [["mistral:7b"], ["mistral:7b", "llama2:7b"]])
+@pytest.mark.parametrize("log_level", [logging.INFO, logging.DEBUG])
+def test_analyze_sweeps_model_selection(
+    model_names: list[str],
+    log_level: int,
+    metrics_url: str,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    prompts: Path = tmp_path / "prompts.jsonl"
+    prompts.write_text('{"text": "hello"}\n{"text": "world"}\n', encoding="utf-8")
+    config: ConfigCommand = ConfigCommand(
+        user_config={
+            "model_names": model_names,
+            "analyze": {"concurrency": {"start": 1, "stop": 2}},
+            "endpoint": {"type": "chat", "server_metrics_urls": [metrics_url]},
+            "input": {"file": str(prompts), "num_dataset_entries": 2},
+            "output": {
+                "artifact_directory": str(tmp_path),
+                "enable_checkpointing": False,
+            },
+        }
+    )
+    print(f"\nmodels={model_names} log_level={logging.getLevelName(log_level)}")
+    with caplog.at_level(
+        level=log_level,
+        logger="genai_perf.config.generate.sweep_objective_generator",
+    ):
+        analyze: Analyze = Analyze(config=config, extra_args=None)
+        concurrencies: list[int] = []
+        for objectives in analyze._sweep_objective_generator.get_objectives():
+            perf_config: PerfAnalyzerConfig = analyze._create_perf_analyzer_config(
+                objectives=objectives
+            )
+            analyze._create_artifact_directory(perf_config)
+            analyze._generate_inputs(perf_analyzer_config=perf_config)
+            concurrency: int = perf_config.get_inference_value()
+            concurrencies.append(concurrency)
+            payloads: dict[str, Any] = json.loads(
+                (
+                    perf_config.get_artifact_directory() / DEFAULT_INPUT_DATA_JSON
+                ).read_text(encoding="utf-8")
+            )
+            request_models: list[str] = [
+                row["payload"][0]["model"] for row in payloads["data"]
+            ]
+            print(f"concurrency={concurrency} request_models={request_models}")
+            assert request_models == [
+                model_names[index % len(model_names)] for index in range(2)
+            ]
+        assert concurrencies == [1, 2]
 
 
 class TestSweepObjectiveGenerator(unittest.TestCase):
