@@ -306,7 +306,8 @@ class CreateConfig:
             config.input.output_tokens.stddev = args.output_tokens_stddev
 
         # Input - Synthetic Tokens
-        if args.synthetic_input_tokens_mean:
+        # 0 is used for no text input
+        if isinstance(args.synthetic_input_tokens_mean, int) and args.synthetic_input_tokens_mean >= 0:
             config.input.synthetic_tokens.mean = args.synthetic_input_tokens_mean
         if args.synthetic_input_tokens_stddev:
             config.input.synthetic_tokens.stddev = args.synthetic_input_tokens_stddev
