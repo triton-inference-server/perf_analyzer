@@ -1,4 +1,4 @@
-# Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,4 +31,5 @@ from pathlib import Path
 
 def main():
     bin_path = Path(__file__).parent / "bin/perf_analyzer"
-    subprocess.run([bin_path] + sys.argv[1:])
+    completed = subprocess.run([bin_path, *sys.argv[1:]])
+    sys.exit(completed.returncode)
