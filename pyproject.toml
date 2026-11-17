@@ -50,6 +50,10 @@ packages = ["src/perf_analyzer"]
 # be silently dropped from the wheel. See TRI-1775.
 artifacts = ["src/perf_analyzer/bin/perf_analyzer"]
 
+[tool.hatch.build.targets.wheel.hooks.custom]
+# Tags the wheel platform-specific rather than py3-none-any -- see
+# hatch_build.py.
+
 [project.scripts]
 perf_analyzer = "perf_analyzer.cli:main"
 
