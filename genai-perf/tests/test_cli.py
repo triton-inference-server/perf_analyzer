@@ -719,6 +719,16 @@ class TestCLIArguments:
         config = CreateConfig.create(args)
         assert config.template_filename == Path("custom_template.yaml")
 
+    def test_non_default_create_template_header(self, monkeypatch, capsys):
+        monkeypatch.setattr(
+            "sys.argv",
+            ["genai-perf", "create-template", "--header", "custom_header"],
+        )
+
+        args, _ = parser.parse_args()
+        config = CreateConfig.create(args)
+        assert config.template_header == "custom_header"
+
     @pytest.mark.parametrize(
         "args, expected_error_message",
         [

@@ -268,6 +268,12 @@ def _add_template_args(parser):
         help="The name to the template file that will be created.",
     )
 
+    template_group.add_argument(
+        "--header",
+        type=str,
+        help="The header name to be used in the config template file."
+    )
+
 
 def _add_config_args(parser):
     config_group = parser.add_argument_group("Config")
