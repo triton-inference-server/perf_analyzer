@@ -112,6 +112,9 @@ GetChannel(const std::string& url, bool use_ssl, const SslOptions& ssl_options)
     grpc::ChannelArguments arguments;
     arguments.SetMaxSendMessageSize(tc::MAX_GRPC_MESSAGE_SIZE);
     arguments.SetMaxReceiveMessageSize(tc::MAX_GRPC_MESSAGE_SIZE);
+    if (!ssl_options.target_name_override.empty()) {
+      arguments.SetSslTargetNameOverride(ssl_options.target_name_override);
+    }
     std::shared_ptr<grpc::ChannelCredentials> credentials;
     if (use_ssl) {
       std::string root;
