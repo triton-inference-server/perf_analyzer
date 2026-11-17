@@ -46,7 +46,6 @@ def check_image_retrieval_metrics(
 
 
 class TestImageRetrievalProfileDataParser:
-
     image_retrieval_profile_data = {
         "experiments": [
             {
@@ -75,6 +74,44 @@ class TestImageRetrievalProfileDataParser:
         "service_kind": "openai",
         "endpoint": "v1/infer",
     }
+
+    def test_custom_ocr_endpoint_profile_data(self, tmp_path: Path) -> None:
+        """A custom endpoint need not include an image retrieval marker."""
+        profile_data = {
+            "experiments": [
+                {
+                    "experiment": {"mode": "concurrency", "value": 1},
+                    "requests": [
+                        {
+                            "timestamp": 0,
+                            "request_inputs": {
+                                "payload": '{"input":[{"type":"image_url","url":"image1"}]}'
+                            },
+                            "response_timestamps": [1_000_000_000],
+                            "response_outputs": [
+                                {
+                                    "response": (
+                                        '{"model":"nvidia/nemotron-ocr-v2",'
+                                        '"data":[{"index":0,"text_detections":[]}],'
+                                        '"usage":{"images_size_mb":1.0}}'
+                                    )
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+            "version": "2.60.0",
+            "service_kind": "openai",
+            "endpoint": "v1/ocr",
+        }
+        profile_export = tmp_path / "profile_export.json"
+        profile_export.write_text(json.dumps(profile_data))
+
+        parser = ImageRetrievalProfileDataParser(filename=profile_export)
+
+        assert parser.get_profile_load_info() == [("concurrency", "1")]
+        assert parser.get_statistics("concurrency", "1") is not None
 
     @patch("pathlib.Path.exists", return_value=True)
     @patch(
