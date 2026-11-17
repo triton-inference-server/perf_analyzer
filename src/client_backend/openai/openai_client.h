@@ -40,10 +40,11 @@ class ChatCompletionResult : public InferResult {
  public:
   ChatCompletionResult(
       uint32_t http_code, std::string&& serialized_response, bool is_final,
-      bool is_null, const std::string& request_id)
+      bool is_null, bool is_stream, const std::string& request_id)
       : http_code_(http_code),
         serialized_response_(std::move(serialized_response)),
-        is_final_(is_final), is_null_(is_null), request_id_(request_id)
+        is_final_(is_final), is_null_(is_null), is_stream_(is_stream),
+        request_id_(request_id)
   {
   }
   virtual ~ChatCompletionResult() = default;
@@ -99,11 +100,20 @@ class ChatCompletionResult : public InferResult {
     return Error::Success;
   };
 
+  /// Get stream response bool for this response.
+  /// \return Error object indicating the success or failure.
+  Error IsStreamResponse(bool* is_stream_response) const override
+  {
+    *is_stream_response = is_stream_;
+    return Error::Success;
+  };
+
  private:
   const uint32_t http_code_{200};
   const std::string serialized_response_;
   const bool is_final_{false};
   const bool is_null_{false};
+  const bool is_stream_{false};
   const std::string request_id_;
 };
 

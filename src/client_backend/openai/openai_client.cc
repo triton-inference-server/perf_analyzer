@@ -65,7 +65,7 @@ ChatCompletionRequest::SendResponse(bool is_final, bool is_null)
 {
   final_response_sent_ = is_final;
   response_callback_(new ChatCompletionResult(
-      http_code_, std::move(response_buffer_), is_final, is_null, request_id_));
+      http_code_, std::move(response_buffer_), is_final, is_null, is_stream_, request_id_));
 }
 
 ChatCompletionClient::ChatCompletionClient(
