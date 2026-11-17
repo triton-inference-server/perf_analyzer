@@ -14,6 +14,7 @@
 
 import os
 import subprocess  # nosec
+import re
 from typing import Dict, List, Optional, Tuple
 
 import genai_perf.logging as logging
@@ -95,7 +96,10 @@ class Subcommand:
 
             remove_file(perf_analyzer_config.get_profile_export_file())
             cmd = perf_analyzer_config.create_command()
-            logger.info(f"Running Perf Analyzer : '{' '.join(cmd)}'")
+            
+            # Mask the Authorization token
+            masked_cmd = re.sub(r'(-H Authorization: Bearer )\S+', r'\1********', ' '.join(cmd))
+            logger.info(f"Running Perf Analyzer : '{masked_cmd}'")
 
             if self._config.verbose or self._config.perf_analyzer.verbose:
                 subprocess.run(cmd, check=True, stdout=None)  # nosec
